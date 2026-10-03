@@ -4,6 +4,8 @@ Use a Shiny visitor's **shinyOAuth** authorization with DBI, **fabricQueryR**, *
 
 A backend helper returns a reactive accessor to a native connection or credential. Call it from ordinary Shiny code, then use the database package directly. shinyOAuth handles login and refresh; the database package handles queries and results.
 
+Start with the [simple apps vignette](vignettes/simple-apps.Rmd): one small app, then short examples for each Fabric interface, Databricks, Azure SQL/PostgreSQL, SQL Server, and Snowflake. After installing with vignettes, open it with `vignette("simple-apps", package = "shinyOAuthDB")`.
+
 ## A complete Azure SQL app
 
 Set `OAUTHDB_TENANT_ID`, `OAUTHDB_CLIENT_ID`, `OAUTHDB_CLIENT_SECRET`, `OAUTHDB_SERVER`, and `OAUTHDB_DATABASE`. Register `http://localhost:8100` as the OAuth redirect URI.

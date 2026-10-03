@@ -1,5 +1,6 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a simple-apps vignette with direct connection and query examples for every backend and Fabric interface.
 * Use unmodified upstream brickster with bearer strings; refresh DBI connections when their fixed token rotates.
 * Own Databricks OAuth provider discovery in `oauth_db_databricks_provider()`.
 * Supply ordinary Fabric token callbacks without fabricQueryR Shiny helpers, new provider hooks, or private credential metadata.

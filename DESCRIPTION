@@ -22,12 +22,15 @@ Suggests:
     dbplyr,
     dplyr,
     fabricQueryR,
+    knitr,
     odbc (>= 1.3.4),
     pkgload,
     RPostgres,
+    rmarkdown,
     RSQLite,
     testthat (>= 3.2.0),
     withr
+VignetteBuilder: knitr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0

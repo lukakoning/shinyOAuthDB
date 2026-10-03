@@ -1,6 +1,7 @@
 # Read-only repository documentation check: Rscript tools/check-docs.R
 paths <- c(
   "README.md",
+  list.files("vignettes", "\\.Rmd$", full.names = TRUE),
   list.files("docs", "\\.md$", full.names = TRUE),
   list.files("playground", "\\.md$", full.names = TRUE, recursive = TRUE),
   "tests/integration/README.md",

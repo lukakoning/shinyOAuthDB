@@ -47,7 +47,6 @@ cat(
 check <- rcmdcheck::rcmdcheck(
   root,
   args = "--no-manual",
-  build_args = "--no-build-vignettes",
   error_on = "never"
 )
 cat(

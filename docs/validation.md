@@ -34,6 +34,12 @@ are used by the bridge.
   the proper credential; errors remain source-local; A/B replacement and logout
   clear dependent results. Shared and delegated settings remain separate.
 - **Documentation:** R blocks parse and repository-local links resolve.
+- **Simple apps vignette:** the complete UI, client definitions, and all 21
+  connection/query variants executed in a one-off local smoke check with native
+  transports mocked. All query variants also cleared their output on logout.
+  R CMD build created the HTML vignette, and R CMD check rebuilt it successfully
+  with zero errors, warnings, or notes. The documentation checker now includes
+  vignettes: 46 R blocks parse and 49 local links resolve.
 
 The 356-assertion bridge suite and clean R CMD check also passed against the
 cleaned fabricQueryR checkout, with unmodified upstream brickster. The cleaned
