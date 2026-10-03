@@ -38,35 +38,81 @@
 #'   accessor or in a reactive supplied to [oauth_db_session()]. Printing the
 #'   adapter does not expose IDs, callbacks or credentials.
 #' @export
-oauth_db_authorization <- function(id, access_token, has_scopes, targets = NULL) {
+oauth_db_authorization <- function(
+  id,
+  access_token,
+  has_scopes,
+  targets = NULL
+) {
   .odb_string(id, "authorization ID")
-  .odb_authorization_method(access_token, "access_token", c("required_scopes", "min_valid_for", "force_refresh", "async"))
+  .odb_authorization_method(
+    access_token,
+    "access_token",
+    c("required_scopes", "min_valid_for", "force_refresh", "async")
+  )
   .odb_authorization_method(has_scopes, "has_scopes", "scopes")
-  if (!is.null(targets)) .odb_authorization_method(targets, "targets", character())
-  connection <- list(id = id, access_token = access_token, has_scopes = has_scopes)
-  result <- list(id = id,
-    access_token = function(required_scopes = character(), min_valid_for = 60,
-                            force_refresh = FALSE, async = FALSE, target = NULL) {
+  if (!is.null(targets)) {
+    .odb_authorization_method(targets, "targets", character())
+  }
+
+  connection <- list(
+    id = id,
+    access_token = access_token,
+    has_scopes = has_scopes
+  )
+
+  result <- list(
+    id = id,
+    access_token = function(
+      required_scopes = character(),
+      min_valid_for = 60,
+      force_refresh = FALSE,
+      async = FALSE,
+      target = NULL
+    ) {
       .odb_scopes(required_scopes)
       .odb_seconds(min_valid_for, "min_valid_for")
       .odb_flag(force_refresh, "force_refresh")
       .odb_flag(async, "async")
       .odb_string(target, "target", optional = TRUE)
-      value <- .odb_authorization_call(connection, "access_token", list(
-        required_scopes = required_scopes, min_valid_for = min_valid_for,
-        force_refresh = force_refresh, async = async, target = target))
+
+      value <- .odb_authorization_call(
+        connection,
+        "access_token",
+        list(
+          required_scopes = required_scopes,
+          min_valid_for = min_valid_for,
+          force_refresh = force_refresh,
+          async = async,
+          target = target
+        )
+      )
+
       if (!async && inherits(value, "promise")) {
-        .odb_abort("Synchronous access_token() must return a bearer token, not a promise; use async = TRUE for asynchronous acquisition.", "invalid_credential")
+        .odb_abort(
+          "Synchronous access_token() must return a bearer token, not a promise; use async = TRUE for asynchronous acquisition.",
+          "invalid_credential"
+        )
       }
-      if (async && !inherits(value, "promise")) return(promises::promise_resolve(value))
+      if (async && !inherits(value, "promise")) {
+        return(promises::promise_resolve(value))
+      }
+
       value
     },
+
     has_scopes = function(scopes, target = NULL) {
       .odb_scopes(scopes, "scopes")
       .odb_string(target, "target", optional = TRUE)
+
       .odb_authorization_has_scopes(connection, scopes, target)
-    })
-  if (!is.null(targets)) result$targets <- targets
+    }
+  )
+
+  if (!is.null(targets)) {
+    result$targets <- targets
+  }
+
   structure(result, class = "oauth_db_authorization")
 }
 
@@ -75,61 +121,127 @@ oauth_db_authorization <- function(id, access_token, has_scopes, targets = NULL)
 }
 
 .odb_authorization_method <- function(fun, name, required) {
-  if (!is.function(fun)) .odb_abort(paste0("Authorization must provide a callable ", name, "() method."), "invalid_authorization")
+  if (!is.function(fun)) {
+    .odb_abort(
+      paste0("Authorization must provide a callable ", name, "() method."),
+      "invalid_authorization"
+    )
+  }
+
   arguments <- names(formals(fun))
   if (!"..." %in% arguments && !all(required %in% arguments)) {
-    .odb_abort(paste0("Authorization ", name, "() must accept: ", paste(required, collapse = ", "), ". Use oauth_db_authorization() to adapt another interface."), "invalid_authorization")
+    .odb_abort(
+      paste0(
+        "Authorization ",
+        name,
+        "() must accept: ",
+        paste(required, collapse = ", "),
+        ". Use oauth_db_authorization() to adapt another interface."
+      ),
+      "invalid_authorization"
+    )
   }
+
   invisible(fun)
 }
 
 .odb_authorization_validate <- function(connection) {
   .odb_string(.odb_authorization_field(connection, "id"), "authorization ID")
-  .odb_authorization_method(.odb_authorization_field(connection, "access_token"), "access_token",
-                            c("required_scopes", "min_valid_for", "force_refresh", "async"))
-  .odb_authorization_method(.odb_authorization_field(connection, "has_scopes"), "has_scopes", "scopes")
+  .odb_authorization_method(
+    .odb_authorization_field(connection, "access_token"),
+    "access_token",
+    c("required_scopes", "min_valid_for", "force_refresh", "async")
+  )
+  .odb_authorization_method(
+    .odb_authorization_field(connection, "has_scopes"),
+    "has_scopes",
+    "scopes"
+  )
+
   targets <- .odb_authorization_field(connection, "targets")
-  if (!is.null(targets)) .odb_authorization_method(targets, "targets", character())
+  if (!is.null(targets)) {
+    .odb_authorization_method(targets, "targets", character())
+  }
+
   invisible(connection)
 }
 
 .odb_authorization_call <- function(connection, method, args) {
   fun <- .odb_authorization_field(connection, method)
   .odb_authorization_method(fun, method, setdiff(names(args), "target"))
+
   accepts <- names(formals(fun))
-  if ("target" %in% names(args) && !"target" %in% accepts && !"..." %in% accepts) {
+
+  # Legacy single-resource callbacks may omit target, but cannot route a named one.
+  if (
+    "target" %in% names(args) && !"target" %in% accepts && !"..." %in% accepts
+  ) {
     if (!is.null(args$target)) {
-      .odb_abort("This authorization cannot select a named token target. Adapt its target routing or use a single-resource source with target = NULL.", "unsupported_authorization_target")
+      .odb_abort(
+        "This authorization cannot select a named token target. Adapt its target routing or use a single-resource source with target = NULL.",
+        "unsupported_authorization_target"
+      )
     }
+
     args$target <- NULL
   }
+
   do.call(fun, args)
 }
 
 .odb_authorization_has_scopes <- function(connection, scopes, target) {
-  value <- .odb_authorization_call(connection, "has_scopes", list(scopes = scopes, target = target))
+  value <- .odb_authorization_call(
+    connection,
+    "has_scopes",
+    list(scopes = scopes, target = target)
+  )
   if (!is.logical(value) || length(value) != 1L || is.na(value)) {
-    .odb_abort("Authorization has_scopes() must return one non-missing logical value.", "invalid_authorization")
+    .odb_abort(
+      "Authorization has_scopes() must return one non-missing logical value.",
+      "invalid_authorization"
+    )
   }
+
   value
 }
 
 .odb_authorization_reader <- function(authorization) {
-  if (shiny::is.reactive(authorization)) return(authorization)
+  if (shiny::is.reactive(authorization)) {
+    return(authorization)
+  }
   if (is.function(authorization)) {
+    # Optional parameters are fine; accessors must work without supplied arguments.
     required <- formals(authorization)
     required <- required[names(required) != "..."]
-    if (length(required) && any(vapply(required, function(value) identical(value, quote(expr = )), logical(1)))) {
-      .odb_abort("authorization accessor must be callable without arguments.", "invalid_authorization")
+    if (
+      length(required) &&
+        any(vapply(
+          required,
+          function(value) identical(value, quote(expr = )),
+          logical(1)
+        ))
+    ) {
+      .odb_abort(
+        "authorization accessor must be callable without arguments.",
+        "invalid_authorization"
+      )
     }
+
     return(shiny::reactive(authorization()))
   }
-  if (!is.null(authorization)) .odb_authorization_validate(authorization)
+  if (!is.null(authorization)) {
+    .odb_authorization_validate(authorization)
+  }
+
+  # Retain the supplied object so this reader stays pinned to that grant.
   shiny::reactive(authorization)
 }
 
 #' @export
 print.oauth_db_authorization <- function(x, ...) {
-  cat("<oauth_db_authorization: caller-owned user authorization; credentials redacted>\n")
+  cat(
+    "<oauth_db_authorization: caller-owned user authorization; credentials redacted>\n"
+  )
+
   invisible(x)
 }

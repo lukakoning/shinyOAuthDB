@@ -38,33 +38,46 @@ library(shinyOAuthDB)
 
 source <- oauth_db_azure_sql("example.database.windows.net", "Reporting")
 client <- oauth_db_microsoft_client(
-  source, tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  source,
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = "http://localhost:8100"
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  actionButton("load", "Load data"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    actionButton("load", "Load data"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
+  # Keep the handle local to this visitor's session and selected grant.
   db <- oauth_db_session(source, reactive(auth$connection()))
 
   rows <- reactive({
-    db$generation()
+    db$generation() # Rerun when authorization changes so old rows disappear.
     req(input$load > 0)
-    oauth_db_with_connection(db, DBI::dbGetQuery,
-      statement = "SELECT TOP (20) name FROM sys.tables")
+
+    oauth_db_with_connection(
+      db,
+      DBI::dbGetQuery,
+      statement = "SELECT TOP (20) name FROM sys.tables"
+    )
   })
+
   output$rows <- renderTable(rows())
 }
+
 shinyApp(ui, server, uiPattern = ".*")
 ```
 
@@ -84,8 +97,12 @@ db <- oauth_db_session(source, authorization = auth$connection)
 # 'databases' is a manager configured with database clients only.
 db <- oauth_db_session(source, authorization = function() {
   req(app_login$connection())
-  id <- input$database_authorization  # explicitly selected manager ID
-  if (is.null(id) || !nzchar(id)) return(NULL)
+
+  id <- input$database_authorization # explicitly selected manager ID
+  if (is.null(id) || !nzchar(id)) {
+    return(NULL)
+  }
+
   databases$connection(id)
 })
 ```
@@ -99,8 +116,8 @@ Custom provider objects work too. They need `id`, `access_token(required_scopes,
 ```r
 custom <- oauth_db_authorization(
   id = provider_grant_id,
-  access_token = my_access_token,  # callback honoring scopes/lifetime/refresh/async
-  has_scopes = my_has_scopes      # reactive permission + grant-liveness check
+  access_token = my_access_token, # callback honoring scopes/lifetime/refresh/async
+  has_scopes = my_has_scopes # reactive permission + grant-liveness check
 )
 db <- oauth_db_session(source, authorization = custom)
 ```
@@ -113,21 +130,29 @@ Fabric and Databricks retain their native functions and provider formats:
 
 ```r
 # Inside server(), using the source appropriate for this service:
-kql_source <- oauth_db_fabric("kql",
-  cluster = "https://example.kusto.fabric.microsoft.com", database = "Events")
+kql_source <- oauth_db_fabric(
+  "kql",
+  cluster = "https://example.kusto.fabric.microsoft.com",
+  database = "Events"
+)
 kql <- oauth_db_session(kql_source, reactive(auth$connection()))
 
 fabricQueryR::fabric_kql_query(
-  query = "Events | take 10", cluster = kql_source$config$cluster,
-  database = kql_source$config$database, token = kql$token_provider()
+  query = "Events | take 10",
+  cluster = kql_source$config$cluster,
+  database = kql_source$config$database,
+  token = kql$token_provider()
 )
 
-databricks <- oauth_db_session(databricks_source,
-  reactive(databricks_auth$connection()))
+databricks <- oauth_db_session(
+  databricks_source,
+  reactive(databricks_auth$connection())
+)
 brickster::db_sql_query(
   host = databricks_source$config$host,
   warehouse_id = databricks_source$config$warehouse_id,
-  statement = "SELECT current_user()", token = databricks$token_provider()
+  statement = "SELECT current_user()",
+  token = databricks$token_provider()
 )
 ```
 
@@ -140,19 +165,34 @@ Pass an existing exported function directly. The adapter supplies the source con
 ```r
 # Outside server(), choose and configure an existing worker engine:
 mirai::daemons(2)
+
 # Or: future::plan(future::multisession, workers = 2)
 
 # Inside server():
-query <- oauth_db_task(db, DBI::dbGetQuery,
-  executor = "mirai", pending = "latest", effect = "read",
-  credential_budget = 120)
+query <- oauth_db_task(
+  db,
+  DBI::dbGetQuery,
+  executor = "mirai",
+  pending = "latest",
+  effect = "read",
+  credential_budget = 120
+)
 
-observeEvent(input$load, query$invoke(
-  statement = "SELECT TOP (20) name FROM sys.tables"))
+observeEvent(
+  input$load,
+  query$invoke(
+    statement = "SELECT TOP (20) name FROM sys.tables"
+  )
+)
+
 output$rows <- renderTable(query$result())
 
-kql_query <- oauth_db_task(kql, fabricQueryR::fabric_kql_query,
-  pending = "latest", effect = "read")
+kql_query <- oauth_db_task(
+  kql,
+  fabricQueryR::fabric_kql_query,
+  pending = "latest",
+  effect = "read"
+)
 kql_query$invoke(query = "Events | take 10")
 ```
 

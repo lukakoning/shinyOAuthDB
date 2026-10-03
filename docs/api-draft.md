@@ -63,12 +63,16 @@ ui <- shinyOAuth::oauth_ui(
     textOutput("load_status"),
     tableOutput("sales")
   ),
-  id = "auth", client = client
+  id = "auth",
+  client = client
 )
 
 server <- function(input, output, session) {
   auth <- shinyOAuth::oauth_module_server(
-    "auth", client, async = TRUE, refresh_proactively = TRUE
+    "auth",
+    client,
+    async = TRUE,
+    refresh_proactively = TRUE
   )
 
   db <- shinyOAuthDB::oauth_db_session(
@@ -94,6 +98,7 @@ server <- function(input, output, session) {
   })
 
   output$load_status <- renderText(sales$status())
+
   output$sales <- renderTable(sales$result())
 }
 
@@ -183,7 +188,8 @@ events_source <- shinyOAuthDB::oauth_db_fabric(
 
 # Inside server():
 events_db <- shinyOAuthDB::oauth_db_session(
-  events_source, authorization = shiny::reactive(auth$connection())
+  events_source,
+  authorization = shiny::reactive(auth$connection())
 )
 
 events <- shinyOAuthDB::oauth_db_with_client(events_db, function(client) {
@@ -198,10 +204,13 @@ events <- shinyOAuthDB::oauth_db_with_client(events_db, function(client) {
 events_task <- shinyOAuthDB::oauth_db_task(
   events_db,
   operation = shinyOAuthDB::oauth_db_native_operation(
-    package = "fabricQueryR", fun = "fabric_kql_query", effect = "read"
+    package = "fabricQueryR",
+    fun = "fabric_kql_query",
+    effect = "read"
   ),
   executor = "mirai"
 )
+
 events_task$invoke(query = "Events | take 10")
 ```
 
@@ -231,7 +240,8 @@ workspace_db <- shinyOAuthDB::oauth_db_session(
 )
 
 rows <- shinyOAuthDB::oauth_db_query(
-  workspace_db, "SELECT * FROM main.reporting.sales LIMIT 10"
+  workspace_db,
+  "SELECT * FROM main.reporting.sales LIMIT 10"
 )
 
 rows <- shinyOAuthDB::oauth_db_with_client(workspace_db, function(client) {

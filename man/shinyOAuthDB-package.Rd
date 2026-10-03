@@ -10,6 +10,14 @@ shinyOAuthDB connects module-owned shinyOAuth authorizations to existing
 database and data platform packages. Start with a source constructor and
 \code{\link[=oauth_db_session]{oauth_db_session()}}; use native connections/providers or \code{\link[=oauth_db_task]{oauth_db_task()}}.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/lukakoning/shinyOAuthDB}
+  \item Report bugs at \url{https://github.com/lukakoning/shinyOAuthDB/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Luka Koning \email{koningluka@gmail.com} [copyright holder]
 

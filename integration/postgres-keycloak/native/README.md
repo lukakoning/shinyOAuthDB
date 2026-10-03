@@ -13,10 +13,13 @@ con <- pgBearerHook::pg_connect_bearer(
   token = user_access_token,
   issuer = "https://localhost:18443/realms/shinyoauthdb",
   scope = "database.read",
-  host = "localhost", port = 5432L,
-  dbname = "oauthdb_fixture", user = "alice",
+  host = "localhost",
+  port = 5432L,
+  dbname = "oauthdb_fixture",
+  user = "alice",
   sslrootcert = "/fixtures/tls/ca-cert.pem"
 )
+
 on.exit(DBI::dbDisconnect(con), add = TRUE)
 DBI::dbGetQuery(con, "SELECT current_user")
 ```
