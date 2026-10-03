@@ -10,7 +10,7 @@ if (
 }
 
 paths <- c(
-  list.files("playground", pattern = "\\.R$", full.names = TRUE)
+  list.files("playground", pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
 )
 
 for (path in paths) {
@@ -33,7 +33,7 @@ if ("--test" %in% commandArgs(trailingOnly = TRUE)) {
 
   testthat::test_dir(
     "tests/testthat",
-    filter = "playground|multiple-connections|standalone-apps",
+    filter = "playground|multiple-connections|standalone-apps|fabric-app",
     stop_on_failure = TRUE
   )
 }

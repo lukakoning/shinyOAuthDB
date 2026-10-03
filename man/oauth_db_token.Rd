@@ -28,8 +28,7 @@ during acquisition but is not a literal granted permission.}
 }
 \value{
 A reactive accessor returning a current bearer token. Call \code{token()}
-when making a native request; do not save its value globally. Fabric and
-Databricks helpers instead return their packages' native token providers.
+when making a native request; do not save its value globally.
 }
 \description{
 Obtain the user's access token for another native client

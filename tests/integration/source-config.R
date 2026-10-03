@@ -69,7 +69,7 @@ live_spec <- function(backend) {
       "SELECT CURRENT_USER() AS database_user, CURRENT_ROLE() AS database_role, CAST(? AS INTEGER) AS requested_value", "snowflake"))
   }
   if (backend == "databricks") {
-    host <- live_env("OAUTHDB_DATABRICKS_HOST")
+    host <- sub("/$", "", sub("^https://", "", live_env("OAUTHDB_DATABRICKS_HOST")))
     warehouse <- live_env("OAUTHDB_DATABRICKS_WAREHOUSE")
     return(list(service = "databricks",
       bind = function(auth) shinyOAuthDB::oauth_db_databricks(auth, host),
@@ -84,7 +84,6 @@ live_spec <- function(backend) {
   live_require("fabricQueryR")
   service <- sub("^fabric-", "", backend)
   fixed <- list()
-  endpoint_hosts <- character()
   if (service == "kql") {
     fixed <- list(cluster = live_env("OAUTHDB_KQL_CLUSTER"), database = live_env("OAUTHDB_KQL_DATABASE"))
     native_args <- function(value) list(query = "declare query_parameters(value:int); print requested_value = value",
@@ -98,8 +97,6 @@ live_spec <- function(backend) {
     fixed <- list(api = live_env("OAUTHDB_GRAPHQL_API"))
     workspace <- live_env("OAUTHDB_FABRIC_WORKSPACE", "")
     if (nzchar(workspace)) fixed$workspace_id <- workspace
-    configured_hosts <- trimws(live_env("OAUTHDB_GRAPHQL_ENDPOINT_HOSTS", ""))
-    if (nzchar(configured_hosts)) endpoint_hosts <- strsplit(configured_hosts, "[[:space:]]+")[[1L]]
     query <- live_env("OAUTHDB_GRAPHQL_QUERY", "query Playground { __typename }")
     native_args <- function(value) list(query = query, error_policy = "error")
     operation <- fabricQueryR::fabric_graphql_query
@@ -116,7 +113,7 @@ live_spec <- function(backend) {
   } else stop("Unknown live transport backend.", call. = FALSE)
 
   list(service = service,
-    bind = function(auth) shinyOAuthDB::oauth_db_fabric(auth, service, endpoint_hosts = endpoint_hosts),
+    bind = function(auth) shinyOAuthDB::oauth_db_fabric(auth, service),
     native_args = native_args,
     query = function(native, args) do.call(operation, c(fixed, list(token = native), args)))
 }

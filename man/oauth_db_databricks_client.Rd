@@ -32,8 +32,8 @@ oauth_db_databricks_client(
 \item{scopes}{Complete client consent scopes, replacing the preset defaults.}
 }
 \value{
-A native shinyOAuth client. Discovery uses brickster and may make a
-network request. Requires its external-token/OAuth provider hooks.
+A native shinyOAuth client. Default provider discovery makes an HTTPS
+request to the workspace; supplying \code{provider} bypasses discovery.
 }
 \description{
 Configure a native Databricks shinyOAuth client

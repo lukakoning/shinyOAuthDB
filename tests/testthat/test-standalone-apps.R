@@ -3,13 +3,7 @@ playground_cases <- list(
   list("azure-sql", "azure_sql", "DBI", "dbGetQuery"),
   list("sql-server", "sql_server", "DBI", "dbGetQuery"),
   list("azure-postgres", "azure_postgres", "DBI", "dbGetQuery"),
-  list("fabric-sql", "fabric_sql", "DBI", "dbGetQuery"),
   list("snowflake", "snowflake", "DBI", "dbGetQuery"),
-  list("fabric-kql", "fabric", "fabricQueryR", "fabric_kql_query"),
-  list("fabric-dax", "fabric", "fabricQueryR", "fabric_pbi_dax_query"),
-  list("fabric-graphql", "fabric", "fabricQueryR", "fabric_graphql_query"),
-  list("fabric-onelake", "fabric", "fabricQueryR", "fabric_onelake_list"),
-  list("fabric-discovery", "fabric", "fabricQueryR", "fabric_workspaces"),
   list("databricks", "databricks", "brickster", "db_sql_query")
 )
 
@@ -20,9 +14,7 @@ for (playground_case in playground_cases) local({
   test_that(paste(filename, "builds its real OAuth client and UI"), {
     withr::local_envvar(playground_env())
     if (case[[3L]] == "brickster") {
-      skip_if_not_installed("brickster")
-      local_mocked_bindings(db_oauth_provider = playground_databricks_provider,
-                            .package = "brickster")
+      local_mocked_bindings(oauth_db_databricks_provider = playground_databricks_provider)
     }
     app <- playground_load_example(filename)
     expect_s3_class(app$app, "shiny.appobj")
@@ -39,8 +31,7 @@ for (playground_case in playground_cases) local({
     skip_if_not_installed("RSQLite")
     withr::local_envvar(playground_env())
     if (case[[3L]] == "brickster") {
-      local_mocked_bindings(db_oauth_provider = playground_databricks_provider,
-                            .package = "brickster")
+      local_mocked_bindings(oauth_db_databricks_provider = playground_databricks_provider)
     }
     app <- playground_load_example(filename)
     calls <- new.env(parent = emptyenv())
@@ -50,6 +41,7 @@ for (playground_case in playground_cases) local({
     calls$fail <- FALSE
     app$oauth_module_server <- playground_module(calls)
     app[[paste0("oauth_db_", case[[2L]])]] <- function(authorization, ...) {
+      if (case[[3L]] == "brickster") return(oauth_db_token(authorization))
       oauth_db_connect(authorization, connect = function(token) {
         force(token)
         if (case[[3L]] != "DBI") return(function() token)
@@ -63,7 +55,7 @@ for (playground_case in playground_cases) local({
       calls$requests <- c(calls$requests, list(args))
       if (calls$fail) stop("Example query failed")
       user <- if (case[[3L]] == "DBI") attr(args$conn, "example_user") else {
-        sub("^fixture-", "", args$token())
+        sub("^fixture-", "", args$token)
       }
       data.frame(user = user)
     })

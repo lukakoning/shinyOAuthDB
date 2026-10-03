@@ -4,6 +4,15 @@ Ordinary package checks run deterministic unit tests and Shiny smoke scenarios.
 They do not contact cloud services or start interactive login. Native connection
 reuse, retirement, session ownership and token injection are checked locally.
 
+## Persistent Fabric Shiny sandbox
+
+The [integrated app](../../playground/fabric/README.md) uses the existing
+`fabricqueryr-shiny-dhrkoning` workspace. After its guarded start workflow
+succeeds, `Rscript tools/check-fabric-sandbox.R` runs every example query with
+the configured shared sandbox identity. `Rscript tools/check-fabric-browser.R`
+checks the actual app in Chrome, including live discovery and rendering.
+These shared-identity checks are separate from visitor OAuth acceptance.
+
 ## Local PostgreSQL and Keycloak
 
 The [Docker Compose PostgreSQL/Keycloak fixture](../../integration/postgres-keycloak/README.md)
@@ -77,12 +86,12 @@ are observed against the deployment.
 | Concurrent browsers | A and B have separate handles/connections and never see each other's result or error |
 | Replace A with B | The native accessor invalidates; ordinary reactive queries rerun with B's connection; retained A providers fail |
 | Logout/session end | Native connections close; the accessor becomes unavailable; ordinary dependent outputs become empty |
-| Token rotation | shinyOAuth refreshes the selected grant; valid DBI sessions remain open, while API providers obtain the current token |
+| Token rotation | shinyOAuth refreshes the grant; persistent SQL sessions stay open; brickster accessors replace their fixed-token DBI handles; callbacks or bearer accessors obtain current tokens |
 | Expiry before dispatch | Acquisition refreshes or reports an actionable authorization/lifetime error before submitting work |
 | Revoked/missing API scopes | The native accessor becomes unavailable and any cached connection is retired |
 | Platform grant removal | New native requests receive the platform's denial or updated row policy; document the platform's established-session timing |
 | Browser endpoint/credential override | Application configuration fixes credentials, endpoints and roles; query values use the native package's parameter interface |
-| Untrusted HTTP destination/redirect | Upstream service policy blocks it before forwarding credentials |
+| HTTP destination/redirect | Confirm the native transport's behavior for the app's trusted configured endpoints; this bridge adds no endpoint policy to plain credentials |
 | Error/redaction | The fixture's summaries contain no tokens, connection strings or raw driver errors; production apps decide how to display native errors |
 
 Backend-specific checks remain necessary:

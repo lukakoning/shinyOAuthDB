@@ -23,7 +23,7 @@ connection. Select the database grant explicitly when several exist.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
-\item{warehouse_id}{SQL warehouse ID, or \code{NULL} for a native REST provider.}
+\item{warehouse_id}{SQL warehouse ID, or \code{NULL} for a bearer-string accessor.}
 
 \item{...}{Native \code{DBI::dbConnect()} options, such as \code{catalog} and \code{schema}.}
 
@@ -39,11 +39,14 @@ native Databricks OAuth uses the main authorization.}
 \item{session}{Owning Shiny session, normally inferred automatically.}
 }
 \value{
-A session-local reactive accessor for a native connection or provider.
+A session-local reactive accessor for a native connection or bearer string.
 }
 \description{
 With \code{warehouse_id}, the native value is a brickster DBI connection. Without
-it, the native value is a workspace-bound \code{brickster::db_token_provider()};
-pass it as \code{token} to native REST functions. The provider obtains credentials
-for each request and never falls back to the host's credentials.
+it, the accessor returns a current bearer string for brickster's \code{token}
+argument. Works with upstream brickster, without a fork or Shiny extensions.
+Call the accessor for each operation. Its native DBI connection holds a fixed
+token, so the accessor replaces it when shinyOAuth refreshes the credential.
+A previously returned connection or string is a snapshot; do not retain it
+across operations or authorizations. Endpoints belong in app configuration.
 }

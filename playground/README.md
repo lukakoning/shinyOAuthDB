@@ -1,6 +1,6 @@
 # Playground
 
-Each file is a complete app. Basic apps contain sign-in plus a native database read in roughly 35–40 lines. They use ordinary Shiny render functions and the backend package's existing API.
+The basic scripts contain sign-in plus a native database read in roughly 35–40 lines. The [integrated Fabric app](fabric/README.md) covers multiple services in one app. All use ordinary Shiny code and the backend package's existing API.
 
 Start with the local demo:
 
@@ -13,7 +13,7 @@ Install `RSQLite` and select simulated user A or B. The table follows the select
 
 ## Run a live app
 
-Install shinyOAuthDB and the matching development shinyOAuth package. Fabric needs fabricQueryR's public token-provider hooks, and Databricks needs the matching brickster fork. Install the client package and native driver for your backend.
+Install shinyOAuthDB and the target-enabled development shinyOAuth package. Fabric uses fabricQueryR's existing token callback API; Databricks uses unmodified upstream brickster. Install the client package and native driver for your backend.
 
 Configure the environment before sourcing the app:
 
@@ -38,12 +38,7 @@ Open the exact callback origin in a regular browser and click **Sign in**. With 
 | [Azure SQL](example-azure-sql.R) | `OAUTHDB_SERVER`, `OAUTHDB_DATABASE` |
 | [SQL Server](example-sql-server.R) | Same as Azure SQL; server must already support Entra authentication |
 | [Azure PostgreSQL](example-azure-postgres.R) | `OAUTHDB_POSTGRES_HOST`, `OAUTHDB_DATABASE`, `OAUTHDB_POSTGRES_USER`, `OAUTHDB_POSTGRES_SSLROOTCERT` |
-| [Fabric SQL](example-fabric-sql.R) | `OAUTHDB_SERVER` (SQL endpoint), `OAUTHDB_DATABASE` |
-| [Fabric KQL](example-fabric-kql.R) | `OAUTHDB_KQL_CLUSTER`, `OAUTHDB_KQL_DATABASE` |
-| [Fabric DAX](example-fabric-dax.R) | `OAUTHDB_FABRIC_WORKSPACE`, `OAUTHDB_FABRIC_MODEL` |
-| [Fabric GraphQL](example-fabric-graphql.R) | `OAUTHDB_GRAPHQL_API` (complete portal-provided HTTPS endpoint) |
-| [OneLake](example-fabric-onelake.R) | `OAUTHDB_FABRIC_WORKSPACE`, `OAUTHDB_ONELAKE_ITEM` |
-| [Fabric discovery](example-fabric-discovery.R) | Microsoft OAuth settings only |
+| [Fabric: all services](fabric/README.md) | Discovers `fabricqueryr-shiny-dhrkoning`; reuses `ENTRA_*` or shared `FABRICQUERYR_*` sandbox settings |
 | [Databricks](example-databricks.R) | `OAUTHDB_DATABRICKS_HOST`, `OAUTHDB_DATABRICKS_WAREHOUSE` |
 | [Snowflake](example-snowflake.R) | `OAUTHDB_SNOWFLAKE_SERVER`, `OAUTHDB_DATABASE`, `OAUTHDB_SNOWFLAKE_SCHEMA`, `OAUTHDB_SNOWFLAKE_WAREHOUSE`, `OAUTHDB_SNOWFLAKE_ROLE` |
 
@@ -51,7 +46,7 @@ Azure SQL and SQL Server use ODBC Driver 18 by default. The server must accept d
 
 The Snowflake example uses native Snowflake OAuth and its role scope, with a registered client secret. External OAuth can use another native shinyOAuth client with matching `scopes` and role settings.
 
-Fabric GraphQL delegates endpoint validation to fabricQueryR. For an API-ID route or a trusted custom gateway, configure its exact allowed host through `oauth_db_fabric(endpoint_hosts = ...)`, and supply `workspace_id` to the native query if needed.
+Fabric uses a regular audience-aware callback; configure trusted endpoints in the app or obtain them through native discovery. No private fabricQueryR endpoint-policy attributes are attached.
 
 All query endpoints and roles come from server configuration. Metadata and constant queries establish connectivity; replace them with queries against your own tables to verify user-specific grants and row policies. Use native bound parameters when incorporating browser input.
 

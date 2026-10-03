@@ -9,7 +9,6 @@ oauth_db_fabric(
   service = c("fabric", "sql", "dax", "kql", "onelake", "graphql"),
   target = .odb_backend_profile(service)$target,
   scopes = NULL,
-  endpoint_hosts = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -28,8 +27,6 @@ named token targets.}
 
 \item{scopes}{Delegated scopes; \code{NULL} uses the service's query/read defaults.}
 
-\item{endpoint_hosts}{Additional exact trusted hostnames for custom endpoints.}
-
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
 \item{session}{Owning Shiny session, normally inferred automatically.}
@@ -38,7 +35,9 @@ named token targets.}
 A session-local reactive accessor for a native token provider.
 }
 \description{
-The native value is a \code{fabricQueryR} token provider. Pass it as \code{token} to
-any compatible native function. Endpoints, item IDs and query options belong
-in that call. The provider retains fabricQueryR's audience and endpoint checks.
+Returns an ordinary callback accepted by fabricQueryR's \code{token} argument.
+This package owns the OAuth adaptation; no Shiny helpers or provider
+extensions in fabricQueryR are required. Endpoints, item IDs and query options
+belong in the native call. Keep endpoints in trusted application configuration.
+The callback supplies only the configured service's audience and scopes.
 }

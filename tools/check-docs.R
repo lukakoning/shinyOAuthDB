@@ -2,7 +2,7 @@
 paths <- c(
   "README.md",
   list.files("docs", "\\.md$", full.names = TRUE),
-  "playground/README.md",
+  list.files("playground", "\\.md$", full.names = TRUE, recursive = TRUE),
   "tests/integration/README.md",
   "integration/postgres-keycloak/README.md",
   "integration/postgres-keycloak/native/README.md"

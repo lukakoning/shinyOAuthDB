@@ -7,11 +7,10 @@
 oauth_db_fabric_sql(
   authorization,
   server,
-  database,
+  database = NULL,
   ...,
   target = "sql",
   scopes = "https://database.windows.net//user_impersonation",
-  endpoint_hosts = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -31,8 +30,6 @@ connection. Select the database grant explicitly when several exist.}
 
 \item{scopes}{Required delegated scopes. A \verb{/.default} consent scope is sent
 during acquisition but is not a literal granted permission.}
-
-\item{endpoint_hosts}{Additional exact trusted hostnames for custom endpoints.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 

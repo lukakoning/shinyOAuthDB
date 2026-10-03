@@ -68,9 +68,7 @@ test_that("Databricks provider overrides bypass discovery and preserve client se
 })
 
 test_that("Databricks default provider uses native public-client secret conventions", {
-  skip_if_not_installed("brickster")
-  local_mocked_bindings(db_oauth_provider = playground_databricks_provider,
-    .package = "brickster")
+  local_mocked_bindings(oauth_db_databricks_provider = playground_databricks_provider)
   for (secret in list(NULL, "", character())) {
     client <- oauth_db_databricks_client("https://example.com", "app",
       "http://localhost:8100", client_secret = secret)
@@ -80,6 +78,23 @@ test_that("Databricks default provider uses native public-client secret conventi
   client <- oauth_db_databricks_client("https://example.com", "app",
     "http://localhost:8100", client_secret = "secret")
   expect_identical(client@provider@token_auth_style, "header")
+})
+
+test_that("Databricks discovery belongs here and uses only shinyOAuth's public API", {
+  captured <- new.env(parent = emptyenv())
+  local_mocked_bindings(oauth_provider_oidc_discover = function(issuer, ...) {
+    captured$args <- c(list(issuer = issuer), list(...))
+    playground_databricks_provider("https://workspace.example", token_auth_style = "public")
+  }, .package = "shinyOAuth")
+  provider <- oauth_db_databricks_provider("https://Workspace.Example/", "public", name = "analytics")
+  expect_s3_class(provider, "shinyOAuth::OAuthProvider")
+  expect_identical(captured$args$issuer, "https://workspace.example/oidc/.well-known/openid-configuration")
+  expect_identical(captured$args$name, "analytics")
+  expect_identical(captured$args$token_auth_style, "public")
+  expect_true(captured$args$use_pkce)
+  expect_true(captured$args$id_token_validation)
+  expect_error(oauth_db_databricks_provider("http://workspace.example"), "HTTPS origin")
+  expect_error(oauth_db_databricks_provider("https://workspace.example/path"), "without a path")
 })
 
 test_that("Snowflake provider presets compose directly with native clients", {

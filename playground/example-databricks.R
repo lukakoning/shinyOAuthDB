@@ -3,7 +3,7 @@ library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-host <- Sys.getenv("OAUTHDB_DATABRICKS_HOST")
+host <- sub("/$", "", sub("^https://", "", Sys.getenv("OAUTHDB_DATABRICKS_HOST")))
 client <- oauth_db_databricks_client(
   host = host, client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),

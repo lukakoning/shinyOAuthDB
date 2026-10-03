@@ -2,7 +2,7 @@
 mode <- commandArgs(trailingOnly = TRUE)
 if (!length(mode)) mode <- "all"
 if (length(mode) > 1L) {
-  .libPaths(c(mode[[2L]], .libPaths()))
+  .libPaths(c(mode[-1L], .libPaths()))
   Sys.setenv(R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
 }
 if (mode[[1L]] == "document") {

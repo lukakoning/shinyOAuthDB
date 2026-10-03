@@ -20,7 +20,7 @@
 #'   `label`, `resource`, `required_scopes`, or `scope_validation`.
 #' @details Keep the backend accessor's `target` and `scopes` consistent with
 #'   your client configuration. For provider-only configuration, use
-#'   `shinyOAuth::oauth_provider_microsoft()`, `brickster::db_oauth_provider()`,
+#'   `shinyOAuth::oauth_provider_microsoft()`, [oauth_db_databricks_provider()],
 #'   or [oauth_db_snowflake_provider()] with `shinyOAuth::oauth_client()`.
 #' @return A native shinyOAuth client for its existing UI and server modules.
 #' @export
@@ -58,8 +58,8 @@ oauth_db_microsoft_client <- function(
 #' @param host Databricks workspace hostname or HTTPS origin. Unused when
 #'   `provider` is supplied.
 #' @inheritParams oauth_db_microsoft_client
-#' @return A native shinyOAuth client. Discovery uses brickster and may make a
-#'   network request. Requires its external-token/OAuth provider hooks.
+#' @return A native shinyOAuth client. Default provider discovery makes an HTTPS
+#'   request to the workspace; supplying `provider` bypasses discovery.
 #' @export
 oauth_db_databricks_client <- function(
   host, client_id, redirect_uri, client_secret = NULL, ...,
@@ -71,10 +71,40 @@ oauth_db_databricks_client <- function(
 }
 
 .odb_databricks_provider <- function(host, client_secret) {
-  .odb_backend_require_hook("brickster", "db_oauth_provider")
-  brickster::db_oauth_provider(host,
+  oauth_db_databricks_provider(host,
     token_auth_style = if (is.null(client_secret) || !length(client_secret) ||
       identical(client_secret, "")) "public" else "header")
+}
+
+#' Configure a native Databricks shinyOAuth provider
+#'
+#' Discovers the workspace's OpenID Connect endpoints using shinyOAuth.
+#' Independent of brickster; pass the result to `shinyOAuth::oauth_client()`.
+#' @param host Databricks workspace hostname or HTTPS origin.
+#' @param token_auth_style `"header"` for a confidential client, or `"public"`
+#'   for an application registered without a secret.
+#' @param ... Named settings passed to `shinyOAuth::oauth_provider_oidc_discover()`.
+#'   Explicit settings replace the preset defaults.
+#' @return A native shinyOAuth provider. Discovery makes an HTTPS request.
+#' @export
+oauth_db_databricks_provider <- function(host, token_auth_style = c("header", "public"), ...) {
+  host <- .odb_databricks_host(host)
+  defaults <- list(issuer = paste0("https://", host, "/oidc/.well-known/openid-configuration"),
+    name = "databricks", token_auth_style = match.arg(token_auth_style),
+    use_pkce = TRUE, use_nonce = TRUE, id_token_validation = TRUE, userinfo_required = FALSE)
+  overrides <- list(...)
+  .odb_named_args(overrides)
+  defaults[names(overrides)] <- overrides
+  do.call(shinyOAuth::oauth_provider_oidc_discover, defaults)
+}
+
+.odb_databricks_host <- function(host) {
+  .odb_string(host, "host")
+  host <- sub("/$", "", sub("^https://", "", host))
+  if (!grepl("^[A-Za-z0-9][A-Za-z0-9.-]*$", host)) {
+    .odb_abort("host must be a Databricks hostname or HTTPS origin without a path.")
+  }
+  tolower(host)
 }
 
 #' Configure a native Snowflake shinyOAuth client

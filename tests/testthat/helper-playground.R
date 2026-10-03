@@ -50,11 +50,21 @@ playground_request <- function() {
 }
 
 playground_databricks_provider <- function(host, token_auth_style = "public") {
+  host <- paste0("https://", sub("^https://", "", host))
   shinyOAuth::oauth_provider(
     name = "databricks", auth_url = paste0(host, "/oidc/v1/authorize"),
     token_url = paste0(host, "/oidc/v1/token"),
     token_auth_style = token_auth_style, use_pkce = TRUE
   )
+}
+
+playground_fabric_app <- function() {
+  path <- testthat::test_path("..", "..", "playground", "fabric")
+  if (!dir.exists(path)) testthat::skip("Fabric example requires a source checkout.")
+  withr::local_dir(path)
+  envir <- new.env(parent = globalenv())
+  sys.source("app.R", envir = envir)
+  envir
 }
 
 # Preserve the native function's formals to catch incorrect example arguments.

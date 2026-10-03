@@ -1,5 +1,11 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Use unmodified upstream brickster with bearer strings; refresh DBI connections when their fixed token rotates.
+* Own Databricks OAuth provider discovery in `oauth_db_databricks_provider()`.
+* Supply ordinary Fabric token callbacks without fabricQueryR Shiny helpers, new provider hooks, or private credential metadata.
+* Remove the old Shiny integration from the sibling fabricQueryR checkout; keep its native APIs and persistent sandbox tooling there.
+* Replace the separate Fabric apps with one integrated app for the persistent Shiny sandbox, including SQL, DAX, KQL, OneLake, GraphQL, and discovery.
+
 ## Breaking redesign
 
 * Backend helpers take a shinyOAuth authorization directly and return reactive native connection or token-provider accessors.

@@ -82,28 +82,29 @@ oauth_db_azure_postgres <- function(
 #' `fabricQueryR::fabric_sql_connect()`. Pass its native options such as
 #' `backend`, `odbc_driver`, `read_only`, and `timeout` in `...`.
 #' @inheritParams oauth_db_azure_sql
-#' @param endpoint_hosts Additional exact trusted hostnames for custom endpoints.
 #' @returns A session-local reactive accessor for a native DBI connection.
 #' @export
 oauth_db_fabric_sql <- function(
-  authorization, server, database, ..., target = "sql",
+  authorization, server, database = NULL, ..., target = "sql",
   scopes = "https://database.windows.net//user_impersonation",
-  endpoint_hosts = character(), min_valid_for = 60,
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
-  .odb_backend_require_hook("fabricQueryR", "fabric_token_provider")
+  .odb_require("fabricQueryR")
   options <- .odb_backend_options(list(...), c("server", "database", "tenant_id", "client_id"))
   .odb_bind(authorization, .odb_backend_fabric_sql, server = server,
-    database = database, provider_scopes = scopes, endpoint_hosts = endpoint_hosts,
+    database = database, provider_scopes = scopes,
     options = options, target = target, scopes = scopes,
     min_valid_for = min_valid_for, session = session)
 }
 
 #' Use the user's authorization with native Fabric functions
 #'
-#' The native value is a `fabricQueryR` token provider. Pass it as `token` to
-#' any compatible native function. Endpoints, item IDs and query options belong
-#' in that call. The provider retains fabricQueryR's audience and endpoint checks.
+#' Returns an ordinary callback accepted by fabricQueryR's `token` argument.
+#' This package owns the OAuth adaptation; no Shiny helpers or provider
+#' extensions in fabricQueryR are required. Endpoints, item IDs and query options
+#' belong in the native call. Keep endpoints in trusted application configuration.
+#' The callback supplies only the configured service's audience and scopes.
 #' @inheritParams oauth_db_connect
 #' @inheritParams oauth_db_fabric_sql
 #' @param service One Fabric service: `"fabric"`, `"sql"`, `"dax"`, `"kql"`,
@@ -117,33 +118,35 @@ oauth_db_fabric_sql <- function(
 oauth_db_fabric <- function(
   authorization, service = c("fabric", "sql", "dax", "kql", "onelake", "graphql"),
   target = .odb_backend_profile(service)$target, scopes = NULL,
-  endpoint_hosts = character(), min_valid_for = 60,
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   service <- match.arg(service)
   profile <- .odb_backend_profile(service)
   if (is.null(scopes)) scopes <- profile$scopes
-  .odb_backend_require_hook("fabricQueryR", "fabric_token_provider")
   .odb_bind(authorization, .odb_backend_fabric, service = service,
-    provider_scopes = scopes, endpoint_hosts = endpoint_hosts, target = target,
+    provider_scopes = scopes, target = target,
     scopes = scopes, min_valid_for = min_valid_for, session = session)
 }
 
 #' Use the user's authorization with Databricks
 #'
 #' With `warehouse_id`, the native value is a brickster DBI connection. Without
-#' it, the native value is a workspace-bound `brickster::db_token_provider()`;
-#' pass it as `token` to native REST functions. The provider obtains credentials
-#' for each request and never falls back to the host's credentials.
+#' it, the accessor returns a current bearer string for brickster's `token`
+#' argument. Works with upstream brickster, without a fork or Shiny extensions.
+#' Call the accessor for each operation. Its native DBI connection holds a fixed
+#' token, so the accessor replaces it when shinyOAuth refreshes the credential.
+#' A previously returned connection or string is a snapshot; do not retain it
+#' across operations or authorizations. Endpoints belong in app configuration.
 #' @inheritParams oauth_db_connect
 #' @param host Databricks workspace hostname or HTTPS origin.
-#' @param warehouse_id SQL warehouse ID, or `NULL` for a native REST provider.
+#' @param warehouse_id SQL warehouse ID, or `NULL` for a bearer-string accessor.
 #' @param ... Native `DBI::dbConnect()` options, such as `catalog` and `schema`.
 #' @param auth_mode `"databricks_oauth"` or `"entra"` for Azure Databricks.
 #' @param target Declared token target. Defaults to `"databricks"` for Entra;
 #'   native Databricks OAuth uses the main authorization.
 #' @param scopes Delegated scopes, or `NULL` for the chosen authentication mode.
-#' @returns A session-local reactive accessor for a native connection or provider.
+#' @returns A session-local reactive accessor for a native connection or bearer string.
 #' @export
 oauth_db_databricks <- function(
   authorization, host, warehouse_id = NULL, ...,
@@ -156,14 +159,19 @@ oauth_db_databricks <- function(
   if (is.null(scopes)) {
     scopes <- .odb_backend_profile(if (auth_mode == "entra") "databricks_entra" else "databricks")$scopes
   }
-  .odb_backend_require_hook("brickster", "db_token_provider")
+  host <- .odb_databricks_host(host)
   options <- .odb_backend_options(list(...), c("host", "warehouse_id", "http_path"))
   if (is.null(warehouse_id) && length(options)) {
     .odb_abort("Connection options in ... require a warehouse_id; pass REST options to the native call.")
   }
+  if (is.null(warehouse_id)) {
+    return(oauth_db_token(authorization, target = target, scopes = scopes,
+      min_valid_for = min_valid_for, session = session))
+  }
+  .odb_require("brickster")
   .odb_bind(authorization, .odb_backend_databricks, host = host,
     warehouse_id = warehouse_id, options = options, target = target,
-    scopes = scopes, min_valid_for = min_valid_for, session = session)
+    scopes = scopes, refresh_token = TRUE, min_valid_for = min_valid_for, session = session)
 }
 
 #' Use the user's authorization with Snowflake
@@ -205,43 +213,34 @@ oauth_db_snowflake <- function(
   do.call(DBI::dbConnect, c(args, options))
 }
 
-.odb_backend_fabric <- function(token, service, provider_scopes, endpoint_hosts) {
+.odb_backend_fabric <- function(token, service, provider_scopes) {
   force(token)
-  fabricQueryR::fabric_token_provider(
-    token = function(audience, force_refresh = FALSE) token(force_refresh = force_refresh),
-    services = service, scopes = stats::setNames(list(provider_scopes), service),
-    endpoint_hosts = stats::setNames(list(endpoint_hosts), service))
+  allowed <- c(paste0(.odb_backend_profile(service)$resource, "/.default"), provider_scopes)
+  force(allowed)
+  function(audience, force_refresh = FALSE) {
+    if (!is.character(audience) || !length(audience) || anyNA(audience) ||
+        !all(audience %in% allowed)) {
+      .odb_abort("The Fabric callback cannot supply tokens for this audience or scope.", "invalid_audience")
+    }
+    token(force_refresh = force_refresh)
+  }
 }
 
-.odb_backend_fabric_sql <- function(token, server, database, provider_scopes, endpoint_hosts, options) {
-  force(token)
-  provider <- fabricQueryR::fabric_token_provider(
-    token = function(audience, force_refresh = FALSE) token(force_refresh = force_refresh),
-    services = "sql", scopes = list(sql = provider_scopes),
-    endpoint_hosts = list(sql = endpoint_hosts))
+.odb_backend_fabric_sql <- function(token, server, database, provider_scopes, options) {
+  provider <- .odb_backend_fabric(token, "sql", provider_scopes)
   do.call(fabricQueryR::fabric_sql_connect, c(list(server = server, database = database,
     token = provider, encrypt = "yes", trust_server_certificate = "no"), options))
 }
 
 .odb_backend_databricks <- function(token, host, warehouse_id, options) {
-  provider <- brickster::db_token_provider(host, token)
-  if (is.null(warehouse_id)) return(provider)
   do.call(DBI::dbConnect, c(list(drv = brickster::DatabricksSQL(), host = host,
-    warehouse_id = warehouse_id, token = provider), options))
+    warehouse_id = warehouse_id, token = token()), options))
 }
 
 .odb_backend_snowflake <- function(token, server, database, schema, warehouse, role, driver, options) {
   do.call(DBI::dbConnect, c(list(drv = odbc::odbc(), driver = driver, server = server,
     database = database, schema = schema, warehouse = warehouse, role = role,
     authenticator = "oauth", token = token()), options))
-}
-
-.odb_backend_require_hook <- function(package, fun) {
-  .odb_require(package)
-  if (!fun %in% getNamespaceExports(package)) {
-    .odb_abort(paste0("Install a version of ", package, " with the public ", fun,
-      "() credential-provider API."), "unsupported_dependency")
-  }
 }
 
 .odb_backend_options <- function(options, blocked = character(), odbc = FALSE) {

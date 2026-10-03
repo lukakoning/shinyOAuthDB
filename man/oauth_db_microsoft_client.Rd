@@ -57,6 +57,6 @@ connection. Explicit settings replace defaults rather than being merged.
 \details{
 Keep the backend accessor's \code{target} and \code{scopes} consistent with
 your client configuration. For provider-only configuration, use
-\code{shinyOAuth::oauth_provider_microsoft()}, \code{brickster::db_oauth_provider()},
+\code{shinyOAuth::oauth_provider_microsoft()}, \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
 or \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}} with \code{shinyOAuth::oauth_client()}.
 }

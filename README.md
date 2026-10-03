@@ -2,7 +2,7 @@
 
 Use a Shiny visitor's **shinyOAuth** authorization with DBI, **fabricQueryR**, **brickster**, or another database client.
 
-A backend helper returns a reactive accessor to the native connection or token provider. Call it from ordinary Shiny code, then use the database package directly. shinyOAuth handles login and refresh; the database package handles queries and results.
+A backend helper returns a reactive accessor to a native connection or credential. Call it from ordinary Shiny code, then use the database package directly. shinyOAuth handles login and refresh; the database package handles queries and results.
 
 ## A complete Azure SQL app
 
@@ -47,7 +47,7 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 
 ## Fabric and Databricks
 
-Fabric and Databricks helpers can supply their native token providers:
+Fabric accepts an ordinary token callback supplied by this package:
 
 ```r
 # Configure the OAuth client with services = "kql".
@@ -62,7 +62,9 @@ output$rows <- renderPrint({
 })
 ```
 
-The [complete Fabric app](playground/example-fabric-kql.R) is 39 lines. The [Databricks app](playground/example-databricks.R) uses `brickster::db_sql_query()` with `token()`. Passing `warehouse_id` to `oauth_db_databricks()` instead creates a DBI connection accessor.
+The [integrated Fabric app](playground/fabric/README.md) discovers the persistent Shiny sandbox and demonstrates SQL, DAX, KQL, OneLake, GraphQL, and discovery in one app.
+
+The [Databricks app](playground/example-databricks.R) passes the bearer string from `token()` directly to upstream `brickster::db_sql_query()`. Passing `warehouse_id` to `oauth_db_databricks()` instead returns a native DBI connection accessor. Call it for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
 
 Queries retain their native arguments, return values, and errors. There is no query callback API, query registry, or task system.
 
@@ -73,8 +75,8 @@ Queries retain their native arguments, return values, and errors. There is no qu
 | `oauth_db_azure_sql()`, `oauth_db_sql_server()` | DBI + odbc connection; SQL Server must support Entra |
 | `oauth_db_azure_postgres()` | DBI + RPostgres connection; Azure Entra token as password |
 | `oauth_db_fabric_sql()` | fabricQueryR SQL connection |
-| `oauth_db_fabric(service = ...)` | fabricQueryR token provider for KQL, DAX, GraphQL, OneLake, discovery |
-| `oauth_db_databricks()` | brickster token provider, or DBI connection with a warehouse |
+| `oauth_db_fabric(service = ...)` | Ordinary callback for fabricQueryR's existing `token` argument |
+| `oauth_db_databricks()` | Bearer string for brickster, or DBI connection with a warehouse |
 | `oauth_db_snowflake()` | DBI + odbc connection with OAuth |
 
 Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
@@ -101,7 +103,7 @@ Populate both selectors with the `connection_id` values returned by `auth$connec
 
 Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `default_token_target`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `scopes` to your client configuration.
 
-For provider-only setup, use `shinyOAuth::oauth_provider_microsoft()`, `brickster::db_oauth_provider()`, or the Snowflake preset, then construct the client yourself:
+For provider-only setup, use `shinyOAuth::oauth_provider_microsoft()`, `oauth_db_databricks_provider()`, or `oauth_db_snowflake_provider()`, then construct the client yourself:
 
 ```r
 provider <- oauth_db_snowflake_provider("account.snowflakecomputing.com")
@@ -115,7 +117,7 @@ client <- shinyOAuth::oauth_client(
 )
 ```
 
-The Snowflake provider preset also accepts native `oauth_provider()` overrides through `...`, including endpoints and client authentication settings. Native Snowflake OAuth and external OAuth use their respective identity-provider configurations.
+The Snowflake and Databricks provider presets accept native provider settings through `...`. Databricks discovery uses shinyOAuth directly. Native Snowflake OAuth and external OAuth use their respective identity-provider configurations.
 
 ## Another database client
 
@@ -145,14 +147,14 @@ Application-owned caches and `eventReactive()` keep their usual Shiny behavior. 
 
 ## Installation and examples
 
-This development version requires matching **shinyOAuth** support for module-managed access tokens and token targets. Fabric requires **fabricQueryR** with `fabric_token_provider()`; Databricks requires the **brickster** fork with `db_token_provider()` and `db_oauth_provider()`. Released packages may not yet include these hooks.
+This development version requires matching **shinyOAuth** support for module-managed access tokens and token targets. Fabric uses **fabricQueryR**'s existing token callback API (tested with 1.0.1, before its Shiny integration). Databricks uses upstream **brickster** (tested with 0.2.14). No fork, Shiny helpers, or new credential hooks in either database package are required. The sibling fabricQueryR checkout's former Shiny helpers and duplicate apps have been removed; its persistent sandbox now points to the [integrated app here](playground/fabric/README.md).
 
 From sibling checkouts, install the packages needed for your backend:
 
 ```sh
 R CMD INSTALL ../shinyOAuth
 R CMD INSTALL ../fabricQueryR   # Fabric only
-R CMD INSTALL ../brickster     # Databricks only
+# Databricks: install upstream databrickslabs/brickster, not a modified fork.
 R CMD INSTALL .
 ```
 

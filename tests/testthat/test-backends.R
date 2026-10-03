@@ -1,12 +1,12 @@
 capture_backend <- function(authorization, connect, ..., target = NULL,
-                            scopes = character(), min_valid_for = 60, session = NULL) {
+                            scopes = character(), refresh_token = FALSE, min_valid_for = 60, session = NULL) {
   list(authorization = authorization, connect = connect, args = list(...),
     target = target, scopes = scopes)
 }
 
 test_that("backend helpers bind OAuth resources without query operation mappings", {
   local_mocked_bindings(.odb_bind = capture_backend, .odb_require = function(...) TRUE,
-    .odb_backend_require_hook = function(...) TRUE, .package = "shinyOAuthDB")
+    .package = "shinyOAuthDB")
   auth <- function() stop("Creating an accessor must not acquire authorization")
   sql <- oauth_db_azure_sql(auth, "server", "Sales", timeout = 12)
   expect_identical(sql$authorization, auth)
@@ -18,8 +18,8 @@ test_that("backend helpers bind OAuth resources without query operation mappings
   expect_identical(fabric$target, "kusto")
   expect_identical(fabric$scopes, "https://api.kusto.windows.net/user_impersonation")
   expect_false(any(c("cluster", "database", "workspace", "operation") %in% names(fabric$args)))
-  native <- oauth_db_databricks(auth, "workspace.example")
-  entra <- oauth_db_databricks(auth, "workspace.example", auth_mode = "entra")
+  native <- oauth_db_databricks(auth, "workspace.example", "warehouse")
+  entra <- oauth_db_databricks(auth, "workspace.example", "warehouse", auth_mode = "entra")
   expect_null(native$target)
   expect_identical(native$scopes, "all-apis")
   expect_identical(entra$target, "databricks")
@@ -32,7 +32,7 @@ test_that("backend helpers bind OAuth resources without query operation mappings
 
 test_that("native options cannot substitute credentials or weaken TLS", {
   local_mocked_bindings(.odb_bind = capture_backend, .odb_require = function(...) TRUE,
-    .odb_backend_require_hook = function(...) TRUE, .package = "shinyOAuthDB")
+    .package = "shinyOAuthDB")
   for (option in list(list(UID = "host-user"), list(PWD = "secret"),
     list(TrustServerCertificate = "yes"), list(dsn = "host-dsn"),
     list(attributes = list(azure_token = "other")), list(Authentication = "ActiveDirectoryDefault"),
@@ -92,26 +92,23 @@ test_that("Azure PostgreSQL uses the provisioned role with certificate verificat
   expect_identical(state$args$connect_timeout, 8)
 })
 
-test_that("Fabric retains audience routing and forwards refresh failures", {
-  skip_if_not_installed("fabricQueryR")
-  skip_if_not("fabric_token_provider" %in% getNamespaceExports("fabricQueryR"))
+test_that("plain Fabric callbacks enforce service routing and forward refresh failures", {
   state <- new.env(parent = emptyenv())
   state$calls <- 0L
   provider <- .odb_backend_fabric(function(force_refresh = FALSE) {
     state$calls <- state$calls + 1L
     if (force_refresh) stop("refresh unavailable")
     "visitor-token"
-  }, "kql", .odb_backend_profile("kql")$scopes, character())
+  }, "kql", .odb_backend_profile("kql")$scopes)
   expect_identical(provider("https://api.kusto.windows.net/.default"), "visitor-token")
-  expect_error(provider("https://database.windows.net//.default"), class = "fabric_shiny_error")
+  expect_error(provider("https://database.windows.net//.default"), class = "shinyOAuthDB_invalid_audience")
   expect_identical(state$calls, 1L)
   expect_error(provider("https://api.kusto.windows.net/.default", TRUE), "refresh unavailable")
-  expect_false(is.null(attr(provider, "fabric_endpoint_policy")))
+  expect_identical(class(provider), "function")
+  expect_null(attr(provider, "fabric_endpoint_policy"))
 })
 
 test_that("Fabric accepts an authorization without named targets when target is NULL", {
-  skip_if_not_installed("fabricQueryR")
-  skip_if_not("fabric_token_provider" %in% getNamespaceExports("fabricQueryR"))
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = .odb_backend_profile("kql")$scopes)
     token <- oauth_db_fabric(auth$connection, "kql", target = NULL)
@@ -124,14 +121,13 @@ test_that("Fabric accepts an authorization without named targets when target is 
 
 test_that("Fabric SQL uses native connection options and its checked provider", {
   skip_if_not_installed("fabricQueryR")
-  skip_if_not("fabric_token_provider" %in% getNamespaceExports("fabricQueryR"))
   state <- new.env(parent = emptyenv())
   local_mocked_bindings(fabric_sql_connect = function(...) {
     state$args <- list(...)
     "native"
   }, .package = "fabricQueryR")
   expect_identical(.odb_backend_fabric_sql(function(force_refresh = FALSE) "visitor-token",
-    "server", "Sales", .odb_backend_profile("sql")$scopes, character(),
+    "server", "Sales", .odb_backend_profile("sql")$scopes,
     list(backend = "adbc", read_only = TRUE)), "native")
   expect_identical(state$args$backend, "adbc")
   expect_true(state$args$read_only)
@@ -140,25 +136,48 @@ test_that("Fabric SQL uses native connection options and its checked provider", 
   expect_identical(state$args$token("https://database.windows.net//.default"), "visitor-token")
 })
 
-test_that("Databricks uses a workspace-bound provider in REST and DBI modes", {
+test_that("Databricks passes a bearer string to upstream brickster DBI", {
   skip_if_not_installed("brickster")
-  skip_if_not("db_token_provider" %in% getNamespaceExports("brickster"))
   token <- function(force_refresh = FALSE) {
     if (force_refresh) stop("refresh unavailable")
     "visitor-token"
   }
-  provider <- .odb_backend_databricks(token, "https://workspace.example", NULL, list())
-  expect_s3_class(provider, "db_token_provider")
-  expect_identical(provider$host, "workspace.example")
-  expect_identical(provider$token(), "visitor-token")
-  expect_error(provider$token(TRUE), "refresh unavailable")
   state <- new.env(parent = emptyenv())
   local_mocked_bindings(dbConnect = function(drv, ...) {
     state$args <- list(...)
     "native"
   }, .package = "DBI")
   expect_identical(.odb_backend_databricks(token, "workspace.example", "wh", list(catalog = "main")), "native")
-  expect_s3_class(state$args$token, "db_token_provider")
-  expect_identical(state$args$token$token(), "visitor-token")
+  expect_identical(state$args$token, "visitor-token")
   expect_identical(state$args$catalog, "main")
+})
+
+test_that("upstream brickster connections rotate their fixed token and isolate grants", {
+  skip_if_not_installed("brickster")
+  state <- new.env(parent = emptyenv())
+  state$tokens <- character()
+  local_mocked_bindings(db_sql_query = function(..., token) {
+    state$tokens <- c(state$tokens, token)
+    data.frame(test_connection = 1L)
+  }, .package = "brickster")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, scopes = "all-apis")
+    con <- oauth_db_databricks(auth$connection, "https://workspace.example/", "wh")
+    token <- oauth_db_databricks(auth$connection, "workspace.example")
+    first <- con()
+    expect_s4_class(first, "DatabricksConnection")
+    expect_identical(first@token, "fixture-A")
+    expect_identical(first@host, "workspace.example")
+    expect_identical(con(), first)
+    expect_length(state$tokens, 1L)
+    expect_identical(token(), "fixture-A")
+    auth$token(auth$make_token("refreshed-A"))
+    refreshed <- con()
+    expect_identical(refreshed@token, "refreshed-A")
+    expect_identical(token(), "refreshed-A")
+    expect_identical(state$tokens, c("fixture-A", "refreshed-A"))
+    auth$current(FALSE)
+    expect_error(con(), class = "shiny.silent.error")
+    expect_error(token(), class = "shiny.silent.error")
+  })
 })
