@@ -2,38 +2,61 @@
 % Please edit documentation in R/auth.R
 \name{oauth_db_microsoft_client}
 \alias{oauth_db_microsoft_client}
-\title{Configure a shinyOAuth Microsoft client from data-source requirements}
+\title{Configure a native shinyOAuth Microsoft client for database services}
 \usage{
 oauth_db_microsoft_client(
-  sources,
+  services = "sql",
   tenant_id,
   client_id,
-  client_secret = NULL,
   redirect_uri,
-  default_source = NULL,
-  ...
+  client_secret = NULL,
+  ...,
+  provider = shinyOAuth::oauth_provider_microsoft(tenant = tenant_id, id_token_validation
+    = TRUE, userinfo_required = FALSE),
+  token_targets = .odb_microsoft_targets(services),
+  default_token_target = if (length(token_targets)) names(token_targets)[[1L]] else
+    character(),
+  scopes = c("openid", "profile", "offline_access", unique(unlist(lapply(token_targets,
+    `[[`, "scopes"), use.names = FALSE)))
 )
 }
 \arguments{
-\item{sources}{A source or a non-empty named list of sources.}
+\item{services}{Service names: \code{sql}, \code{postgres}, \code{fabric}, \code{kql}, \code{dax},
+\code{graphql}, \code{onelake} or \code{databricks_entra}. The first selects the default
+token target. Compatible services sharing a resource combine their scopes.}
 
-\item{tenant_id}{Microsoft Entra tenant accepted by shinyOAuth.}
+\item{tenant_id}{Microsoft Entra tenant. Unused when \code{provider} is supplied.}
 
-\item{client_id}{Registered OAuth application's client ID.}
+\item{client_id}{Registered application ID.}
 
-\item{client_secret}{Confidential application's server-side secret, or NULL
-for a registered public client. This is not a service-identity data mode.}
+\item{redirect_uri}{Registered OAuth callback URL.}
 
-\item{redirect_uri}{Registered callback URI.}
+\item{client_secret}{Confidential client secret, or NULL for a public client.}
 
-\item{default_source}{Name of the source used for initial token redemption.}
+\item{...}{Settings passed unchanged to \code{shinyOAuth::oauth_client()}, such as
+\code{label}, \code{resource}, \code{required_scopes}, or \code{scope_validation}.}
 
-\item{...}{Additional settings passed to \code{shinyOAuth::oauth_client()}.}
+\item{provider}{Native shinyOAuth provider. Defaults to the service's provider.}
+
+\item{token_targets}{Named shinyOAuth token targets, replacing the service
+defaults. Use \code{list()} for a client without named targets.}
+
+\item{default_token_target}{Default target name, or \code{character()} for none.}
+
+\item{scopes}{Complete client consent scopes, replacing the preset defaults.}
 }
 \value{
-A native shinyOAuth client. Use the existing shinyOAuth UI and server
-modules; the bridge does not add a second login or refresh controller.
+A native shinyOAuth client for its existing UI and server modules.
 }
 \description{
-Configure a shinyOAuth Microsoft client from data-source requirements
+Optional presets returning ordinary \code{shinyOAuth::oauth_client()} objects.
+Use them with any shinyOAuth module or connection manager, or configure
+shinyOAuth directly. These helpers create no login module or database
+connection. Explicit settings replace defaults rather than being merged.
+}
+\details{
+Keep the backend accessor's \code{target} and \code{scopes} consistent with
+your client configuration. For provider-only configuration, use
+\code{shinyOAuth::oauth_provider_microsoft()}, \code{brickster::db_oauth_provider()},
+or \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}} with \code{shinyOAuth::oauth_client()}.
 }

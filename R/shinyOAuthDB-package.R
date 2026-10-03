@@ -1,9 +1,9 @@
 #' Bridge Shiny user authorizations to native database clients
 #'
 #' shinyOAuthDB connects module-owned shinyOAuth authorizations to existing
-#' database and data platform packages. Start with a source constructor and
-#' [oauth_db_session()]; use native connections/providers or [oauth_db_task()].
+#' database and data platform packages. Use [oauth_db_connect()] or a backend
+#' helper to obtain a reactive native connection accessor. Queries and their
+#' results stay in the native package and normal Shiny code.
 #'
-#' @importFrom R6 R6Class
 #' @keywords internal
 "_PACKAGE"

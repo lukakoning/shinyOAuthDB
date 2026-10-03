@@ -1,16 +1,13 @@
 # shinyOAuthDB 0.0.0.9000
 
-- Base database sessions on pinned authorization connection objects. Modern
-  shinyOAuth single-module and multiple-connection references work directly.
-- Accept direct objects, reactive inputs and no-argument connection accessors;
-  provide `oauth_db_authorization()` for other provider interfaces without a
-  required class or a separate login/refresh implementation.
-- Keep app login and explicitly selected database grants independent. Report
-  ambiguous manager selection and invalidate replaced references, even when
-  their IDs were reused.
-- Add multiple-connection playground and custom-authorization lifecycle tests.
-- Make every playground example a complete standalone Shiny app, with visible
-  OAuth configuration, UI, server, native queries and connection/task cleanup.
-- Add an opt-in Docker Compose PostgreSQL 18/Keycloak fixture with real browser
-  OAuth, database-enforced grants/RLS, native RPostgres token handoff and lifecycle
-  integration tests.
+## Breaking redesign
+
+* Backend helpers take a shinyOAuth authorization directly and return reactive native connection or token-provider accessors.
+* Query through existing DBI, fabricQueryR, and brickster functions in ordinary Shiny code.
+* Remove source descriptors, operation mappings, managed query results, and background task execution.
+* Keep session-local connection reuse, credential adaptation, and cleanup on authorization/session changes.
+* Reduce complete live examples to roughly 35–40 lines.
+* Keep Microsoft, Databricks, and Snowflake OAuth client helpers as optional configuration conveniences.
+* Allow explicit native providers, client scopes, and Microsoft token targets to replace preset defaults; pass remaining native client settings through unchanged.
+* Add a provider-only Snowflake preset and document simultaneous accessors bound to separate authorizations and client registrations.
+* Remove the previous development API without compatibility aliases.

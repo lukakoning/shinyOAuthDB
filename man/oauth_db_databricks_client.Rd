@@ -2,31 +2,39 @@
 % Please edit documentation in R/auth.R
 \name{oauth_db_databricks_client}
 \alias{oauth_db_databricks_client}
-\title{Configure a native Databricks OAuth client}
+\title{Configure a native Databricks shinyOAuth client}
 \usage{
 oauth_db_databricks_client(
-  source,
+  host,
   client_id,
   redirect_uri,
   client_secret = NULL,
-  ...
+  ...,
+  provider = .odb_databricks_provider(host, client_secret),
+  scopes = c("openid", "profile", "email", "offline_access", "all-apis")
 )
 }
 \arguments{
-\item{source}{A Databricks source using native \code{databricks_oauth}.}
+\item{host}{Databricks workspace hostname or HTTPS origin. Unused when
+\code{provider} is supplied.}
 
-\item{client_id}{Registered Databricks OAuth client ID.}
+\item{client_id}{Registered application ID.}
 
-\item{redirect_uri}{Registered callback URI.}
+\item{redirect_uri}{Registered OAuth callback URL.}
 
-\item{client_secret}{Registered confidential-client secret, or NULL.}
+\item{client_secret}{Confidential client secret, or NULL for a public client.}
 
-\item{...}{Additional shinyOAuth client settings.}
+\item{...}{Settings passed unchanged to \code{shinyOAuth::oauth_client()}, such as
+\code{label}, \code{resource}, \code{required_scopes}, or \code{scope_validation}.}
+
+\item{provider}{Native shinyOAuth provider. Defaults to the service's provider.}
+
+\item{scopes}{Complete client consent scopes, replacing the preset defaults.}
 }
 \value{
-A native shinyOAuth client. Workspace discovery is delegated to the
-existing exported \code{brickster::db_oauth_provider()} and can make a network request.
+A native shinyOAuth client. Discovery uses brickster and may make a
+network request. Requires its external-token/OAuth provider hooks.
 }
 \description{
-Configure a native Databricks OAuth client
+Configure a native Databricks shinyOAuth client
 }

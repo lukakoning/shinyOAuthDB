@@ -2,12 +2,11 @@ Package: shinyOAuthDB
 Title: Bridge Shiny User Authorizations to Database and Data Platform Clients
 Version: 0.0.0.9000
 Authors@R: person("Luka", "Koning", email = "koningluka@gmail.com", role = c("aut", "cre", "cph"))
-Description: Connects session-owned user authorizations, including modern
-    connections from 'shinyOAuth', to existing database and data platform
-    clients. Reuses native 'DBI'
-    connections and public token-provider interfaces for delegated access,
-    with per-session connection reuse, source-specific OAuth configuration,
-    and guarded asynchronous operations through 'mirai' or 'future'.
+Description: Thin Shiny bindings from 'shinyOAuth' user authorizations to
+    native database connections and token providers. Supplies reactive accessors
+    for existing client packages with per-session connection reuse and cleanup.
+    Login and token refresh stay in 'shinyOAuth'; queries and results stay in
+    the native database package and application.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
@@ -15,10 +14,6 @@ Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     DBI (>= 1.2.0),
-    digest,
-    later,
-    promises (>= 1.3.0),
-    R6,
     rlang,
     shiny (>= 1.8.1),
     shinyOAuth (>= 0.6.1.9000)
@@ -27,8 +22,6 @@ Suggests:
     dbplyr,
     dplyr,
     fabricQueryR,
-    future,
-    mirai (>= 2.5.1),
     odbc (>= 1.3.4),
     pkgload,
     RPostgres,

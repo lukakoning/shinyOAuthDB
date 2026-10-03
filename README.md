@@ -1,245 +1,174 @@
 # shinyOAuthDB
 
-Use a Shiny visitor's authorization from **shinyOAuth** with existing R database and data-platform packages. The database or platform enforces that user's grants, roles and data policies.
+Use a Shiny visitor's **shinyOAuth** authorization with DBI, **fabricQueryR**, **brickster**, or another database client.
 
-This development package provides session-owned native connections, native token providers and guarded background tasks. Login, consent and refresh stay in shinyOAuth; queries, polling, pagination and data conversion stay in the existing client packages.
+A backend helper returns a reactive accessor to the native connection or token provider. Call it from ordinary Shiny code, then use the database package directly. shinyOAuth handles login and refresh; the database package handles queries and results.
 
-```mermaid
-flowchart LR
-  U[Shiny user] --> O[shinyOAuth: login and refresh]
-  O --> B[shinyOAuthDB: authorization-bound handle]
-  B --> R[DBI / odbc / RPostgres / fabricQueryR / brickster]
-  R --> D[Database or platform: user permissions]
-```
+## A complete Azure SQL app
 
-## Installation
-
-This version needs the development **shinyOAuth** checkout with module-managed `access_token()` and token targets. Fabric needs the public `fabric_token_provider()` hook added to the sibling **fabricQueryR** checkout. Databricks needs the external-token hooks in the sibling **brickster** fork. Published versions without these interfaces are reported as unsupported.
-
-Install the relevant CRAN dependencies, then install the local packages from their directories. From this repository:
-
-```sh
-R CMD INSTALL ../shinyOAuth
-R CMD INSTALL ../fabricQueryR   # for Fabric
-R CMD INSTALL ../brickster     # for Databricks
-R CMD INSTALL .
-```
-
-Only install the client packages for your chosen backend. `mirai` and `future` are optional worker engines; native database drivers must also be installed separately where applicable. See [playground setup](playground/README.md) for configuration.
-
-## Native connections first
-
-Configure a source and its shinyOAuth client outside `server()`. Create one handle for each source inside `server()`:
+Set `OAUTHDB_TENANT_ID`, `OAUTHDB_CLIENT_ID`, `OAUTHDB_CLIENT_SECRET`, `OAUTHDB_SERVER`, and `OAUTHDB_DATABASE`. Register `http://localhost:8100` as the OAuth redirect URI.
 
 ```r
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-source <- oauth_db_azure_sql("example.database.windows.net", "Reporting")
 client <- oauth_db_microsoft_client(
-  source,
   tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = "http://localhost:8100"
 )
 
-ui <- oauth_ui(
-  fluidPage(
-    actionButton("login", "Sign in"),
-    actionButton("logout", "Sign out"),
-    actionButton("load", "Load data"),
-    tableOutput("rows")
-  ),
-  id = "auth",
-  client = client
-)
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
-  # Keep the handle local to this visitor's session and selected grant.
-  db <- oauth_db_session(source, reactive(auth$connection()))
-
-  rows <- reactive({
-    db$generation() # Rerun when authorization changes so old rows disappear.
-    req(input$load > 0)
-
-    oauth_db_with_connection(
-      db,
-      DBI::dbGetQuery,
-      statement = "SELECT TOP (20) name FROM sys.tables"
-    )
+  con <- oauth_db_azure_sql(auth$connection,
+    server = Sys.getenv("OAUTHDB_SERVER"),
+    database = Sys.getenv("OAUTHDB_DATABASE"))
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
   })
-
-  output$rows <- renderTable(rows())
 }
 
-shinyApp(ui, server, uiPattern = ".*")
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-The handle's `db$connection()` is an ordinary native DBI connection. Use it with DBI, dbplyr and the driver's existing APIs. `oauth_db_with_connection()` provides a synchronous scope that rechecks the authorization before returning materialized data. `connection_policy = "operation"` instead closes each scoped connection after use.
+`con()` is a native DBI connection. Use it with DBI, dbplyr, or the driver's own API. The connection belongs to this Shiny session and selected authorization; the bridge closes it when either ends. The database enforces the user's permissions.
 
-For event-cached application results, clear both saved values and saved errors when `db$generation()` changes; the [Azure SQL app](playground/example-azure-sql.R) demonstrates this pattern. Ordinary token rotation leaves the generation unchanged. Raw native connections and application caches retain their native semantics, so arbitrary calls made outside these helpers need application lifecycle handling.
+## Fabric and Databricks
 
-## Choose the authorization connection
-
-The bridge is built around the **authorization connection object**, not the login module itself. Modern `oauth_module_server()` and `oauth_connections_server()` connections work directly. Supply a pinned object, a reactive, or a no-argument accessor:
+Fabric and Databricks helpers can supply their native token providers:
 
 ```r
-# Single-module app:
-db <- oauth_db_session(source, authorization = auth$connection)
-
-# Multiple authorizations, with a separate app-login module:
-# 'databases' is a manager configured with database clients only.
-db <- oauth_db_session(source, authorization = function() {
-  req(app_login$connection())
-
-  id <- input$database_authorization # explicitly selected manager ID
-  if (is.null(id) || !nzchar(id)) {
-    return(NULL)
-  }
-
-  databases$connection(id)
+# Configure the OAuth client with services = "kql".
+# Inside server(), after creating auth:
+token <- oauth_db_fabric(auth$connection, service = "kql")
+output$rows <- renderPrint({
+  credential <- token()
+  fabricQueryR::fabric_kql_query(
+    cluster = "https://example.kusto.fabric.microsoft.com",
+    database = "Events", query = "Events | take 10", token = credential
+  )
 })
 ```
 
-The app-login connection and database connection can have different providers, users and scopes. Only the selected database object supplies database credentials. Changing that selection retires the previous native connection and invalidates saved providers and task outcomes. One handle can follow selection; several handles can independently bind different IDs. A manager with several grants requires an explicit ID; the bridge reports `selection_required` instead of choosing one.
+The [complete Fabric app](playground/example-fabric-kql.R) is 39 lines. The [Databricks app](playground/example-databricks.R) uses `brickster::db_sql_query()` with `token()`. Passing `warehouse_id` to `oauth_db_databricks()` instead creates a DBI connection accessor.
 
-[The multiple-connections playground](playground/example-multiple-connections.R) retains distinct login and database grants in one genuine shinyOAuth manager and has explicit selectors. A standalone session-only login module loses its token on full OAuth callback navigation; using it beside a retained database manager requires the app's persistent login session. See the playground notes for callback routing and owner setup.
+Queries retain their native arguments, return values, and errors. There is no query callback API, query registry, or task system.
 
-Custom provider objects work too. They need `id`, `access_token(required_scopes, min_valid_for, force_refresh, async, target)` and `has_scopes(scopes, target)`; optional `targets()` supports first acquisition of a named target. The class is unrestricted. Use `oauth_db_authorization()` to map another package's methods:
+## Available bindings
+
+| Helper | Native value returned by its accessor |
+|---|---|
+| `oauth_db_azure_sql()`, `oauth_db_sql_server()` | DBI + odbc connection; SQL Server must support Entra |
+| `oauth_db_azure_postgres()` | DBI + RPostgres connection; Azure Entra token as password |
+| `oauth_db_fabric_sql()` | fabricQueryR SQL connection |
+| `oauth_db_fabric(service = ...)` | fabricQueryR token provider for KQL, DAX, GraphQL, OneLake, discovery |
+| `oauth_db_databricks()` | brickster token provider, or DBI connection with a warehouse |
+| `oauth_db_snowflake()` | DBI + odbc connection with OAuth |
+
+Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
+
+## Several authorizations at once
+
+Register your native clients with a normal shinyOAuth connection manager. Each database accessor can follow a different selected grant, including grants from different client registrations or providers:
 
 ```r
-custom <- oauth_db_authorization(
-  id = provider_grant_id,
-  access_token = my_access_token, # callback honoring scopes/lifetime/refresh/async
-  has_scopes = my_has_scopes # reactive permission + grant-liveness check
+# Inside server(); manager contains your configured SQL and Fabric clients.
+auth <- oauth_connections_server("authorizations", manager)
+con_sql <- oauth_db_azure_sql(
+  function() auth$connection(req(input$sql_authorization_id)),
+  server = "example.database.windows.net", database = "Reporting"
 )
-db <- oauth_db_session(source, authorization = custom)
-```
-
-Keep each object pinned to one authorization, with a new non-secret ID on replacement and reactive notification on logout/permission changes. Callbacks own their provider's login and refresh lifecycle. A named source target must be supported explicitly; callbacks omitting `target` work only with `target = NULL`. Use the modern module factories rather than the legacy `oauth_connection()` wrapper, whose token reactive can follow later logins.
-
-## Existing platform functions
-
-Fabric and Databricks retain their native functions and provider formats:
-
-```r
-# Inside server(), using the source appropriate for this service:
-kql_source <- oauth_db_fabric(
-  "kql",
-  cluster = "https://example.kusto.fabric.microsoft.com",
-  database = "Events"
-)
-kql <- oauth_db_session(kql_source, reactive(auth$connection()))
-
-fabricQueryR::fabric_kql_query(
-  query = "Events | take 10",
-  cluster = kql_source$config$cluster,
-  database = kql_source$config$database,
-  token = kql$token_provider()
-)
-
-databricks <- oauth_db_session(
-  databricks_source,
-  reactive(databricks_auth$connection())
-)
-brickster::db_sql_query(
-  host = databricks_source$config$host,
-  warehouse_id = databricks_source$config$warehouse_id,
-  statement = "SELECT current_user()",
-  token = databricks$token_provider()
+token_kql <- oauth_db_fabric(
+  function() auth$connection(req(input$kql_authorization_id)), service = "kql"
 )
 ```
 
-Declare all Microsoft sources when creating their shared client. Compatible sources sharing a target/resource have their scope requirements combined. Each source then selects its own target. Microsoft `.default` and explicit API consent profiles require compatible configuration or separate clients. Native Databricks and native Snowflake OAuth use separate provider clients; optional helpers configure them through shinyOAuth.
+Populate both selectors with the `connection_id` values returned by `auth$connections()`. These are authorization IDs, not client profile names such as `"sql"`. Both accessors can be used simultaneously; disconnecting one grant leaves the other accessor bound to its own grant.
 
-## Background tasks
+## Control providers and clients
 
-Pass an existing exported function directly. The adapter supplies the source configuration and credentials; invocation arguments supply the operation:
+Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `default_token_target`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `scopes` to your client configuration.
+
+For provider-only setup, use `shinyOAuth::oauth_provider_microsoft()`, `brickster::db_oauth_provider()`, or the Snowflake preset, then construct the client yourself:
 
 ```r
-# Outside server(), choose and configure an existing worker engine:
-mirai::daemons(2)
-
-# Or: future::plan(future::multisession, workers = 2)
-
-# Inside server():
-query <- oauth_db_task(
-  db,
-  DBI::dbGetQuery,
-  executor = "mirai",
-  pending = "latest",
-  effect = "read",
-  credential_budget = 120
+provider <- oauth_db_snowflake_provider("account.snowflakecomputing.com")
+client <- shinyOAuth::oauth_client(
+  provider = provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("session:role:READER", "refresh_token"),
+  label = "Reporting"
 )
-
-observeEvent(
-  input$load,
-  query$invoke(
-    statement = "SELECT TOP (20) name FROM sys.tables"
-  )
-)
-
-output$rows <- renderTable(query$result())
-
-kql_query <- oauth_db_task(
-  kql,
-  fabricQueryR::fabric_kql_query,
-  pending = "latest",
-  effect = "read"
-)
-kql_query$invoke(query = "Events | take 10")
 ```
 
-Tasks capture the authorization when queued and acquire credentials when starting. Workers receive a fixed, short-lived access token and plain configuration; they open their own connection. They receive no session, live OAuth reference, refresh token, client secret or live database connection. Late values and errors are hidden after logout, authorization replacement or observed permission loss.
+The Snowflake provider preset also accepts native `oauth_provider()` overrides through `...`, including endpoints and client authentication settings. Native Snowflake OAuth and external OAuth use their respective identity-provider configurations.
 
-`pending = "serial"` is the default. `"latest"` replaces waiting reads, while `"ignore"` declines new work while busy. `effect` is declared by the app; SQL text is not classified. `$cancel()` discards local outcomes and pending work; it does not cancel a submitted remote statement or undo a write. Worker errors are sanitized, and a credential budget is a local credential-use limit rather than a remote query timeout.
+## Another database client
 
-## Implemented adapters
+Pass a native connection function and name its credential argument:
 
-For a runnable self-hosted PostgreSQL OAuth experiment, use the
-[PostgreSQL/Keycloak Docker Compose integration](integration/postgres-keycloak/README.md).
-It exercises real browser authorization and PostgreSQL row-level security with
-an integration-only RPostgres token hook. This does not add a production generic
-PostgreSQL adapter.
+```r
+con <- oauth_db_connect(auth$connection,
+  connect = DBI::dbConnect,
+  drv = MyDriver::Driver(), host = "database.example.com",
+  token_arg = "access_token", scopes = "data.read"
+)
+output$rows <- renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT name FROM products")
+})
+```
 
-All cloud adapters are **experimental pending live acceptance against your deployment**. Offline tests verify routing and lifecycle; cloud user mapping and grants require the opt-in scenarios.
+`MyDriver` represents a driver that accepts delegated bearer tokens. Fixed options go directly to its native connector; `token_arg` names the argument receiving the user's token. DBI connections close automatically. Other native clients can supply `disconnect = TheirPackage::disconnect` when needed.
 
-| Backend | Source constructor | Existing client |
-|---|---|---|
-| Azure SQL | `oauth_db_azure_sql()` | DBI + odbc, explicit Entra token attribute |
-| Entra-enabled SQL Server | `oauth_db_sql_server(entra_enabled = TRUE)` | DBI + odbc |
-| Azure PostgreSQL Flexible Server | `oauth_db_azure_postgres()` | DBI + RPostgres, Entra token as password |
-| Fabric SQL | `oauth_db_fabric_sql()` | fabricQueryR connector + native DBI |
-| Fabric discovery, KQL, DAX, GraphQL, OneLake | `oauth_db_fabric(service = ...)` | Existing fabricQueryR functions and endpoint policy |
-| Databricks SQL and mapped APIs | `oauth_db_databricks()` | brickster provider, REST and DBI implementation |
-| Snowflake native / external OAuth | `oauth_db_snowflake()` | DBI + odbc with explicit OAuth token and role |
-| Custom delegated connector | `oauth_db_custom()` | Trusted connector returning native DBI |
+For an API that accepts a bearer string directly, `token <- oauth_db_token(auth$connection, scopes = "data.read")` supplies that string through `token()`.
 
-An ordinary password/Windows-authenticated on-premises database cannot reuse an OAuth visitor identity through these adapters. Native PostgreSQL OAUTHBEARER, BigQuery and AWS warehouses remain research tracks. There is no automatic service-account, PAT, CLI or ambient authentication fallback in built-in adapters.
+## Ordinary Shiny behavior
 
-## Playground and tests
+The native accessor is reactive. A `renderTable()`, `renderPrint()`, or `reactive()` that calls it follows the selected authorization. Use regular Shiny tools for input dependencies, events, progress, caching, and background work.
 
-Start the local demonstration without cloud credentials:
+Application-owned caches and `eventReactive()` keep their usual Shiny behavior. The bridge does not clear query results stored by the app or manage queries already in progress. Applications that retain results across events must handle their authorization lifecycle.
+
+## Installation and examples
+
+This development version requires matching **shinyOAuth** support for module-managed access tokens and token targets. Fabric requires **fabricQueryR** with `fabric_token_provider()`; Databricks requires the **brickster** fork with `db_token_provider()` and `db_oauth_provider()`. Released packages may not yet include these hooks.
+
+From sibling checkouts, install the packages needed for your backend:
+
+```sh
+R CMD INSTALL ../shinyOAuth
+R CMD INSTALL ../fabricQueryR   # Fabric only
+R CMD INSTALL ../brickster     # Databricks only
+R CMD INSTALL .
+```
+
+Install your database driver separately. Install `RSQLite` for the local demonstration:
 
 ```r
 pkgload::load_all()
 source("playground/example-offline.R")
 ```
 
-Use simulated A/B users to see connection reuse, authorization replacement, clearing and logout. [The playground folder](playground/README.md) also contains simple apps for each implemented backend and Fabric service, with native and background operations.
+The offline app uses simulated A/B grants and seeded SQLite rows to demonstrate native connection reuse and cleanup. It does not test a real OAuth exchange. [Playground setup](playground/README.md) lists the complete apps and deployment settings. Live user mapping and database permissions require verification against your deployment.
 
-```r
-testthat::test_local()
-```
+## Breaking redesign
 
-Install the current package before real worker tests so workers can resolve its namespace. Tests exercise local DBI connections, A/B isolation, scope loss, ownership, first target acquisition, queue behavior, stale errors, credential expiry, protected arguments and real mirai/future execution. [Opt-in integration scenarios](tests/integration/README.md) add delegated A/B cloud tokens and actual platform-policy fixtures; the browser checklist covers real login, consent and refresh.
+Replace source construction plus `oauth_db_session()` with a backend accessor such as `con <- oauth_db_azure_sql(auth$connection, ...)`, then call native database functions with `con()`. Source descriptors, operation mappings, managed query results, and worker execution have been removed.
 
-[The validation record](docs/validation.md) includes results and reproducible checks. `Rscript --vanilla tools/check-package.R` installs the tested bridge into a temporary library, runs the repository suite, and checks the built package.
+[Implementation notes](docs/implementation.md) describe the bridge's boundaries. [Opt-in cloud checks](tests/integration/README.md) and the [PostgreSQL/Keycloak fixture](integration/postgres-keycloak/README.md) cover deployment-specific integration. Older architecture and API-draft documents record the previous design.
 
-[Implementation notes](docs/implementation.md) document the current contract and limitations. The original [architecture](docs/architecture.md), [API exploration](docs/api-draft.md), [migration plan](docs/migration-plan.md) and research reports record the design work preceding implementation; draft APIs there are not the current reference. Function help pages describe the implemented API.
+Run `testthat::test_local()` for package tests and `Rscript tools/check-playground.R --test` for source-checkout example checks.

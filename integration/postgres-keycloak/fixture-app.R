@@ -84,28 +84,13 @@ postgres_browser_app <- function(config) {
 
     native_error_detail <- shiny::reactiveVal(NULL)
 
-    source <- shinyOAuthDB::oauth_db_custom(
-      "postgres_oauth_fixture",
-      target = NULL,
-      scopes = "database.read",
-      required_scopes = "database.read",
-      config = list(
-        issuer = config$issuer,
-        host = config$pg_host,
-        port = config$pg_port,
-        dbname = config$pg_dbname,
-        sslrootcert = config$ca_file
-      ),
-      capabilities = list(
-        connector_package = "pgBearerHook",
-        delegated_user = TRUE,
-        credential_transport = "native_oauthbearer"
-      ),
-      connect = function(config, token_provider) {
+    con <- shinyOAuthDB::oauth_db_connect(
+      authorization,
+      connect = function(token, issuer, host, port, dbname, sslrootcert) {
         tryCatch(
           {
-            credential <- token_provider()
             reference <- shiny::isolate(authorization())
+            held_provider <<- reference$access_token
             identity <- reference$identity(claims = "sub")
             subject <- identity$id_token_claims$sub
             role <- c(
@@ -121,15 +106,15 @@ postgres_browser_app <- function(config) {
 
             connect_attempts(shiny::isolate(connect_attempts()) + 1L)
             native <- pgBearerHook::pg_connect_bearer(
-              token = credential,
-              issuer = config$issuer,
+              token = token,
+              issuer = issuer,
               scope = "database.read",
-              host = config$host,
-              port = config$port,
-              dbname = config$dbname,
+              host = host,
+              port = port,
+              dbname = dbname,
               user = role,
               sslmode = "verify-full",
-              sslrootcert = config$sslrootcert,
+              sslrootcert = sslrootcert,
               connect_timeout = 5L
             )
 
@@ -148,24 +133,19 @@ postgres_browser_app <- function(config) {
         )
       },
 
+      issuer = config$issuer,
+      host = config$pg_host,
+      port = config$pg_port,
+      dbname = config$pg_dbname,
+      sslrootcert = config$ca_file,
+      scopes = "database.read",
+      min_valid_for = 1,
       disconnect = function(native) {
         disconnects(shiny::isolate(disconnects()) + 1L)
 
         DBI::dbDisconnect(native)
       }
     )
-
-    db <- shinyOAuthDB::oauth_db_session(
-      source,
-      authorization = authorization,
-      session = session,
-      connection_policy = "session",
-      min_valid_for = 1
-    )
-
-    result <- shiny::reactiveVal(NULL)
-
-    result_owner <- shiny::reactiveVal(NULL)
 
     last_error <- shiny::reactiveVal(NULL)
 
@@ -206,7 +186,7 @@ postgres_browser_app <- function(config) {
       if (is.null(reference)) {
         NULL
       } else {
-        list(id = reference$id, generation = db$generation())
+        list(id = reference$id)
       }
     })
 
@@ -218,8 +198,6 @@ postgres_browser_app <- function(config) {
         current_owner <- owner()
         if (!identical(observed_owner(), current_owner)) {
           observed_owner(current_owner)
-          result(NULL)
-          result_owner(NULL)
           last_error(NULL)
           other_role_denied(NULL)
           own_table_allowed(NULL)
@@ -235,50 +213,26 @@ postgres_browser_app <- function(config) {
 
     shiny::observeEvent(input$login, auth$request_login())
 
-    shiny::observeEvent(input$load, {
-      captured <- owner()
-      shiny::req(captured)
+    shiny::observeEvent(input$load, last_error(NULL))
+
+    # Ordinary Shiny reactivity: login/replacement and the reload button read
+    # through the native connection accessor. There is no separate result API.
+    result <- shiny::reactive({
+      input$load
+      native <- con()
       query_attempts(shiny::isolate(query_attempts()) + 1L)
-      last_error(NULL)
-      result(NULL)
-
-      tryCatch(
-        {
-          native <- db$connection()
-          rows <- DBI::dbGetQuery(
-            native,
-            paste(
-              "SELECT current_user::text AS database_user, row_id, owner_name, marker",
-              "FROM public.visible_rows ORDER BY row_id"
-            )
-          )
-          pid <- DBI::dbGetQuery(
-            native,
-            "SELECT pg_backend_pid()::integer AS backend_pid"
-          )$backend_pid[[1L]]
-          if (identical(captured, owner())) {
-            held_connection <<- native
-            held_owner <<- captured
-            held_provider <<- db$token_provider()
-            held_connection_valid(TRUE)
-            held_provider_usable(TRUE)
-            result_owner(captured)
-
-            result(list(
-              database_user = unique(rows$database_user),
-              owner_names = unique(rows$owner_name),
-              markers = rows$marker,
-              backend_pid = pid
-            ))
-          }
-        },
-
-        error = function(e) {
-          if (identical(captured, owner())) {
-            last_error("database_operation_failed")
-          }
-        }
-      )
+      rows <- DBI::dbGetQuery(native, paste(
+        "SELECT current_user::text AS database_user, row_id, owner_name, marker",
+        "FROM public.visible_rows ORDER BY row_id"
+      ))
+      pid <- DBI::dbGetQuery(native,
+        "SELECT pg_backend_pid()::integer AS backend_pid")$backend_pid[[1L]]
+      held_connection <<- native
+      held_owner <<- shiny::isolate(owner())
+      held_connection_valid(TRUE)
+      held_provider_usable(TRUE)
+      list(database_user = unique(rows$database_user),
+        owner_names = unique(rows$owner_name), markers = rows$marker, backend_pid = pid)
     })
 
     shiny::observeEvent(input$refresh, {
@@ -349,7 +303,7 @@ postgres_browser_app <- function(config) {
     })
 
     shiny::observeEvent(input$probe_table_grants, {
-      native <- db$connection()
+      native <- con()
       role <- DBI::dbGetQuery(
         native,
         "SELECT current_user::text AS database_user"
@@ -442,6 +396,9 @@ postgres_browser_app <- function(config) {
 
     shiny::observeEvent(input$logout, {
       auth$logout()
+      # Observe retirement before inspecting the intentionally retained fixture
+      # connection. Production output simply calls con() in its render code.
+      tryCatch(con(), error = function(e) NULL)
 
       held_provider_usable(
         if (is.null(held_provider)) {
@@ -469,9 +426,6 @@ postgres_browser_app <- function(config) {
           ))
         }
       )
-
-      result(NULL)
-      result_owner(NULL)
 
       last_error(NULL)
     })
@@ -513,8 +467,6 @@ postgres_browser_app <- function(config) {
 
     shiny::observeEvent(input$retry_native, {
       shiny::req(held_connection, identical(held_owner, owner()))
-      result(NULL)
-
       # These direct native calls deliberately bypass the broker's reconnection
       # path. The second call exercises RPostgres/libpq recovery after the first
       # detects the terminated socket, with no credential hook left installed.
@@ -550,10 +502,9 @@ postgres_browser_app <- function(config) {
 
     output$snapshot <- shiny::renderText({
       current_owner <- owner()
-      saved <- result()
-      if (!identical(result_owner(), current_owner)) {
-        saved <- NULL
-      }
+      query_error <- NULL
+      saved <- tryCatch(result(), shiny.silent.error = function(e) NULL,
+        error = function(e) { query_error <<- "database_operation_failed"; NULL })
 
       jsonlite::toJSON(
         list(
@@ -564,14 +515,15 @@ postgres_browser_app <- function(config) {
           } else {
             current_owner$id
           },
-          generation = db$generation(),
-          database_status = db$status()$status,
+          database_status = if (is.null(current_owner)) "waiting_for_authorization" else {
+            if (isTRUE(authorization()$has_scopes("database.read"))) "authorized" else "insufficient_scope"
+          },
           auth_error = if (is.null(auth$error)) {
             NULL
           } else {
             "authorization_failed"
           },
-          error = last_error(),
+          error = if (is.null(last_error())) query_error else last_error(),
           result = saved,
           native_error_detail = native_error_detail(),
           query_attempts = query_attempts(),

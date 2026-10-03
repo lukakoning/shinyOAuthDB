@@ -37,7 +37,7 @@ try {
         $null -eq $response -or
         $response.StatusCode -ne 200 -or
         -not $response.Content.Contains('Use simulated user A') -or
-        -not $response.Content.Contains('Run native call')
+        -not $response.Content.Contains('Use simulated user B')
     ) {
         throw 'Playground HTTP smoke failed.'
     }

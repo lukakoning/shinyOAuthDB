@@ -3,7 +3,10 @@
 This opt-in Docker Compose fixture runs PostgreSQL 18, Keycloak and a real
 Chromium-driven Shiny application. The application obtains delegated user
 tokens through the current sibling shinyOAuth checkout, then uses shinyOAuthDB
-and an ordinary RPostgres DBI connection. PostgreSQL validates the tokens and
+and an ordinary RPostgres DBI connection through `oauth_db_connect()`.
+Queries obtain `connection <- con()` in ordinary Shiny reactive code and pass
+it to `DBI::dbGetQuery()`.
+PostgreSQL validates the tokens and
 enforces its own role grants and row-level security.
 
 The fixture creates a separate database and Docker volumes. It does not connect
@@ -50,7 +53,8 @@ services for inspection and prints its project-specific cleanup command.
 For the interactive Shiny playground, add `-Playground` (or on Linux/macOS set
 `OAUTHDB_PLAYGROUND=1` before running the shell script). Open
 `http://localhost:18100`, authorize `alice` or `bob`, then load their granted
-rows. Passwords are `alice-fixture-password` and `bob-fixture-password`.
+rows (the load button repeats the read). Passwords are
+`alice-fixture-password` and `bob-fixture-password`.
 Refresh, logout, role/table denial and broken-connection controls use this same
 fixture. Your host browser may ask you to trust the locally signed Keycloak
 certificate; automated Chromium trusts the CA inside its container. Stop the
@@ -65,8 +69,8 @@ runner to close the app and clean up its stack.
 | Table permissions | Each role can read its own table and is denied access to the other role's table |
 | Role impersonation | Alice's valid token cannot connect as Bob, or Bob's as Alice |
 | Native connection reuse | Repeated reads preserve the PostgreSQL backend PID within one authorization |
-| Real forced refresh | Keycloak refreshes the selected grant; cached data and the authorization generation stay stable; the next connection uses the new token |
-| Logout and replacement | Saved results clear, the previous native connection closes and retained token providers fail |
+| Real forced refresh | Keycloak refreshes the selected grant; the valid native DBI connection remains open and retains its backend PID |
+| Logout and replacement | The native accessor invalidates, dependent Shiny output updates, the previous connection closes and retained authorization references fail |
 | Wrong audience | A valid token for a different resource is denied by PostgreSQL |
 | Missing database scope | The bridge denies before connecting; a separate native probe confirms PostgreSQL also rejects that token |
 | Broken native connection | Subsequent direct DBI calls fail; libpq cannot start another login or substitute credentials |
@@ -118,9 +122,9 @@ unwind. The fixture libpq omits the optional built-in device-login module;
 the Keycloak clients also disable device and password grants. Broken
 connections must be discarded instead of resetting them with new credentials.
 
-This proves the configured local browser-to-database path. The helper is not
-installed as a production dependency and there is no general
-`oauth_db_postgres()` constructor yet. Production native PostgreSQL support
+This fixture exercises the configured local browser-to-database path when run.
+The helper is not installed as a production dependency. The generic
+`oauth_db_connect()` accepts its native connector; production PostgreSQL 18 support
 still needs a supported RPostgres token-hook interface, platform/build testing,
 and the deployment's own identity, TLS and authorization configuration.
 

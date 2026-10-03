@@ -1,5 +1,8 @@
 # Repository validation without installing into the user's normal library.
 # Run from the repository root: Rscript --vanilla tools/check-package.R
+arguments <- commandArgs(trailingOnly = TRUE)
+if (length(arguments)) .libPaths(c(arguments[[1L]], .libPaths()))
+Sys.setenv(LC_ALL = "C", LANG = "C", LANGUAGE = "en")
 needed <- c("pkgbuild", "pkgload", "testthat", "rcmdcheck")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) {

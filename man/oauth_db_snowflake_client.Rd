@@ -2,26 +2,41 @@
 % Please edit documentation in R/auth.R
 \name{oauth_db_snowflake_client}
 \alias{oauth_db_snowflake_client}
-\title{Configure a native Snowflake OAuth client}
+\title{Configure a native Snowflake shinyOAuth client}
 \usage{
-oauth_db_snowflake_client(source, client_id, client_secret, redirect_uri, ...)
+oauth_db_snowflake_client(
+  server,
+  client_id,
+  client_secret,
+  redirect_uri,
+  role,
+  ...,
+  provider = oauth_db_snowflake_provider(server),
+  scopes = c(paste0("session:role:", role), "refresh_token")
+)
 }
 \arguments{
-\item{source}{A Snowflake source using \code{snowflake_oauth}.}
+\item{server}{Snowflake account hostname. Unused when \code{provider} is supplied.}
 
-\item{client_id}{Registered OAuth client ID.}
+\item{client_id}{Registered application ID.}
 
-\item{client_secret}{Server-side OAuth client secret.}
+\item{client_secret}{Confidential client secret, or NULL for a public client.}
 
-\item{redirect_uri}{Registered callback URI.}
+\item{redirect_uri}{Registered OAuth callback URL.}
 
-\item{...}{Additional shinyOAuth client settings.}
+\item{role}{Requested database role. Unused when \code{scopes} is supplied.}
+
+\item{...}{Settings passed unchanged to \code{shinyOAuth::oauth_client()}, such as
+\code{label}, \code{resource}, \code{required_scopes}, or \code{scope_validation}.}
+
+\item{provider}{Native shinyOAuth provider. Defaults to the service's provider.}
+
+\item{scopes}{Complete client consent scopes, replacing the preset defaults.}
 }
 \value{
-A native shinyOAuth client using Snowflake OAuth endpoints. External
-OAuth instead uses its configured external provider, for example the
-Microsoft helper when the source explicitly declares that provider family.
+A native shinyOAuth client. External OAuth instead uses its configured
+identity provider through shinyOAuth directly.
 }
 \description{
-Configure a native Snowflake OAuth client
+Configure a native Snowflake shinyOAuth client
 }

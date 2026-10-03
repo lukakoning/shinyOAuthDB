@@ -117,7 +117,8 @@ odb_test_authorization <- function(
     acquire = function(async = FALSE, ...) {
       calls$acquire <- calls$acquire + 1L
       token(make_token(paste0("fixture-", id, "-acquired")))
-      if (async) promises::promise_resolve(TRUE) else TRUE
+      stopifnot(!async)
+      TRUE
     },
 
     is_current = function() current()
@@ -133,52 +134,9 @@ odb_test_authorization <- function(
   )
 }
 
-odb_test_source <- function(
-  target = NULL,
-  scopes = "read",
-  on_connect = NULL,
-  on_disconnect = NULL
-) {
-  oauth_db_custom(
-    "fixture_sqlite",
-    target = target,
-    scopes = scopes,
-    connect = function(config, token_provider) {
-      token <- token_provider()
-      if (!is.null(on_connect)) {
-        on_connect(token)
-      }
-
-      DBI::dbConnect(RSQLite::SQLite(), ":memory:")
-    },
-
-    disconnect = function(conn) {
-      if (!is.null(on_disconnect)) {
-        on_disconnect()
-      }
-
-      DBI::dbDisconnect(conn)
-    }
-  )
-}
-
 odb_test_domain <- function(code) {
   session <- shiny::MockShinySession$new()
   on.exit(session$close(), add = TRUE)
 
   shiny::withReactiveDomain(session, shiny::isolate(code(session)))
-}
-
-odb_test_drain <- function(session, until, timeout = 5) {
-  deadline <- Sys.time() + timeout
-  repeat {
-    later::run_now(0.01)
-    session$flushReact()
-    if (isTRUE(until())) {
-      break
-    }
-    if (Sys.time() >= deadline) {
-      stop("Timed out waiting for the asynchronous result")
-    }
-  }
 }

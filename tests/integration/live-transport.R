@@ -78,18 +78,16 @@ run_live_transport <- function(fixture) {
     spec <- fixture$configure(spec)
   }
 
-  client <- live_client(spec$source, spec$provider)
-  is_sql <- isTRUE(shinyOAuthDB::oauth_db_capabilities(spec$source)$native_dbi)
+  client <- live_client(spec)
 
   server <- function(input, output, session) {
     current <- shiny::reactiveVal(NULL)
 
-    db <- shinyOAuthDB::oauth_db_session(
-      spec$source,
-      shiny::reactive(current()),
-      session,
-      connection_policy = "session"
-    )
+    native <- spec$bind(current)
+    rows <- shiny::reactive({
+      connection <- native()
+      spec$query(connection, spec$native_args(7L))
+    })
     user_a <- live_fixture_authorization(client, "A", current, session)
     user_b <- live_fixture_authorization(client, "B", current, session)
   }
@@ -99,38 +97,35 @@ run_live_transport <- function(fixture) {
   shiny::testServer(server, {
     current(user_a)
     session$flushReact()
-    capture_a <- db$.capture()
-    args <- spec$native_args(7L)
-    rows_a <- spec$sync(db, args)
+    rows_a <- rows()
     if (!isTRUE(fixture$validate("A", rows_a))) {
       stop("User A fixture expectation failed.", call. = FALSE)
     }
+    connection_a <- native()
+    is_sql <- inherits(connection_a, "DBIConnection")
     if (is_sql) {
-      connection_a <- db$connection()
-      spec$sync(db, args)
-      if (!identical(connection_a, db$connection())) {
+      spec$query(native(), spec$native_args(7L))
+      if (!identical(connection_a, native())) {
         stop("Session connection reuse failed.", call. = FALSE)
       }
     }
 
     current(user_b)
     session$flushReact()
-    if (isTRUE(db$.is_current(capture_a))) {
-      stop("User A outcome remains current after replacement.", call. = FALSE)
-    }
     if (is_sql && isTRUE(DBI::dbIsValid(connection_a))) {
       stop("User A connection was not retired.", call. = FALSE)
     }
 
-    rows_b <- spec$sync(db, args)
+    rows_b <- rows()
     if (!isTRUE(fixture$validate("B", rows_b))) {
       stop("User B fixture expectation failed.", call. = FALSE)
     }
 
     current(NULL)
     session$flushReact()
-    if (!identical(db$status()$status, "waiting_for_authorization")) {
-      stop("Logout did not invalidate the handle.", call. = FALSE)
+    blocked <- tryCatch({ native(); FALSE }, error = function(e) TRUE)
+    if (!blocked) {
+      stop("Logout did not invalidate the native accessor.", call. = FALSE)
     }
   })
 

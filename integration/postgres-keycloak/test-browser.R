@@ -13,7 +13,6 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     testthat::expect_identical(login$metadata$pkce_method, "S256")
     testthat::expect_true(login$metadata$has_s256_challenge)
     testthat::expect_true(login$snapshot$authorized)
-    testthat::expect_null(login$snapshot$result)
   }
 
   testthat::expect_false(identical(
@@ -21,8 +20,7 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     login_b$snapshot$authorization_id
   ))
 
-  postgres_browser_click(browser_a, "load")
-  postgres_browser_click(browser_b, "load")
+  # Ordinary Shiny reactivity performs the initial read after authorization.
   a <- postgres_browser_wait(browser_a, function(value) {
     !is.null(value$result) || !is.null(value$error)
   })
@@ -85,7 +83,7 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
 
   postgres_browser_click(browser_a, "load")
   reused <- postgres_browser_wait(browser_a, function(value) {
-    isTRUE(value$query_attempts >= 2)
+    isTRUE(value$query_attempts > a$query_attempts)
   })
 
   testthat::expect_identical(reused$result$backend_pid, a$result$backend_pid)
@@ -102,22 +100,20 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     refreshed$authorization_id,
     reused$authorization_id
   )
-  testthat::expect_identical(refreshed$generation, reused$generation)
   testthat::expect_identical(refreshed$result$markers, reused$result$markers)
-  testthat::expect_identical(refreshed$query_attempts, reused$query_attempts)
 
   postgres_browser_click(browser_a, "load")
-  reconnected <- postgres_browser_wait(browser_a, function(value) {
-    isTRUE(value$query_attempts >= 3)
+  reused_after_refresh <- postgres_browser_wait(browser_a, function(value) {
+    isTRUE(value$query_attempts > refreshed$query_attempts)
   })
 
-  testthat::expect_null(reconnected$error)
-  testthat::expect_identical(reconnected$result$database_user, "alice")
-  testthat::expect_identical(reconnected$successful_connections, 2L)
-  testthat::expect_false(identical(
-    reconnected$result$backend_pid,
+  testthat::expect_null(reused_after_refresh$error)
+  testthat::expect_identical(reused_after_refresh$result$database_user, "alice")
+  testthat::expect_identical(reused_after_refresh$successful_connections, 1L)
+  testthat::expect_identical(
+    reused_after_refresh$result$backend_pid,
     reused$result$backend_pid
-  ))
+  )
 
   postgres_browser_click(browser_a, "logout")
   logged_out <- postgres_browser_wait(browser_a, function(value) {
@@ -132,10 +128,10 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
   switched_login <- postgres_browser_login(browser_a, "bob", fixture$config)
 
   testthat::expect_true(switched_login$snapshot$authorized)
-  testthat::expect_null(switched_login$snapshot$result)
+  testthat::expect_identical(switched_login$snapshot$result$database_user, "bob")
   testthat::expect_false(identical(
     switched_login$snapshot$authorization_id,
-    reconnected$authorization_id
+    reused_after_refresh$authorization_id
   ))
 
   postgres_browser_click(browser_a, "load")
@@ -197,7 +193,6 @@ testthat::test_that("browser-issued wrong audience is denied by PostgreSQL OAuth
   testthat::expect_true(login$snapshot$authorized)
   testthat::expect_identical(login$metadata$client_id, "shiny-wrong-audience")
 
-  postgres_browser_click(browser, "load")
   denied <- postgres_browser_wait(browser, function(value) {
     !is.null(value$error)
   })
@@ -222,10 +217,10 @@ testthat::test_that("browser-issued missing scope never reaches PostgreSQL conne
 
   postgres_browser_click(browser, "load")
   denied <- postgres_browser_wait(browser, function(value) {
-    !is.null(value$error)
+    identical(value$database_status, "insufficient_scope")
   })
 
-  testthat::expect_identical(denied$error, "database_operation_failed")
+  testthat::expect_null(denied$error)
   testthat::expect_identical(denied$connect_attempts, 0L)
   testthat::expect_identical(denied$successful_connections, 0L)
   testthat::expect_null(denied$result)

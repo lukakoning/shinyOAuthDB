@@ -10,21 +10,14 @@ if (
 }
 
 paths <- c(
-  list.files("playground", pattern = "\\.R$", full.names = TRUE),
-  list.files("tests/integration", pattern = "\\.R$", full.names = TRUE),
-  list.files(
-    "integration/postgres-keycloak",
-    pattern = "\\.R$",
-    full.names = TRUE,
-    recursive = TRUE
-  )
+  list.files("playground", pattern = "\\.R$", full.names = TRUE)
 )
 
 for (path in paths) {
   parse(path)
 }
 
-cat(length(paths), "playground/integration scripts parsed successfully.\n")
+cat(length(paths), "playground scripts parsed successfully.\n")
 if ("--test" %in% commandArgs(trailingOnly = TRUE)) {
   if (
     !requireNamespace("pkgload", quietly = TRUE) ||

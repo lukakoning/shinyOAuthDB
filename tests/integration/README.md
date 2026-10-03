@@ -1,9 +1,8 @@
 # Integration scenarios
 
 Ordinary package checks run deterministic unit tests and Shiny smoke scenarios.
-They do not contact cloud services or start interactive login. The offline
-playground tests verify real local DBI reuse/disconnect, A-to-B replacement,
-logout cleanup, separate Shiny sessions and bound-input validation.
+They do not contact cloud services or start interactive login. Native connection
+reuse, retirement, session ownership and token injection are checked locally.
 
 ## Local PostgreSQL and Keycloak
 
@@ -12,21 +11,23 @@ tests genuine browser OAuth, RPostgres token injection, server-enforced A/B row
 policies, connection reuse, refresh, logout, wrong audiences and broken native
 connections. It creates a disposable database rather than using your existing
 server, and runs Chromium and R in containers. The narrow native helper belongs
-only to this integration fixture; general native PostgreSQL support is not yet
-a built-in adapter.
+only to this integration fixture. It connects through the generic
+`oauth_db_connect()` bridge; PostgreSQL 18 OAUTHBEARER still requires the local
+native helper. The built-in Azure PostgreSQL helper uses Entra tokens as passwords.
 
 ## Opt-in live transport check
 
-`run-live.R` verifies the native adapter using two short-lived **delegated user**
+`run-live.R` verifies the native bridge using two short-lived **delegated user**
 tokens and an operator-defined fixture. It checks native connection reuse where
-applicable, authorization replacement, A/B fixture expectations and logout state.
+applicable, authorization replacement, A/B fixture expectations and logout.
 It does not exercise the browser OAuth exchange, refresh or consent. Its
 test-only OAuthConnection constructor represents supplied fixture credentials;
 production apps obtain references from a shinyOAuth module.
 
 1. Install current shinyOAuthDB, shinyOAuth and the appropriate native client
-   and driver. Configure the chosen backend using [the playground environment
-   variables](../../playground/README.md).
+   and driver. Configure the chosen backend with the `OAUTHDB_*` variables in
+   [source-config.R](source-config.R). These are separate from the smaller
+   [playground examples](../../playground/README.md).
 2. Provision users A and B with distinct test grants or row-level security. Each
    should see only its expected fixture markers when running the **same query**.
    Do not add user filtering in the app to imitate platform policy.
@@ -54,6 +55,11 @@ expiry/scope metadata is supplied by the operator; the remote database validates
 the actual token and enforces grants. The harness does not validate JWT signatures
 or fabricate a verified user identity.
 
+Each backend configuration supplies `bind(authorization)`, which returns a
+native accessor, and `query(native, args)`, which calls the upstream package.
+The test uses an ordinary `shiny::reactive()` around that native query.
+There is no operation registry, source descriptor, or package-owned result cache.
+
 ## Real-browser acceptance checklist
 
 Use the relevant playground with real shinyOAuth sign-in. Run two browsers or
@@ -69,19 +75,15 @@ are observed against the deployment.
 | Same user, repeated native calls | Native SQL connection is reused within that session; parameter changes do not change query syntax |
 | A/B data policy | Both users execute the same query and receive exactly their platform-authorized fixture rows |
 | Concurrent browsers | A and B have separate handles/connections and never see each other's result or error |
-| Replace A with B | A's displayed synchronous and task data clear; retained A providers fail; B obtains its own connection |
-| Logout/session end | Results clear and cached native connections close; a saved old provider becomes unavailable |
-| Token rotation | shinyOAuth refreshes the selected grant; ordinary token rotation does not requery data or change its authorization owner |
+| Replace A with B | The native accessor invalidates; ordinary reactive queries rerun with B's connection; retained A providers fail |
+| Logout/session end | Native connections close; the accessor becomes unavailable; ordinary dependent outputs become empty |
+| Token rotation | shinyOAuth refreshes the selected grant; valid DBI sessions remain open, while API providers obtain the current token |
 | Expiry before dispatch | Acquisition refreshes or reports an actionable authorization/lifetime error before submitting work |
-| Revoked/missing API scopes | No result from the ended local permission epoch reappears after a later grant |
+| Revoked/missing API scopes | The native accessor becomes unavailable and any cached connection is retired |
 | Platform grant removal | New native requests receive the platform's denial or updated row policy; document the platform's established-session timing |
-| Slow background request then logout/switch | Its late data **and error** are hidden; a replacement login never supplies its credentials |
-| Latest queued reads | A newer pending read replaces the waiting read while the in-flight call finishes; write/unknown effects reject latest coalescing |
-| Cancel | Local result publication stops; UI does not claim remote execution was stopped or a write undone |
-| Token expiry during a worker operation | Worker fails locally with a safe error and cannot refresh or acquire a later login |
-| Browser endpoint/credential override | Native task arguments cannot replace token, host, role, database, connection, alternate auth or source options |
+| Browser endpoint/credential override | Application configuration fixes credentials, endpoints and roles; query values use the native package's parameter interface |
 | Untrusted HTTP destination/redirect | Upstream service policy blocks it before forwarding credentials |
-| Error/redaction | UI, logs and task errors contain no access token, refresh token, connection string or raw response body |
+| Error/redaction | The fixture's summaries contain no tokens, connection strings or raw driver errors; production apps decide how to display native errors |
 
 Backend-specific checks remain necessary:
 
@@ -95,8 +97,7 @@ Backend-specific checks remain necessary:
 - **Fabric SQL/KQL/DAX/GraphQL/OneLake:** verify each service's own token target,
   workspace/item/data grants, tenant switches, continuation/result URL policy
   and native result conversion. Do not assume one service's successful call
-  proves another's permissions. Exercise fixed-token workers only where the
-  upstream hook is available.
+  proves another's permissions.
 - **Databricks:** verify exact workspace binding, warehouse and Unity Catalog
   privileges, SQL parameters and expired/forced-refresh provider challenges.
 - **Snowflake:** verify the configured OAuth integration's issuer, subject and
@@ -106,3 +107,6 @@ Backend-specific checks remain necessary:
 Inspect remote audit records to corroborate the actual user principal and query
 identity. A locally reported `ready` state is not evidence of remote access, and
 closing a local connection does not establish immediate remote token revocation.
+Custom result caches, event binding, background jobs and error displays are
+application responsibilities; these fixtures make no package-level guarantees
+about them.

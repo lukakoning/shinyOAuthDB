@@ -1,29 +1,97 @@
-# Load the actual standalone example through its app definition. Leave worker
-# startup and runApp() to interactive use, so server behavior can be tested here.
+# Evaluate complete app definitions without starting a server or worker pool.
 playground_load_example <- function(filename) {
   path <- testthat::test_path("..", "..", "playground", filename)
   if (!file.exists(path)) {
-    testthat::skip("Standalone playground examples require a source checkout.")
+    testthat::skip("Playground examples require a source checkout.")
   }
-
   envir <- new.env(parent = globalenv())
   for (expr in parse(path)) {
-    if (is.call(expr) && identical(expr[[1L]], as.name("library"))) {
-      next
-    }
-
     eval(expr, envir = envir)
-    if (
-      is.call(expr) &&
-        is.symbol(expr[[1L]]) &&
-        as.character(expr[[1L]]) %in% c("<-", "=") &&
-        identical(expr[[2L]], as.name("app"))
-    ) {
+    if (is.call(expr) && identical(expr[[1L]], as.name("<-")) &&
+        identical(expr[[2L]], as.name("app"))) {
       stopifnot(inherits(envir$app, "shiny.appobj"))
-
       return(envir)
     }
   }
+  stop("No Shiny app definition in ", filename, call. = FALSE)
+}
 
-  stop("No standalone Shiny app definition found in ", filename, call. = FALSE)
+playground_env <- function() {
+  c(
+    OAUTHDB_TENANT_ID = "11111111-1111-4111-8111-111111111111",
+    OAUTHDB_CLIENT_ID = "22222222-2222-4222-8222-222222222222",
+    OAUTHDB_CLIENT_SECRET = "fixture-client-secret",
+    OAUTHDB_REDIRECT_URI = "http://localhost:8100",
+    OAUTHDB_PORT = "8100",
+    OAUTHDB_SERVER = "fixture.database.windows.net",
+    OAUTHDB_DATABASE = "fixture",
+    OAUTHDB_POSTGRES_HOST = "fixture.postgres.database.azure.com",
+    OAUTHDB_POSTGRES_USER = "fixture-role",
+    OAUTHDB_POSTGRES_SSLROOTCERT = "fixture-ca.pem",
+    OAUTHDB_SNOWFLAKE_SERVER = "fixture.snowflakecomputing.com",
+    OAUTHDB_SNOWFLAKE_SCHEMA = "PUBLIC",
+    OAUTHDB_SNOWFLAKE_WAREHOUSE = "FIXTURE_WH",
+    OAUTHDB_SNOWFLAKE_ROLE = "READER",
+    OAUTHDB_DATABRICKS_HOST = "https://fixture.azuredatabricks.net",
+    OAUTHDB_DATABRICKS_WAREHOUSE = "fixture-warehouse",
+    OAUTHDB_KQL_CLUSTER = "https://fixture.kusto.fabric.microsoft.com",
+    OAUTHDB_KQL_DATABASE = "fixture-kql",
+    OAUTHDB_FABRIC_WORKSPACE = "33333333-3333-4333-8333-333333333333",
+    OAUTHDB_FABRIC_MODEL = "44444444-4444-4444-8444-444444444444",
+    OAUTHDB_GRAPHQL_API = "https://fixture.graphql.fabric.microsoft.com/v1/fixture/graphql",
+    OAUTHDB_ONELAKE_ITEM = "Fixture.Lakehouse"
+  )
+}
+
+playground_request <- function() {
+  list(REQUEST_METHOD = "GET", PATH_INFO = "/", QUERY_STRING = "",
+       HTTP_HOST = "localhost:8100", SERVER_NAME = "localhost",
+       SERVER_PORT = "8100", rook.url_scheme = "http")
+}
+
+playground_databricks_provider <- function(host, token_auth_style = "public") {
+  shinyOAuth::oauth_provider(
+    name = "databricks", auth_url = paste0(host, "/oidc/v1/authorize"),
+    token_url = paste0(host, "/oidc/v1/token"),
+    token_auth_style = token_auth_style, use_pkce = TRUE
+  )
+}
+
+# Preserve the native function's formals to catch incorrect example arguments.
+playground_spy <- function(original, handler) {
+  spy <- original
+  body(spy) <- quote({
+    argument_names <- setdiff(names(formals(sys.function())), "...")
+    args <- mget(argument_names, envir = environment(), inherits = FALSE)
+    if ("..." %in% names(formals(sys.function()))) args <- c(args, list(...))
+    .handler(args)
+  })
+  environment(spy) <- list2env(list(.handler = handler),
+                               parent = environment(original))
+  spy
+}
+
+playground_module <- function(calls) {
+  function(id, client, ...) {
+    selected <- shiny::reactiveVal(NULL)
+    sequence <- 0L
+    calls$select <- function(user) {
+      sequence <<- sequence + 1L
+      grant_id <- paste(user, sequence, sep = "-")
+      selected(list(
+        id = grant_id,
+        access_token = function(...) {
+          stopifnot(identical(selected()$id, grant_id))
+          paste0("fixture-", user)
+        },
+        has_scopes = function(...) identical(selected()$id, grant_id)
+      ))
+    }
+    calls$select("A")
+    list(
+      connection = selected,
+      request_login = function() calls$login <- calls$login + 1L,
+      logout = function() selected(NULL)
+    )
+  }
 }

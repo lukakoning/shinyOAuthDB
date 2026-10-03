@@ -1,146 +1,116 @@
-test_that("source OAuth plans union compatible targets and preserve literal resources", {
-  sources <- list(
-    sql = oauth_db_azure_sql("example.database.windows.net", "db"),
-    dax = oauth_db_fabric(
-      "dax",
-      workspace_id = "workspace",
-      dataset_id = "dataset"
-    ),
-    graphql = oauth_db_fabric(
-      "graphql",
-      api = "https://example.graphql.fabric.microsoft.com/graphql"
-    )
-  )
-  plan <- oauth_db_auth_plan(sources, default_source = "dax")
+test_that("Microsoft convenience configures native targets without source objects", {
+  client <- oauth_db_microsoft_client(c("sql", "dax", "graphql"), "organizations", "app",
+                                      "http://localhost:8100")
+  expect_s3_class(client, "shinyOAuth::OAuthClient")
+  expect_equal(client@default_token_target, "sql")
+  expect_equal(client@token_targets$sql$resource, "https://database.windows.net/")
+  expect_equal(client@token_targets$sql$scopes, "https://database.windows.net//user_impersonation")
+  expect_length(client@token_targets$power_bi$scopes, 2L)
+  expect_length(client@client_secret, 0L)
+  expect_error(oauth_db_microsoft_client(c("sql", "postgres"), "organizations", "app",
+                                        "http://localhost:8100"), "cannot mix .default")
+  expect_error(oauth_db_microsoft_client("made-up", "organizations", "app",
+                                        "http://localhost:8100"), "supported")
+})
 
-  expect_identical(plan$default_token_target, "power_bi")
-  expect_identical(
-    plan$token_targets$sql$resource,
-    "https://database.windows.net/"
-  )
-  expect_identical(
-    plan$token_targets$sql$scopes,
-    "https://database.windows.net//user_impersonation"
-  )
-  expect_setequal(
-    plan$token_targets$power_bi$scopes,
-    c(sources$dax$auth$scopes, sources$graphql$auth$scopes)
-  )
-
+test_that("Microsoft presets accept native providers and derive consent from custom targets", {
+  provider <- shinyOAuth::oauth_provider_microsoft(
+    name = "my-tenant", tenant = "organizations", userinfo_required = FALSE)
+  targets <- list(reporting = list(resource = "https://database.windows.net/",
+    scopes = "https://database.windows.net//user_impersonation"))
   client <- oauth_db_microsoft_client(
-    sources,
-    "organizations",
-    "registered-id",
-    redirect_uri = "http://localhost:8100",
-    default_source = "dax"
-  )
+    services = stop("Do not evaluate replaced defaults"),
+    client_id = "custom-app", redirect_uri = "http://localhost:8100",
+    provider = provider, token_targets = targets,
+    scope_validation = "strict", label = "Reporting database")
+  expect_identical(client@provider, provider)
+  expect_identical(client@token_targets, targets)
+  expect_identical(client@default_token_target, "reporting")
+  expect_identical(client@scopes, c("openid", "profile", "offline_access",
+    targets$reporting$scopes))
+  expect_identical(client@scope_validation, "strict")
+  expect_identical(client@label, "Reporting database")
 
-  expect_identical(client@default_token_target, "power_bi")
-  expect_identical(
-    client@token_targets$sql$resource,
-    "https://database.windows.net/"
-  )
-  expect_identical(client@provider@userinfo_required, FALSE)
+  single <- oauth_db_microsoft_client(client_id = "custom-app",
+    redirect_uri = "http://localhost:8100", provider = provider,
+    token_targets = list(), scopes = targets$reporting$scopes,
+    resource = "https://database.windows.net/", required_scopes = targets$reporting$scopes)
+  expect_identical(single@token_targets, list())
+  expect_identical(single@default_token_target, character())
+  expect_identical(single@scopes, targets$reporting$scopes)
+  expect_identical(single@required_scopes, targets$reporting$scopes)
+  expect_identical(single@resource, "https://database.windows.net/")
 
-  public_client <- oauth_db_microsoft_client(
-    sources,
-    "organizations",
-    "registered-id",
-    client_secret = "",
-    redirect_uri = "http://localhost:8100"
-  )
-
-  expect_length(public_client@client_secret, 0L)
-  expect_error(
-    oauth_db_microsoft_client(
-      sources,
-      "organizations",
-      "registered-id",
-      redirect_uri = "http://localhost:8100",
-      provider = NULL
-    ),
-    "cannot override"
-  )
+  # Invalid replacements are still checked by the native constructor.
+  expect_error(oauth_db_microsoft_client(client_id = "app",
+    redirect_uri = "http://localhost:8100", provider = provider,
+    token_targets = targets, scopes = "openid"), "Target scopes")
 })
 
-test_that("different provider registrations and incompatible Microsoft consent stay explicit", {
-  sql <- oauth_db_azure_sql("example.database.windows.net", "db")
-  postgres <- oauth_db_azure_postgres(
-    "example.postgres.database.azure.com",
-    "db",
-    "role"
-  )
-
-  expect_error(
-    oauth_db_auth_plan(list(sql = sql, postgres = postgres)),
-    class = "shinyOAuthDB_incompatible_authentication"
-  )
-
-  conflict <- oauth_db_custom(
-    "fixture",
-    connect = function(config, token_provider) NULL,
-    target = "sql",
-    resource = "https://other.invalid",
-    scopes = "https://other.invalid/read",
-    provider_family = "microsoft"
-  )
-
-  expect_error(
-    oauth_db_auth_plan(list(sql = sql, conflict = conflict)),
-    "same literal"
-  )
-
-  mixed <- list(
-    sql = sql,
-    databricks = oauth_db_databricks("example.cloud.databricks.com")
-  )
-
-  expect_setequal(
-    names(oauth_db_auth_plan(mixed)$provider_groups),
-    c("microsoft", "databricks")
-  )
-  expect_error(
-    oauth_db_microsoft_client(
-      mixed,
-      "organizations",
-      "id",
-      redirect_uri = "http://localhost:8100"
-    ),
-    class = "shinyOAuthDB_incompatible_authentication"
-  )
-  expect_error(
-    oauth_db_auth_plan(list(sql = sql), default_source = "missing"),
-    "default_source"
-  )
+test_that("Microsoft presets let callers select another default target", {
+  client <- oauth_db_microsoft_client(c("sql", "kql"), "organizations", "app",
+    "http://localhost:8100", default_token_target = "kusto")
+  expect_identical(client@default_token_target, "kusto")
+  expect_setequal(names(client@token_targets), c("sql", "kusto"))
 })
 
-test_that("native Snowflake client delegates login to shinyOAuth with account endpoints", {
-  source <- oauth_db_snowflake(
-    "account.snowflakecomputing.com",
-    "DB",
-    "PUBLIC",
-    "WH",
-    "READER",
-    auth_mode = "snowflake_oauth",
-    scopes = "session:role:READER"
-  )
-  client <- oauth_db_snowflake_client(
-    source,
-    "registered-id",
-    "fixture-secret",
-    "http://localhost:8100"
-  )
+test_that("Databricks provider overrides bypass discovery and preserve client settings", {
+  provider <- shinyOAuth::oauth_provider(
+    "databricks", "https://example.com/authorize", "https://example.com/token",
+    token_auth_style = "public")
+  local_mocked_bindings(.odb_databricks_provider = function(...) stop("Unexpected discovery"))
+  client <- oauth_db_databricks_client(client_id = "app",
+    redirect_uri = "http://localhost:8100", provider = provider,
+    scopes = c("sql", "offline_access"), label = "SQL only")
+  expect_identical(client@provider, provider)
+  expect_identical(client@scopes, c("sql", "offline_access"))
+  expect_identical(client@label, "SQL only")
+})
 
-  expect_identical(
-    client@provider@token_url,
-    "https://account.snowflakecomputing.com/oauth/token-request"
-  )
-  expect_setequal(client@scopes, c("session:role:READER", "refresh_token"))
-  expect_true(client@provider@use_pkce)
-  expect_false(client@provider@id_token_validation)
-  expect_false(grepl(
-    "fixture-secret",
-    paste(capture.output(print(client)), collapse = ""),
-    fixed = TRUE
-  ))
+test_that("Databricks default provider uses native public-client secret conventions", {
+  skip_if_not_installed("brickster")
+  local_mocked_bindings(db_oauth_provider = playground_databricks_provider,
+    .package = "brickster")
+  for (secret in list(NULL, "", character())) {
+    client <- oauth_db_databricks_client("https://example.com", "app",
+      "http://localhost:8100", client_secret = secret)
+    expect_identical(client@provider@token_auth_style, "public")
+    expect_length(client@client_secret, 0L)
+  }
+  client <- oauth_db_databricks_client("https://example.com", "app",
+    "http://localhost:8100", client_secret = "secret")
+  expect_identical(client@provider@token_auth_style, "header")
+})
+
+test_that("Snowflake provider presets compose directly with native clients", {
+  provider <- oauth_db_snowflake_provider("account.snowflakecomputing.com",
+    name = "analytics", token_auth_style = "body",
+    extra_auth_params = list(prompt = "consent"), use_nonce = NULL)
+  expect_s3_class(provider, "shinyOAuth::OAuthProvider")
+  expect_identical(provider@name, "analytics")
+  expect_identical(provider@token_auth_style, "body")
+  expect_identical(provider@extra_auth_params, list(prompt = "consent"))
+  expect_identical(provider@token_url, "https://account.snowflakecomputing.com/oauth/token-request")
+  client <- shinyOAuth::oauth_client(provider, "app", client_secret = "secret",
+    redirect_uri = "http://localhost:8100", scopes = "session:role:READER")
+  expect_identical(client@provider, provider)
+
+  custom <- oauth_db_snowflake_client(client_id = "app", client_secret = "secret",
+    redirect_uri = "http://localhost:8100", provider = provider,
+    scopes = "session:role:ANALYST", scope_validation = "strict")
+  expect_identical(custom@provider, provider)
+  expect_identical(custom@scopes, "session:role:ANALYST")
+  expect_identical(custom@scope_validation, "strict")
+  expect_error(oauth_db_snowflake_provider("account.snowflakecomputing.com",
+    "unnamed"), "unique names")
+  expect_error(oauth_db_snowflake_provider("account.snowflakecomputing.com",
+    name = "a", name = "b"), "unique names")
+})
+
+test_that("Snowflake convenience leaves login to shinyOAuth", {
+  client <- oauth_db_snowflake_client("account.snowflakecomputing.com", "app", "secret",
+                                      "http://localhost:8100", "READER")
+  expect_s3_class(client, "shinyOAuth::OAuthClient")
+  expect_equal(client@scopes, c("session:role:READER", "refresh_token"))
+  expect_equal(client@provider@auth_url, "https://account.snowflakecomputing.com/oauth/authorize")
 })
