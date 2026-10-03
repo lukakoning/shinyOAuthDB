@@ -1,0 +1,3 @@
+useDynLib(pgBearerHook, .registration = TRUE)
+export(pg_connect_bearer)
+export(pg_bearer_runtime)

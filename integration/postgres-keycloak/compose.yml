@@ -1,0 +1,98 @@
+name: shinyoauthdb-postgres-keycloak
+services:
+  tls:
+    image: shinyoauthdb-postgres-fixture:18.3-validator1.1.0-audience
+    build:
+      context: .
+      target: postgres
+    entrypoint: ["/usr/local/bin/prepare-tls.sh", "/fixture-tls"]
+    volumes:
+      - fixture_tls:/fixture-tls
+    restart: "no"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.1@sha256:dea26401d06341095cc4ea9d66896200b55de5ca1daa1d2fcbe58493afa6e0ad
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: fixture-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: fixture-admin-password
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_MANAGEMENT_SCHEME: http
+      KC_HOSTNAME: https://localhost:18443
+      KC_HTTPS_PORT: "18443"
+      KC_HTTP_ENABLED: "false"
+      KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/conf/tls/server-cert.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/tls/server-key.pem
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "127.0.0.1:18443:18443"
+      - "127.0.0.1:18100:18100"
+    volumes:
+      - ./realm-shinyoauthdb.json:/opt/keycloak/data/import/realm-shinyoauthdb.json:ro
+      - fixture_tls:/opt/keycloak/conf/tls:ro
+    depends_on:
+      tls:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3; IFS= read -r response <&3; [[ $$response == *' 200 '* ]]"]
+      interval: 3s
+      timeout: 3s
+      start_period: 30s
+      retries: 60
+
+  postgres:
+    image: shinyoauthdb-postgres-fixture:18.3-validator1.1.0-audience
+    build:
+      context: .
+      target: postgres
+    network_mode: service:keycloak
+    volumes:
+      - fixture_postgres:/var/lib/postgresql/data
+      - fixture_tls:/fixture-tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/postgres-healthcheck.sh"]
+      interval: 3s
+      timeout: 5s
+      start_period: 15s
+      retries: 30
+
+  test-runner:
+    profiles: ["test"]
+    image: shinyoauthdb-postgres-test-runner:18.3-rpostgres1.4.10
+    build:
+      context: .
+      target: tests
+    network_mode: service:keycloak
+    shm_size: 512mb
+    environment:
+      OAUTHDB_POSTGRES_INTEGRATION: "1"
+      OAUTHDB_SHINYOAUTH_SOURCE: /workspace/shinyOAuth
+      OAUTHDB_TEST_ISSUER: https://localhost:18443/realms/shinyoauthdb
+      OAUTHDB_TEST_APP_ORIGIN: http://localhost:18100
+      OAUTHDB_TEST_CA: /fixtures/tls/ca-cert.pem
+      OAUTHDB_TEST_CA_FILE: /fixtures/tls/ca-cert.pem
+      OAUTHDB_TEST_PG_CA: /fixtures/tls/ca-cert.pem
+      OAUTHDB_TEST_PG_ADMIN_PASSWORD: fixture-superuser-password
+      OAUTHDB_TEST_CLIENT_ID: shiny-db
+      OAUTHDB_TEST_WRONG_AUDIENCE_CLIENT_ID: shiny-wrong-audience
+      OAUTHDB_TEST_MISSING_SCOPE_CLIENT_ID: shiny-missing-scope
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGDATABASE: oauthdb_fixture
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /fixtures/tls/ca-cert.pem
+    volumes:
+      - ../..:/workspace/shinyOAuthDB:ro
+      - ../../../shinyOAuth:/workspace/shinyOAuth:ro
+      - ./native:/fixtures/native:ro
+      - fixture_tls:/fixtures/tls:ro
+      - ./.generated:/results
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  fixture_tls:
+  fixture_postgres:

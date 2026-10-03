@@ -1,0 +1,15 @@
+Package: pgBearerHook
+Title: Integration Fixture for Existing PostgreSQL OAuth Bearer Tokens
+Version: 0.0.1
+Authors@R: person("shinyOAuthDB", "Contributors", role = c("aut", "cre"), email = "maintainer@example.invalid")
+Description: Integration-only Linux fixture that temporarily supplies an
+    already acquired bearer token through the libpq 18 authentication hook,
+    while RPostgres continues to create and operate the DBI connection.
+    This is not a production database driver or an OAuth implementation.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.0.0)
+Imports: DBI, RPostgres
+SystemRequirements: Linux, libpq 18 development headers and shared library,
+    pkg-config, a C compiler
+NeedsCompilation: yes

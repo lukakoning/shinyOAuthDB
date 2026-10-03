@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# The isolated test container runs as root. TLS still uses the fixture CA.
+exec /usr/bin/chromium --no-sandbox --disable-dev-shm-usage "$@"

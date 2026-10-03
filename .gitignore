@@ -1,0 +1,9 @@
+.Rproj.user/
+.Rhistory
+.RData
+.Renviron
+.env
+*.Rcheck/
+*.tar.gz
+tests/integration/results/
+integration/postgres-keycloak/.generated/
