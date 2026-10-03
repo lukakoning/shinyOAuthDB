@@ -9,7 +9,6 @@ oauth_db_sql_server(
   server,
   database,
   ...,
-  entra_enabled = FALSE,
   target = "sql",
   scopes = "https://database.windows.net//user_impersonation",
   driver = "ODBC Driver 18 for SQL Server",
@@ -29,8 +28,6 @@ connection. Select the database grant explicitly when several exist.}
 
 \item{...}{Additional named options passed to the native connection function.}
 
-\item{entra_enabled}{Set \code{TRUE} to confirm the server supports Entra tokens.}
-
 \item{target}{Named token target configured on the shinyOAuth client, or NULL.}
 
 \item{scopes}{Required delegated scopes. A \verb{/.default} consent scope is sent
@@ -48,5 +45,6 @@ during acquisition but is not a literal granted permission.}
 A session-local reactive accessor for a native DBI connection.
 }
 \description{
-Requires native Entra access-token authentication configured on the server.
+An alias of \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} for SQL Server deployments configured
+to accept Entra access tokens. The server must already support this login.
 }

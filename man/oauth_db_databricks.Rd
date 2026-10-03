@@ -6,7 +6,7 @@
 \usage{
 oauth_db_databricks(
   authorization,
-  host,
+  host = NULL,
   warehouse_id = NULL,
   ...,
   auth_mode = c("databricks_oauth", "entra"),
@@ -21,7 +21,8 @@ oauth_db_databricks(
 a reactive selecting \code{manager$connection(id)}, or a pinned module-created
 connection. Select the database grant explicitly when several exist.}
 
-\item{host}{Databricks workspace hostname or HTTPS origin.}
+\item{host}{Databricks workspace hostname or HTTPS origin. Required for a
+DBI connection with \code{warehouse_id}; omit for a bearer-string accessor.}
 
 \item{warehouse_id}{SQL warehouse ID, or \code{NULL} for a bearer-string accessor.}
 

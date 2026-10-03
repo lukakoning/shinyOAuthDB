@@ -56,10 +56,9 @@ Fabric accepts an ordinary token callback supplied by this package:
 # Inside server(), after creating auth:
 token <- oauth_db_fabric(auth$connection, service = "kql")
 output$rows <- renderPrint({
-  credential <- token()
   fabricQueryR::fabric_kql_query(
     cluster = "https://example.kusto.fabric.microsoft.com",
-    database = "Events", query = "Events | take 10", token = credential
+    database = "Events", query = "Events | take 10", token = token()
   )
 })
 ```
@@ -67,6 +66,8 @@ output$rows <- renderPrint({
 The [integrated Fabric app](playground/fabric/README.md) discovers the persistent Shiny sandbox and demonstrates SQL, DAX, KQL, OneLake, GraphQL, and discovery in one app.
 
 The [Databricks app](playground/example-databricks.R) passes the bearer string from `token()` directly to upstream `brickster::db_sql_query()`. Passing `warehouse_id` to `oauth_db_databricks()` instead returns a native DBI connection accessor. Call it for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
+
+For a bearer string, `token <- oauth_db_databricks(auth$connection)` needs only the authorization. Supply `host` and `warehouse_id` when creating a DBI connection.
 
 Queries retain their native arguments, return values, and errors. There is no query callback API, query registry, or task system.
 
@@ -82,6 +83,8 @@ Queries retain their native arguments, return values, and errors. There is no qu
 | `oauth_db_snowflake()` | DBI + odbc connection with OAuth |
 
 Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
+
+Snowflake's native OAuth scope follows `role` automatically; set `scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
 
 ## Several authorizations at once
 

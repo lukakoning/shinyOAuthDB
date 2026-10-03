@@ -64,7 +64,8 @@ server <- function(input, output, session) {
   con <- oauth_db_fabric_sql(auth$connection,
     server = "example.datawarehouse.fabric.microsoft.com", database = "Sales")
   output$rows <- renderTable({
-    DBI::dbGetQuery(con(), "SELECT TOP (10) name FROM sys.tables")
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
   })
 }
 
@@ -78,6 +79,10 @@ From that directory, run `shiny::runApp(port = 8100)` and open
 inside `server()` and call it inside `renderTable()` or another reactive.
 The bridge reuses the connection and closes it on logout or session end.
 Before sign-in, the output waits for authorization.
+
+Keep the `connection <- con()` line before the DBI call: it lets Shiny wait
+quietly for login. Putting `con()` directly inside a DBI call can turn that
+signal into an ordinary method-dispatch error.
 
 For each example below:
 
@@ -99,8 +104,8 @@ con <- oauth_db_fabric_sql(auth$connection,
   backend = "adbc")
 ```
 
-The same `DBI::dbGetQuery(con(), ...)` call works. You can also pass `con()` to
-`dplyr::tbl()` and use ordinary dbplyr queries.
+The same `DBI::dbGetQuery(connection, ...)` call works. You can also pass the
+resolved `connection` to `dplyr::tbl()` and use ordinary dbplyr queries.
 
 ### SQL through a fabricQueryR function
 
@@ -285,16 +290,17 @@ replace the database code with:
 con <- oauth_db_azure_sql(auth$connection,
   server = "example.database.windows.net", database = "Sales")
 output$rows <- renderTable({
-  DBI::dbGetQuery(con(), "SELECT TOP (10) name FROM sys.tables")
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
 })
 ```
 
 For SQL Server configured to accept Entra access tokens, change only the
-connection definition. `entra_enabled = TRUE` confirms that server setup:
+connection definition:
 
 ```{r sql-server}
 con <- oauth_db_sql_server(auth$connection,
-  server = "sql.example.com", database = "Sales", entra_enabled = TRUE)
+  server = "sql.example.com", database = "Sales")
 ```
 
 Both use odbc and Microsoft ODBC Driver 18. The SQL Server helper does not
@@ -310,7 +316,8 @@ con <- oauth_db_azure_postgres(auth$connection,
   host = "example.postgres.database.azure.com", database = "sales",
   user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
 output$rows <- renderTable({
-  DBI::dbGetQuery(con(), "SELECT current_user AS database_user")
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
 })
 ```
 
@@ -338,18 +345,19 @@ Replace the database code with the following, using your SQL warehouse ID:
 con <- oauth_db_databricks(auth$connection,
   host = host, warehouse_id = "warehouse-id")
 output$rows <- renderTable({
-  DBI::dbGetQuery(con(), "SELECT current_user() AS database_user")
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
 })
 ```
 
 ### SQL through brickster's REST API
 
-Omit `warehouse_id` from the bridge to get a bearer-string accessor instead.
+With just the authorization, the bridge returns a bearer-string accessor.
 Change `tableOutput("rows")` in the UI to `verbatimTextOutput("rows")` so you
 can inspect brickster's native response:
 
 ```{r databricks-rest}
-token <- oauth_db_databricks(auth$connection, host = host)
+token <- oauth_db_databricks(auth$connection)
 output$rows <- renderPrint({
   brickster::db_sql_query(
     host = host, warehouse_id = "warehouse-id",
@@ -373,7 +381,8 @@ con <- oauth_db_databricks(auth$connection,
   host = "example.azuredatabricks.net", warehouse_id = "warehouse-id",
   auth_mode = "entra")
 output$rows <- renderTable({
-  DBI::dbGetQuery(con(), "SELECT current_user() AS database_user")
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
 })
 ```
 
@@ -398,15 +407,16 @@ to the signed-in user:
 ```{r snowflake}
 con <- oauth_db_snowflake(auth$connection,
   server = "organization-account.snowflakecomputing.com", database = "SALES",
-  schema = "PUBLIC", warehouse = "REPORTING_WH", role = "READER",
-  scopes = "session:role:READER")
+  schema = "PUBLIC", warehouse = "REPORTING_WH", role = "READER")
 output$rows <- renderTable({
-  DBI::dbGetQuery(con(), "SELECT CURRENT_USER(), CURRENT_ROLE()")
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT CURRENT_USER(), CURRENT_ROLE()")
 })
 ```
 
+The native OAuth scope defaults to `session:role:READER`, matching the role.
 For Snowflake External OAuth, configure the actual identity provider through
-shinyOAuth and use the scopes and target from that integration.
+shinyOAuth and pass explicit `scopes` and `target` from that integration.
 
 ## A native connector without a preset
 

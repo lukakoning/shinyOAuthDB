@@ -25,9 +25,8 @@ test_that("backend helpers bind OAuth resources without query operation mappings
   expect_identical(entra$target, "databricks")
   expect_identical(entra$scopes, "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")
   expect_error(oauth_db_databricks(auth, "workspace.example", catalog = "main"), "warehouse_id")
-  expect_error(oauth_db_sql_server(auth, "server", "Sales"), "Entra")
-  expect_identical(oauth_db_sql_server(auth, "server", "Sales", entra_enabled = TRUE)$connect,
-    sql$connect)
+  expect_error(oauth_db_databricks(auth, warehouse_id = "warehouse"), "Supply host")
+  expect_identical(oauth_db_sql_server(auth, "server", "Sales", timeout = 12), sql)
 })
 
 test_that("native options cannot substitute credentials or weaken TLS", {
@@ -74,6 +73,28 @@ test_that("SQL and Snowflake use only the supplied delegated token", {
   expect_identical(state$args$role, "role")
   expect_error(.odb_backend_sql(function() stop("authorization unavailable"), "server", "db",
     "driver", 1433L, list()), "authorization unavailable")
+})
+
+test_that("Snowflake derives native role scopes and honors explicit external OAuth scopes", {
+  local_mocked_bindings(.odb_require = function(...) TRUE,
+    .odb_backend_snowflake = function(token, server, database, schema, warehouse, role, driver, options) {
+      list(token = token(), role = role)
+    })
+  odb_test_domain(function(session) {
+    native <- odb_test_authorization(session, scopes = "session:role:READER")
+    con <- oauth_db_snowflake(native$connection, "account", "db", "PUBLIC", "wh", "READER")
+    expect_equal(con(), list(token = "fixture-A", role = "READER"))
+    denied <- oauth_db_snowflake(native$connection, "account", "db", "PUBLIC", "wh", "OTHER")
+    expect_error(denied(), class = "shiny.silent.error")
+
+    external <- odb_test_authorization(session, "B", scopes = "read", target = "snowflake")
+    custom <- oauth_db_snowflake(external$connection, "account", "db", "PUBLIC", "wh", "READER",
+      scopes = external$scopes, target = "snowflake")
+    expect_equal(custom(), list(token = "fixture-B", role = "READER"))
+    external$current(FALSE)
+    expect_error(custom(), class = "shiny.silent.error")
+    expect_equal(con(), list(token = "fixture-A", role = "READER"))
+  })
 })
 
 test_that("Azure PostgreSQL uses the provisioned role with certificate verification", {
@@ -163,7 +184,7 @@ test_that("upstream brickster connections rotate their fixed token and isolate g
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "all-apis")
     con <- oauth_db_databricks(auth$connection, "https://workspace.example/", "wh")
-    token <- oauth_db_databricks(auth$connection, "workspace.example")
+    token <- oauth_db_databricks(auth$connection)
     first <- con()
     expect_s4_class(first, "DatabricksConnection")
     expect_identical(first@token, "fixture-A")

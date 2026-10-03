@@ -38,7 +38,8 @@ guarded capacity workflows remain in fabricQueryR; launch the app from here.
 ## brickster
 
 Use upstream brickster's scalar bearer `token` argument. Without a warehouse,
-`oauth_db_databricks()` returns a bearer-string accessor. With `warehouse_id`,
+`oauth_db_databricks(auth$connection)` returns a bearer-string accessor.
+With `host` and `warehouse_id`,
 it returns a native DBI connection accessor. Call the accessor for each
 operation so token rotation and authorization changes are checked.
 

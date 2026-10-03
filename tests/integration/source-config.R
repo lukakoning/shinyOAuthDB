@@ -47,7 +47,6 @@ live_spec <- function(backend) {
     } else {
       binding <- if (backend == "azure-sql") shinyOAuthDB::oauth_db_azure_sql else shinyOAuthDB::oauth_db_sql_server
       fixed$driver <- driver
-      if (backend == "sql-server") fixed$entra_enabled <- identical(live_env("OAUTHDB_SQL_SERVER_ENTRA_ENABLED", "false"), "true")
     }
     return(sql_spec(function(auth) do.call(binding, c(list(authorization = auth), fixed)),
       "SELECT CURRENT_USER AS database_user, CAST(? AS int) AS requested_value"))
@@ -72,7 +71,7 @@ live_spec <- function(backend) {
     host <- sub("/$", "", sub("^https://", "", live_env("OAUTHDB_DATABRICKS_HOST")))
     warehouse <- live_env("OAUTHDB_DATABRICKS_WAREHOUSE")
     return(list(service = "databricks",
-      bind = function(auth) shinyOAuthDB::oauth_db_databricks(auth, host),
+      bind = function(auth) shinyOAuthDB::oauth_db_databricks(auth),
       native_args = function(value) list(
         statement = "SELECT current_user() AS database_user, CAST(:value AS INT) AS requested_value",
         parameters = list(list(name = "value", value = as.character(value), type = "INT")),

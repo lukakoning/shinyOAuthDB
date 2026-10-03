@@ -17,12 +17,14 @@ are used by the bridge.
 
 ## Completed local checks
 
-- **Repository suite:** 356 passing assertions, no failures, warnings or skips.
+- **Repository suite:** 370 passing assertions, no failures, warnings or skips.
 - **R CMD build and R CMD check --no-manual:** zero errors, warnings or notes.
-- **Native backends:** 77 assertions, including real upstream brickster DBI
+- **Native backends:** 82 assertions, including real upstream brickster DBI
   construction with only its network query mocked. Credentials remain strings;
   repeated access reuses the object, refresh replaces it, and logout blocks the
   accessor. Fabric callbacks enforce audience routing and propagate refresh.
+  Snowflake's default role scope and explicit External OAuth overrides are
+  checked against real shinyOAuth grants, including permission denial and logout.
 - **OAuth presets:** 54 assertions covering native customization and Databricks
   discovery through shinyOAuth, independent of brickster.
 - **Lifecycle:** 42 assertions covering ownership, grant replacement, permission
@@ -36,12 +38,15 @@ are used by the bridge.
 - **Documentation:** R blocks parse and repository-local links resolve.
 - **Simple apps vignette:** the complete UI, client definitions, and all 21
   connection/query variants executed in a one-off local smoke check with native
-  transports mocked. All query variants also cleared their output on logout.
+  transports mocked while preserving real DBI S4 dispatch. All query variants
+  also cleared their output on logout. Nine regression assertions exercise the
+  DBI snippets before sign-in without mocking DBI's generic function, verifying
+  that they preserve Shiny's silent wait rather than a method-dispatch error.
   R CMD build created the HTML vignette, and R CMD check rebuilt it successfully
   with zero errors, warnings, or notes. The documentation checker now includes
   vignettes: 46 R blocks parse and 49 local links resolve.
 
-The 356-assertion bridge suite and clean R CMD check also passed against the
+The 370-assertion bridge suite and clean R CMD check also passed against the
 cleaned fabricQueryR checkout, with unmodified upstream brickster. The cleaned
 fabricQueryR passed 7,638 offline assertions without failures, warnings, or
 skips, and installed into an isolated library. Live Fabric and opt-in Python

@@ -37,6 +37,8 @@ The Fabric callback checks the requested audience/scopes and forwards refresh to
 
 Calling the accessor creates an ordinary reactive dependency. A render function using it follows authorization changes. The bridge owns the connection/provider lifecycle only.
 
+Resolve `connection <- con()` before calling a DBI generic. R's S4 dispatch can wrap a missing-authorization signal raised inside `DBI::dbGetQuery(con(), ...)` as an ordinary error. Evaluating the accessor first preserves Shiny's normal blank output before sign-in and after logout.
+
 Results cached by `eventReactive()`, `reactiveVal()`, or another application cache keep their usual behavior. The bridge does not clear app-owned query results, associate errors with grants, cancel queries, or reject late background results. Apps that retain data across events or run background queries own that result lifecycle.
 
 Remote grants and row policies remain enforced by the database. Local scope checks cannot detect every remote permission change.
@@ -46,6 +48,8 @@ Remote grants and row policies remain enforced by the database. Local scope chec
 Client helpers return ordinary shinyOAuth clients and are optional. They work with the existing single-authorization modules or retained connection manager. Microsoft exposes `provider`, `token_targets`, `default_token_target`, and `scopes` as replaceable defaults; Databricks and Snowflake expose `provider` and `scopes`. Remaining native client arguments pass through `...`. Explicit scopes and target lists replace their presets completely; they are not appended or merged. Keep each database accessor's `target` and `scopes` consistent with that configuration.
 
 Provider-only configuration uses `shinyOAuth::oauth_provider_microsoft()`, `oauth_db_databricks_provider()`, or `oauth_db_snowflake_provider()`, followed by ordinary `shinyOAuth::oauth_client()`. Databricks uses shinyOAuth's OIDC discovery directly. Both local presets accept native provider settings through `...`. No database accessor or login module is created by these configuration helpers.
+
+Connection presets avoid redundant configuration: SQL Server aliases the Azure SQL token transport, Databricks needs a host only for a DBI connection, and Snowflake derives the native OAuth scope from its role. Explicit Snowflake scopes and targets still support External OAuth.
 
 The target-enabled development shinyOAuth API is required. The database packages use their existing interfaces. Offline tests verify native routing and connection lifecycle. The integrated Fabric app supports the persistent Shiny sandbox and visitor sign-in; its explicit shared-sandbox mode is an example-only AzureAuth path. Actual browser flows, database user mapping, and data permissions require deployment-specific verification.
 

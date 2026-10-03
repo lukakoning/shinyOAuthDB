@@ -28,7 +28,7 @@ server <- function(input, output, session) {
     server = server_name, database = Sys.getenv("OAUTHDB_DATABASE"),
     schema = Sys.getenv("OAUTHDB_SNOWFLAKE_SCHEMA"),
     warehouse = Sys.getenv("OAUTHDB_SNOWFLAKE_WAREHOUSE"),
-    role = role, scopes = paste0("session:role:", role))
+    role = role)
   output$rows <- renderTable({
     connection <- con()
     DBI::dbGetQuery(connection, "SELECT CURRENT_USER() AS database_user, CURRENT_ROLE() AS database_role")

@@ -24,8 +24,7 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   con <- oauth_db_sql_server(auth$connection,
-    server = Sys.getenv("OAUTHDB_SERVER"), database = Sys.getenv("OAUTHDB_DATABASE"),
-    entra_enabled = TRUE)
+    server = Sys.getenv("OAUTHDB_SERVER"), database = Sys.getenv("OAUTHDB_DATABASE"))
   output$rows <- renderTable({
     connection <- con()
     DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")

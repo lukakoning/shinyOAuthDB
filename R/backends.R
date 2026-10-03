@@ -31,24 +31,12 @@ oauth_db_azure_sql <- function(
 
 #' Use the user's authorization with an Entra-enabled SQL Server
 #'
-#' Requires native Entra access-token authentication configured on the server.
+#' An alias of [oauth_db_azure_sql()] for SQL Server deployments configured
+#' to accept Entra access tokens. The server must already support this login.
 #' @inheritParams oauth_db_azure_sql
-#' @param entra_enabled Set `TRUE` to confirm the server supports Entra tokens.
 #' @returns A session-local reactive accessor for a native DBI connection.
 #' @export
-oauth_db_sql_server <- function(
-  authorization, server, database, ..., entra_enabled = FALSE,
-  target = "sql", scopes = "https://database.windows.net//user_impersonation",
-  driver = "ODBC Driver 18 for SQL Server", port = 1433L,
-  min_valid_for = 60, session = shiny::getDefaultReactiveDomain()
-) {
-  if (!identical(entra_enabled, TRUE)) {
-    .odb_abort("SQL Server must have Entra token authentication configured; set entra_enabled = TRUE.", "unsupported_authentication")
-  }
-  oauth_db_azure_sql(authorization, server, database, ..., target = target,
-    scopes = scopes, driver = driver, port = port,
-    min_valid_for = min_valid_for, session = session)
-}
+oauth_db_sql_server <- oauth_db_azure_sql
 
 #' Use the user's authorization with Azure PostgreSQL
 #'
@@ -139,7 +127,8 @@ oauth_db_fabric <- function(
 #' A previously returned connection or string is a snapshot; do not retain it
 #' across operations or authorizations. Endpoints belong in app configuration.
 #' @inheritParams oauth_db_connect
-#' @param host Databricks workspace hostname or HTTPS origin.
+#' @param host Databricks workspace hostname or HTTPS origin. Required for a
+#'   DBI connection with `warehouse_id`; omit for a bearer-string accessor.
 #' @param warehouse_id SQL warehouse ID, or `NULL` for a bearer-string accessor.
 #' @param ... Native `DBI::dbConnect()` options, such as `catalog` and `schema`.
 #' @param auth_mode `"databricks_oauth"` or `"entra"` for Azure Databricks.
@@ -149,7 +138,7 @@ oauth_db_fabric <- function(
 #' @returns A session-local reactive accessor for a native connection or bearer string.
 #' @export
 oauth_db_databricks <- function(
-  authorization, host, warehouse_id = NULL, ...,
+  authorization, host = NULL, warehouse_id = NULL, ...,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
   scopes = NULL, min_valid_for = 60,
@@ -159,7 +148,7 @@ oauth_db_databricks <- function(
   if (is.null(scopes)) {
     scopes <- .odb_backend_profile(if (auth_mode == "entra") "databricks_entra" else "databricks")$scopes
   }
-  host <- .odb_databricks_host(host)
+  if (!is.null(host)) host <- .odb_databricks_host(host)
   options <- .odb_backend_options(list(...), c("host", "warehouse_id", "http_path"))
   if (is.null(warehouse_id) && length(options)) {
     .odb_abort("Connection options in ... require a warehouse_id; pass REST options to the native call.")
@@ -168,6 +157,7 @@ oauth_db_databricks <- function(
     return(oauth_db_token(authorization, target = target, scopes = scopes,
       min_valid_for = min_valid_for, session = session))
   }
+  if (is.null(host)) .odb_abort("Supply host when warehouse_id requests a Databricks DBI connection.")
   .odb_require("brickster")
   .odb_bind(authorization, .odb_backend_databricks, host = host,
     warehouse_id = warehouse_id, options = options, target = target,
@@ -177,20 +167,24 @@ oauth_db_databricks <- function(
 #' Use the user's authorization with Snowflake
 #'
 #' Configure the OAuth client in shinyOAuth to match the account's native or
-#' external OAuth integration. Supply that integration's scopes and role here.
+#' external OAuth integration. Native Snowflake OAuth derives its scope from
+#' `role`; supply explicit `scopes` for an external or customized integration.
 #' The ODBC driver receives `authenticator = "oauth"` and the user's access token.
 #' @inheritParams oauth_db_azure_sql
 #' @param schema,warehouse,role Explicit Snowflake connection context.
-#' @param scopes Scopes configured by the account's OAuth integration.
+#' @param scopes Scopes configured by the account's OAuth integration. Defaults
+#'   to `paste0("session:role:", role)` for native Snowflake OAuth.
 #' @param target Optional named shinyOAuth token target for external OAuth.
 #' @returns A session-local reactive accessor for a native DBI connection.
 #' @export
 oauth_db_snowflake <- function(
-  authorization, server, database, schema, warehouse, role, ..., scopes,
+  authorization, server, database, schema, warehouse, role, ...,
+  scopes = paste0("session:role:", role),
   target = NULL, driver = "SnowflakeDSIIDriver", min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("odbc")
+  .odb_string(role, "role")
   .odb_backend_odbc_values(list(server, database, schema, warehouse, role, driver))
   options <- .odb_backend_options(list(...), c("server", "database", "schema", "warehouse", "role", "driver"), odbc = TRUE)
   .odb_bind(authorization, .odb_backend_snowflake, server = server,
