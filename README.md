@@ -70,7 +70,7 @@ shinyApp(ui, server, uiPattern = ".*")
 
 The handle's `db$connection()` is an ordinary native DBI connection. Use it with DBI, dbplyr and the driver's existing APIs. `oauth_db_with_connection()` provides a synchronous scope that rechecks the authorization before returning materialized data. `connection_policy = "operation"` instead closes each scoped connection after use.
 
-For event-cached application results, clear both saved values and saved errors when `db$generation()` changes; the [playground](playground/shared.R) demonstrates this pattern. Ordinary token rotation leaves the generation unchanged. Raw native connections and application caches retain their native semantics, so arbitrary calls made outside these helpers need application lifecycle handling.
+For event-cached application results, clear both saved values and saved errors when `db$generation()` changes; the [Azure SQL app](playground/example-azure-sql.R) demonstrates this pattern. Ordinary token rotation leaves the generation unchanged. Raw native connections and application caches retain their native semantics, so arbitrary calls made outside these helpers need application lifecycle handling.
 
 ## Choose the authorization connection
 

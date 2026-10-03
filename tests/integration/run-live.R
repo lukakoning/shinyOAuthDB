@@ -3,9 +3,9 @@
 if (!identical(Sys.getenv("OAUTHDB_LIVE_TESTS"), "true")) {
   stop("Live tests are disabled. See tests/integration/README.md.", call. = FALSE)
 }
-source("playground/shared.R", local = TRUE)
+source("tests/integration/source-config.R", local = TRUE)
 source("tests/integration/live-transport.R", local = TRUE)
-fixture_path <- playground_env("OAUTHDB_LIVE_FIXTURE")
+fixture_path <- live_env("OAUTHDB_LIVE_FIXTURE")
 if (!file.exists(fixture_path)) stop("OAUTHDB_LIVE_FIXTURE must name an existing trusted R file.", call. = FALSE)
 fixture_environment <- new.env(parent = globalenv())
 sys.source(fixture_path, envir = fixture_environment)

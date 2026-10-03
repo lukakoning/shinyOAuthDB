@@ -1,8 +1,11 @@
 # Playground
 
-These are simple apps for exercising the same session handle with existing
-database packages. Run them from the repository root. Start with the offline
-app, then configure one live backend at a time.
+Each `example-*.R` file contains a complete Shiny app: package imports, trusted
+configuration, OAuth client and database source, `ui`, `server`, native queries,
+and app startup. Open a file to read or adapt its code; it does not load an app
+factory from another file. Some lifecycle code is intentionally repeated so
+each example stands on its own. Run them from the repository root. Start with
+the offline app, then configure one live backend at a time.
 
 ```r
 pkgload::load_all()
@@ -39,7 +42,7 @@ client ID.
 | `OAUTHDB_PORT` | Local listening port, default `8100` |
 | `OAUTHDB_EXECUTOR` | `mirai` by default, or `future` |
 
-The helper configures two mirai daemons or two future multisession workers once
+Each live script configures two mirai daemons or two future multisession workers once
 outside `server()`, and restores/stops them when the app ends. OAuth network
 operations remain owned by shinyOAuth. Each Shiny session creates its own source
 handle and task. Workers create their own database connection rather than sharing
@@ -145,11 +148,12 @@ database authorization. Neither selector chooses the first available grant,
 even if only one exists. App-login credentials never substitute for the selected
 database credentials.
 
-Configure the chosen Microsoft backend using the earlier table, then set:
+This complete example uses Azure SQL with native `DBI::dbGetQuery()` calls.
+Configure `OAUTHDB_SERVER` and `OAUTHDB_DATABASE` as in the Azure SQL example,
+then set:
 
 | Variable | Meaning |
 |---|---|
-| `OAUTHDB_MULTIPLE_BACKEND` | Microsoft backend example, default `azure-sql` |
 | `OAUTHDB_APP_ORIGIN` | Browser application origin, default `http://localhost:8100` |
 | `OAUTHDB_LOGIN_CLIENT_ID` | Registered application-login client ID |
 | `OAUTHDB_LOGIN_CLIENT_SECRET` | Its server-side secret; blank for a registered public client |

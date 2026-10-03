@@ -9,6 +9,8 @@
   ambiguous manager selection and invalidate replaced references, even when
   their IDs were reused.
 - Add multiple-connection playground and custom-authorization lifecycle tests.
+- Make every playground example a complete standalone Shiny app, with visible
+  OAuth configuration, UI, server, native queries and connection/task cleanup.
 - Add an opt-in Docker Compose PostgreSQL 18/Keycloak fixture with real browser
   OAuth, database-enforced grants/RLS, native RPostgres token handoff and lifecycle
   integration tests.

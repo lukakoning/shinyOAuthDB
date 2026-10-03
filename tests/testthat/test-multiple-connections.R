@@ -1,7 +1,47 @@
-multiple_playground_helpers <- function(envir = parent.frame()) {
-  paths <- testthat::test_path("..", "..", "playground", c("shared.R", "multiple-connections.R"))
-  if (!all(file.exists(paths))) skip("Source-checkout multiple-connections playground smoke.")
-  for (path in paths) sys.source(path, envir = envir)
+multiple_playground_app <- function(fixture = NULL, on_query = function() NULL,
+                                    on_touch = function() NULL, .env = parent.frame()) {
+  path <- testthat::test_path("..", "..", "playground", "example-multiple-connections.R")
+  if (!file.exists(path)) skip("Source-checkout multiple-connections playground smoke.")
+  skip_if_not_installed("mirai")
+  withr::local_envvar(c(OAUTHDB_APP_ORIGIN = "http://localhost:8100", OAUTHDB_EXECUTOR = "mirai",
+    OAUTHDB_PORT = "8100", OAUTHDB_LOGIN_REDIRECT_URI = NA, OAUTHDB_DB_REDIRECT_URI = NA,
+    OAUTHDB_SERVER = "fixture.database.windows.net", OAUTHDB_DATABASE = "fixture",
+    OAUTHDB_TENANT_ID = "00000000-0000-0000-0000-000000000001", OAUTHDB_CLIENT_ID = "database-client",
+    OAUTHDB_CLIENT_SECRET = "", OAUTHDB_LOGIN_CLIENT_ID = "login-client", OAUTHDB_LOGIN_CLIENT_SECRET = "",
+    OAUTHDB_LOGIN_TENANT_ID = NA), .local_envir = .env)
+  # Evaluate the actual standalone app, stubbing only startup and dependency
+  # boundaries. The example itself contains no test injection interface.
+  local_mocked_bindings(daemons = function(...) invisible(NULL), .package = "mirai", .env = .env)
+  local_mocked_bindings(runApp = function(...) invisible(NULL), .package = "shiny", .env = .env)
+  if (!is.null(fixture)) {
+    native_db_query <- DBI::dbGetQuery
+    local_mocked_bindings(dbGetQuery = function(conn, statement, params, ...) {
+      on_query()
+      native_db_query(conn,
+        "SELECT user, marker, ? AS requested_value FROM visible_rows", params = params)
+    }, .package = "DBI", .env = .env)
+    local_mocked_bindings(oauth_db_task = function(...) list(
+      status = shiny::reactive(list(status = "initial")),
+      result = shiny::reactive(shiny::req(FALSE)), invoke = function(...) FALSE,
+      cancel = function() invisible(NULL)
+    ), .package = "shinyOAuthDB", .env = .env)
+    native_manager_server <- shinyOAuth::oauth_connections_server
+    local_mocked_bindings(oauth_connections_server = function(id, manager, ...) {
+      auth <- native_manager_server(id, manager, refresh_proactively = FALSE)
+      native_touch <- auth$touch
+      auth$touch <- function() { on_touch(); native_touch() }
+      auth
+    }, .package = "shinyOAuth", .env = .env)
+  }
+  app_env <- new.env(parent = .env)
+  # Driver imports are startup requirements; this fixture uses real DBI/RSQLite.
+  app_env$library <- function(...) invisible(NULL)
+  sys.source(path, envir = app_env)
+  if (!is.null(fixture)) {
+    app_env$manager <- fixture$manager
+    app_env$database_source <- fixture$source
+  }
+  app_env
 }
 
 multiple_playground_session <- function(cookie) {
@@ -15,7 +55,7 @@ multiple_playground_session <- function(cookie) {
     }))$new()
 }
 
-multiple_playground_fixture <- function(helper_env = parent.frame(), login_expires = 3600) {
+multiple_playground_fixture <- function(login_expires = 3600) {
   skip_if_not_installed("RSQLite")
   callbacks <- c("https://multiple.example/callback/login", "https://multiple.example/callback/database")
   provider <- shinyOAuth::oauth_provider(
@@ -25,7 +65,7 @@ multiple_playground_fixture <- function(helper_env = parent.frame(), login_expir
   client <- function(kind, scope, redirect) shinyOAuth::oauth_client(
     provider, client_id = paste0("fixture-", kind), client_secret = "",
     redirect_uri = redirect, scopes = scope, required_scopes = scope,
-    label = helper_env$playground_multiple_labels[[kind]],
+    label = if (kind == "app_login") "Application login" else "Database authorization",
     authorization_server_mode = "multi_redirect_uri", authorization_server_redirect_uris = callbacks
   )
   source <- oauth_db_custom("multiple_sqlite", target = NULL, scopes = "demo.read",
@@ -35,10 +75,6 @@ multiple_playground_fixture <- function(helper_env = parent.frame(), login_expir
       DBI::dbWriteTable(con, "visible_rows", data.frame(user = user, marker = paste0(user, "-visible")))
       con
     })
-  spec <- list(title = "multiple fixture", source = source, package = "DBI", fun = "dbGetQuery",
-    native_args = function(value) list(statement = "SELECT user, marker, ? AS requested_value FROM visible_rows", params = list(value)),
-    sync = function(db, args) do.call(DBI::dbGetQuery, c(list(conn = db$connection()), args)),
-    note = "Synthetic grant acceptance tests the real manager and local DBI lifecycle, not browser OAuth or remote policy.")
   manager <- shinyOAuth::oauth_connections(
     list(app_login = client("app_login", "openid", callbacks[[1L]]),
          database = client("database", "demo.read", callbacks[[2L]])),
@@ -47,7 +83,7 @@ multiple_playground_fixture <- function(helper_env = parent.frame(), login_expir
     store = shinyOAuth::oauth_connection_store_memory(),
     keys = list(credentials = openssl::rand_bytes(32L), owner = openssl::rand_bytes(32L))
   )
-  ui <- shinyOAuth::oauth_connections_ui(helper_env$playground_multiple_ui(spec), "authorizations", manager)
+  ui <- shinyOAuth::oauth_connections_ui(shiny::fluidPage(), "authorizations", manager)
   response <- ui(list(REQUEST_METHOD = "GET", PATH_INFO = "/", SCRIPT_NAME = "",
                       QUERY_STRING = "", HTTP_HOST = "multiple.example", "rook.url_scheme" = "https"))
   cookie <- sub(";.*$", "", response$headers[["Set-Cookie"]])
@@ -78,15 +114,13 @@ multiple_playground_fixture <- function(helper_env = parent.frame(), login_expir
          database_a = accept("database", "A", "demo.read"),
          database_b = accept("database", "B", "demo.read"))
   }))
-  list(manager = manager, spec = spec, cookie = cookie, ids = ids)
+  list(manager = manager, source = source, cookie = cookie, ids = ids)
 }
 
 test_that("the real multi-connection manager never selects a grant implicitly", {
-  multiple_playground_helpers()
-  fixture <- multiple_playground_fixture(environment())
-  server <- playground_multiple_server(fixture$spec, fixture$manager,
-    manager_factory = function(id, manager) shinyOAuth::oauth_connections_server(id, manager))
-  shiny::testServer(server, session = multiple_playground_session(fixture$cookie), {
+  fixture <- multiple_playground_fixture()
+  example <- multiple_playground_app(fixture)
+  shiny::testServer(example$server, session = multiple_playground_session(fixture$cookie), {
     expect_length(auth$connections(), 4L)
     expect_null(database_authorization())
     expect_identical(db$status()$status, "waiting_for_authorization")
@@ -137,13 +171,11 @@ test_that("the real multi-connection manager never selects a grant implicitly", 
 })
 
 test_that("retained multi grants restore through a new session without restoring selection", {
-  multiple_playground_helpers()
-  fixture <- multiple_playground_fixture(environment())
-  server <- playground_multiple_server(fixture$spec, fixture$manager,
-    manager_factory = function(id, manager) shinyOAuth::oauth_connections_server(id, manager))
+  fixture <- multiple_playground_fixture()
+  example <- multiple_playground_app(fixture)
   previous_provider <- NULL
   previous_connection <- NULL
-  shiny::testServer(server, session = multiple_playground_session(fixture$cookie), {
+  shiny::testServer(example$server, session = multiple_playground_session(fixture$cookie), {
     session$setInputs(app_login_id = fixture$ids$login_a, value = 5L)
     session$setInputs(database_id = fixture$ids$database_a)
     session$setInputs(run_sync = 1L)
@@ -152,7 +184,7 @@ test_that("retained multi grants restore through a new session without restoring
     previous_connection <<- db$connection()
   })
   expect_false(DBI::dbIsValid(previous_connection))
-  shiny::testServer(server, session = multiple_playground_session(fixture$cookie), {
+  shiny::testServer(example$server, session = multiple_playground_session(fixture$cookie), {
     expect_length(auth$connections(), 4L)
     expect_null(database_authorization())
     expect_error(sync_result(), class = "shiny.silent.error")
@@ -166,9 +198,8 @@ test_that("retained multi grants restore through a new session without restoring
 })
 
 test_that("same-login pending refresh does not switch DB selection or rerun queries", {
-  multiple_playground_helpers()
   skip_if_not_installed("promises")
-  fixture <- multiple_playground_fixture(environment())
+  fixture <- multiple_playground_fixture()
   refreshes <- 0L
   resolve_refresh <- NULL
   local_mocked_bindings(refresh_token = function(client, token, ...) {
@@ -176,23 +207,11 @@ test_that("same-login pending refresh does not switch DB selection or rerun quer
     promises::promise(function(resolve, reject) resolve_refresh <<- resolve)
   }, .package = "shinyOAuth")
   reads <- 0L
-  native_sync <- fixture$spec$sync
-  fixture$spec$sync <- function(db, args) {
-    reads <<- reads + 1L
-    native_sync(db, args)
-  }
   touches <- 0L
-  server <- playground_multiple_server(fixture$spec, fixture$manager,
-    manager_factory = function(id, manager) {
-      auth <- shinyOAuth::oauth_connections_server(id, manager, refresh_proactively = FALSE)
-      native_touch <- auth$touch
-      auth$touch <- function() {
-        touches <<- touches + 1L
-        native_touch()
-      }
-      auth
-    })
-  shiny::testServer(server, session = multiple_playground_session(fixture$cookie), {
+  example <- multiple_playground_app(fixture,
+    on_query = function() reads <<- reads + 1L,
+    on_touch = function() touches <<- touches + 1L)
+  shiny::testServer(example$server, session = multiple_playground_session(fixture$cookie), {
     session$setInputs(app_login_id = fixture$ids$login_a, value = 5L)
     expect_true(selected_login()$has_scopes("openid"))
     expect_identical(login_id(), fixture$ids$login_a)
@@ -235,16 +254,10 @@ test_that("same-login pending refresh does not switch DB selection or rerun quer
 })
 
 test_that("multi playground defines separate login and DB consent profiles", {
-  multiple_playground_helpers()
-  withr::local_envvar(c(OAUTHDB_MULTIPLE_BACKEND = "azure-sql", OAUTHDB_APP_ORIGIN = "http://localhost:8100",
-    OAUTHDB_SERVER = "fixture.database.windows.net", OAUTHDB_DATABASE = "fixture",
-    OAUTHDB_TENANT_ID = "00000000-0000-0000-0000-000000000001", OAUTHDB_CLIENT_ID = "database-client",
-    OAUTHDB_CLIENT_SECRET = "", OAUTHDB_LOGIN_CLIENT_ID = "login-client", OAUTHDB_LOGIN_CLIENT_SECRET = ""))
-  playground_require <- function(package) invisible(NULL)
-  config <- playground_multiple_config()
-  expect_s3_class(config$manager, "OAuthConnections")
-  login <- config$manager$clients$app_login
-  database <- config$manager$clients$database
+  example <- multiple_playground_app()
+  expect_s3_class(example$manager, "OAuthConnections")
+  login <- example$manager$clients$app_login
+  database <- example$manager$clients$database
   expect_identical(login@client_id, "login-client")
   expect_identical(database@client_id, "database-client")
   expect_identical(login@token_targets, list())

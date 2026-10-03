@@ -3,9 +3,9 @@
 
 live_fixture_authorization <- function(client, user, current, session) {
   prefix <- paste0("OAUTHDB_LIVE_", user, "_")
-  bearer <- playground_env(paste0(prefix, "TOKEN"))
-  expires_at <- suppressWarnings(as.numeric(playground_env(paste0(prefix, "EXPIRES_AT"))))
-  scopes <- strsplit(playground_env(paste0(prefix, "SCOPES")), " +")[[1L]]
+  bearer <- live_env(paste0(prefix, "TOKEN"))
+  expires_at <- suppressWarnings(as.numeric(live_env(paste0(prefix, "EXPIRES_AT"))))
+  scopes <- strsplit(live_env(paste0(prefix, "SCOPES")), " +")[[1L]]
   if (!is.finite(expires_at) || expires_at <= as.numeric(Sys.time()) + 300) {
     stop("Each live fixture needs at least five minutes of recorded token lifetime.", call. = FALSE)
   }
@@ -38,12 +38,12 @@ run_live_transport <- function(fixture) {
       !is.function(fixture$validate)) {
     stop("The trusted fixture must supply backend and validate(user, value).", call. = FALSE)
   }
-  spec <- playground_spec(fixture$backend)
+  spec <- live_spec(fixture$backend)
   if (!is.null(fixture$configure)) {
     if (!is.function(fixture$configure)) stop("fixture$configure must be a function.", call. = FALSE)
     spec <- fixture$configure(spec)
   }
-  client <- playground_client(spec$source, spec$provider)
+  client <- live_client(spec$source, spec$provider)
   is_sql <- isTRUE(shinyOAuthDB::oauth_db_capabilities(spec$source)$native_dbi)
   server <- function(input, output, session) {
     current <- shiny::reactiveVal(NULL)
