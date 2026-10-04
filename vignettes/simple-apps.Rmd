@@ -427,11 +427,15 @@ above; keep the Microsoft client with `services = "postgres"` and its query:
 ```{r generic-connection}
 con <- oauth_db_connect(auth$connection,
   connect = DBI::dbConnect, drv = RPostgres::Postgres(), token_arg = "password",
-  target = "postgres", scopes = "https://ossrdbms-aad.database.windows.net/.default",
+  target = "postgres",
   host = "example.postgres.database.azure.com", dbname = "sales",
   user = "reporting-readers", sslmode = "verify-full",
   sslrootcert = "path/to/root-ca.pem")
 ```
+
+The client's PostgreSQL target already configures `.default` consent. The
+generic bridge's `scopes` argument checks actual granted permissions; consent
+settings stay on the shinyOAuth client.
 
 For another connector, supply that package's function, options, and credential
 argument name. For an API that takes a bearer string directly,

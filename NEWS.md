@@ -1,5 +1,7 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Isolate each backend's connections, OAuth presets, scope recipes, and native option policy in one `backend__*.R` file. Shared lifecycle and validation code contain no backend-specific branches.
+* Keep Microsoft `.default` consent in client configuration instead of requiring it as a granted token permission. Generic accessors pass operation scopes unchanged to shinyOAuth.
 * Simplify connection setup: remove SQL Server's `entra_enabled` flag, derive native Snowflake scopes from `role`, and allow `oauth_db_databricks(auth$connection)` for a bearer string without a redundant host.
 * Resolve DBI connections before method dispatch in the simple-apps vignette, so outputs wait quietly for login and clear on logout. Token callbacks can still be passed inline to native functions.
 * Add a simple-apps vignette with direct connection and query examples for every backend and Fabric interface.

@@ -2,6 +2,37 @@
 
 shinyOAuthDB connects shinyOAuth authorizations to native database clients. Backend helpers return reactive accessors. Query execution, result caching, and background work belong to the native client and ordinary Shiny application code.
 
+## Source layout
+
+Each backend owns its connection helpers, native factories, OAuth recipes,
+provider/client presets, and protected driver options in one file:
+
+| File | Responsibility |
+|---|---|
+| `R/backend__sql_server.R` | Azure SQL and Entra-enabled SQL Server |
+| `R/backend__postgres.R` | Azure PostgreSQL |
+| `R/backend__fabric.R` | Fabric SQL and native Fabric callbacks |
+| `R/backend__databricks.R` | Databricks connections, OAuth presets, and token rotation policy |
+| `R/backend__snowflake.R` | Snowflake connections and OAuth presets |
+| `R/backend__microsoft.R` | Microsoft client composition and consent-scope handling |
+
+The Microsoft preset composes recipes supplied by those backend files; it
+does not duplicate their resources or permissions. Fabric reuses SQL Server's
+OAuth recipe for SQL access.
+
+Shared files contain no backend names, service tables, or driver policies.
+`session.R` owns session lifetime and native-value reuse; `authorization.R`
+consumes shinyOAuth's connection protocol; `auth.R` constructs native clients;
+`options.R` validates names against the calling backend's policy; `odbc.R`
+validates connection-string values for the shared ODBC transport; and
+`conditions.R` supplies common validation and errors. Backends call these
+utilities, never the reverse. The optional internal `cache_key` callback lets
+a backend decide when its native value needs rebuilding.
+
+Adding a backend does not require changing the shared lifecycle or validators.
+If it uses the Microsoft client preset, add its recipe to that provider's
+composition function as well.
+
 ## Native accessors
 
 Create a backend accessor inside a Shiny session:
@@ -26,6 +57,11 @@ The sibling fabricQueryR checkout's former Shiny UI/server, provider adapter, an
 Each accessor belongs to one Shiny session. Its native connection is reused for the selected authorization and closes on authorization replacement, observed permission loss, or session end. Token providers stay pinned to their original grant and cannot follow another login.
 
 The bridge asks shinyOAuth for the configured target, scopes, and minimum token validity. shinyOAuth remains responsible for login, consent, refresh, browser storage, and selecting retained authorizations. Native packages retain endpoint validation, query parameters, polling, pagination, and result conversion.
+
+Microsoft backends keep `/.default` consent in the shinyOAuth client and target
+configuration. They check actual operation scopes when supplied, without
+requiring the consent marker to appear among granted permissions. Generic
+accessors forward their required scopes unchanged to shinyOAuth.
 
 Ordinary token refresh preserves established SQL connections, including transactions and temporary tables. Upstream brickster's stateless DBI connection stores a bearer string; its accessor obtains a current token on each use and rebuilds the connection when that string changes. Call it per operation. Already returned native objects follow their package's lifetime semantics; brickster's `dbDisconnect()` does not revoke an issued token. The bridge prevents subsequent accessor use after logout but does not wrap native methods.
 

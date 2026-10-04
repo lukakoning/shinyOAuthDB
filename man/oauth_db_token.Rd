@@ -19,8 +19,8 @@ connection. Select the database grant explicitly when several exist.}
 
 \item{target}{Named token target configured on the shinyOAuth client, or NULL.}
 
-\item{scopes}{Required delegated scopes. A \verb{/.default} consent scope is sent
-during acquisition but is not a literal granted permission.}
+\item{scopes}{Required granted permissions. Consent scopes belong in the
+shinyOAuth client configuration.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 

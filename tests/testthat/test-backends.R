@@ -1,9 +1,3 @@
-capture_backend <- function(authorization, connect, ..., target = NULL,
-                            scopes = character(), refresh_token = FALSE, min_valid_for = 60, session = NULL) {
-  list(authorization = authorization, connect = connect, args = list(...),
-    target = target, scopes = scopes)
-}
-
 test_that("backend helpers bind OAuth resources without query operation mappings", {
   local_mocked_bindings(.odb_bind = capture_backend, .odb_require = function(...) TRUE,
     .package = "shinyOAuthDB")
@@ -13,7 +7,7 @@ test_that("backend helpers bind OAuth resources without query operation mappings
   expect_identical(sql$scopes, "https://database.windows.net//user_impersonation")
   expect_identical(sql$args$options, list(timeout = 12))
   postgres <- oauth_db_azure_postgres(auth, "server", "Sales", "user")
-  expect_identical(postgres$scopes, "https://ossrdbms-aad.database.windows.net/.default")
+  expect_identical(postgres$scopes, character())
   fabric <- oauth_db_fabric(auth, "kql")
   expect_identical(fabric$target, "kusto")
   expect_identical(fabric$scopes, "https://api.kusto.windows.net/user_impersonation")
@@ -120,7 +114,7 @@ test_that("plain Fabric callbacks enforce service routing and forward refresh fa
     state$calls <- state$calls + 1L
     if (force_refresh) stop("refresh unavailable")
     "visitor-token"
-  }, "kql", .odb_backend_profile("kql")$scopes)
+  }, "kql", .odb_fabric_profile("kql")$scopes)
   expect_identical(provider("https://api.kusto.windows.net/.default"), "visitor-token")
   expect_error(provider("https://database.windows.net//.default"), class = "shinyOAuthDB_invalid_audience")
   expect_identical(state$calls, 1L)
@@ -131,7 +125,7 @@ test_that("plain Fabric callbacks enforce service routing and forward refresh fa
 
 test_that("Fabric accepts an authorization without named targets when target is NULL", {
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session, scopes = .odb_backend_profile("kql")$scopes)
+    auth <- odb_test_authorization(session, scopes = .odb_fabric_profile("kql")$scopes)
     token <- oauth_db_fabric(auth$connection, "kql", target = NULL)
     provider <- token()
     expect_identical(provider("https://api.kusto.windows.net/.default"), "fixture-A")
@@ -148,7 +142,7 @@ test_that("Fabric SQL uses native connection options and its checked provider", 
     "native"
   }, .package = "fabricQueryR")
   expect_identical(.odb_backend_fabric_sql(function(force_refresh = FALSE) "visitor-token",
-    "server", "Sales", .odb_backend_profile("sql")$scopes,
+    "server", "Sales", .odb_fabric_profile("sql")$scopes,
     list(backend = "adbc", read_only = TRUE)), "native")
   expect_identical(state$args$backend, "adbc")
   expect_true(state$args$read_only)

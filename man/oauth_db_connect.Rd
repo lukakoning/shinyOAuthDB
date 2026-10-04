@@ -30,8 +30,8 @@ and \code{dbname}. Do not include the argument named by \code{token_arg}.}
 
 \item{target}{Named token target configured on the shinyOAuth client, or NULL.}
 
-\item{scopes}{Required delegated scopes. A \verb{/.default} consent scope is sent
-during acquisition but is not a literal granted permission.}
+\item{scopes}{Required granted permissions. Consent scopes belong in the
+shinyOAuth client configuration.}
 
 \item{disconnect}{Native cleanup function. NULL disconnects DBI connections
 automatically and leaves other clients alone.}

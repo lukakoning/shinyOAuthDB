@@ -10,8 +10,8 @@
 #'   and `dbname`. Do not include the argument named by `token_arg`.
 #' @param token_arg Name of the connector argument receiving the bearer token.
 #' @param target Named token target configured on the shinyOAuth client, or NULL.
-#' @param scopes Required delegated scopes. A `/.default` consent scope is sent
-#'   during acquisition but is not a literal granted permission.
+#' @param scopes Required granted permissions. Consent scopes belong in the
+#'   shinyOAuth client configuration.
 #' @param disconnect Native cleanup function. NULL disconnects DBI connections
 #'   automatically and leaves other clients alone.
 #' @param min_valid_for Minimum token lifetime requested at acquisition, in seconds.
@@ -64,7 +64,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
 # Backend factories receive a grant-pinned credential callback. Only native
 # connections/providers are cached; query execution is entirely outside here.
 .odb_bind <- function(authorization, connect, ..., target = NULL, scopes = character(),
-                      disconnect = NULL, refresh_token = FALSE, min_valid_for = 60,
+                      disconnect = NULL, cache_key = NULL, min_valid_for = 60,
                       session = shiny::getDefaultReactiveDomain()) {
   if (!is.function(connect) || (!is.null(disconnect) && !is.function(disconnect))) {
     .odb_abort("connect and disconnect must be functions (disconnect may be NULL).")
@@ -80,8 +80,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
     .odb_abort("Create the connection inside its owning Shiny session.", "authorization_unavailable")
   }
   reader <- .odb_authorization_reader(authorization)
-  required <- scopes[!endsWith(scopes, "/.default")]
-  grant <- native <- credential <- NULL
+  grant <- native <- native_key <- NULL
   available <- closed <- FALSE
   epoch <- 0L
   changed <- shiny::reactiveVal(0L)
@@ -95,7 +94,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
   close_native <- function() {
     value <- native
     native <<- NULL
-    credential <<- NULL
+    native_key <<- NULL
     if (!is.null(value)) tryCatch(.odb_disconnect(value, disconnect), error = function(e) NULL)
   }
   sync <- function() {
@@ -106,7 +105,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
     if (!is.null(next_grant)) {
       .odb_authorization_validate(next_grant)
       next_available <- tryCatch(
-        .odb_authorization_has_scopes(next_grant, required, target),
+        .odb_authorization_has_scopes(next_grant, scopes, target),
         shinyOAuth_access_error = function(e) FALSE
       )
       targets <- .odb_authorization_field(next_grant, "targets")
@@ -152,11 +151,10 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
       if (!grepl("^[A-Za-z0-9._~+/-]+=*$", value)) .odb_abort("Invalid bearer token.", "invalid_credential")
       value
     }
-    # HTTP-backed DBI clients hold a fixed bearer; persistent SQL sessions keep
-    # their connection through refresh. Both continue to use native DBI objects.
-    current_token <- if (refresh_token) token() else NULL
+    # A backend may supply a key for deciding when its native value expires.
+    key <- if (is.function(cache_key)) cache_key(token) else NULL
     if (!is.null(native)) {
-      valid <- identical(current_token, credential) &&
+      valid <- identical(key, native_key) &&
         (!inherits(native, "DBIConnection") ||
           tryCatch(isTRUE(DBI::dbIsValid(native)), error = function(e) FALSE))
       if (valid) return(native)
@@ -169,7 +167,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
     })
     if (is.null(value)) .odb_abort("The connector must return a native connection or client.")
     native <<- value
-    credential <<- current_token
+    native_key <<- key
     value
   }
   observer <- shiny::observe(sync(), priority = 100, domain = owner)

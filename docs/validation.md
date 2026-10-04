@@ -17,7 +17,7 @@ are used by the bridge.
 
 ## Completed local checks
 
-- **Repository suite:** 370 passing assertions, no failures, warnings or skips.
+- **Repository suite:** 387 passing assertions, no failures, warnings or skips.
 - **R CMD build and R CMD check --no-manual:** zero errors, warnings or notes.
 - **Native backends:** 82 assertions, including real upstream brickster DBI
   construction with only its network query mocked. Credentials remain strings;
@@ -29,6 +29,11 @@ are used by the bridge.
   discovery through shinyOAuth, independent of brickster.
 - **Lifecycle:** 42 assertions covering ownership, grant replacement, permission
   loss/restoration, invalid connections, and persistent SQL reuse across refresh.
+- **Backend isolation:** source audit of six backend files and seven shared
+  files found no shared-to-backend calls or vendor settings in shared code.
+  Seventeen scope regressions check that Microsoft consent markers stay out of
+  permission checks, a real shinyOAuth PostgreSQL grant works with `.default`
+  consent, and generic accessors preserve another provider's literal scopes.
 - **Examples:** 183 assertions across standalone apps, the integrated Fabric app,
   the offline demo, and multiple simultaneous client registrations. These are
   included in the total above. All nine playground R files parse.
@@ -46,7 +51,7 @@ are used by the bridge.
   with zero errors, warnings, or notes. The documentation checker now includes
   vignettes: 46 R blocks parse and 49 local links resolve.
 
-The 370-assertion bridge suite and clean R CMD check also passed against the
+The 387-assertion bridge suite and clean R CMD check also passed against the
 cleaned fabricQueryR checkout, with unmodified upstream brickster. The cleaned
 fabricQueryR passed 7,638 offline assertions without failures, warnings, or
 skips, and installed into an isolated library. Live Fabric and opt-in Python
