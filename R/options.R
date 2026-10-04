@@ -2,11 +2,23 @@
 .odb_options <- function(options, blocked) {
   key <- function(x) tolower(gsub("[^A-Za-z0-9]", "", x))
   nms <- names(options)
-  if (length(options) && (is.null(nms) || any(!nzchar(nms)) || anyDuplicated(key(nms)))) {
-    .odb_abort("Native options in ... must have unique names.")
+  .odb_named_args(options, "Native options in ...")
+  if (anyDuplicated(key(nms))) {
+    .odb_abort("Native options in ... must have unique names, ignoring case and punctuation.")
   }
-  if (any(key(nms) %in% key(blocked))) {
-    .odb_abort("Authentication, connection identity and TLS settings cannot be overridden through ... .")
+  protected <- nms[key(nms) %in% key(blocked)]
+  if (length(protected)) {
+    .odb_abort(paste0(
+      "Options ", paste0("`", protected, "`", collapse = ", "),
+      " cannot be overridden through ... . The helper supplies authentication, connection identity and TLS settings."))
   }
   options
+}
+
+.odb_named_args <- function(args, label = "Native configuration") {
+  nms <- names(args)
+  if (length(args) && (is.null(nms) || anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms))) {
+    .odb_abort(paste0(label, " must have nonempty, unique names."))
+  }
+  invisible(args)
 }

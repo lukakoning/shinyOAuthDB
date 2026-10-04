@@ -8,6 +8,18 @@
 #' @param user Provisioned individual or group database role.
 #' @param sslrootcert CA bundle path, or `NULL` for libpq's configured CA bundle.
 #' @returns A session-local reactive accessor for a native DBI connection.
+#' @seealso [oauth_db_microsoft_client()]
+#' @examples
+#' \dontrun{
+#' # Inside server(); configure the Microsoft client with services = "postgres".
+#' con <- oauth_db_azure_postgres(auth$connection,
+#'   host = "example.postgres.database.azure.com", database = "sales",
+#'   user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
+#' output$rows <- shiny::renderTable({
+#'   connection <- con()
+#'   DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+#' })
+#' }
 #' @export
 oauth_db_azure_postgres <- function(
   authorization, host, database, user, ..., port = 5432L, sslrootcert = NULL,

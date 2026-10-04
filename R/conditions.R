@@ -50,7 +50,7 @@
   invisible(value)
 }
 
-.odb_scopes <- function(value, name = "required_scopes") {
+.odb_scopes <- function(value, name = "scopes") {
   if (
     !is.character(value) ||
       anyNA(value) ||

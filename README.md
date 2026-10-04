@@ -2,11 +2,13 @@
 
 Use a Shiny visitor's **shinyOAuth** authorization with DBI, **fabricQueryR**, **brickster**, or another database client.
 
-A backend helper returns a reactive accessor to a native connection or credential. Call it from ordinary Shiny code, then use the database package directly. shinyOAuth handles login and refresh; the database package handles queries and results.
+Let visitors sign in with their own account and query data they are allowed to access. shinyOAuth handles login and token renewal; this package supplies the connection or credential; the database package runs your usual queries.
 
 Start with the [simple apps vignette](vignettes/simple-apps.Rmd): one small app, then short examples for each Fabric interface, Databricks, Azure SQL/PostgreSQL, SQL Server, and Snowflake. After installing with vignettes, open it with `vignette("simple-apps", package = "shinyOAuthDB")`.
 
 ## A complete Azure SQL app
+
+This example needs odbc and Microsoft ODBC Driver 18 for SQL Server, an Entra Web app registration with delegated SQL permissions, and database access for the visitor. See [installation](#installation-and-examples) for package setup.
 
 Set `OAUTHDB_TENANT_ID`, `OAUTHDB_CLIENT_ID`, `OAUTHDB_CLIENT_SECRET`, `OAUTHDB_SERVER`, and `OAUTHDB_DATABASE`. Register `http://localhost:8100` as the OAuth redirect URI.
 
@@ -45,7 +47,9 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-`con()` is a native DBI connection. Use it with DBI, dbplyr, or the driver's own API. The connection belongs to this Shiny session and selected authorization; the bridge closes it when either ends. The database enforces the user's permissions.
+Pass **`auth$connection` without parentheses** when creating the helper. This lets it follow sign-in and sign-out. `con` is the function you call later; **`con()` returns the native DBI connection**. Resolve it inside a render or reactive expression, then query with DBI, dbplyr, or the driver's own API.
+
+The connection belongs to this Shiny session and selected authorization; the bridge closes it when either ends. The database enforces the user's permissions.
 
 ## Fabric and Databricks
 
@@ -79,7 +83,8 @@ Queries retain their native arguments, return values, and errors. There is no qu
 | `oauth_db_azure_postgres()` | DBI + RPostgres connection; Azure Entra token as password |
 | `oauth_db_fabric_sql()` | fabricQueryR SQL connection |
 | `oauth_db_fabric(service = ...)` | Ordinary callback for fabricQueryR's existing `token` argument |
-| `oauth_db_databricks()` | Bearer string for brickster, or DBI connection with a warehouse |
+| `oauth_db_databricks(..., host = ..., warehouse_id = ...)` | DBI connection through brickster |
+| `oauth_db_databricks(auth$connection)` | Bearer string for brickster's `token` argument |
 | `oauth_db_snowflake()` | DBI + odbc connection with OAuth |
 
 Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
@@ -123,6 +128,8 @@ client <- shinyOAuth::oauth_client(
 ```
 
 The Snowflake and Databricks provider presets accept native provider settings through `...`. Databricks discovery uses shinyOAuth directly. Native Snowflake OAuth and external OAuth use their respective identity-provider configurations.
+
+Already using shinyOAuth? Keep your client and login module and add a database helper. If your client has no named token targets, set `target = NULL`; otherwise use the name you configured in `token_targets`. The helper's `scopes` checks granted permissions; consent is configured on the client.
 
 ## Another database client
 

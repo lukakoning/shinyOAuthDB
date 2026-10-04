@@ -6,11 +6,39 @@
 \alias{shinyOAuthDB-package}
 \title{Bridge Shiny user authorizations to native database clients}
 \description{
-shinyOAuthDB connects module-owned shinyOAuth authorizations to existing
-database and data platform packages. Use \code{\link[=oauth_db_connect]{oauth_db_connect()}} or a backend
-helper to obtain a reactive native connection accessor. Queries and their
-results stay in the native package and normal Shiny code.
+Let Shiny visitors access a database using their own authorization.
+shinyOAuth handles sign-in and token renewal; shinyOAuthDB supplies the
+visitor's credentials to your database package, which runs ordinary queries.
 }
+\section{Start here}{
+
+Read \code{vignette("simple-apps", package = "shinyOAuthDB")} for a complete app
+followed by short connection examples. Inside \code{server()}, pass
+\code{auth$connection} to a helper and call the resulting \code{con()} or \code{token()}
+inside your normal Shiny render or reactive expression.
+}
+
+\section{Choose a connection}{
+
+\itemize{
+\item \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} and \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}: SQL through DBI/odbc.
+\item \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}}: Azure PostgreSQL through RPostgres.
+\item \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}: Fabric SQL through fabricQueryR.
+\item \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}: DBI with a warehouse ID, or a bearer token for brickster.
+\item \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}: Snowflake through DBI/odbc.
+\item \code{\link[=oauth_db_fabric]{oauth_db_fabric()}}: a token callback for fabricQueryR's native functions.
+\item \code{\link[=oauth_db_connect]{oauth_db_connect()}} and \code{\link[=oauth_db_token]{oauth_db_token()}}: other native clients.
+}
+}
+
+\section{Configure sign-in}{
+
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, and
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} are optional presets returning ordinary
+shinyOAuth clients. You retain control over providers, scopes, targets,
+and multiple authorizations through shinyOAuth.
+}
+
 \seealso{
 Useful links:
 \itemize{
@@ -28,4 +56,4 @@ Authors:
 }
 
 }
-\keyword{internal}
+\keyword{package}

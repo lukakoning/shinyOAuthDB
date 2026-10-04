@@ -2,23 +2,29 @@
 #'
 #' Supply the native connector and its normal arguments. The bridge obtains the
 #' user's token, passes it to the connector, and manages connection lifetime.
-#' @param authorization A shinyOAuth connection accessor (`auth$connection`),
-#'   a reactive selecting `manager$connection(id)`, or a pinned module-created
-#'   connection. Select the database grant explicitly when several exist.
+#' @param authorization Pass `auth$connection` without calling it, so the helper
+#'   follows sign-in and sign-out. Also accepts a reactive selecting
+#'   `auth$connection(id)` from a shinyOAuth connection-manager module, or a
+#'   module-created connection pinned to one authorization. Select the database
+#'   grant explicitly when several exist.
 #' @param connect Native connection function, defaulting to `DBI::dbConnect`.
 #' @param ... Named arguments for the native connector, such as `drv`, `host`
 #'   and `dbname`. Do not include the argument named by `token_arg`.
 #' @param token_arg Name of the connector argument receiving the bearer token.
-#' @param target Named token target configured on the shinyOAuth client, or NULL.
+#' @param target Named token target configured on the shinyOAuth client. `NULL`
+#'   uses its default, including clients without named token targets.
 #' @param scopes Required granted permissions. Consent scopes belong in the
-#'   shinyOAuth client configuration.
+#'   shinyOAuth client configuration; setting this argument does not request
+#'   additional consent.
 #' @param disconnect Native cleanup function. NULL disconnects DBI connections
 #'   automatically and leaves other clients alone.
 #' @param min_valid_for Minimum token lifetime requested at acquisition, in seconds.
-#' @param session Owning Shiny session, normally inferred automatically.
+#' @param session Owning Shiny session. Create the helper inside `server()`;
+#'   this argument is normally inferred automatically.
 #' @return A reactive accessor function: call `con()` inside normal Shiny
 #'   reactive or render code to obtain the native connection. Before authorization
-#'   it stops silently, like `shiny::req()`. It is an accessor, not a cached query.
+#'   it stops silently, like `shiny::req()`. Resolve `connection <- con()` before
+#'   passing `connection` to a DBI method so Shiny can wait quietly for sign-in.
 #' @details
 #' Native connections are reused within one session and authorization, and
 #' closed on logout, replacement, observed scope loss or session end. A valid
@@ -77,7 +83,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
   owner <- .odb_root_session(session)
   if (is.null(owner) || isTRUE(owner$isClosed()) ||
       !identical(owner, .odb_root_session(shiny::getDefaultReactiveDomain()))) {
-    .odb_abort("Create the connection inside its owning Shiny session.", "authorization_unavailable")
+    .odb_abort("Create the database helper inside server(), in its owning Shiny session.", "authorization_unavailable")
   }
   reader <- .odb_authorization_reader(authorization)
   grant <- native <- native_key <- NULL
@@ -186,11 +192,4 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
   if (is.function(disconnect)) disconnect(native)
   else if (inherits(native, "DBIConnection")) suppressWarnings(DBI::dbDisconnect(native))
   invisible(NULL)
-}
-
-.odb_named_args <- function(args) {
-  if (length(args) && (is.null(names(args)) || any(!nzchar(names(args))) || anyDuplicated(names(args)))) {
-    .odb_abort("Native configuration must have unique, nonempty names.")
-  }
-  invisible(args)
 }

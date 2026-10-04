@@ -30,8 +30,10 @@ test_that("native options cannot substitute credentials or weaken TLS", {
     list(TrustServerCertificate = "yes"), list(dsn = "host-dsn"),
     list(attributes = list(azure_token = "other")), list(Authentication = "ActiveDirectoryDefault"),
     list(`Trusted Connection` = "yes"), list(`.connection_string` = "UID=user"))) {
-    expect_error(do.call(oauth_db_azure_sql, c(list(NULL, "server", "Sales"), option)),
+    error <- expect_error(do.call(oauth_db_azure_sql, c(list(NULL, "server", "Sales"), option)),
       "cannot be overridden")
+    expect_match(conditionMessage(error), names(option), fixed = TRUE)
+    expect_false(grepl("secret", conditionMessage(error), fixed = TRUE))
   }
   expect_error(oauth_db_azure_postgres(NULL, "host", "db", "user", sslmode = "disable"), "cannot be overridden")
   expect_error(oauth_db_azure_postgres(NULL, "host", "db", "user", service = "ambient"), "cannot be overridden")

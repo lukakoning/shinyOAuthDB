@@ -13,18 +13,23 @@ oauth_db_token(
 )
 }
 \arguments{
-\item{authorization}{A shinyOAuth connection accessor (\code{auth$connection}),
-a reactive selecting \code{manager$connection(id)}, or a pinned module-created
-connection. Select the database grant explicitly when several exist.}
+\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
+follows sign-in and sign-out. Also accepts a reactive selecting
+\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
+module-created connection pinned to one authorization. Select the database
+grant explicitly when several exist.}
 
-\item{target}{Named token target configured on the shinyOAuth client, or NULL.}
+\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
+uses its default, including clients without named token targets.}
 
 \item{scopes}{Required granted permissions. Consent scopes belong in the
-shinyOAuth client configuration.}
+shinyOAuth client configuration; setting this argument does not request
+additional consent.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
-\item{session}{Owning Shiny session, normally inferred automatically.}
+\item{session}{Owning Shiny session. Create the helper inside \code{server()};
+this argument is normally inferred automatically.}
 }
 \value{
 A reactive accessor returning a current bearer token. Call \code{token()}

@@ -19,9 +19,11 @@ oauth_db_azure_postgres(
 )
 }
 \arguments{
-\item{authorization}{A shinyOAuth connection accessor (\code{auth$connection}),
-a reactive selecting \code{manager$connection(id)}, or a pinned module-created
-connection. Select the database grant explicitly when several exist.}
+\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
+follows sign-in and sign-out. Also accepts a reactive selecting
+\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
+module-created connection pinned to one authorization. Select the database
+grant explicitly when several exist.}
 
 \item{host}{PostgreSQL hostname.}
 
@@ -35,14 +37,16 @@ connection. Select the database grant explicitly when several exist.}
 
 \item{sslrootcert}{CA bundle path, or \code{NULL} for libpq's configured CA bundle.}
 
-\item{target}{Named token target configured on the shinyOAuth client, or NULL.}
+\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
+uses its default, including clients without named token targets.}
 
 \item{scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
 configured on the shinyOAuth client, not checked as a literal permission.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
-\item{session}{Owning Shiny session, normally inferred automatically.}
+\item{session}{Owning Shiny session. Create the helper inside \code{server()};
+this argument is normally inferred automatically.}
 }
 \value{
 A session-local reactive accessor for a native DBI connection.
@@ -51,4 +55,19 @@ A session-local reactive accessor for a native DBI connection.
 Uses RPostgres with the user's Entra token as the password. The provisioned
 database role and server permissions must already exist. The default
 \code{.default} scope is a consent request, not a literal token permission.
+}
+\examples{
+\dontrun{
+# Inside server(); configure the Microsoft client with services = "postgres".
+con <- oauth_db_azure_postgres(auth$connection,
+  host = "example.postgres.database.azure.com", database = "sales",
+  user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
+output$rows <- shiny::renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+})
+}
+}
+\seealso{
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
 }

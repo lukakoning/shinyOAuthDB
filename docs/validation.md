@@ -17,9 +17,9 @@ are used by the bridge.
 
 ## Completed local checks
 
-- **Repository suite:** 387 passing assertions, no failures, warnings or skips.
+- **Repository suite:** 406 passing assertions, no failures, warnings or skips.
 - **R CMD build and R CMD check --no-manual:** zero errors, warnings or notes.
-- **Native backends:** 82 assertions, including real upstream brickster DBI
+- **Native backends:** 98 assertions, including real upstream brickster DBI
   construction with only its network query mocked. Credentials remain strings;
   repeated access reuses the object, refresh replaces it, and logout blocks the
   accessor. Fabric callbacks enforce audience routing and propagate refresh.
@@ -27,8 +27,10 @@ are used by the bridge.
   checked against real shinyOAuth grants, including permission denial and logout.
 - **OAuth presets:** 54 assertions covering native customization and Databricks
   discovery through shinyOAuth, independent of brickster.
-- **Lifecycle:** 42 assertions covering ownership, grant replacement, permission
+- **Lifecycle and configuration:** 45 assertions covering ownership, grant replacement, permission
   loss/restoration, invalid connections, and persistent SQL reuse across refresh.
+  Configuration errors point to the public authorization/scopes arguments and
+  identify protected option names without including credential values.
 - **Backend isolation:** source audit of six backend files and seven shared
   files found no shared-to-backend calls or vendor settings in shared code.
   Seventeen scope regressions check that Microsoft consent markers stay out of
@@ -54,7 +56,7 @@ are used by the bridge.
   successfully and the UI, all client definitions (including the new custom
   Snowflake client), and the same 21 query variants passed the smoke check again.
 
-The 387-assertion bridge suite and clean R CMD check also passed against the
+The 406-assertion bridge suite and clean R CMD check also passed against the
 cleaned fabricQueryR checkout, with unmodified upstream brickster. The cleaned
 fabricQueryR passed 7,638 offline assertions without failures, warnings, or
 skips, and installed into an isolated library. Live Fabric and opt-in Python

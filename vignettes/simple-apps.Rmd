@@ -119,6 +119,11 @@ is authorized. Create `con` inside `server()` and call it inside `renderTable()`
 or another reactive expression. The connection opens on first use and can be
 reused for later queries.
 
+Leave off the parentheses in `auth$connection`: you are giving the helper a
+way to obtain the visitor's current authorization later. Calling it immediately
+with `auth$connection()` would instead capture only the authorization available
+at that moment, possibly before anyone has signed in.
+
 Before sign-in the table stays empty. After sign-in, the render expression runs
 the SQL query; signing out closes the connection and clears this output.
 The query itself is an ordinary `DBI::dbGetQuery()` call. Keep the separate
@@ -529,6 +534,23 @@ and supply explicit `scopes` and `target` to `oauth_db_snowflake()`. Its default
 a client, keep each database helper's target and required scopes consistent
 with that client's configuration.
 
+### Keep an existing shinyOAuth setup
+
+If you already have a shinyOAuth client and login module, keep them. Add only
+the database helper and query code inside `server()`.
+
+Backend presets assume the target names used by their matching client presets.
+With your own client, `target` is a name from its `token_targets` configuration.
+For a client without named token targets, use `target = NULL`. For example,
+`oauth_db_fabric(auth$connection, service = "kql", target = NULL)` uses the
+client's default authorization for KQL; the client must already request the
+appropriate KQL permissions.
+
+The helper's `scopes` argument checks required granted permissions. It does not
+request extra consent. Configure consent on the shinyOAuth client, then keep
+the helper's requirements consistent with it. A token target identifies an API;
+a connection-manager authorization ID identifies a particular retained grant.
+
 ### A native connector without a preset
 
 `oauth_db_connect()` calls a connector with its ordinary arguments. For
@@ -608,3 +630,18 @@ If you add `eventReactive()`, your own caches, or background queries, your app
 owns those results and their lifetime. Decide when to clear them after logout
 or an authorization change. Login, consent, and token renewal remain in
 shinyOAuth; query execution remains in the database package.
+
+## When an example does not connect
+
+If the output stays empty after sign-in, first check that you passed
+`auth$connection` without parentheses. Then check that the selected authorization
+has the target and permissions required by the helper. Before a suitable
+authorization is available, the accessor waits silently so Shiny can leave the
+output blank.
+
+Create helpers inside `server()`, once per session, and resolve `con()` inside
+the render or reactive expression doing the query. Put fixed connection options,
+such as timeouts, in the helper's `...`; put SQL and query parameters in the
+native query function. The helper supplies authentication and protected
+connection settings itself. If you supply a protected setting, the error names
+the offending option.

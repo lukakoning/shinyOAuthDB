@@ -172,3 +172,15 @@ test_that("native arguments and errors stay native, tokens are clean and explici
     expect_error(native_error(), "native failure")
   })
 })
+
+test_that("configuration errors point to the public arguments the caller can fix", {
+  odb_test_domain(function(session) {
+    auth <- list(connection = function() NULL)
+    expect_error(oauth_db_token(auth), "Pass auth\\$connection",
+                  class = "shinyOAuthDB_invalid_authorization")
+    expect_error(oauth_db_token(auth$connection, scopes = "read write"), "scopes must",
+                  class = "shinyOAuthDB_invalid_configuration")
+    expect_error(oauth_db_connect(auth$connection, timeout = 1, timeout = 2),
+      "Native configuration.*unique names", class = "shinyOAuthDB_invalid_configuration")
+  })
+})

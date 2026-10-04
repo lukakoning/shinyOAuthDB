@@ -1,9 +1,29 @@
 #' Bridge Shiny user authorizations to native database clients
 #'
-#' shinyOAuthDB connects module-owned shinyOAuth authorizations to existing
-#' database and data platform packages. Use [oauth_db_connect()] or a backend
-#' helper to obtain a reactive native connection accessor. Queries and their
-#' results stay in the native package and normal Shiny code.
+#' Let Shiny visitors access a database using their own authorization.
+#' shinyOAuth handles sign-in and token renewal; shinyOAuthDB supplies the
+#' visitor's credentials to your database package, which runs ordinary queries.
 #'
-#' @keywords internal
+#' @section Start here:
+#' Read `vignette("simple-apps", package = "shinyOAuthDB")` for a complete app
+#' followed by short connection examples. Inside `server()`, pass
+#' `auth$connection` to a helper and call the resulting `con()` or `token()`
+#' inside your normal Shiny render or reactive expression.
+#'
+#' @section Choose a connection:
+#' * [oauth_db_azure_sql()] and [oauth_db_sql_server()]: SQL through DBI/odbc.
+#' * [oauth_db_azure_postgres()]: Azure PostgreSQL through RPostgres.
+#' * [oauth_db_fabric_sql()]: Fabric SQL through fabricQueryR.
+#' * [oauth_db_databricks()]: DBI with a warehouse ID, or a bearer token for brickster.
+#' * [oauth_db_snowflake()]: Snowflake through DBI/odbc.
+#' * [oauth_db_fabric()]: a token callback for fabricQueryR's native functions.
+#' * [oauth_db_connect()] and [oauth_db_token()]: other native clients.
+#'
+#' @section Configure sign-in:
+#' [oauth_db_microsoft_client()], [oauth_db_databricks_client()], and
+#' [oauth_db_snowflake_client()] are optional presets returning ordinary
+#' shinyOAuth clients. You retain control over providers, scopes, targets,
+#' and multiple authorizations through shinyOAuth.
+#'
+#' @keywords package
 "_PACKAGE"

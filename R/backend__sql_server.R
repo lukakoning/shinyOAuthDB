@@ -16,6 +16,17 @@
 #'   configured on the shinyOAuth client, not checked as a literal permission.
 #' @param ... Additional named options passed to the native connection function.
 #' @returns A session-local reactive accessor for a native DBI connection.
+#' @seealso [oauth_db_microsoft_client()], [oauth_db_sql_server()]
+#' @examples
+#' \dontrun{
+#' # Inside server(), after creating auth with shinyOAuth:
+#' con <- oauth_db_azure_sql(auth$connection,
+#'   server = "example.database.windows.net", database = "Sales")
+#' output$rows <- shiny::renderTable({
+#'   connection <- con()
+#'   DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
+#' })
+#' }
 #' @export
 oauth_db_azure_sql <- function(
   authorization, server, database, ...,
@@ -44,6 +55,7 @@ oauth_db_azure_sql <- function(
 #' @returns A session-local reactive accessor for a native DBI connection.
 #' @export
 oauth_db_sql_server <- oauth_db_azure_sql
+
 .odb_backend_sql <- function(token, server, database, driver, port, options) {
   do.call(DBI::dbConnect, c(list(drv = odbc::odbc(), driver = driver,
     server = paste0(server, ",", port), database = database, Encrypt = "yes",

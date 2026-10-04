@@ -14,9 +14,11 @@ oauth_db_fabric(
 )
 }
 \arguments{
-\item{authorization}{A shinyOAuth connection accessor (\code{auth$connection}),
-a reactive selecting \code{manager$connection(id)}, or a pinned module-created
-connection. Select the database grant explicitly when several exist.}
+\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
+follows sign-in and sign-out. Also accepts a reactive selecting
+\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
+module-created connection pinned to one authorization. Select the database
+grant explicitly when several exist.}
 
 \item{service}{One Fabric service: \code{"fabric"}, \code{"sql"}, \code{"dax"}, \code{"kql"},
 \code{"onelake"} or \code{"graphql"}.}
@@ -29,15 +31,31 @@ named token targets.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
-\item{session}{Owning Shiny session, normally inferred automatically.}
+\item{session}{Owning Shiny session. Create the helper inside \code{server()};
+this argument is normally inferred automatically.}
 }
 \value{
 A session-local reactive accessor for a native token provider.
 }
 \description{
-Returns an ordinary callback accepted by fabricQueryR's \code{token} argument.
+Create a \code{token} accessor, then pass \code{token()} to fabricQueryR's \code{token}
+argument. That value is an ordinary credential callback for the native API.
 This package owns the OAuth adaptation; no Shiny helpers or provider
 extensions in fabricQueryR are required. Endpoints, item IDs and query options
 belong in the native call. Keep endpoints in trusted application configuration.
 The callback supplies only the configured service's audience and scopes.
+}
+\examples{
+\dontrun{
+# Inside server(); configure the Microsoft client with services = "kql".
+token <- oauth_db_fabric(auth$connection, service = "kql")
+output$rows <- shiny::renderTable({
+  fabricQueryR::fabric_kql_query(
+    cluster = "https://example.kusto.fabric.microsoft.com",
+    database = "Events", query = "Events | take 10", token = token())
+})
+}
+}
+\seealso{
+\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
 }

@@ -5,6 +5,17 @@
 #' `backend`, `odbc_driver`, `read_only`, and `timeout` in `...`.
 #' @inheritParams oauth_db_azure_sql
 #' @returns A session-local reactive accessor for a native DBI connection.
+#' @seealso [oauth_db_fabric()], [oauth_db_microsoft_client()]
+#' @examples
+#' \dontrun{
+#' # Inside server(); configure the Microsoft client with services = "sql".
+#' con <- oauth_db_fabric_sql(auth$connection,
+#'   server = "example.datawarehouse.fabric.microsoft.com", database = "Sales")
+#' output$rows <- shiny::renderTable({
+#'   connection <- con()
+#'   DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
+#' })
+#' }
 #' @export
 oauth_db_fabric_sql <- function(
   authorization, server, database = NULL, ..., target = "sql",
@@ -27,7 +38,8 @@ oauth_db_fabric_sql <- function(
 
 #' Use the user's authorization with native Fabric functions
 #'
-#' Returns an ordinary callback accepted by fabricQueryR's `token` argument.
+#' Create a `token` accessor, then pass `token()` to fabricQueryR's `token`
+#' argument. That value is an ordinary credential callback for the native API.
 #' This package owns the OAuth adaptation; no Shiny helpers or provider
 #' extensions in fabricQueryR are required. Endpoints, item IDs and query options
 #' belong in the native call. Keep endpoints in trusted application configuration.
@@ -41,6 +53,17 @@ oauth_db_fabric_sql <- function(
 #'   named token targets.
 #' @param scopes Delegated scopes; `NULL` uses the service's query/read defaults.
 #' @returns A session-local reactive accessor for a native token provider.
+#' @seealso [oauth_db_fabric_sql()], [oauth_db_microsoft_client()]
+#' @examples
+#' \dontrun{
+#' # Inside server(); configure the Microsoft client with services = "kql".
+#' token <- oauth_db_fabric(auth$connection, service = "kql")
+#' output$rows <- shiny::renderTable({
+#'   fabricQueryR::fabric_kql_query(
+#'     cluster = "https://example.kusto.fabric.microsoft.com",
+#'     database = "Events", query = "Events | take 10", token = token())
+#' })
+#' }
 #' @export
 oauth_db_fabric <- function(
   authorization, service = c("fabric", "sql", "dax", "kql", "onelake", "graphql"),

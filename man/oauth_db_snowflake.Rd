@@ -20,9 +20,11 @@ oauth_db_snowflake(
 )
 }
 \arguments{
-\item{authorization}{A shinyOAuth connection accessor (\code{auth$connection}),
-a reactive selecting \code{manager$connection(id)}, or a pinned module-created
-connection. Select the database grant explicitly when several exist.}
+\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
+follows sign-in and sign-out. Also accepts a reactive selecting
+\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
+module-created connection pinned to one authorization. Select the database
+grant explicitly when several exist.}
 
 \item{server}{Database hostname.}
 
@@ -41,7 +43,8 @@ to \code{paste0("session:role:", role)} for native Snowflake OAuth.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
-\item{session}{Owning Shiny session, normally inferred automatically.}
+\item{session}{Owning Shiny session. Create the helper inside \code{server()};
+this argument is normally inferred automatically.}
 }
 \value{
 A session-local reactive accessor for a native DBI connection.
@@ -51,4 +54,19 @@ Configure the OAuth client in shinyOAuth to match the account's native or
 external OAuth integration. Native Snowflake OAuth derives its scope from
 \code{role}; supply explicit \code{scopes} for an external or customized integration.
 The ODBC driver receives \code{authenticator = "oauth"} and the user's access token.
+}
+\examples{
+\dontrun{
+# Inside server(), using a Snowflake client configured for role READER:
+con <- oauth_db_snowflake(auth$connection,
+  server = "organization-account.snowflakecomputing.com", database = "SALES",
+  schema = "PUBLIC", warehouse = "REPORTING_WH", role = "READER")
+output$rows <- shiny::renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT CURRENT_USER(), CURRENT_ROLE()")
+})
+}
+}
+\seealso{
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}, \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
 }

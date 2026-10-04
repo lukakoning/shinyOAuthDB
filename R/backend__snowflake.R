@@ -10,6 +10,18 @@
 #'   to `paste0("session:role:", role)` for native Snowflake OAuth.
 #' @param target Optional named shinyOAuth token target for external OAuth.
 #' @returns A session-local reactive accessor for a native DBI connection.
+#' @seealso [oauth_db_snowflake_client()], [oauth_db_snowflake_provider()]
+#' @examples
+#' \dontrun{
+#' # Inside server(), using a Snowflake client configured for role READER:
+#' con <- oauth_db_snowflake(auth$connection,
+#'   server = "organization-account.snowflakecomputing.com", database = "SALES",
+#'   schema = "PUBLIC", warehouse = "REPORTING_WH", role = "READER")
+#' output$rows <- shiny::renderTable({
+#'   connection <- con()
+#'   DBI::dbGetQuery(connection, "SELECT CURRENT_USER(), CURRENT_ROLE()")
+#' })
+#' }
 #' @export
 oauth_db_snowflake <- function(
   authorization, server, database, schema, warehouse, role, ...,
@@ -75,10 +87,7 @@ oauth_db_snowflake_provider <- function(server, ...) {
     userinfo_required = FALSE, id_token_required = FALSE, id_token_validation = FALSE,
     use_nonce = FALSE, use_pkce = TRUE, token_auth_style = "header")
   overrides <- list(...)
-  if (length(overrides) && (is.null(names(overrides)) || anyNA(names(overrides)) ||
-      any(!nzchar(names(overrides))) || anyDuplicated(names(overrides)))) {
-    .odb_abort("Provider settings in ... must have unique names.")
-  }
+  .odb_named_args(overrides, "Provider settings in ...")
   defaults[names(overrides)] <- overrides
   do.call(shinyOAuth::oauth_provider, defaults)
 }

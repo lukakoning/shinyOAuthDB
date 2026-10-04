@@ -17,9 +17,11 @@ oauth_db_databricks(
 )
 }
 \arguments{
-\item{authorization}{A shinyOAuth connection accessor (\code{auth$connection}),
-a reactive selecting \code{manager$connection(id)}, or a pinned module-created
-connection. Select the database grant explicitly when several exist.}
+\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
+follows sign-in and sign-out. Also accepts a reactive selecting
+\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
+module-created connection pinned to one authorization. Select the database
+grant explicitly when several exist.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin. Required for a
 DBI connection with \code{warehouse_id}; omit for a bearer-string accessor.}
@@ -37,7 +39,8 @@ native Databricks OAuth uses the main authorization.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
-\item{session}{Owning Shiny session, normally inferred automatically.}
+\item{session}{Owning Shiny session. Create the helper inside \code{server()};
+this argument is normally inferred automatically.}
 }
 \value{
 A session-local reactive accessor for a native connection or bearer string.
@@ -50,4 +53,26 @@ Call the accessor for each operation. Its native DBI connection holds a fixed
 token, so the accessor replaces it when shinyOAuth refreshes the credential.
 A previously returned connection or string is a snapshot; do not retain it
 across operations or authorizations. Endpoints belong in app configuration.
+}
+\examples{
+\dontrun{
+# Inside server(), after creating auth with shinyOAuth:
+con <- oauth_db_databricks(auth$connection,
+  host = "example.cloud.databricks.com", warehouse_id = "warehouse-id")
+output$rows <- shiny::renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
+})
+
+# Or use brickster's API directly with a current bearer string:
+token <- oauth_db_databricks(auth$connection)
+output$result <- shiny::renderPrint({
+  brickster::db_sql_query(host = "example.cloud.databricks.com",
+    warehouse_id = "warehouse-id", statement = "SELECT current_user()",
+    token = token())
+})
+}
+}
+\seealso{
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}
 }

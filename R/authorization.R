@@ -4,11 +4,12 @@
 }
 
 .odb_authorization_validate <- function(grant) {
-  .odb_string(.odb_authorization_field(grant, "id"), "authorization ID")
-  for (method in c("access_token", "has_scopes")) {
-    if (!is.function(.odb_authorization_field(grant, method))) {
-      .odb_abort("Use a module-created shinyOAuth connection or its accessor.", "invalid_authorization")
-    }
+  id <- .odb_authorization_field(grant, "id")
+  if (!is.character(id) || length(id) != 1L || is.na(id) || !nzchar(id) ||
+      !is.function(.odb_authorization_field(grant, "access_token")) ||
+      !is.function(.odb_authorization_field(grant, "has_scopes"))) {
+    .odb_abort(paste0("Pass auth$connection (without calling it), a reactive selecting a connection, ",
+                      "or a module-created shinyOAuth connection."), "invalid_authorization")
   }
   invisible(grant)
 }

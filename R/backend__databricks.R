@@ -17,6 +17,25 @@
 #'   native Databricks OAuth uses the main authorization.
 #' @param scopes Delegated scopes, or `NULL` for the chosen authentication mode.
 #' @returns A session-local reactive accessor for a native connection or bearer string.
+#' @seealso [oauth_db_databricks_client()], [oauth_db_databricks_provider()]
+#' @examples
+#' \dontrun{
+#' # Inside server(), after creating auth with shinyOAuth:
+#' con <- oauth_db_databricks(auth$connection,
+#'   host = "example.cloud.databricks.com", warehouse_id = "warehouse-id")
+#' output$rows <- shiny::renderTable({
+#'   connection <- con()
+#'   DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
+#' })
+#'
+#' # Or use brickster's API directly with a current bearer string:
+#' token <- oauth_db_databricks(auth$connection)
+#' output$result <- shiny::renderPrint({
+#'   brickster::db_sql_query(host = "example.cloud.databricks.com",
+#'     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
+#'     token = token())
+#' })
+#' }
 #' @export
 oauth_db_databricks <- function(
   authorization, host = NULL, warehouse_id = NULL, ...,
@@ -95,7 +114,7 @@ oauth_db_databricks_provider <- function(host, token_auth_style = c("header", "p
     name = "databricks", token_auth_style = match.arg(token_auth_style),
     use_pkce = TRUE, use_nonce = TRUE, id_token_validation = TRUE, userinfo_required = FALSE)
   overrides <- list(...)
-  .odb_named_args(overrides)
+  .odb_named_args(overrides, "Provider settings in ...")
   defaults[names(overrides)] <- overrides
   do.call(shinyOAuth::oauth_provider_oidc_discover, defaults)
 }

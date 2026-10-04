@@ -18,9 +18,11 @@ oauth_db_azure_sql(
 )
 }
 \arguments{
-\item{authorization}{A shinyOAuth connection accessor (\code{auth$connection}),
-a reactive selecting \code{manager$connection(id)}, or a pinned module-created
-connection. Select the database grant explicitly when several exist.}
+\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
+follows sign-in and sign-out. Also accepts a reactive selecting
+\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
+module-created connection pinned to one authorization. Select the database
+grant explicitly when several exist.}
 
 \item{server}{Database hostname.}
 
@@ -28,7 +30,8 @@ connection. Select the database grant explicitly when several exist.}
 
 \item{...}{Additional named options passed to the native connection function.}
 
-\item{target}{Named token target configured on the shinyOAuth client, or NULL.}
+\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
+uses its default, including clients without named token targets.}
 
 \item{scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
 configured on the shinyOAuth client, not checked as a literal permission.}
@@ -39,7 +42,8 @@ configured on the shinyOAuth client, not checked as a literal permission.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
-\item{session}{Owning Shiny session, normally inferred automatically.}
+\item{session}{Owning Shiny session. Create the helper inside \code{server()};
+this argument is normally inferred automatically.}
 }
 \value{
 A session-local reactive accessor for a native DBI connection.
@@ -51,4 +55,18 @@ native connection or credential provider. Connections open on first use.
 Supply driver options directly in \code{...}; query arguments stay in your native
 database call. Authentication and certificate verification cannot be
 overridden through \code{...}.
+}
+\examples{
+\dontrun{
+# Inside server(), after creating auth with shinyOAuth:
+con <- oauth_db_azure_sql(auth$connection,
+  server = "example.database.windows.net", database = "Sales")
+output$rows <- shiny::renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
+})
+}
+}
+\seealso{
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
 }
