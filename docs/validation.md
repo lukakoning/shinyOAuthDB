@@ -49,7 +49,10 @@ are used by the bridge.
   that they preserve Shiny's silent wait rather than a method-dispatch error.
   R CMD build created the HTML vignette, and R CMD check rebuilt it successfully
   with zero errors, warnings, or notes. The documentation checker now includes
-  vignettes: 46 R blocks parse and 49 local links resolve.
+  vignettes: 47 R blocks parse and 49 local links resolve. After reorganizing
+  the vignette from introductory material to advanced topics, its HTML rendered
+  successfully and the UI, all client definitions (including the new custom
+  Snowflake client), and the same 21 query variants passed the smoke check again.
 
 The 387-assertion bridge suite and clean R CMD check also passed against the
 cleaned fabricQueryR checkout, with unmodified upstream brickster. The cleaned
