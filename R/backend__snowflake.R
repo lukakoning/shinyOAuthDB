@@ -4,6 +4,7 @@
 #' external OAuth integration. Native Snowflake OAuth derives its scope from
 #' `role`; supply explicit `required_scopes` for an external or customized integration.
 #' The ODBC driver receives `authenticator = "oauth"` and the user's access token.
+#' Use [odbc::quote_value()] for connection values containing ODBC delimiters.
 #' @inheritParams oauth_db_azure_sql
 #' @param schema,warehouse,role Explicit Snowflake connection context.
 #' @param required_scopes Scopes configured by the account's OAuth integration. Defaults

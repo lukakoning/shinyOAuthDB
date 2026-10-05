@@ -33,7 +33,7 @@ grant explicitly when several exist.}
 
 \item{...}{Additional named options passed to the native connection function.}
 
-\item{port}{Database port.}
+\item{port}{Database port, an integer from 1 to 65535.}
 
 \item{sslrootcert}{CA bundle path, or \code{NULL} for libpq's configured CA bundle.}
 

@@ -11,6 +11,8 @@ Database helpers now use `required_scopes` for permission checks. Change, for
 example, `oauth_db_token(auth$connection, scopes = "all-apis")` to
 `oauth_db_token(auth$connection, required_scopes = "all-apis")`. Ordinary OAuth
 clients and the optional client presets still use `scopes` for consent.
+`scopes` in a connector's `...` is now an ordinary native argument; it is not
+intercepted as a legacy bridge setting.
 
 `oauth_db_azure_postgres()` uses native RPostgres `dbname`, replacing `database`.
 Its `required_scopes` defaults to `character()`: configure `.default` consent

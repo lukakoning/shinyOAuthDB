@@ -234,8 +234,6 @@ test_that("configuration errors point to the public arguments the caller can fix
                   class = "shinyOAuthDB_invalid_authorization")
     expect_error(oauth_db_token(auth$connection, required_scopes = "read write"), "required_scopes must",
                   class = "shinyOAuthDB_invalid_configuration")
-    expect_error(oauth_db_connect(auth$connection, scopes = "read"),
-      "scopes was renamed to required_scopes", fixed = TRUE)
     expect_error(oauth_db_connect(auth$connection, timeout = 1, timeout = 2),
       "Native configuration.*unique names", class = "shinyOAuthDB_invalid_configuration")
   })

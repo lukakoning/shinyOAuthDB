@@ -38,7 +38,7 @@ configured on the shinyOAuth client, not checked as a literal permission.}
 
 \item{driver}{Installed ODBC driver name.}
 
-\item{port}{Database port.}
+\item{port}{Database port, an integer from 1 to 65535.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
@@ -63,6 +63,10 @@ For untargeted \verb{https://database.windows.net//.default} consent instead, us
 \code{required_scopes = character()} to omit the helper's additional explicit-scope
 check. shinyOAuth still enforces the client's requirements; SQL enforces
 database permissions. See the simple-apps vignette for both client recipes.
+
+For names containing ODBC delimiters, supply an \code{\link[odbc:quote_value]{odbc::quote_value()}}
+value, for example \code{database = odbc::quote_value("Sales;Archive")}.
+Quoted values pass through unchanged; control characters are rejected.
 }
 \examples{
 \dontrun{

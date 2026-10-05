@@ -56,8 +56,6 @@ test_that("native options cannot substitute credentials or weaken TLS", {
   expect_error(oauth_db_azure_sql(NULL, "server", "db", ApplicationIntent = "ReadOnly;UID=user"), "delimiters")
   expect_error(oauth_db_azure_sql(NULL, "server", "db", timeout = 1, TIMEOUT = 2), "unique names")
   expect_error(oauth_db_azure_sql(NULL, "server", "db", 42), "unique names")
-  expect_error(oauth_db_azure_sql(NULL, "server", "db", scopes = "read"),
-    "scopes was renamed to required_scopes", fixed = TRUE)
 })
 
 test_that("SQL and Snowflake use only the supplied delegated token", {

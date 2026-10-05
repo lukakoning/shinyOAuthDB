@@ -38,7 +38,7 @@ configured on the shinyOAuth client, not checked as a literal permission.}
 
 \item{driver}{Installed ODBC driver name.}
 
-\item{port}{Database port.}
+\item{port}{Database port, an integer from 1 to 65535.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 

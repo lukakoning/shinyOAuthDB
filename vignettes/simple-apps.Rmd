@@ -783,3 +783,10 @@ such as timeouts, in the helper's `...`; put SQL and query parameters in the
 native query function. The helper supplies authentication and protected
 connection settings itself. If you supply a protected setting, the error names
 the offending option.
+
+For Azure SQL and Snowflake names containing ODBC delimiters, use the native
+quoting helper, such as `database = odbc::quote_value("Sales;Archive")`.
+Values quoted this way pass through unchanged. Unquoted or incorrectly quoted
+delimiters and control characters are rejected; they must not introduce other
+connection settings. See [odbc's connection documentation](https://odbc.r-dbi.org/reference/dbConnect-OdbcDriver-method.html)
+for driver-specific quoting details.

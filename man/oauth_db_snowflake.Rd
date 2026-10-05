@@ -54,6 +54,7 @@ Configure the OAuth client in shinyOAuth to match the account's native or
 external OAuth integration. Native Snowflake OAuth derives its scope from
 \code{role}; supply explicit \code{required_scopes} for an external or customized integration.
 The ODBC driver receives \code{authenticator = "oauth"} and the user's access token.
+Use \code{\link[odbc:quote_value]{odbc::quote_value()}} for connection values containing ODBC delimiters.
 }
 \examples{
 \dontrun{

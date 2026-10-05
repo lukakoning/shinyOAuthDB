@@ -71,9 +71,6 @@ oauth_db_connect <- function(
   .odb_string(token_arg, "token_arg")
   args <- list(...)
   .odb_named_args(args)
-  if ("scopes" %in% names(args)) {
-    .odb_abort("scopes was renamed to required_scopes for database accessors; consent scopes stay on the shinyOAuth client.")
-  }
   if (token_arg %in% names(args)) .odb_abort("The bridge supplies the token argument; omit it from ... .")
   factory <- function(token) {
     native_args <- args
