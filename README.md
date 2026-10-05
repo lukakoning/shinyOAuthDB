@@ -51,6 +51,19 @@ Pass **`auth$connection` without parentheses** when creating the helper. This le
 
 The connection belongs to this Shiny session and selected authorization; the bridge closes it when either ends. The database enforces the user's permissions.
 
+Already using shinyOAuth? Keep your client, UI, and login module. Add only the
+database block. For a client without named token targets, use `target = NULL`:
+
+```r
+con <- oauth_db_azure_sql(auth$connection,
+  server = "example.database.windows.net", database = "Reporting", target = NULL)
+```
+
+If your client names its SQL target `reporting`, use `target = "reporting"`
+instead. Its consent must already cover SQL; the helper does not request new
+permissions or change your provider. Missing permissions display a message;
+target and authorization-selection errors remain available to the app.
+
 ## Fabric and Databricks
 
 Fabric accepts an ordinary token callback supplied by this package:
@@ -147,7 +160,13 @@ output$rows <- renderTable({
 })
 ```
 
-`MyDriver` represents a driver that accepts delegated bearer tokens. Fixed options go directly to its native connector; `token_arg` names the argument receiving the user's token. DBI connections close automatically. Other native clients can supply `disconnect = TheirPackage::disconnect` when needed.
+`MyDriver` represents a driver that accepts delegated bearer tokens when opening
+a connection. Fixed options go directly to its native connector; `token_arg`
+names the argument receiving the user's token. The generic helper reuses the
+connection through token rotation. It does not update credentials inside a
+cached SDK client. Non-DBI connections may supply
+`disconnect = TheirPackage::disconnect`; their validity checks belong to the
+native package.
 
 For an API that accepts a bearer string directly, `token <- oauth_db_token(auth$connection, scopes = "data.read")` supplies that string through `token()`.
 
@@ -156,6 +175,19 @@ For an API that accepts a bearer string directly, `token <- oauth_db_token(auth$
 The native accessor is reactive. A `renderTable()`, `renderPrint()`, or `reactive()` that calls it follows the selected authorization. Use regular Shiny tools for input dependencies, events, progress, caching, and background work.
 
 Application-owned caches and `eventReactive()` keep their usual Shiny behavior. The bridge does not clear query results stored by the app or manage queries already in progress. Applications that retain results across events must handle their authorization lifecycle.
+
+Resolve `con()` or `token()` for each operation. Logout prevents subsequent
+accessor use and attempts native cleanup. Already returned values retain native
+behavior: a copied bearer string is not revoked, and upstream brickster's
+stateless `dbDisconnect()` leaves a saved handle usable with its stored token.
+The bridge does not wrap native methods. Its Fabric callbacks do reject use
+after their original authorization ends or is replaced.
+
+Token lifetime checks apply when acquiring a credential, not for an entire
+query. Accessors acquire tokens synchronously in the owning Shiny session;
+`refresh_pending` can occur if shinyOAuth is already refreshing asynchronously.
+Handle recovery with shinyOAuth and run background work using the native
+package's supported transport, with app-owned result checks.
 
 ## Installation and examples
 

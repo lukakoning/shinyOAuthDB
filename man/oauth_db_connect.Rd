@@ -37,8 +37,9 @@ uses its default, including clients without named token targets.}
 shinyOAuth client configuration; setting this argument does not request
 additional consent.}
 
-\item{disconnect}{Native cleanup function. NULL disconnects DBI connections
-automatically and leaves other clients alone.}
+\item{disconnect}{Native cleanup function. NULL calls \code{DBI::dbDisconnect()}
+for DBI connections and leaves other native values alone. Cleanup is best
+effort; it does not revoke credentials already given to the native package.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
@@ -55,15 +56,35 @@ ambiguous authorization selection and other configuration errors retain
 their original conditions so the app can explain how to recover.
 }
 \description{
-Supply the native connector and its normal arguments. The bridge obtains the
-user's token, passes it to the connector, and manages connection lifetime.
+Supply a native connector that authenticates when opening a connection and
+its normal arguments. The bridge obtains the user's token when it opens the
+connection, passes it to the connector, and manages connection lifetime.
 }
 \details{
-Native connections are reused within one session and authorization, and
-closed on logout, replacement, observed scope loss or session end. A valid
-DBI connection stays open through token refresh, preserving transactions and
-temporary tables. Invalid DBI connections reopen on next access; operations
-are never retried. The driver determines established-connection expiry.
+Native connections are reused within one session and authorization. Logout,
+replacement, observed required permission loss or session end retires the
+cached value and attempts its native cleanup. Subsequent accessor use checks
+the current authorization. A valid DBI connection stays open through token
+refresh, preserving transactions and temporary tables. Invalid DBI connections
+reopen on next access; operations are never retried. The driver determines
+established-connection expiry.
+
+This generic helper injects credentials only when opening a connection. It
+does not update bearer strings stored inside cached SDK clients, or check
+non-DBI clients for validity. For APIs authenticating each request with a
+string, call \code{\link[=oauth_db_token]{oauth_db_token()}} for each operation. Backend helpers implement
+any additional lifecycle their native client needs.
+
+Always resolve the accessor for each operation. Previously returned native
+objects and copied bearer strings retain their own lifetime; the bridge cannot
+make them unusable or revoke them. A backend's native disconnect operation
+may be a no-op. See each backend helper for its credential callback and native
+connection behavior.
+
+\code{min_valid_for} applies when acquiring a token, not to the duration of a query.
+Credential acquisition is synchronous; an upstream asynchronous refresh can
+report \code{refresh_pending}. The app handles retry or reauthorization using
+shinyOAuth. These accessors run in their owning Shiny session, not a worker.
 
 Queries, their results, event caches and background execution belong to the
 app and native packages. This bridge does not wrap or store query results.

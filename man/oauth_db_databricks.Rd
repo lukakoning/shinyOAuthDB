@@ -56,6 +56,9 @@ Call the accessor for each operation. Its native DBI connection holds a fixed
 token, so the accessor replaces it when shinyOAuth refreshes the credential.
 A previously returned connection is a snapshot; do not retain it
 across operations or authorizations. Endpoints belong in app configuration.
+Logout blocks subsequent accessor use, but upstream brickster's stateless
+\code{dbDisconnect()} does not invalidate a previously returned handle or revoke
+its bearer token. Resolve the accessor again for each operation.
 }
 \examples{
 \dontrun{

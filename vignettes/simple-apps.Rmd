@@ -131,6 +131,13 @@ The query itself is an ordinary `DBI::dbGetQuery()` call. Keep the separate
 
 ### Adapt this app
 
+If you already use shinyOAuth, keep your client, UI, and module. Add just the
+database block. A client without named token targets needs `target = NULL` on
+the database helper; a custom target uses its configured name, for example
+`target = "reporting"`. Your client must already request the database's consent
+scopes. The helper checks permissions; it does not change the provider or start
+another login. The customization section below covers other token targets.
+
 The next examples reuse the same app, so the sign-in and UI code need only be
 written once. Run one example at a time:
 
@@ -582,6 +589,13 @@ For another connector, supply that package's function, options, and credential
 argument name. For an API that takes a bearer string directly,
 `oauth_db_token()` is sufficient, as in the Databricks REST example above.
 
+The generic connector injects a token when it opens a connection and keeps
+that connection through token rotation. Use it for connection-time
+authentication. It does not replace a bearer string stored by an SDK for later
+requests, or probe non-DBI clients for validity. Use the token accessor per
+operation for such APIs; backend helpers handle their own special connection
+lifecycles.
+
 ### Several services or authorizations
 
 **Several services with one authorization.** For an app using Fabric discovery
@@ -625,9 +639,22 @@ error if the accessor is evaluated inside the DBI call.
 Ordinary token refresh preserves established SQL connections. Upstream
 brickster stores a fixed token in its DBI handle, so its accessor replaces that
 handle when the token changes. Fabric callbacks ask shinyOAuth for a current
-token when the native function needs it. Previously returned connections or
-tokens retain their native package's behavior; use the accessor for each
-operation rather than saving credentials for later.
+token when the native function needs it and reject use after their original
+authorization ends or is replaced.
+
+Logout retires the bridge's cached value, attempts native cleanup, and blocks
+subsequent accessor use. Previously returned connections or tokens retain their
+native package's behavior: copying a bearer string does not make it revocable,
+and brickster's stateless `dbDisconnect()` does not invalidate a saved handle.
+Use the accessor for each operation rather than saving credentials for later.
+The bridge cannot enforce logout on arbitrary calls made through saved native
+objects.
+
+`min_valid_for` checks token lifetime at acquisition, not throughout a query.
+Accessors acquire credentials synchronously in the owning Shiny session; they
+cannot be sent to a worker. If shinyOAuth is refreshing asynchronously, a call
+can report `refresh_pending`. The app handles retry or reauthorization with
+shinyOAuth; the bridge does not replay queries.
 
 If you add `eventReactive()`, your own caches, or background queries, your app
 owns those results and their lifetime. Decide when to clear them after logout

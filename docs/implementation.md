@@ -54,7 +54,7 @@ Several accessors can coexist in one session, each bound to its own authorizatio
 
 The sibling fabricQueryR checkout's former Shiny UI/server, provider adapter, and duplicate apps have been removed along with their optional dependencies. Its ordinary authentication and token callback API remain. Sandbox provisioning stays in that repository; the single app lives in this package's `playground/fabric` directory.
 
-Each accessor belongs to one Shiny session. Its native connection is reused for the selected authorization and closes on authorization replacement, observed permission loss, or session end. Token providers stay pinned to their original grant and cannot follow another login.
+Each accessor belongs to one Shiny session. Its native connection is reused for the selected authorization. Logout, replacement, observed required permission loss, or session end retires the cached value and attempts native cleanup. Native cleanup errors do not restore availability. Token callbacks stay pinned to their original grant and cannot follow another login. Previously returned native handles and strings retain their native lifetime; the accessor cannot revoke copied credentials or intercept methods called on saved handles.
 
 The bridge asks shinyOAuth for the configured target, scopes, and minimum token validity. shinyOAuth remains responsible for login, consent, refresh, browser storage, and selecting retained authorizations. Native packages retain endpoint validation, query parameters, polling, pagination, and result conversion.
 
@@ -67,7 +67,9 @@ Ordinary token refresh preserves established SQL connections, including transact
 
 The Fabric callback checks the requested audience/scopes and forwards refresh to shinyOAuth. It adds no private credential attributes or package-specific class. Trusted endpoints are supplied by application configuration or native discovery, and transport behavior stays with fabricQueryR.
 
-`oauth_db_connect()` accepts a native connector and fixed options, and supplies the bearer string in its named `token_arg`. `oauth_db_token()` supplies a reactive bearer-string accessor for other APIs. A new package needs no query registry entry or special callback interface.
+`oauth_db_connect()` accepts a native connector and fixed options, and supplies the bearer string in its named `token_arg` when opening a connection. It is intended for connection-time authentication. It does not update tokens stored inside cached SDK clients, and only DBI values receive automatic validity checks. `oauth_db_token()` supplies a fresh bearer string for each native API operation. Backend-specific renewal policies belong in the backend file. A new package needs no query registry entry or special callback interface.
+
+Credential acquisition uses shinyOAuth's synchronous public accessor. Its `min_valid_for` check is an acquisition-time guarantee, not a whole-query deadline. An in-flight asynchronous refresh may report `refresh_pending`; the application owns retry or reauthorization. No native query is retried by this bridge, and accessors must run in the owning Shiny session rather than a worker.
 
 ## Shiny behavior
 

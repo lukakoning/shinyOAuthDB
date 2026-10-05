@@ -7,6 +7,9 @@
 #' token, so the accessor replaces it when shinyOAuth refreshes the credential.
 #' A previously returned connection is a snapshot; do not retain it
 #' across operations or authorizations. Endpoints belong in app configuration.
+#' Logout blocks subsequent accessor use, but upstream brickster's stateless
+#' `dbDisconnect()` does not invalidate a previously returned handle or revoke
+#' its bearer token. Resolve the accessor again for each operation.
 #' @inheritParams oauth_db_connect
 #' @param host Databricks workspace hostname or HTTPS origin.
 #' @param warehouse_id SQL warehouse ID. Supply this or `http_path`.
