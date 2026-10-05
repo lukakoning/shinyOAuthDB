@@ -256,13 +256,18 @@ output$rows <- renderTable({
 ```
 
 This example uses Snowflake's own OAuth sign-in and requests the `READER` role.
+Database, schema, and warehouse are optional; omit them to use native defaults,
+fully qualified table names, or context set through ordinary SQL. Keep `role`
+explicit because it determines the requested native OAuth permission.
 Custom and External OAuth settings are covered later.
 
 ## Use Fabric functions directly
 
 Fabric also exposes APIs for KQL, DAX, files, and item discovery. For these,
 `oauth_db_fabric()` supplies the credential callback expected by fabricQueryR.
-Call the function returned by the helper as `token()` in your native query.
+Call the function returned by the helper as `callback()` in your native query.
+It returns a callback function, whereas `bearer()` from `oauth_db_token()` returns
+a bearer string. Each native package receives the credential type it expects.
 You still use the same sign-in code and ordinary Shiny render functions.
 
 Use the Microsoft client from the first app. Change its `services` value as
@@ -271,14 +276,14 @@ indicated and replace the database code with the chosen example below.
 ### SQL through a fabricQueryR function
 
 Keep `services = "sql"`. Here fabricQueryR opens and closes the connection for
-each query. `token()` supplies its ordinary token callback:
+each query. `callback()` supplies its ordinary token callback:
 
 ```{r fabric-sql-query}
-token <- oauth_db_fabric(auth$connection, service = "sql")
+callback <- oauth_db_fabric(auth$connection, service = "sql")
 output$rows <- renderTable({
   fabricQueryR::fabric_sql_query(
     server = "example.datawarehouse.fabric.microsoft.com", database = "Sales",
-    sql = "SELECT TOP (10) name FROM sys.tables", token = token()
+    sql = "SELECT TOP (10) name FROM sys.tables", token = callback()
   )
 })
 ```
@@ -288,11 +293,11 @@ output$rows <- renderTable({
 Set `services = "kql"`. Copy the KQL database's query URI and database name:
 
 ```{r fabric-kql}
-token <- oauth_db_fabric(auth$connection, service = "kql")
+callback <- oauth_db_fabric(auth$connection, service = "kql")
 output$rows <- renderTable({
   fabricQueryR::fabric_kql_query(
     cluster = "https://example.kusto.fabric.microsoft.com",
-    database = "Events", query = "Events | take 10", token = token()
+    database = "Events", query = "Events | take 10", token = callback()
   )
 })
 ```
@@ -304,11 +309,11 @@ The visitor needs permission to query the model, including Build permission.
 Replace `'Sales'` with a table in that model:
 
 ```{r fabric-dax-json}
-token <- oauth_db_fabric(auth$connection, service = "dax")
+callback <- oauth_db_fabric(auth$connection, service = "dax")
 output$rows <- renderTable({
   fabricQueryR::fabric_pbi_dax_query(
     workspace_id = "workspace-guid", dataset_id = "semantic-model-guid",
-    dax = "EVALUATE TOPN(10, 'Sales')", token = token()
+    dax = "EVALUATE TOPN(10, 'Sales')", token = callback()
   )
 })
 ```
@@ -319,11 +324,11 @@ Set `services = "onelake"`. This reads a small CSV from a Lakehouse's Files
 area, using the workspace and item GUIDs:
 
 ```{r fabric-files}
-token <- oauth_db_fabric(auth$connection, service = "onelake")
+callback <- oauth_db_fabric(auth$connection, service = "onelake")
 output$rows <- renderTable({
   fabricQueryR::fabric_onelake_read_file(
     workspace = "workspace-guid", item = "lakehouse-guid",
-    path = "Files/sales.csv", token = token()
+    path = "Files/sales.csv", token = callback()
   )
 })
 ```
@@ -336,9 +341,9 @@ the format. These file reads need its Arrow dependencies.
 Set `services = "fabric"`. This lists item names and types in one workspace:
 
 ```{r fabric-discovery}
-token <- oauth_db_fabric(auth$connection, service = "fabric")
+callback <- oauth_db_fabric(auth$connection, service = "fabric")
 output$rows <- renderTable({
-  items <- fabricQueryR::fabric_items("workspace-guid", token = token())
+  items <- fabricQueryR::fabric_items("workspace-guid", token = callback())
   data.frame(
     name = vapply(items, function(item) item$displayName, character(1)),
     type = vapply(items, function(item) item$type, character(1))
@@ -346,7 +351,7 @@ output$rows <- renderTable({
 })
 ```
 
-`fabricQueryR::fabric_workspaces(token = token())` similarly returns accessible
+`fabricQueryR::fabric_workspaces(token = callback())` similarly returns accessible
 workspaces. Use an item's ID in the query examples above. Combining services in
 one app is covered under authorization customization below.
 
@@ -380,11 +385,11 @@ native call. With the usual Arrow dependencies installed, it still returns
 a table by default:
 
 ```{r fabric-dax-arrow}
-token <- oauth_db_fabric(auth$connection, service = "dax")
+callback <- oauth_db_fabric(auth$connection, service = "dax")
 output$rows <- renderTable({
   fabricQueryR::fabric_pbi_dax_query(
     workspace_id = "workspace-guid", dataset_id = "semantic-model-guid",
-    dax = "EVALUATE TOPN(10, 'Sales')", api = "arrow", token = token()
+    dax = "EVALUATE TOPN(10, 'Sales')", api = "arrow", token = callback()
   )
 })
 ```
@@ -396,12 +401,12 @@ OneLake using fabricQueryR's Python Delta reader; configure that runtime with
 `fabricQueryR::fabric_delta_config()` before running the app.
 
 ```{r fabric-delta}
-token <- oauth_db_fabric(auth$connection, service = "onelake")
+callback <- oauth_db_fabric(auth$connection, service = "onelake")
 output$rows <- renderTable({
   fabricQueryR::fabric_onelake_read_delta_table(
     workspace_name = "workspace-guid", lakehouse_name = "lakehouse-guid",
     table_path = "Sales", schema = "dbo", limit = 10,
-    token = token()
+    token = callback()
   )
 })
 ```
@@ -415,12 +420,12 @@ Keep `services = "onelake"`. The same Delta reader can read a mirrored table;
 supply the mirrored database item GUID and its type:
 
 ```{r fabric-mirrored}
-token <- oauth_db_fabric(auth$connection, service = "onelake")
+callback <- oauth_db_fabric(auth$connection, service = "onelake")
 output$rows <- renderTable({
   fabricQueryR::fabric_onelake_read_delta_table(
     workspace_name = "workspace-guid", lakehouse_name = "mirrored-database-guid",
     item_type = "MirroredDatabase", table_path = "Sales", schema = "dbo",
-    limit = 10, token = token()
+    limit = 10, token = callback()
   )
 })
 ```
@@ -435,13 +440,13 @@ its schema. This example assumes a `sales` connection with `id` and `amount`
 fields. The explicit audience matches the delegated GraphQL client preset:
 
 ```{r fabric-graphql}
-token <- oauth_db_fabric(auth$connection, service = "graphql")
+callback <- oauth_db_fabric(auth$connection, service = "graphql")
 output$rows <- renderTable({
   result <- fabricQueryR::fabric_graphql_query(
     api = "https://example.graphql.fabric.microsoft.com/v1/api/graphql",
     query = "{ sales(first: 10) { items { id amount } } }",
     audience = "https://analysis.windows.net/powerbi/api/GraphQLApi.Execute.All",
-    error_policy = "error", token = token()
+    error_policy = "error", token = callback()
   )
   dplyr::bind_rows(result$data$sales$items)
 })
@@ -453,7 +458,7 @@ When a GraphQL query returns more than one page, use fabricQueryR's pagination
 function. The query exposes a cursor, and the native package follows it:
 
 ```{r fabric-graphql-pages}
-token <- oauth_db_fabric(auth$connection, service = "graphql")
+callback <- oauth_db_fabric(auth$connection, service = "graphql")
 output$rows <- renderTable({
   pages <- fabricQueryR::fabric_graphql_paginate(
     api = "https://example.graphql.fabric.microsoft.com/v1/api/graphql",
@@ -462,7 +467,7 @@ output$rows <- renderTable({
     variables = list(after = NULL),
     next_cursor = fabricQueryR::fabric_graphql_cursor("sales"),
     audience = "https://analysis.windows.net/powerbi/api/GraphQLApi.Execute.All",
-    error_policy = "error", token = token()
+    error_policy = "error", token = callback()
   )
   fabricQueryR::fabric_graphql_collect(pages, c("sales", "items"))
 })
@@ -476,17 +481,17 @@ the visitor's current bearer string. Change
 brickster's native response:
 
 ```{r databricks-rest}
-token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
+bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
 output$rows <- renderPrint({
   brickster::db_sql_query(
     host = host, warehouse_id = "warehouse-id",
     statement = "SELECT current_user() AS database_user",
-    disposition = "INLINE", show_progress = FALSE, token = token()
+    disposition = "INLINE", show_progress = FALSE, token = bearer()
   )
 })
 ```
 
-Here `token()` returns the current bearer token string that brickster expects.
+Here `bearer()` returns the current bearer token string that brickster expects.
 Call it for each operation, as shown, so the request uses the current credential.
 
 ### Azure Databricks with Entra
@@ -726,8 +731,9 @@ The earlier examples query inside `renderTable()` so the output follows
 authorization changes. The bridge's accessor manages credentials and native
 connections; it does not cache query results.
 
-Create each accessor inside its owning `server()` session. Call `con()` or
-`token()` inside the reactive expression performing the operation. For DBI,
+Create each accessor inside its owning `server()` session. Call `con()`,
+`callback()`, or `bearer()` inside the reactive expression performing the
+operation. For DBI,
 resolve `connection <- con()` before `DBI::dbGetQuery(connection, ...)`:
 R's S4 method dispatch can turn Shiny's silent sign-in wait into an ordinary
 error if the accessor is evaluated inside the DBI call.
@@ -747,6 +753,7 @@ The bridge cannot enforce logout on arbitrary calls made through saved native
 objects.
 
 `min_valid_for` checks token lifetime at acquisition, not throughout a query.
+Its default is 60 seconds; set `min_valid_for = 0` to accept any unexpired token.
 Accessors acquire credentials synchronously in the owning Shiny session; they
 cannot be sent to a worker. If shinyOAuth is refreshing asynchronously, the
 accessor waits silently and an ordinary reactive or render resumes when the

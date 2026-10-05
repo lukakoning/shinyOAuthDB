@@ -51,17 +51,17 @@ server <- function(input, output, session) {
     observeEvent(input$login, auth$request_login())
     observeEvent(input$logout, auth$logout())
     # One ordinary credential accessor per service. Native calls stay below.
-    tokens <- setNames(lapply(services, function(service) {
+    callbacks <- setNames(lapply(services, function(service) {
       oauth_db_fabric(auth$connection, service = service)
     }), services)
   } else {
-    tokens <- setNames(lapply(services, function(service) function() shared_token), services)
+    callbacks <- setNames(lapply(services, function(service) function() shared_token), services)
   }
 
   sandbox <- reactive({
-    credential <- tokens$fabric()
+    callback <- callbacks$fabric()
     input$discover
-    fabric_demo_discover(credential, workspace_name)
+    fabric_demo_discover(callback, workspace_name)
   })
   output$items <- renderTable(fabric_demo_read("discovery", sandbox(), NULL))
 
@@ -69,13 +69,13 @@ server <- function(input, output, session) {
   # changes rerun this block. Logout clears the previous result.
   rows <- reactive({
     source <- input$source
-    credential <- tokens[[fabric_demo_services[[source]]]]()
+    callback <- callbacks[[fabric_demo_services[[source]]]]()
     current <- sandbox()
     input$min_id
     input$category
     input$backend
     req(input$run > 0L)
-    fabric_demo_read(source, current, credential,
+    fabric_demo_read(source, current, callback,
       min_id = input$min_id, category = input$category, backend = input$backend,
       shared = mode == "sandbox")
   })

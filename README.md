@@ -74,11 +74,11 @@ Fabric accepts an ordinary token callback supplied by this package:
 ```r
 # Configure the OAuth client with services = "kql".
 # Inside server(), after creating auth:
-token <- oauth_db_fabric(auth$connection, service = "kql")
+callback <- oauth_db_fabric(auth$connection, service = "kql")
 output$rows <- renderPrint({
   fabricQueryR::fabric_kql_query(
     cluster = "https://example.kusto.fabric.microsoft.com",
-    database = "Events", query = "Events | take 10", token = token()
+    database = "Events", query = "Events | take 10", token = callback()
   )
 })
 ```
@@ -109,7 +109,7 @@ Queries retain their native arguments, return values, and errors. There is no qu
 
 Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
 
-Snowflake's native OAuth scope follows `role` automatically; set `required_scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
+Snowflake's native OAuth scope follows the explicit `role`; database, schema, and warehouse are optional. Set `required_scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
 
 ## Several authorizations at once
 
@@ -122,7 +122,7 @@ con_sql <- oauth_db_azure_sql(
   function() auth$connection(req(input$sql_authorization_id)),
   server = "example.database.windows.net", database = "Reporting"
 )
-token_kql <- oauth_db_fabric(
+kql_callback <- oauth_db_fabric(
   function() auth$connection(req(input$kql_authorization_id)), service = "kql"
 )
 ```
@@ -179,7 +179,7 @@ cached SDK client. Non-DBI connections may supply
 `disconnect = TheirPackage::disconnect`; their validity checks belong to the
 native package.
 
-For an API that accepts a bearer string directly, `token <- oauth_db_token(auth$connection, required_scopes = "data.read")` supplies that string through `token()`.
+For an API that accepts a bearer string directly, `bearer <- oauth_db_token(auth$connection, required_scopes = "data.read")` supplies that string through `bearer()`.
 
 ## Ordinary Shiny behavior
 
@@ -192,7 +192,7 @@ It clears its stored rows when the selected authorization changes or loses
 permissions, and shows query errors in the output. A token refresh alone does
 not clear the result or rerun the query.
 
-Resolve `con()` or `token()` for each operation. Logout prevents subsequent
+Resolve `con()`, `callback()`, or `bearer()` for each operation. Logout prevents subsequent
 accessor use and attempts native cleanup. Already returned values retain native
 behavior: a copied bearer string is not revoked, and upstream brickster's
 stateless `dbDisconnect()` leaves a saved handle usable with its stored token.
@@ -216,6 +216,9 @@ Fabric uses **fabricQueryR >= 1.0.1**'s existing token callback API. Databricks
 uses upstream **brickster >= 0.2.14**. These are the tested minimum versions;
 no fork, Shiny helpers, or new credential hooks in either database package are
 required.
+
+Azure SQL and Snowflake require **odbc >= 1.4.2**, including its native
+`quote_value()` helper for names containing connection-string delimiters.
 
 Install from the upstream repositories, then install the optional backend you
 use:

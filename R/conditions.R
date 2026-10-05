@@ -40,19 +40,16 @@
   invisible(value)
 }
 
-.odb_seconds <- function(value, name, positive = FALSE) {
+.odb_seconds <- function(value, name) {
   if (
     !is.numeric(value) ||
       length(value) != 1L ||
       !is.finite(value) ||
-      value < 0 ||
-      (positive && value == 0)
+      value < 0
   ) {
     .odb_abort(paste0(
       name,
-      " must be a finite ",
-      if (positive) "positive" else "non-negative",
-      " number of seconds."
+      " must be a finite non-negative number of seconds."
     ))
   }
 

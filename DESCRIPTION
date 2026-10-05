@@ -23,7 +23,7 @@ Suggests:
     dplyr,
     fabricQueryR (>= 1.0.1),
     knitr,
-    odbc (>= 1.3.4),
+    odbc (>= 1.4.2),
     pkgload,
     RPostgres,
     rmarkdown,

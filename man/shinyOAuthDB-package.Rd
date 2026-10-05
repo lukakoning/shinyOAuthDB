@@ -14,7 +14,7 @@ visitor's credentials to your database package, which runs ordinary queries.
 
 Read \code{vignette("simple-apps", package = "shinyOAuthDB")} for a complete app
 followed by short connection examples. Inside \code{server()}, pass
-\code{auth$connection} to a helper and call the resulting \code{con()} or \code{token()}
+\code{auth$connection} to a helper and resolve its accessor
 inside your normal Shiny render or reactive expression.
 }
 

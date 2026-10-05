@@ -43,6 +43,24 @@ test_that("credential expiry alone preserves established SQL sessions", {
   })
 })
 
+test_that("zero minimum lifetime accepts live tokens but still refreshes expired ones", {
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    auth$token(auth$make_token("short-lived", lifetime = 30))
+    bearer <- oauth_db_token(auth$connection, min_valid_for = 0)
+    expect_identical(bearer(), "short-lived")
+    expect_identical(auth$calls$acquire, 0L)
+    expired <- auth$make_token("expired", lifetime = -1)
+    expired@refresh_token <- "fixture-refresh"
+    auth$token(expired)
+    expect_identical(bearer(), "fixture-A-acquired")
+    expect_identical(auth$calls$acquire, 1L)
+    for (invalid in list(-1, Inf, NA_real_, numeric(), "0")) {
+      expect_error(oauth_db_token(auth$connection, min_valid_for = invalid), "min_valid_for")
+    }
+  })
+})
+
 test_that("pending bearer acquisition resumes reactive consumers without replaying completed work", {
   for (target in list(NULL, "data")) odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, target = target)

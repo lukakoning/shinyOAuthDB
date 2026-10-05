@@ -38,7 +38,7 @@ oauth_db_fabric_sql <- function(
 
 #' Use the user's authorization with native Fabric functions
 #'
-#' Create a `token` accessor, then pass `token()` to fabricQueryR's `token`
+#' Create a `callback` accessor, then pass `callback()` to fabricQueryR's `token`
 #' argument. That value is an ordinary credential callback for the native API.
 #' This package owns the OAuth adaptation; no Shiny helpers or provider
 #' extensions in fabricQueryR are required. Endpoints, item IDs and query options
@@ -57,11 +57,11 @@ oauth_db_fabric_sql <- function(
 #' @examples
 #' \dontrun{
 #' # Inside server(); configure the Microsoft client with services = "kql".
-#' token <- oauth_db_fabric(auth$connection, service = "kql")
+#' callback <- oauth_db_fabric(auth$connection, service = "kql")
 #' output$rows <- shiny::renderTable({
 #'   fabricQueryR::fabric_kql_query(
 #'     cluster = "https://example.kusto.fabric.microsoft.com",
-#'     database = "Events", query = "Events | take 10", token = token())
+#'     database = "Events", query = "Events | take 10", token = callback())
 #' })
 #' }
 #' @export

@@ -1,4 +1,5 @@
 test_that("unsupported installed backend versions fail before opening a connection", {
+  skip_if_not_installed("odbc")
   skip_if_not_installed("fabricQueryR")
   skip_if_not_installed("brickster")
   local_mocked_bindings(packageVersion = function(pkg, ...) package_version("0.0.1"),
@@ -7,6 +8,10 @@ test_that("unsupported installed backend versions fail before opening a connecti
     "fabricQueryR >= 1.0.1", fixed = TRUE, class = "shinyOAuthDB_missing_dependency")
   expect_error(oauth_db_databricks(NULL, "workspace.example", "warehouse"),
     "brickster >= 0.2.14", fixed = TRUE, class = "shinyOAuthDB_missing_dependency")
+  expect_error(oauth_db_azure_sql(NULL, "server", "db"),
+    "odbc >= 1.4.2", fixed = TRUE, class = "shinyOAuthDB_missing_dependency")
+  expect_error(oauth_db_snowflake(NULL, "account", role = "READER"),
+    "odbc >= 1.4.2", fixed = TRUE, class = "shinyOAuthDB_missing_dependency")
 })
 
 test_that("backend helpers bind OAuth resources without query operation mappings", {
@@ -101,6 +106,31 @@ test_that("Snowflake derives native role scopes and honors explicit external OAu
     external$current(FALSE)
     expect_error(custom(), class = "shiny.silent.error")
     expect_equal(con(), list(token = "fixture-A", role = "READER"))
+  })
+})
+
+test_that("Snowflake can use native context defaults while keeping the role explicit", {
+  skip_if_not_installed("odbc")
+  captured <- NULL
+  local_mocked_bindings(dbConnect = function(drv, ...) {
+    captured <<- list(...)
+    "native"
+  }, .package = "DBI")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, scopes = "session:role:READER")
+    con <- oauth_db_snowflake(auth$connection, "account", role = "READER")
+    expect_identical(con(), "native")
+    expect_false(any(c("database", "schema", "warehouse") %in% names(captured)))
+    expect_identical(captured$role, "READER")
+    expect_identical(captured$authenticator, "oauth")
+    expect_identical(captured$token, "fixture-A")
+    partial <- oauth_db_snowflake(auth$connection, "account", role = "READER",
+      warehouse = "COMPUTE_WH")
+    expect_identical(partial(), "native")
+    expect_identical(captured$warehouse, "COMPUTE_WH")
+    expect_false(any(c("database", "schema") %in% names(captured)))
+    expect_error(oauth_db_snowflake(auth$connection, "account"), "role")
+    expect_error(oauth_db_snowflake(auth$connection, "account", role = NULL), "role")
   })
 })
 

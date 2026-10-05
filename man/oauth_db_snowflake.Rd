@@ -7,9 +7,9 @@
 oauth_db_snowflake(
   authorization,
   server,
-  database,
-  schema,
-  warehouse,
+  database = NULL,
+  schema = NULL,
+  warehouse = NULL,
   role,
   ...,
   required_scopes = paste0("session:role:", role),
@@ -28,9 +28,11 @@ grant explicitly when several exist.}
 
 \item{server}{Database hostname.}
 
-\item{database}{Database name.}
+\item{database, schema, warehouse}{Optional Snowflake connection context. \code{NULL}
+leaves the setting to the native driver and account defaults. Queries can
+also use fully qualified names or set context through ordinary SQL.}
 
-\item{schema, warehouse, role}{Explicit Snowflake connection context.}
+\item{role}{Explicit Snowflake role used for this connection.}
 
 \item{...}{Additional named options passed to the native connection function.}
 
@@ -41,7 +43,8 @@ to \code{paste0("session:role:", role)} for native Snowflake OAuth.}
 
 \item{driver}{Installed ODBC driver name.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
+\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
+Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
 
 \item{session}{Owning Shiny session. Create the helper inside \code{server()};
 this argument is normally inferred automatically.}

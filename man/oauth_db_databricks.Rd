@@ -42,7 +42,8 @@ native Databricks OAuth uses the main authorization.}
 mode (\code{all-apis} for native OAuth, the Entra delegated permission otherwise).
 Set \code{"sql"} for a native client requesting Databricks SQL scopes only.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
+\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
+Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
 
 \item{session}{Owning Shiny session. Create the helper inside \code{server()};
 this argument is normally inferred automatically.}
@@ -73,11 +74,11 @@ output$rows <- shiny::renderTable({
 })
 
 # Or use brickster's API directly with a current bearer string:
-token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
+bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
 output$result <- shiny::renderPrint({
   brickster::db_sql_query(host = "example.cloud.databricks.com",
     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
-    token = token())
+    token = bearer())
 })
 }
 }

@@ -35,11 +35,11 @@
 #' })
 #'
 #' # Or use brickster's API directly with a current bearer string:
-#' token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
+#' bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
 #' output$result <- shiny::renderPrint({
 #'   brickster::db_sql_query(host = "example.cloud.databricks.com",
 #'     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
-#'     token = token())
+#'     token = bearer())
 #' })
 #' }
 #' @export

@@ -7,7 +7,7 @@
 #' @section Start here:
 #' Read `vignette("simple-apps", package = "shinyOAuthDB")` for a complete app
 #' followed by short connection examples. Inside `server()`, pass
-#' `auth$connection` to a helper and call the resulting `con()` or `token()`
+#' `auth$connection` to a helper and resolve its accessor
 #' inside your normal Shiny render or reactive expression.
 #'
 #' @section Choose a connection:

@@ -43,7 +43,8 @@ uses its default, including clients without named token targets.}
 \item{required_scopes}{Required granted permissions, empty by default. Supply
 actual permission scopes if your deployment requires an additional check.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
+\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
+Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
 
 \item{session}{Owning Shiny session. Create the helper inside \code{server()};
 this argument is normally inferred automatically.}

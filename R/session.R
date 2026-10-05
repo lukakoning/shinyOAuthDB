@@ -21,6 +21,7 @@
 #'   for DBI connections and leaves other native values alone. Cleanup is best
 #'   effort; it does not revoke credentials already given to the native package.
 #' @param min_valid_for Minimum token lifetime requested at acquisition, in seconds.
+#'   Defaults to 60; `0` accepts any unexpired token, as in shinyOAuth.
 #' @param session Owning Shiny session. Create the helper inside `server()`;
 #'   this argument is normally inferred automatically.
 #' @return A reactive accessor function: call `con()` inside normal Shiny
@@ -84,7 +85,8 @@ oauth_db_connect <- function(
 #' Obtain the user's access token for another native client
 #'
 #' @inheritParams oauth_db_connect
-#' @return A reactive accessor returning a current bearer token. Call `token()`
+#' @return A reactive accessor returning a current bearer token string. For
+#'   `bearer <- oauth_db_token(...)`, call `bearer()`
 #'   when making a native request; do not save its value globally.
 #' @export
 oauth_db_token <- function(authorization, target = NULL, required_scopes = character(),
@@ -104,7 +106,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
   }
   .odb_string(target, "target", optional = TRUE)
   required_scopes <- .odb_scopes(required_scopes)
-  .odb_seconds(min_valid_for, "min_valid_for", positive = TRUE)
+  .odb_seconds(min_valid_for, "min_valid_for")
   args <- list(...)
   .odb_named_args(args)
   owner <- .odb_root_session(session)

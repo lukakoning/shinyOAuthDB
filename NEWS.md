@@ -1,5 +1,6 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Accept `min_valid_for = 0` consistently with shinyOAuth. Make Snowflake database, schema, and warehouse optional while keeping role explicit. Distinguish Fabric callback accessors from bearer-string accessors in examples without renaming public functions. Require odbc >= 1.4.2, which supplies the documented `quote_value()` interface.
 * Forward native connector `scopes` arguments unchanged. Accept ODBC values quoted with `odbc::quote_value()` while rejecting delimiter injection, including through option names or SQL Server ports. Preserve protected credentials and TLS options.
 * Document and test existing Microsoft clients with explicit or `/.default` consent and custom target names, plus native Databricks SQL-scoped clients. Keep target selection explicit and make permission errors point to both client and helper requirements.
 * Retire cached connections when shinyOAuth reports missing client or selected-target permissions. Preserve established SQL sessions through ordinary credential expiry. Accessors wait reactively for pending refresh before native handoff; credential errors inside an operation do not schedule query replay.

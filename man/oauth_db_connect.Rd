@@ -41,7 +41,8 @@ additional consent.}
 for DBI connections and leaves other native values alone. Cleanup is best
 effort; it does not revoke credentials already given to the native package.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
+\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
+Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
 
 \item{session}{Owning Shiny session. Create the helper inside \code{server()};
 this argument is normally inferred automatically.}

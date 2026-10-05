@@ -6,7 +6,10 @@
 #' The ODBC driver receives `authenticator = "oauth"` and the user's access token.
 #' Use [odbc::quote_value()] for connection values containing ODBC delimiters.
 #' @inheritParams oauth_db_azure_sql
-#' @param schema,warehouse,role Explicit Snowflake connection context.
+#' @param database,schema,warehouse Optional Snowflake connection context. `NULL`
+#'   leaves the setting to the native driver and account defaults. Queries can
+#'   also use fully qualified names or set context through ordinary SQL.
+#' @param role Explicit Snowflake role used for this connection.
 #' @param required_scopes Scopes configured by the account's OAuth integration. Defaults
 #'   to `paste0("session:role:", role)` for native Snowflake OAuth.
 #' @param target Optional named shinyOAuth token target for external OAuth.
@@ -25,12 +28,12 @@
 #' }
 #' @export
 oauth_db_snowflake <- function(
-  authorization, server, database, schema, warehouse, role, ...,
+  authorization, server, database = NULL, schema = NULL, warehouse = NULL, role, ...,
   required_scopes = paste0("session:role:", role),
   target = NULL, driver = "SnowflakeDSIIDriver", min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
-  .odb_require("odbc")
+  .odb_require("odbc", version = "1.4.2")
   .odb_string(role, "role")
   .odb_odbc_values(list(server, database, schema, warehouse, role, driver))
   options <- .odb_options(list(...), blocked = c(
@@ -48,9 +51,10 @@ oauth_db_snowflake <- function(
 }
 
 .odb_backend_snowflake <- function(token, server, database, schema, warehouse, role, driver, options) {
+  context <- list(database = database, schema = schema, warehouse = warehouse)
+  context <- context[!vapply(context, is.null, logical(1))]
   do.call(DBI::dbConnect, c(list(drv = odbc::odbc(), driver = driver, server = server,
-    database = database, schema = schema, warehouse = warehouse, role = role,
-    authenticator = "oauth", token = token()), options))
+    role = role, authenticator = "oauth", token = token()), context, options))
 }
 
 #' Configure a native Snowflake shinyOAuth client

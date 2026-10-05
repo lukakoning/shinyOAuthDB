@@ -29,7 +29,8 @@ named token targets.}
 
 \item{required_scopes}{Delegated scopes; \code{NULL} uses the service's query/read defaults.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
+\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
+Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
 
 \item{session}{Owning Shiny session. Create the helper inside \code{server()};
 this argument is normally inferred automatically.}
@@ -38,7 +39,7 @@ this argument is normally inferred automatically.}
 A session-local reactive accessor for a native token provider.
 }
 \description{
-Create a \code{token} accessor, then pass \code{token()} to fabricQueryR's \code{token}
+Create a \code{callback} accessor, then pass \code{callback()} to fabricQueryR's \code{token}
 argument. That value is an ordinary credential callback for the native API.
 This package owns the OAuth adaptation; no Shiny helpers or provider
 extensions in fabricQueryR are required. Endpoints, item IDs and query options
@@ -48,11 +49,11 @@ The callback supplies only the configured service's audience and scopes.
 \examples{
 \dontrun{
 # Inside server(); configure the Microsoft client with services = "kql".
-token <- oauth_db_fabric(auth$connection, service = "kql")
+callback <- oauth_db_fabric(auth$connection, service = "kql")
 output$rows <- shiny::renderTable({
   fabricQueryR::fabric_kql_query(
     cluster = "https://example.kusto.fabric.microsoft.com",
-    database = "Events", query = "Events | take 10", token = token())
+    database = "Events", query = "Events | take 10", token = callback())
 })
 }
 }
