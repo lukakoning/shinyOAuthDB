@@ -212,6 +212,14 @@ output$rows <- renderTable({
 })
 ```
 
+If you copied the warehouse's HTTP path instead of its ID, replace the
+connection definition with the native alternative:
+
+```{r databricks-http-path}
+con <- oauth_db_databricks(auth$connection,
+  host = host, http_path = "/sql/1.0/warehouses/warehouse-id")
+```
+
 ### Snowflake
 
 Install odbc and the Snowflake ODBC driver. Configure a Snowflake OAuth
@@ -455,13 +463,13 @@ output$rows <- renderTable({
 
 ### Databricks through brickster's REST API
 
-Return to the Databricks client configuration above. With just the authorization,
-the bridge returns a function supplying the visitor's current token. Change
+Return to the Databricks client configuration above. `oauth_db_token()` supplies
+the visitor's current bearer string. Change
 `tableOutput("rows")` in the UI to `verbatimTextOutput("rows")` so you can inspect
 brickster's native response:
 
 ```{r databricks-rest}
-token <- oauth_db_databricks(auth$connection)
+token <- oauth_db_token(auth$connection, scopes = "all-apis")
 output$rows <- renderPrint({
   brickster::db_sql_query(
     host = host, warehouse_id = "warehouse-id",
@@ -572,12 +580,7 @@ settings stay on the shinyOAuth client.
 
 For another connector, supply that package's function, options, and credential
 argument name. For an API that takes a bearer string directly,
-`oauth_db_token()` is sufficient. For example, this can replace the `token`
-definition in the native Databricks REST example:
-
-```{r generic-token}
-token <- oauth_db_token(auth$connection, scopes = "all-apis")
-```
+`oauth_db_token()` is sufficient, as in the Databricks REST example above.
 
 ### Several services or authorizations
 

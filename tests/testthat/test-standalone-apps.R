@@ -40,11 +40,9 @@ for (playground_case in playground_cases) local({
     calls$login <- 0L
     calls$fail <- FALSE
     app$oauth_module_server <- playground_module(calls)
-    app[[paste0("oauth_db_", case[[2L]])]] <- function(authorization, ...) {
-      if (case[[3L]] == "brickster") return(oauth_db_token(authorization))
+    if (case[[3L]] == "DBI") app[[paste0("oauth_db_", case[[2L]])]] <- function(authorization, ...) {
       oauth_db_connect(authorization, connect = function(token) {
         force(token)
-        if (case[[3L]] != "DBI") return(function() token)
         con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
         attr(con, "example_user") <- sub("^fixture-", "", token)
         calls$connections <- c(calls$connections, list(con))

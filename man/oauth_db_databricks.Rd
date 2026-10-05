@@ -6,9 +6,10 @@
 \usage{
 oauth_db_databricks(
   authorization,
-  host = NULL,
+  host,
   warehouse_id = NULL,
   ...,
+  http_path = NULL,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
   scopes = NULL,
@@ -23,12 +24,14 @@ follows sign-in and sign-out. Also accepts a reactive selecting
 module-created connection pinned to one authorization. Select the database
 grant explicitly when several exist.}
 
-\item{host}{Databricks workspace hostname or HTTPS origin. Required for a
-DBI connection with \code{warehouse_id}; omit for a bearer-string accessor.}
+\item{host}{Databricks workspace hostname or HTTPS origin.}
 
-\item{warehouse_id}{SQL warehouse ID, or \code{NULL} for a bearer-string accessor.}
+\item{warehouse_id}{SQL warehouse ID. Supply this or \code{http_path}.}
 
 \item{...}{Native \code{DBI::dbConnect()} options, such as \code{catalog} and \code{schema}.}
+
+\item{http_path}{Native SQL warehouse HTTP path, such as
+\verb{/sql/1.0/warehouses/warehouse-id}. Supply this or \code{warehouse_id}.}
 
 \item{auth_mode}{\code{"databricks_oauth"} or \code{"entra"} for Azure Databricks.}
 
@@ -43,15 +46,15 @@ native Databricks OAuth uses the main authorization.}
 this argument is normally inferred automatically.}
 }
 \value{
-A session-local reactive accessor for a native connection or bearer string.
+A session-local reactive accessor for a native DBI connection.
 }
 \description{
-With \code{warehouse_id}, the native value is a brickster DBI connection. Without
-it, the accessor returns a current bearer string for brickster's \code{token}
-argument. Works with upstream brickster, without a fork or Shiny extensions.
+Returns a native brickster DBI connection. Supply either \code{warehouse_id} or
+\code{http_path}, as with brickster's \code{DBI::dbConnect()} method. For REST functions,
+use \code{\link[=oauth_db_token]{oauth_db_token()}} to supply their \code{token} argument instead.
 Call the accessor for each operation. Its native DBI connection holds a fixed
 token, so the accessor replaces it when shinyOAuth refreshes the credential.
-A previously returned connection or string is a snapshot; do not retain it
+A previously returned connection is a snapshot; do not retain it
 across operations or authorizations. Endpoints belong in app configuration.
 }
 \examples{
@@ -65,7 +68,7 @@ output$rows <- shiny::renderTable({
 })
 
 # Or use brickster's API directly with a current bearer string:
-token <- oauth_db_databricks(auth$connection)
+token <- oauth_db_token(auth$connection, scopes = "all-apis")
 output$result <- shiny::renderPrint({
   brickster::db_sql_query(host = "example.cloud.databricks.com",
     warehouse_id = "warehouse-id", statement = "SELECT current_user()",

@@ -71,7 +71,7 @@ live_spec <- function(backend) {
     host <- sub("/$", "", sub("^https://", "", live_env("OAUTHDB_DATABRICKS_HOST")))
     warehouse <- live_env("OAUTHDB_DATABRICKS_WAREHOUSE")
     return(list(service = "databricks",
-      bind = function(auth) shinyOAuthDB::oauth_db_databricks(auth),
+      bind = function(auth) shinyOAuthDB::oauth_db_token(auth, scopes = "all-apis"),
       native_args = function(value) list(
         statement = "SELECT current_user() AS database_user, CAST(:value AS INT) AS requested_value",
         parameters = list(list(name = "value", value = as.character(value), type = "INT")),

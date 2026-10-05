@@ -27,14 +27,14 @@ test_that("vignette DBI examples wait for sign-in through real S4 dispatch", {
       })
     }
   }
-  cases <- c("fabric-sql-app", "fabric-sql-adbc", "azure-sql", "sql-server",
+  cases <- c("fabric-sql-app", "fabric-sql-adbc", "databricks-http-path", "azure-sql", "sql-server",
              "azure-postgres", "databricks-dbi", "databricks-entra", "snowflake",
              "generic-connection")
   for (label in cases) {
     server <- app$server
     if (label != "fabric-sql-app") {
       code <- as.list(parse(text = chunks[[label]]))
-      if (label %in% c("fabric-sql-adbc", "sql-server", "generic-connection")) {
+      if (label %in% c("fabric-sql-adbc", "databricks-http-path", "sql-server", "generic-connection")) {
         code <- c(code, tail(as.list(body(app$server)), 1L))
       }
       body(server) <- as.call(c(list(quote(`{`)), as.list(body(app$server))[2:4], code))

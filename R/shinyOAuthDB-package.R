@@ -14,10 +14,11 @@
 #' * [oauth_db_azure_sql()] and [oauth_db_sql_server()]: SQL through DBI/odbc.
 #' * [oauth_db_azure_postgres()]: Azure PostgreSQL through RPostgres.
 #' * [oauth_db_fabric_sql()]: Fabric SQL through fabricQueryR.
-#' * [oauth_db_databricks()]: DBI with a warehouse ID, or a bearer token for brickster.
+#' * [oauth_db_databricks()]: brickster DBI with a warehouse ID or HTTP path.
 #' * [oauth_db_snowflake()]: Snowflake through DBI/odbc.
 #' * [oauth_db_fabric()]: a token callback for fabricQueryR's native functions.
-#' * [oauth_db_connect()] and [oauth_db_token()]: other native clients.
+#' * [oauth_db_connect()]: other native connections.
+#' * [oauth_db_token()]: bearer strings for brickster REST and other native APIs.
 #'
 #' @section Configure sign-in:
 #' [oauth_db_microsoft_client()], [oauth_db_databricks_client()], and

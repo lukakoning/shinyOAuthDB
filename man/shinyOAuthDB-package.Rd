@@ -24,10 +24,11 @@ inside your normal Shiny render or reactive expression.
 \item \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} and \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}: SQL through DBI/odbc.
 \item \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}}: Azure PostgreSQL through RPostgres.
 \item \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}: Fabric SQL through fabricQueryR.
-\item \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}: DBI with a warehouse ID, or a bearer token for brickster.
+\item \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}: brickster DBI with a warehouse ID or HTTP path.
 \item \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}: Snowflake through DBI/odbc.
 \item \code{\link[=oauth_db_fabric]{oauth_db_fabric()}}: a token callback for fabricQueryR's native functions.
-\item \code{\link[=oauth_db_connect]{oauth_db_connect()}} and \code{\link[=oauth_db_token]{oauth_db_token()}}: other native clients.
+\item \code{\link[=oauth_db_connect]{oauth_db_connect()}}: other native connections.
+\item \code{\link[=oauth_db_token]{oauth_db_token()}}: bearer strings for brickster REST and other native APIs.
 }
 }
 

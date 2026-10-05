@@ -69,9 +69,9 @@ output$rows <- renderPrint({
 
 The [integrated Fabric app](playground/fabric/README.md) discovers the persistent Shiny sandbox and demonstrates SQL, DAX, KQL, OneLake, GraphQL, and discovery in one app.
 
-The [Databricks app](playground/example-databricks.R) passes the bearer string from `token()` directly to upstream `brickster::db_sql_query()`. Passing `warehouse_id` to `oauth_db_databricks()` instead returns a native DBI connection accessor. Call it for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
+The [Databricks app](playground/example-databricks.R) uses `oauth_db_token(auth$connection, scopes = "all-apis")` and passes its bearer string directly to upstream `brickster::db_sql_query()`. For DBI, use `oauth_db_databricks()` with `host` and either `warehouse_id` or the native `http_path`. Call the accessor for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
 
-For a bearer string, `token <- oauth_db_databricks(auth$connection)` needs only the authorization. Supply `host` and `warehouse_id` when creating a DBI connection.
+For Entra REST access, use `oauth_db_token(auth$connection, target = "databricks", scopes = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")`, matching the Microsoft client's configuration.
 
 Queries retain their native arguments, return values, and errors. There is no query callback API, query registry, or task system.
 
@@ -83,8 +83,8 @@ Queries retain their native arguments, return values, and errors. There is no qu
 | `oauth_db_azure_postgres()` | DBI + RPostgres connection; Azure Entra token as password |
 | `oauth_db_fabric_sql()` | fabricQueryR SQL connection |
 | `oauth_db_fabric(service = ...)` | Ordinary callback for fabricQueryR's existing `token` argument |
-| `oauth_db_databricks(..., host = ..., warehouse_id = ...)` | DBI connection through brickster |
-| `oauth_db_databricks(auth$connection)` | Bearer string for brickster's `token` argument |
+| `oauth_db_databricks()` | DBI connection through brickster; accepts a warehouse ID or HTTP path |
+| `oauth_db_token()` | Bearer string for brickster REST or another native API |
 | `oauth_db_snowflake()` | DBI + odbc connection with OAuth |
 
 Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.

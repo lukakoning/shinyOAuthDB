@@ -164,7 +164,8 @@ test_that("Databricks passes a bearer string to upstream brickster DBI", {
     state$args <- list(...)
     "native"
   }, .package = "DBI")
-  expect_identical(.odb_backend_databricks(token, "workspace.example", "wh", list(catalog = "main")), "native")
+  expect_identical(.odb_backend_databricks(token, "workspace.example", "wh", NULL,
+                                         list(catalog = "main")), "native")
   expect_identical(state$args$token, "visitor-token")
   expect_identical(state$args$catalog, "main")
 })
@@ -180,7 +181,7 @@ test_that("upstream brickster connections rotate their fixed token and isolate g
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "all-apis")
     con <- oauth_db_databricks(auth$connection, "https://workspace.example/", "wh")
-    token <- oauth_db_databricks(auth$connection)
+    token <- oauth_db_token(auth$connection, scopes = "all-apis")
     first <- con()
     expect_s4_class(first, "DatabricksConnection")
     expect_identical(first@token, "fixture-A")
@@ -196,5 +197,31 @@ test_that("upstream brickster connections rotate their fixed token and isolate g
     auth$current(FALSE)
     expect_error(con(), class = "shiny.silent.error")
     expect_error(token(), class = "shiny.silent.error")
+  })
+})
+
+test_that("Databricks preserves native HTTP paths and query results", {
+  skip_if_not_installed("brickster")
+  calls <- list()
+  local_mocked_bindings(db_sql_query = function(warehouse_id, statement, token, ...) {
+    calls[[length(calls) + 1L]] <<- list(warehouse_id = warehouse_id, statement = statement, token = token)
+    data.frame(value = 42L)
+  }, .package = "brickster")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, scopes = "all-apis")
+    con <- oauth_db_databricks(auth$connection, "workspace.example",
+      http_path = "/sql/1.0/warehouses/path-warehouse", catalog = "main", schema = "reporting")
+    native <- con()
+    expect_s4_class(native, "DatabricksConnection")
+    expect_identical(native@warehouse_id, "path-warehouse")
+    expect_identical(native@catalog, "main")
+    expect_identical(native@schema, "reporting")
+    expect_identical(DBI::dbGetQuery(native, "SELECT 42 AS value"), data.frame(value = 42L))
+    expect_identical(calls[[2L]], list(warehouse_id = "path-warehouse",
+      statement = "SELECT 42 AS value", token = "fixture-A"))
+    expect_error(oauth_db_databricks(auth$connection, "workspace.example"), "warehouse_id or http_path")
+    expect_error(oauth_db_databricks(auth$connection, "workspace.example", "wh",
+      http_path = "/sql/1.0/warehouses/other"), "only one")
+    expect_error(oauth_db_databricks(auth$connection), "oauth_db_token")
   })
 })
