@@ -99,7 +99,7 @@ odb_test_authorization <- function(
           !identical(domain$rootScope(), session$rootScope()) ||
           !current()
       ) {
-        stop("Owner ended")
+        getFromNamespace("connection_access_error", "shinyOAuth")("authorization_unavailable")
       }
 
       list(

@@ -25,6 +25,9 @@
 #'   reactive or render code to obtain the native connection. Before authorization
 #'   it stops silently, like `shiny::req()`. Resolve `connection <- con()` before
 #'   passing `connection` to a DBI method so Shiny can wait quietly for sign-in.
+#'   Missing permissions produce a Shiny validation message. Invalid targets,
+#'   ambiguous authorization selection and other configuration errors retain
+#'   their original conditions so the app can explain how to recover.
 #' @details
 #' Native connections are reused within one session and authorization, and
 #' closed on logout, replacement, observed scope loss or session end. A valid
@@ -86,7 +89,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
     .odb_abort("Create the database helper inside server(), in its owning Shiny session.", "authorization_unavailable")
   }
   reader <- .odb_authorization_reader(authorization)
-  grant <- native <- native_key <- NULL
+  grant <- native <- native_key <- failure <- failure_key <- NULL
   available <- closed <- FALSE
   epoch <- 0L
   changed <- shiny::reactiveVal(0L)
@@ -105,29 +108,41 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
   }
   sync <- function() {
     assert_owner()
-    next_grant <- tryCatch(reader(), shinyOAuth_access_error = function(e) NULL,
-                           shiny.silent.error = function(e) NULL)
+    next_grant <- next_failure <- NULL
     next_available <- FALSE
-    if (!is.null(next_grant)) {
-      .odb_authorization_validate(next_grant)
-      next_available <- tryCatch(
-        .odb_authorization_has_scopes(next_grant, scopes, target),
-        shinyOAuth_access_error = function(e) FALSE
-      )
-      targets <- .odb_authorization_field(next_grant, "targets")
-      if (!next_available && !is.null(target) && is.function(targets)) {
-        next_available <- identical(
-          tryCatch(targets()[[target]]$status, error = function(e) NULL), "not_acquired"
-        )
+    tryCatch({
+      next_grant <- reader()
+      if (!is.null(next_grant)) {
+        .odb_authorization_validate(next_grant)
+        next_available <- .odb_authorization_has_scopes(next_grant, scopes, target)
+        if (!next_available) {
+          targets <- .odb_authorization_field(next_grant, "targets")
+          # This status read also distinguishes an ended reference from denied
+          # permissions. An unacquired target must still get its first token.
+          statuses <- if (is.function(targets)) targets() else list()
+          next_available <- !is.null(target) &&
+            identical(statuses[[target]]$status, "not_acquired")
+          shiny::validate(shiny::need(next_available,
+            "The selected authorization lacks the required permissions. Check the client's consent scopes and this helper's target and scopes."))
+        }
       }
-    }
-    if (!identical(next_grant, grant) || !identical(next_available, available)) {
+    }, error = function(e) {
+      ended <- inherits(e, "shinyOAuth_access_error") &&
+        identical(e$context$reason, "authorization_unavailable")
+      waiting <- inherits(e, "shiny.silent.error") && !nzchar(conditionMessage(e))
+      if (!ended && !waiting) next_failure <<- e
+    })
+    next_failure_key <- .odb_failure_key(next_failure)
+    if (!identical(next_grant, grant) || !identical(next_available, available) ||
+        !identical(next_failure_key, failure_key)) {
       close_native()
       epoch <<- epoch + 1L
       changed(epoch)
     }
     grant <<- next_grant
     available <<- next_available
+    failure <<- next_failure
+    failure_key <<- next_failure_key
     invisible(NULL)
   }
   current <- function(captured) {
@@ -141,6 +156,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
     assert_owner()
     shiny::isolate(sync())
     changed() # Depend on authorization changes, never on ordinary token rotation.
+    if (!is.null(failure)) stop(failure)
     shiny::req(available)
     captured <- epoch
     pinned <- grant

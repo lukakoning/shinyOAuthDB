@@ -1,5 +1,6 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Preserve target and authorization-selection errors, and display missing permissions as a Shiny validation message. Logged-out access still waits quietly; failures retire cached connections without terminating the cleanup observer.
 * Add small connection examples to backend help pages and a navigable package overview. Explain passing `auth$connection` without parentheses and reusing existing shinyOAuth clients with `target = NULL`.
 * Make configuration errors identify protected option names, the public `scopes` argument, and the expected authorization input. Share named-argument validation across client, provider, and connector configuration.
 * Introduce the simple-apps vignette gradually: purpose and one complete app first, familiar SQL examples next, then other Fabric APIs, advanced transports, custom OAuth configuration, and multiple authorizations.

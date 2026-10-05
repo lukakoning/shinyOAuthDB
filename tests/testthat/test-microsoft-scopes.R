@@ -29,7 +29,9 @@ test_that("PostgreSQL's default consent works with real shinyOAuth permission ev
     grant <- getFromNamespace("OAuthConnection", "shinyOAuth")$new(
       id = "postgres", client = client,
       resolve = function() {
-        if (!active()) stop("Authorization removed")
+        if (!active()) {
+          getFromNamespace("connection_access_error", "shinyOAuth")("authorization_unavailable")
+        }
         list(client = client, token = token(), status = "active")
       },
       acquire = function(...) stop("A fresh token should not require acquisition"),

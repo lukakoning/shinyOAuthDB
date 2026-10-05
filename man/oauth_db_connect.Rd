@@ -50,6 +50,9 @@ A reactive accessor function: call \code{con()} inside normal Shiny
 reactive or render code to obtain the native connection. Before authorization
 it stops silently, like \code{shiny::req()}. Resolve \code{connection <- con()} before
 passing \code{connection} to a DBI method so Shiny can wait quietly for sign-in.
+Missing permissions produce a Shiny validation message. Invalid targets,
+ambiguous authorization selection and other configuration errors retain
+their original conditions so the app can explain how to recover.
 }
 \description{
 Supply the native connector and its normal arguments. The bridge obtains the

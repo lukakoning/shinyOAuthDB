@@ -633,11 +633,12 @@ shinyOAuth; query execution remains in the database package.
 
 ## When an example does not connect
 
-If the output stays empty after sign-in, first check that you passed
-`auth$connection` without parentheses. Then check that the selected authorization
-has the target and permissions required by the helper. Before a suitable
-authorization is available, the accessor waits silently so Shiny can leave the
-output blank.
+Before sign-in and after logout, the accessor waits silently so Shiny can leave
+the output blank. If it stays empty after sign-in, check that you passed
+`auth$connection` without parentheses. Missing permissions display a validation
+message; an undeclared target or ambiguous manager selection raises an error
+explaining the problem. Consent is configured on the shinyOAuth client, and a
+manager selector must use an actual authorization ID.
 
 Create helpers inside `server()`, once per session, and resolve `con()` inside
 the render or reactive expression doing the query. Put fixed connection options,

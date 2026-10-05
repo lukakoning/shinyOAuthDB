@@ -133,6 +133,23 @@ test_that("retained manager grants restore without restoring a result or selecti
   })
 })
 
+test_that("the bridge preserves ambiguous manager selection errors", {
+  fixture <- multiple_fixture()
+  shiny::testServer(function(input, output, session) {
+    auth <- shinyOAuth::oauth_connections_server("authorizations", fixture$manager)
+    token <- oauth_db_token(auth$connection, scopes = "demo.read")
+  }, session = multiple_session(fixture$cookie), {
+    expect_error(session$flushReact(), NA)
+    error <- expect_error(token(), class = "shinyOAuth_access_error")
+    expect_identical(error$context$reason, "selection_required")
+    expect_false(session$isClosed())
+    auth$disconnect(fixture$ids$login, revoke = FALSE)
+    auth$disconnect(fixture$ids$b, revoke = FALSE)
+    session$flushReact()
+    expect_identical(token(), "fixture-A")
+  })
+})
+
 test_that("two native accessors use separate client registrations independently", {
   skip_if_not_installed("RSQLite")
   fixture <- multiple_fixture(second_database = TRUE)

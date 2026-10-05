@@ -36,7 +36,7 @@ live_fixture_authorization <- function(client, user, current, session) {
           !identical(domain$rootScope(), session$rootScope()) ||
           !identical(current()$id, id)
       ) {
-        stop("Live fixture authorization ended.", call. = FALSE)
+        getFromNamespace("connection_access_error", "shinyOAuth")("authorization_unavailable")
       }
 
       list(client = client, token = token, status = "active")
