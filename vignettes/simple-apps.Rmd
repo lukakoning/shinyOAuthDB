@@ -657,9 +657,12 @@ objects.
 
 `min_valid_for` checks token lifetime at acquisition, not throughout a query.
 Accessors acquire credentials synchronously in the owning Shiny session; they
-cannot be sent to a worker. If shinyOAuth is refreshing asynchronously, a call
-can report `refresh_pending`. The app handles retry or reauthorization with
-shinyOAuth; the bridge does not replay queries.
+cannot be sent to a worker. If shinyOAuth is refreshing asynchronously, the
+accessor waits silently and an ordinary reactive or render resumes when the
+upstream status changes. Event-bound code needs another event. If a Fabric
+callback requests refresh after its native operation has started, acquisition
+errors propagate without scheduling a replay. Other acquisition errors remain
+available to the app for recovery with shinyOAuth.
 
 If you add `eventReactive()`, your own caches, or background queries, your app
 owns those results and their lifetime. Decide when to clear them after logout

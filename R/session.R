@@ -52,9 +52,12 @@
 #' connection behavior.
 #'
 #' `min_valid_for` applies when acquiring a token, not to the duration of a query.
-#' Credential acquisition is synchronous; an upstream asynchronous refresh can
-#' report `refresh_pending`. The app handles retry or reauthorization using
-#' shinyOAuth. These accessors run in their owning Shiny session, not a worker.
+#' Credential acquisition is synchronous. If shinyOAuth is already refreshing,
+#' the accessor waits silently and a normal reactive consumer resumes when the
+#' upstream status changes. Event-bound code keeps its usual Shiny behavior and
+#' needs another event. Once a native operation has started, credential callback
+#' errors propagate without scheduling a replay. Other acquisition errors remain
+#' available to the app. These accessors run in their owning session, not a worker.
 #'
 #' Queries, their results, event caches and background execution belong to the
 #' app and native packages. This bridge does not wrap or store query results.
@@ -89,9 +92,9 @@ oauth_db_connect <- function(
 #' @export
 oauth_db_token <- function(authorization, target = NULL, required_scopes = character(),
                            min_valid_for = 60, session = shiny::getDefaultReactiveDomain()) {
-  provider <- .odb_bind(authorization, identity, target = target, required_scopes = required_scopes,
-                        min_valid_for = min_valid_for, session = session)
-  function() provider()()
+  .odb_bind(authorization, function(token) token(), target = target,
+    required_scopes = required_scopes, cache_key = function(token) token(),
+    min_valid_for = min_valid_for, session = session)
 }
 
 # Backend factories receive a grant-pinned credential callback. Only native
@@ -114,7 +117,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
   }
   reader <- .odb_authorization_reader(authorization)
   grant <- native <- native_key <- failure <- failure_key <- NULL
-  available <- closed <- FALSE
+  available <- closed <- denied <- FALSE
   epoch <- 0L
   changed <- shiny::reactiveVal(0L)
 
@@ -133,19 +136,22 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
   sync <- function() {
     assert_owner()
     next_grant <- next_failure <- NULL
-    next_available <- FALSE
+    next_available <- next_denied <- FALSE
     tryCatch({
       next_grant <- reader()
       if (!is.null(next_grant)) {
         .odb_authorization_validate(next_grant)
         next_available <- .odb_authorization_has_scopes(next_grant, required_scopes, target)
+        status <- .odb_authorization_status(next_grant, target)
+        # has_scopes() checks operation scopes, not the client's requirements.
+        # Keep an observed denial until upstream supplies affirmative evidence;
+        # expiry/refresh can mask it in the public status ordering.
+        next_denied <- identical(status, "insufficient_scope") ||
+          (identical(next_grant, grant) && denied && !status %in% c("active", "limited"))
+        next_available <- next_available && !next_denied
         if (!next_available) {
-          targets <- .odb_authorization_field(next_grant, "targets")
-          # This status read also distinguishes an ended reference from denied
-          # permissions. An unacquired target must still get its first token.
-          statuses <- if (is.function(targets)) targets() else list()
-          next_available <- !is.null(target) &&
-            identical(statuses[[target]]$status, "not_acquired")
+          if (identical(status, "refreshing") && !next_denied) shiny::req(FALSE)
+          next_available <- !next_denied && identical(status, "not_acquired")
           shiny::validate(shiny::need(next_available,
             "The selected authorization lacks the required permissions. Check the client's consent scopes and this helper's target and required_scopes."))
         }
@@ -165,6 +171,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     }
     grant <<- next_grant
     available <<- next_available
+    denied <<- next_denied
     failure <<- next_failure
     failure_key <<- next_failure_key
     invisible(NULL)
@@ -197,24 +204,35 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
       if (!grepl("^[A-Za-z0-9._~+/-]+=*$", value)) .odb_abort("Invalid bearer token.", "invalid_credential")
       value
     }
-    # A backend may supply a key for deciding when its native value expires.
-    key <- if (is.function(cache_key)) cache_key(token) else NULL
-    if (!is.null(native)) {
-      valid <- identical(key, native_key) &&
-        (!inherits(native, "DBIConnection") ||
-          tryCatch(isTRUE(DBI::dbIsValid(native)), error = function(e) FALSE))
-      if (valid) return(native)
-      close_native()
-    }
-    value <- do.call(connect, c(list(token), args))
-    tryCatch(current(captured), error = function(e) {
-      tryCatch(.odb_disconnect(value, disconnect), error = function(e) NULL)
+    tryCatch({
+      # The backend can check credentials on access and choose its reuse key.
+      key <- if (is.function(cache_key)) cache_key(token) else NULL
+      if (!is.null(native)) {
+        valid <- identical(key, native_key) &&
+          (!inherits(native, "DBIConnection") ||
+            tryCatch(isTRUE(DBI::dbIsValid(native)), error = function(e) FALSE))
+        if (valid) return(native)
+        close_native()
+      }
+      value <- do.call(connect, c(list(token), args))
+      tryCatch(current(captured), error = function(e) {
+        tryCatch(.odb_disconnect(value, disconnect), error = function(e) NULL)
+        stop(e)
+      })
+      if (is.null(value)) .odb_abort("The connector must return a native connection or client.")
+      native <<- value
+      native_key <<- key
+      value
+    }, error = function(e) {
+      if (inherits(e, "shinyOAuth_access_error") &&
+          identical(e$context$reason, "refresh_pending")) {
+        # Subscribe only the waiting consumer. Successful operations never
+        # depend on token rotation; callbacks already handed out never enter here.
+        status <- .odb_authorization_status(pinned, target)
+        if (!is.null(status)) shiny::req(FALSE)
+      }
       stop(e)
     })
-    if (is.null(value)) .odb_abort("The connector must return a native connection or client.")
-    native <<- value
-    native_key <<- key
-    value
   }
   observer <- shiny::observe(sync(), priority = 100, domain = owner)
   owner$onSessionEnded(function() {

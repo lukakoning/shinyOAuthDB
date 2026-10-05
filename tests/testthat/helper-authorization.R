@@ -6,7 +6,8 @@ odb_test_authorization <- function(
   scopes = c("read", "write"),
   target = NULL,
   unacquired = FALSE,
-  resource = "https://example.invalid/api"
+  resource = "https://example.invalid/api",
+  client_required_scopes = character()
 ) {
   provider <- shinyOAuth::oauth_provider(
     name = "test",
@@ -46,6 +47,7 @@ odb_test_authorization <- function(
     client_id = "test",
     redirect_uri = "http://localhost:8100",
     scopes = if (unacquired) c(primary_scope, declared) else declared,
+    required_scopes = client_required_scopes,
     token_targets = targets,
     default_token_target = if (unacquired) {
       "primary"
@@ -56,11 +58,11 @@ odb_test_authorization <- function(
     }
   )
 
-  make_token <- function(value, permissions = declared) {
+  make_token <- function(value, permissions = declared, lifetime = 3600) {
     shinyOAuth::OAuthToken(
       access_token = value,
       token_type = "Bearer",
-      expires_at = as.numeric(Sys.time()) + 3600,
+      expires_at = as.numeric(Sys.time()) + lifetime,
       granted_scopes = permissions,
       granted_scopes_verified = TRUE
     )
@@ -84,6 +86,7 @@ odb_test_authorization <- function(
   }
 
   current <- shiny::reactiveVal(TRUE)
+  status <- shiny::reactiveVal("active")
 
   calls <- new.env(parent = emptyenv())
   calls$acquire <- 0L
@@ -105,7 +108,7 @@ odb_test_authorization <- function(
       list(
         client = client,
         token = if (unacquired) primary else token(),
-        status = "active",
+        status = status(),
         targets = if (unacquired) {
           list(tokens = stats::setNames(list(token()), target))
         } else {
@@ -128,6 +131,7 @@ odb_test_authorization <- function(
     connection = connection,
     token = token,
     current = current,
+    status = status,
     calls = calls,
     make_token = make_token,
     scopes = declared

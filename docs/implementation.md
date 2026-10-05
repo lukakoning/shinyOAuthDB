@@ -57,6 +57,14 @@ native token callback API; no Shiny integration in that package is needed.
 
 Each accessor belongs to one Shiny session. Its native connection is reused for the selected authorization. Logout, replacement, observed required permission loss, or session end retires the cached value and attempts native cleanup. Native cleanup errors do not restore availability. Token callbacks stay pinned to their original grant and cannot follow another login. Previously returned native handles and strings retain their native lifetime; the accessor cannot revoke copied credentials or intercept methods called on saved handles.
 
+Scope checks cover the helper's requirements; public `summary()` or selected
+`targets()` status also detects missing client or target requirements. Once
+reported, that denial remains in effect until upstream reports restored access.
+An expired status alone does not retire established SQL sessions or force a
+token refresh. Upstream can report expiry before insufficient scope, so the
+bridge cannot detect a previously unreported client-policy denial hidden by
+expiry without acquiring another credential.
+
 The bridge asks shinyOAuth for the configured `target`, `required_scopes`, and minimum token validity. shinyOAuth remains responsible for login, consent, refresh, browser storage, and selecting retained authorizations. Native packages retain endpoint validation, query parameters, polling, pagination, and result conversion. Calls use the public connection methods directly; the supported shinyOAuth baseline accepts named targets.
 
 Microsoft backends keep `/.default` consent in the shinyOAuth client and target
@@ -70,7 +78,17 @@ The Fabric callback checks the requested audience/scopes and forwards refresh to
 
 `oauth_db_connect()` accepts a native connector and fixed options, and supplies the bearer string in its named `token_arg` when opening a connection. It is intended for connection-time authentication. It does not update tokens stored inside cached SDK clients, and only DBI values receive automatic validity checks. `oauth_db_token()` supplies a fresh bearer string for each native API operation. Backend-specific renewal policies belong in the backend file. A new package needs no query registry entry or special callback interface.
 
-Credential acquisition uses shinyOAuth's synchronous public accessor. Its `min_valid_for` check is an acquisition-time guarantee, not a whole-query deadline. An in-flight asynchronous refresh may report `refresh_pending`; the application owns retry or reauthorization. No native query is retried by this bridge, and accessors must run in the owning Shiny session rather than a worker.
+Credential acquisition uses shinyOAuth's synchronous public accessor. Its
+`min_valid_for` check is an acquisition-time guarantee, not a whole-query
+deadline. Before returning a credential or opening a connection, an accessor
+handles `refresh_pending` with a silent Shiny wait and depends on public status
+until acquisition succeeds. A normal reactive consumer then resumes; successful
+consumers do not depend on ordinary token rotation. Event-bound code still needs
+another event. Fabric checks credential availability before handing out its
+callback. Errors from that callback inside a native operation propagate without
+creating a refresh dependency or scheduling replay. Other acquisition errors
+remain available to the application. Accessors run in the owning Shiny session,
+not a worker.
 
 ## Shiny behavior
 

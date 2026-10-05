@@ -22,6 +22,14 @@
   result
 }
 
+.odb_authorization_status <- function(grant, target) {
+  method <- .odb_authorization_field(grant, if (is.null(target)) "summary" else "targets")
+  if (!is.function(method)) return(NULL)
+  value <- method()
+  if (!is.null(target)) value <- value[[target]]
+  value$status
+}
+
 .odb_authorization_reader <- function(authorization) {
   force(authorization)
   if (is.function(authorization)) return(authorization)

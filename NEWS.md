@@ -1,5 +1,6 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Retire cached connections when shinyOAuth reports missing client or selected-target permissions. Preserve established SQL sessions through ordinary credential expiry. Accessors wait reactively for pending refresh before native handoff; credential errors inside an operation do not schedule query replay.
 * Rename database accessor `scopes` to `required_scopes`, keeping native OAuth client consent `scopes` unchanged. Use native `dbname` for Azure PostgreSQL, with an empty permission-check default. Call the supported shinyOAuth authorization methods directly and move earlier API history into migration notes.
 * Add complete, tested apps for button-triggered queries and simultaneous Microsoft/Databricks authorizations. Verify result clearing on grant and permission changes, and independent queries and disconnects across providers. Declare tested native backend minimum versions and document installation from upstream repositories without sibling checkouts.
 * Define the generic connector as connection-time token injection and document native-handle, logout, acquisition-lifetime, and asynchronous-refresh limits. Put the existing-shinyOAuth path next to the first app, including explicit default and custom target selection.

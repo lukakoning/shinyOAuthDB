@@ -194,8 +194,11 @@ after their original authorization ends or is replaced.
 
 Token lifetime checks apply when acquiring a credential, not for an entire
 query. Accessors acquire tokens synchronously in the owning Shiny session;
-`refresh_pending` can occur if shinyOAuth is already refreshing asynchronously.
-Handle recovery with shinyOAuth and run background work using the native
+if shinyOAuth is already refreshing, the accessor waits silently and a normal
+reactive consumer resumes when its status changes. Event-bound code needs
+another event. Credential errors after a native operation starts still
+propagate; the bridge never schedules a replay of that operation. Handle other
+acquisition errors with shinyOAuth and run background work using the native
 package's supported transport, with app-owned result checks.
 
 ## Installation and examples

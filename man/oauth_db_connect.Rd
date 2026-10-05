@@ -82,9 +82,12 @@ may be a no-op. See each backend helper for its credential callback and native
 connection behavior.
 
 \code{min_valid_for} applies when acquiring a token, not to the duration of a query.
-Credential acquisition is synchronous; an upstream asynchronous refresh can
-report \code{refresh_pending}. The app handles retry or reauthorization using
-shinyOAuth. These accessors run in their owning Shiny session, not a worker.
+Credential acquisition is synchronous. If shinyOAuth is already refreshing,
+the accessor waits silently and a normal reactive consumer resumes when the
+upstream status changes. Event-bound code keeps its usual Shiny behavior and
+needs another event. Once a native operation has started, credential callback
+errors propagate without scheduling a replay. Other acquisition errors remain
+available to the app. These accessors run in their owning session, not a worker.
 
 Queries, their results, event caches and background execution belong to the
 app and native packages. This bridge does not wrap or store query results.

@@ -76,7 +76,11 @@ oauth_db_fabric <- function(
   if (is.null(required_scopes)) required_scopes <- profile$scopes
   .odb_bind(authorization, .odb_backend_fabric, service = service,
     provider_scopes = required_scopes, target = target,
-    required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)
+    required_scopes = .odb_microsoft_scopes(required_scopes),
+    # Acquire before handing the callback to a native operation. Its identity
+    # stays stable through rotation; later callback failures remain native errors.
+    cache_key = function(token) { token(); NULL },
+    min_valid_for = min_valid_for, session = session)
 }
 
 .odb_backend_fabric <- function(token, service, provider_scopes) {
