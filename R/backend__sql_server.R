@@ -8,6 +8,12 @@
 #' overridden through `...`.
 #'
 #' @inheritParams oauth_db_connect
+#' @details With an existing client without named targets, use `target = NULL`.
+#'   Its consent should include `https://database.windows.net//user_impersonation`.
+#'   For untargeted `https://database.windows.net//.default` consent instead, use
+#'   `required_scopes = character()` to omit the helper's additional explicit-scope
+#'   check. shinyOAuth still enforces the client's requirements; SQL enforces
+#'   database permissions. See the simple-apps vignette for both client recipes.
 #' @param server Database hostname.
 #' @param database Database name.
 #' @param driver Installed ODBC driver name.

@@ -566,6 +566,97 @@ request extra consent. Configure consent on the shinyOAuth client, then keep
 the helper's requirements consistent with it. A token target identifies an API;
 a connection-manager authorization ID identifies a particular retained grant.
 
+For example, an ordinary Microsoft client can request SQL access without named
+targets. This is a client definition outside `server()`; an existing equivalent
+client needs no changes:
+
+```{r microsoft-untargeted-client}
+provider <- shinyOAuth::oauth_provider_microsoft(
+  tenant = Sys.getenv("OAUTHDB_TENANT_ID"),
+  id_token_validation = TRUE, userinfo_required = FALSE)
+sql_scope <- "https://database.windows.net//user_impersonation"
+client <- shinyOAuth::oauth_client(provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "offline_access", sql_scope))
+```
+
+Keep the same login module and add this inside `server()`:
+
+```{r microsoft-untargeted-connection}
+con <- oauth_db_azure_sql(auth$connection,
+  server = "example.database.windows.net", database = "Reporting",
+  target = NULL)
+```
+
+**Existing `.default` consent.** Some Microsoft clients instead request
+`https://database.windows.net//.default` alongside their OpenID scopes.
+`.default` requests the registration's configured permissions; it is not a
+permission returned in the access token. With an untargeted client, shinyOAuth
+cannot necessarily match the helper's explicit resource-qualified scope to
+that consent configuration. Keep the client and explicitly omit the helper's
+additional operation-scope check:
+
+```{r microsoft-default-connection}
+con <- oauth_db_azure_sql(auth$connection,
+  server = "example.database.windows.net", database = "Reporting",
+  target = NULL, required_scopes = character())
+```
+
+This does not request permissions or disable shinyOAuth's own client
+requirements. The database still checks the user's access. If you need a local
+explicit-permission check, configure compatible explicit consent and required
+scopes instead. Do not mix Microsoft `.default` with explicit API consent
+scopes in the same request. The same choice applies to `oauth_db_fabric_sql()`.
+
+**Custom target names.** If your client names its SQL target `reporting`, retain
+that configuration and select it explicitly:
+
+```{r microsoft-custom-target}
+# Outside server(): the corresponding ordinary client configuration.
+client <- shinyOAuth::oauth_client(provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "offline_access", sql_scope),
+  token_targets = list(reporting = list(
+    resource = "https://database.windows.net/", scopes = sql_scope)),
+  default_token_target = "reporting")
+
+# Inside server(), using that client's existing auth module:
+con <- oauth_db_azure_sql(auth$connection,
+  server = "example.database.windows.net", database = "Reporting",
+  target = "reporting")
+```
+
+An unknown target raises an error. The bridge does not guess a target or fall
+back to another token.
+
+**Databricks SQL-only access.** The general Databricks preset requests
+`all-apis`. A native client requesting `sql` can use both brickster DBI and
+Statement Execution REST calls. For a new SQL-only client, replace the preset's
+`scopes` with `c("openid", "profile", "email", "offline_access", "sql")`.
+For an existing equivalent client, keep it and match the helper requirements:
+
+```{r databricks-sql-scopes}
+# Inside server(), after the existing Databricks auth module:
+con <- oauth_db_databricks(auth$connection, host = host,
+  warehouse_id = "warehouse-id", required_scopes = "sql")
+bearer <- oauth_db_token(auth$connection, required_scopes = "sql")
+output$rows <- renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
+})
+# Alternatively, in a renderPrint() for a verbatimTextOutput():
+# brickster::db_sql_query(host = host, warehouse_id = "warehouse-id",
+#   statement = "SELECT current_user()", token = bearer())
+```
+
+Other REST operations need their own scopes. Scope defaults do not infer which
+operations your app will call. These are native Databricks OAuth scopes; Entra
+uses its separate delegated permission as shown earlier.
+
 ### A native connector without a preset
 
 `oauth_db_connect()` calls a connector with its ordinary arguments. For

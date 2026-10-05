@@ -38,7 +38,9 @@ grant explicitly when several exist.}
 \item{target}{Declared token target. Defaults to \code{"databricks"} for Entra;
 native Databricks OAuth uses the main authorization.}
 
-\item{required_scopes}{Delegated scopes, or \code{NULL} for the chosen authentication mode.}
+\item{required_scopes}{Delegated scopes, or \code{NULL} for the chosen authentication
+mode (\code{all-apis} for native OAuth, the Entra delegated permission otherwise).
+Set \code{"sql"} for a native client requesting Databricks SQL scopes only.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 

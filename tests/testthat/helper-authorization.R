@@ -7,7 +7,8 @@ odb_test_authorization <- function(
   target = NULL,
   unacquired = FALSE,
   resource = "https://example.invalid/api",
-  client_required_scopes = character()
+  client_required_scopes = character(),
+  client = NULL
 ) {
   provider <- shinyOAuth::oauth_provider(
     name = "test",
@@ -42,7 +43,7 @@ odb_test_authorization <- function(
     )
   }
 
-  client <- shinyOAuth::oauth_client(
+  if (is.null(client)) client <- shinyOAuth::oauth_client(
     provider,
     client_id = "test",
     redirect_uri = "http://localhost:8100",

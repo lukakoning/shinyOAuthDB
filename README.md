@@ -61,7 +61,10 @@ con <- oauth_db_azure_sql(auth$connection,
 
 If your client names its SQL target `reporting`, use `target = "reporting"`
 instead. Its consent must already cover SQL; the helper does not request new
-permissions or change your provider. Missing permissions display a message;
+permissions or change your provider. If an untargeted Microsoft client requests
+SQL `/.default` consent, also set `required_scopes = character()`; see the
+[existing-client recipes](vignettes/simple-apps.Rmd#keep-an-existing-shinyoauth-setup)
+for the scope-checking distinction. Missing permissions display a message;
 target and authorization-selection errors remain available to the app.
 
 ## Fabric and Databricks
@@ -83,6 +86,10 @@ output$rows <- renderPrint({
 The [integrated Fabric app](playground/fabric/README.md) discovers the persistent Shiny sandbox and demonstrates SQL, DAX, KQL, OneLake, GraphQL, and discovery in one app.
 
 The [Databricks app](playground/example-databricks.R) uses `oauth_db_token(auth$connection, required_scopes = "all-apis")` and passes its bearer string directly to upstream `brickster::db_sql_query()`. For DBI, use `oauth_db_databricks()` with `host` and either `warehouse_id` or the native `http_path`. Call the accessor for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
+
+An existing native Databricks client can request `sql` instead of `all-apis` for
+Statement Execution access. Match it with `required_scopes = "sql"` on either
+the DBI helper or bearer accessor; no replacement login setup is needed.
 
 For Entra REST access, use `oauth_db_token(auth$connection, target = "databricks", required_scopes = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")`, matching the Microsoft client's configuration.
 

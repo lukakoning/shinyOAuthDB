@@ -19,7 +19,9 @@
 #' @param auth_mode `"databricks_oauth"` or `"entra"` for Azure Databricks.
 #' @param target Declared token target. Defaults to `"databricks"` for Entra;
 #'   native Databricks OAuth uses the main authorization.
-#' @param required_scopes Delegated scopes, or `NULL` for the chosen authentication mode.
+#' @param required_scopes Delegated scopes, or `NULL` for the chosen authentication
+#'   mode (`all-apis` for native OAuth, the Entra delegated permission otherwise).
+#'   Set `"sql"` for a native client requesting Databricks SQL scopes only.
 #' @returns A session-local reactive accessor for a native DBI connection.
 #' @seealso [oauth_db_databricks_client()], [oauth_db_databricks_provider()]
 #' @examples

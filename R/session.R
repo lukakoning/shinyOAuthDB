@@ -153,7 +153,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
           if (identical(status, "refreshing") && !next_denied) shiny::req(FALSE)
           next_available <- !next_denied && identical(status, "not_acquired")
           shiny::validate(shiny::need(next_available,
-            "The selected authorization lacks the required permissions. Check the client's consent scopes and this helper's target and required_scopes."))
+            "The selected authorization lacks the required permissions. Check the client's requested and required scopes, and this helper's target and required_scopes. The helper does not request consent."))
         }
       }
     }, error = function(e) {

@@ -56,6 +56,14 @@ Supply driver options directly in \code{...}; query arguments stay in your nativ
 database call. Authentication and certificate verification cannot be
 overridden through \code{...}.
 }
+\details{
+With an existing client without named targets, use \code{target = NULL}.
+Its consent should include \verb{https://database.windows.net//user_impersonation}.
+For untargeted \verb{https://database.windows.net//.default} consent instead, use
+\code{required_scopes = character()} to omit the helper's additional explicit-scope
+check. shinyOAuth still enforces the client's requirements; SQL enforces
+database permissions. See the simple-apps vignette for both client recipes.
+}
 \examples{
 \dontrun{
 # Inside server(), after creating auth with shinyOAuth:
