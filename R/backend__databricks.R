@@ -19,7 +19,7 @@
 #' @param auth_mode `"databricks_oauth"` or `"entra"` for Azure Databricks.
 #' @param target Declared token target. Defaults to `"databricks"` for Entra;
 #'   native Databricks OAuth uses the main authorization.
-#' @param scopes Delegated scopes, or `NULL` for the chosen authentication mode.
+#' @param required_scopes Delegated scopes, or `NULL` for the chosen authentication mode.
 #' @returns A session-local reactive accessor for a native DBI connection.
 #' @seealso [oauth_db_databricks_client()], [oauth_db_databricks_provider()]
 #' @examples
@@ -33,7 +33,7 @@
 #' })
 #'
 #' # Or use brickster's API directly with a current bearer string:
-#' token <- oauth_db_token(auth$connection, scopes = "all-apis")
+#' token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
 #' output$result <- shiny::renderPrint({
 #'   brickster::db_sql_query(host = "example.cloud.databricks.com",
 #'     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
@@ -45,14 +45,14 @@ oauth_db_databricks <- function(
   authorization, host, warehouse_id = NULL, ..., http_path = NULL,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
-  scopes = NULL, min_valid_for = 60,
+  required_scopes = NULL, min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   auth_mode <- match.arg(auth_mode)
-  if (is.null(scopes)) {
-    scopes <- if (auth_mode == "entra") .odb_databricks_profiles()$databricks_entra$scopes else "all-apis"
+  if (is.null(required_scopes)) {
+    required_scopes <- if (auth_mode == "entra") .odb_databricks_profiles()$databricks_entra$scopes else "all-apis"
   }
-  if (auth_mode == "entra") scopes <- .odb_microsoft_scopes(scopes)
+  if (auth_mode == "entra") required_scopes <- .odb_microsoft_scopes(required_scopes)
   if (missing(host)) .odb_abort("Supply host for a Databricks DBI connection. Use oauth_db_token() for REST calls.")
   host <- .odb_databricks_host(host)
   if (is.null(warehouse_id) && is.null(http_path)) {
@@ -71,7 +71,7 @@ oauth_db_databricks <- function(
   # brickster stores a fixed bearer string, so rebuild when that token changes.
   .odb_bind(authorization, .odb_backend_databricks, host = host,
     warehouse_id = warehouse_id, http_path = http_path, options = options, target = target,
-    scopes = scopes, cache_key = function(token) token(),
+    required_scopes = required_scopes, cache_key = function(token) token(),
     min_valid_for = min_valid_for, session = session)
 }
 

@@ -52,11 +52,12 @@ Several accessors can coexist in one session, each bound to its own authorizatio
 
 `con()` returns an ordinary native DBI connection. Fabric's `token()` returns a regular `function(audience, force_refresh)` callback accepted by fabricQueryR. `oauth_db_token()` returns an accessor for bearer strings accepted by upstream brickster REST and other native APIs. `oauth_db_databricks()` always supplies a DBI connection, accepting either `warehouse_id` or `http_path`. All OAuth adaptation and provider presets live here; neither database package needs Shiny integration or new credential hooks.
 
-The sibling fabricQueryR checkout's former Shiny UI/server, provider adapter, and duplicate apps have been removed along with their optional dependencies. Its ordinary authentication and token callback API remain. Sandbox provisioning stays in that repository; the single app lives in this package's `playground/fabric` directory.
+The integrated Fabric app lives in `playground/fabric`. It uses fabricQueryR's
+native token callback API; no Shiny integration in that package is needed.
 
 Each accessor belongs to one Shiny session. Its native connection is reused for the selected authorization. Logout, replacement, observed required permission loss, or session end retires the cached value and attempts native cleanup. Native cleanup errors do not restore availability. Token callbacks stay pinned to their original grant and cannot follow another login. Previously returned native handles and strings retain their native lifetime; the accessor cannot revoke copied credentials or intercept methods called on saved handles.
 
-The bridge asks shinyOAuth for the configured target, scopes, and minimum token validity. shinyOAuth remains responsible for login, consent, refresh, browser storage, and selecting retained authorizations. Native packages retain endpoint validation, query parameters, polling, pagination, and result conversion.
+The bridge asks shinyOAuth for the configured `target`, `required_scopes`, and minimum token validity. shinyOAuth remains responsible for login, consent, refresh, browser storage, and selecting retained authorizations. Native packages retain endpoint validation, query parameters, polling, pagination, and result conversion. Calls use the public connection methods directly; the supported shinyOAuth baseline accepts named targets.
 
 Microsoft backends keep `/.default` consent in the shinyOAuth client and target
 configuration. They check actual operation scopes when supplied, without
@@ -83,7 +84,7 @@ Remote grants and row policies remain enforced by the database. Local scope chec
 
 ## Configuration
 
-Client helpers return ordinary shinyOAuth clients and are optional. They work with the existing single-authorization modules or retained connection manager. Microsoft exposes `provider`, `token_targets`, `default_token_target`, and `scopes` as replaceable defaults; Databricks and Snowflake expose `provider` and `scopes`. Remaining native client arguments pass through `...`. Explicit scopes and target lists replace their presets completely; they are not appended or merged. Keep each database accessor's `target` and `scopes` consistent with that configuration.
+Client helpers return ordinary shinyOAuth clients and are optional. They work with the existing single-authorization modules or retained connection manager. Microsoft exposes `provider`, `token_targets`, `default_token_target`, and `scopes` as replaceable defaults; Databricks and Snowflake expose `provider` and `scopes`. Remaining native client arguments pass through `...`. Explicit scopes and target lists replace their presets completely; they are not appended or merged. Keep each database accessor's `target` and `required_scopes` consistent with that configuration.
 
 Provider-only configuration uses `shinyOAuth::oauth_provider_microsoft()`, `oauth_db_databricks_provider()`, or `oauth_db_snowflake_provider()`, followed by ordinary `shinyOAuth::oauth_client()`. Databricks uses shinyOAuth's OIDC discovery directly. Both local presets accept native provider settings through `...`. No database accessor or login module is created by these configuration helpers.
 
@@ -91,4 +92,6 @@ Connection presets avoid redundant configuration: SQL Server aliases the Azure S
 
 The target-enabled development shinyOAuth API is required. The database packages use their existing interfaces. Offline tests verify native routing and connection lifecycle. The integrated Fabric app supports the persistent Shiny sandbox and visitor sign-in; its explicit shared-sandbox mode is an example-only AzureAuth path. Actual browser flows, database user mapping, and data permissions require deployment-specific verification.
 
-The [README](../README.md) and [playground](../playground/README.md) describe this API. Earlier architecture and API-draft documents are historical. [Integration checks](../tests/integration/README.md) use deployment-supplied fixtures.
+The [README](../README.md) and [playground](../playground/README.md) describe this API.
+[Migration notes](migration.md) describe earlier development APIs.
+[Integration checks](../tests/integration/README.md) use deployment-supplied fixtures.

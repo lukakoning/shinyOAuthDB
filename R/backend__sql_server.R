@@ -12,7 +12,7 @@
 #' @param database Database name.
 #' @param driver Installed ODBC driver name.
 #' @param port Database port.
-#' @param scopes Required delegated scopes. Microsoft `/.default` consent is
+#' @param required_scopes Required delegated scopes. Microsoft `/.default` consent is
 #'   configured on the shinyOAuth client, not checked as a literal permission.
 #' @param ... Additional named options passed to the native connection function.
 #' @returns A session-local reactive accessor for a native DBI connection.
@@ -30,7 +30,7 @@
 #' @export
 oauth_db_azure_sql <- function(
   authorization, server, database, ...,
-  target = "sql", scopes = "https://database.windows.net//user_impersonation",
+  target = "sql", required_scopes = "https://database.windows.net//user_impersonation",
   driver = "ODBC Driver 18 for SQL Server", port = 1433L,
   min_valid_for = 60, session = shiny::getDefaultReactiveDomain()
 ) {
@@ -44,7 +44,7 @@ oauth_db_azure_sql <- function(
   .odb_odbc_values(options)
   .odb_bind(authorization, .odb_backend_sql, server = server, database = database,
     driver = driver, port = port, options = options, target = target,
-    scopes = .odb_microsoft_scopes(scopes), min_valid_for = min_valid_for, session = session)
+    required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)
 }
 
 #' Use the user's authorization with an Entra-enabled SQL Server

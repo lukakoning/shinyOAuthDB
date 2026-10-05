@@ -7,7 +7,7 @@
 oauth_db_token(
   authorization,
   target = NULL,
-  scopes = character(),
+  required_scopes = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -22,7 +22,7 @@ grant explicitly when several exist.}
 \item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
 uses its default, including clients without named token targets.}
 
-\item{scopes}{Required granted permissions. Consent scopes belong in the
+\item{required_scopes}{Required granted permissions. Consent scopes belong in the
 shinyOAuth client configuration; setting this argument does not request
 additional consent.}
 

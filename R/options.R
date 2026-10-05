@@ -3,6 +3,9 @@
   key <- function(x) tolower(gsub("[^A-Za-z0-9]", "", x))
   nms <- names(options)
   .odb_named_args(options, "Native options in ...")
+  if ("scopes" %in% nms) {
+    .odb_abort("scopes was renamed to required_scopes for database accessors; consent scopes stay on the shinyOAuth client.")
+  }
   if (anyDuplicated(key(nms))) {
     .odb_abort("Native options in ... must have unique names, ignoring case and punctuation.")
   }

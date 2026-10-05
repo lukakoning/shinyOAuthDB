@@ -19,7 +19,7 @@
 #' @export
 oauth_db_fabric_sql <- function(
   authorization, server, database = NULL, ..., target = "sql",
-  scopes = "https://database.windows.net//user_impersonation",
+  required_scopes = "https://database.windows.net//user_impersonation",
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
@@ -31,8 +31,8 @@ oauth_db_fabric_sql <- function(
     ".connection_string", "connection_string", "trusted_connection",
     "integrated_security", "encrypt", "trust_server_certificate"))
   .odb_bind(authorization, .odb_backend_fabric_sql, server = server,
-    database = database, provider_scopes = scopes,
-    options = options, target = target, scopes = .odb_microsoft_scopes(scopes),
+    database = database, provider_scopes = required_scopes,
+    options = options, target = target, required_scopes = .odb_microsoft_scopes(required_scopes),
     min_valid_for = min_valid_for, session = session)
 }
 
@@ -51,7 +51,7 @@ oauth_db_fabric_sql <- function(
 #' @param target Declared shinyOAuth target, defaulting to the service's target.
 #'   Set `NULL` to use the authorization's own default, including clients without
 #'   named token targets.
-#' @param scopes Delegated scopes; `NULL` uses the service's query/read defaults.
+#' @param required_scopes Delegated scopes; `NULL` uses the service's query/read defaults.
 #' @returns A session-local reactive accessor for a native token provider.
 #' @seealso [oauth_db_fabric_sql()], [oauth_db_microsoft_client()]
 #' @examples
@@ -67,16 +67,16 @@ oauth_db_fabric_sql <- function(
 #' @export
 oauth_db_fabric <- function(
   authorization, service = c("fabric", "sql", "dax", "kql", "onelake", "graphql"),
-  target = .odb_fabric_profile(service)$target, scopes = NULL,
+  target = .odb_fabric_profile(service)$target, required_scopes = NULL,
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   service <- match.arg(service)
   profile <- .odb_fabric_profile(service)
-  if (is.null(scopes)) scopes <- profile$scopes
+  if (is.null(required_scopes)) required_scopes <- profile$scopes
   .odb_bind(authorization, .odb_backend_fabric, service = service,
-    provider_scopes = scopes, target = target,
-    scopes = .odb_microsoft_scopes(scopes), min_valid_for = min_valid_for, session = session)
+    provider_scopes = required_scopes, target = target,
+    required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)
 }
 
 .odb_backend_fabric <- function(token, service, provider_scopes) {

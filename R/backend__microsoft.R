@@ -18,7 +18,7 @@
 #' @param default_token_target Default target name, or `character()` for none.
 #' @param ... Settings passed unchanged to `shinyOAuth::oauth_client()`, such as
 #'   `label`, `resource`, `required_scopes`, or `scope_validation`.
-#' @details Keep the backend accessor's `target` and `scopes` consistent with
+#' @details Keep the backend accessor's `target` and `required_scopes` consistent with
 #'   your client configuration. For provider-only configuration, use
 #'   `shinyOAuth::oauth_provider_microsoft()`, [oauth_db_databricks_provider()],
 #'   or [oauth_db_snowflake_provider()] with `shinyOAuth::oauth_client()`.
@@ -51,7 +51,7 @@ oauth_db_microsoft_client <- function(
     previous <- targets[[profile$target]]
     scopes <- union(previous$scopes, profile$scopes)
     targets[[profile$target]] <- list(resource = profile$resource, scopes = scopes,
-                                     required_scopes = .odb_microsoft_scopes(scopes))
+                                     required_scopes = .odb_microsoft_scopes(scopes, "scopes"))
   }
   targets
 }
@@ -62,7 +62,7 @@ oauth_db_microsoft_client <- function(
   list(target = target, resource = resource, scopes = paste0(resource, "/", permissions))
 }
 
-.odb_microsoft_scopes <- function(scopes) {
-  scopes <- .odb_scopes(scopes)
+.odb_microsoft_scopes <- function(scopes, name = "required_scopes") {
+  scopes <- .odb_scopes(scopes, name)
   scopes[!endsWith(scopes, "/.default")]
 }

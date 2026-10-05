@@ -47,7 +47,7 @@ test_that("the bridge preserves ambiguous manager selection errors", {
   fixture <- multiple_fixture()
   shiny::testServer(function(input, output, session) {
     auth <- shinyOAuth::oauth_connections_server("authorizations", fixture$manager)
-    token <- oauth_db_token(auth$connection, scopes = "demo.read")
+    token <- oauth_db_token(auth$connection, required_scopes = "demo.read")
   }, session = multiple_session(fixture$cookie), {
     expect_error(session$flushReact(), NA)
     error <- expect_error(token(), class = "shinyOAuth_access_error")
@@ -79,11 +79,11 @@ test_that("two native accessors use separate client registrations independently"
   shiny::testServer(function(input, output, session) {
     auth <- shinyOAuth::oauth_connections_server("authorizations", fixture$manager)
     database <- oauth_db_connect(function() auth$connection(fixture$ids$a),
-                                 connect = connect, scopes = "demo.read")
+                                 connect = connect, required_scopes = "demo.read")
     warehouse <- oauth_db_connect(function() auth$connection(fixture$ids$warehouse),
-                                  connect = connect, scopes = "warehouse.read")
+                                  connect = connect, required_scopes = "warehouse.read")
     wrong_grant <- oauth_db_connect(function() auth$connection(fixture$ids$a),
-                                    connect = connect, scopes = "warehouse.read")
+                                    connect = connect, required_scopes = "warehouse.read")
   }, session = multiple_session(fixture$cookie), {
     database_native <- database()
     warehouse_native <<- warehouse()

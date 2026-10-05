@@ -15,20 +15,20 @@ test_that("backend helpers bind OAuth resources without query operation mappings
   auth <- function() stop("Creating an accessor must not acquire authorization")
   sql <- oauth_db_azure_sql(auth, "server", "Sales", timeout = 12)
   expect_identical(sql$authorization, auth)
-  expect_identical(sql$scopes, "https://database.windows.net//user_impersonation")
+  expect_identical(sql$required_scopes, "https://database.windows.net//user_impersonation")
   expect_identical(sql$args$options, list(timeout = 12))
   postgres <- oauth_db_azure_postgres(auth, "server", "Sales", "user")
-  expect_identical(postgres$scopes, character())
+  expect_identical(postgres$required_scopes, character())
   fabric <- oauth_db_fabric(auth, "kql")
   expect_identical(fabric$target, "kusto")
-  expect_identical(fabric$scopes, "https://api.kusto.windows.net/user_impersonation")
+  expect_identical(fabric$required_scopes, "https://api.kusto.windows.net/user_impersonation")
   expect_false(any(c("cluster", "database", "workspace", "operation") %in% names(fabric$args)))
   native <- oauth_db_databricks(auth, "workspace.example", "warehouse")
   entra <- oauth_db_databricks(auth, "workspace.example", "warehouse", auth_mode = "entra")
   expect_null(native$target)
-  expect_identical(native$scopes, "all-apis")
+  expect_identical(native$required_scopes, "all-apis")
   expect_identical(entra$target, "databricks")
-  expect_identical(entra$scopes, "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")
+  expect_identical(entra$required_scopes, "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")
   expect_error(oauth_db_databricks(auth, "workspace.example", catalog = "main"), "warehouse_id")
   expect_error(oauth_db_databricks(auth, warehouse_id = "warehouse"), "Supply host")
   expect_identical(oauth_db_sql_server(auth, "server", "Sales", timeout = 12), sql)
@@ -51,11 +51,13 @@ test_that("native options cannot substitute credentials or weaken TLS", {
   expect_error(oauth_db_fabric_sql(NULL, "server", "db", sql_token = "other"), "cannot be overridden")
   expect_error(oauth_db_databricks(NULL, "host", "warehouse", token = "other"), "cannot be overridden")
   expect_error(oauth_db_snowflake(NULL, "host", "db", "schema", "wh", "role",
-    scopes = "session:role:role", TOKEN_FILE_PATH = "host-token"), "cannot be overridden")
+    required_scopes = "session:role:role", TOKEN_FILE_PATH = "host-token"), "cannot be overridden")
   expect_error(oauth_db_azure_sql(NULL, "server", "db;UID=host-user"), "delimiters")
   expect_error(oauth_db_azure_sql(NULL, "server", "db", ApplicationIntent = "ReadOnly;UID=user"), "delimiters")
   expect_error(oauth_db_azure_sql(NULL, "server", "db", timeout = 1, TIMEOUT = 2), "unique names")
   expect_error(oauth_db_azure_sql(NULL, "server", "db", 42), "unique names")
+  expect_error(oauth_db_azure_sql(NULL, "server", "db", scopes = "read"),
+    "scopes was renamed to required_scopes", fixed = TRUE)
 })
 
 test_that("SQL and Snowflake use only the supplied delegated token", {
@@ -96,7 +98,7 @@ test_that("Snowflake derives native role scopes and honors explicit external OAu
 
     external <- odb_test_authorization(session, "B", scopes = "read", target = "snowflake")
     custom <- oauth_db_snowflake(external$connection, "account", "db", "PUBLIC", "wh", "READER",
-      scopes = external$scopes, target = "snowflake")
+      required_scopes = external$scopes, target = "snowflake")
     expect_equal(custom(), list(token = "fixture-B", role = "READER"))
     external$current(FALSE)
     expect_error(custom(), class = "shiny.silent.error")
@@ -192,7 +194,7 @@ test_that("upstream brickster connections rotate their fixed token and isolate g
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "all-apis")
     con <- oauth_db_databricks(auth$connection, "https://workspace.example/", "wh")
-    token <- oauth_db_token(auth$connection, scopes = "all-apis")
+    token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
     first <- con()
     expect_s4_class(first, "DatabricksConnection")
     expect_identical(first@token, "fixture-A")

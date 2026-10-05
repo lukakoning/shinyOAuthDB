@@ -1,15 +1,16 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Rename database accessor `scopes` to `required_scopes`, keeping native OAuth client consent `scopes` unchanged. Use native `dbname` for Azure PostgreSQL, with an empty permission-check default. Call the supported shinyOAuth authorization methods directly and move earlier API history into migration notes.
 * Add complete, tested apps for button-triggered queries and simultaneous Microsoft/Databricks authorizations. Verify result clearing on grant and permission changes, and independent queries and disconnects across providers. Declare tested native backend minimum versions and document installation from upstream repositories without sibling checkouts.
 * Define the generic connector as connection-time token injection and document native-handle, logout, acquisition-lifetime, and asynchronous-refresh limits. Put the existing-shinyOAuth path next to the first app, including explicit default and custom target selection.
-* Make `oauth_db_databricks()` always return a DBI connection accessor, accepting either native `warehouse_id` or `http_path`. Replace its former bearer-string mode with `oauth_db_token(auth$connection, scopes = "all-apis")`; Entra REST calls use their configured target and permissions explicitly.
+* Make `oauth_db_databricks()` always return a DBI connection accessor, accepting either native `warehouse_id` or `http_path`. Replace its former bearer-string mode with `oauth_db_token(auth$connection, required_scopes = "all-apis")`; Entra REST calls use their configured target and permissions explicitly.
 * Preserve target and authorization-selection errors, and display missing permissions as a Shiny validation message. Logged-out access still waits quietly; failures retire cached connections without terminating the cleanup observer.
 * Add small connection examples to backend help pages and a navigable package overview. Explain passing `auth$connection` without parentheses and reusing existing shinyOAuth clients with `target = NULL`.
-* Make configuration errors identify protected option names, the public `scopes` argument, and the expected authorization input. Share named-argument validation across client, provider, and connector configuration.
+* Make configuration errors identify protected option names, the public permission-check argument, and the expected authorization input. Share named-argument validation across client, provider, and connector configuration.
 * Introduce the simple-apps vignette gradually: purpose and one complete app first, familiar SQL examples next, then other Fabric APIs, advanced transports, custom OAuth configuration, and multiple authorizations.
 * Isolate each backend's connections, OAuth presets, scope recipes, and native option policy in one `backend__*.R` file. Shared lifecycle and validation code contain no backend-specific branches.
 * Keep Microsoft `.default` consent in client configuration instead of requiring it as a granted token permission. Generic accessors pass operation scopes unchanged to shinyOAuth.
-* Simplify connection setup: remove SQL Server's `entra_enabled` flag, derive native Snowflake scopes from `role`, and allow `oauth_db_databricks(auth$connection)` for a bearer string without a redundant host.
+* Simplify connection setup: remove SQL Server's `entra_enabled` flag and derive native Snowflake scopes from `role`.
 * Resolve DBI connections before method dispatch in the simple-apps vignette, so outputs wait quietly for login and clear on logout. Token callbacks can still be passed inline to native functions.
 * Add a simple-apps vignette with direct connection and query examples for every backend and Fabric interface.
 * Use unmodified upstream brickster with bearer strings; refresh DBI connections when their fixed token rotates.

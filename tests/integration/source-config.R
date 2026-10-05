@@ -52,7 +52,7 @@ live_spec <- function(backend) {
       "SELECT CURRENT_USER AS database_user, CAST(? AS int) AS requested_value"))
   }
   if (backend == "azure-postgres") {
-    fixed <- list(host = live_env("OAUTHDB_POSTGRES_HOST"), database = live_env("OAUTHDB_DATABASE"),
+    fixed <- list(host = live_env("OAUTHDB_POSTGRES_HOST"), dbname = live_env("OAUTHDB_DATABASE"),
       user = live_env("OAUTHDB_POSTGRES_USER"), sslrootcert = live_env("OAUTHDB_POSTGRES_SSLROOTCERT"))
     return(sql_spec(function(auth) do.call(shinyOAuthDB::oauth_db_azure_postgres,
       c(list(authorization = auth), fixed)),
@@ -62,7 +62,7 @@ live_spec <- function(backend) {
     fixed <- list(server = live_env("OAUTHDB_SNOWFLAKE_SERVER"), database = live_env("OAUTHDB_DATABASE"),
       schema = live_env("OAUTHDB_SNOWFLAKE_SCHEMA"), warehouse = live_env("OAUTHDB_SNOWFLAKE_WAREHOUSE"),
       role = live_env("OAUTHDB_SNOWFLAKE_ROLE"), driver = live_env("OAUTHDB_SNOWFLAKE_DRIVER", "SnowflakeDSIIDriver"),
-      scopes = strsplit(live_env("OAUTHDB_SNOWFLAKE_SCOPES"), " +")[[1L]], target = "snowflake")
+      required_scopes = strsplit(live_env("OAUTHDB_SNOWFLAKE_SCOPES"), " +")[[1L]], target = "snowflake")
     return(sql_spec(function(auth) do.call(shinyOAuthDB::oauth_db_snowflake,
       c(list(authorization = auth), fixed)),
       "SELECT CURRENT_USER() AS database_user, CURRENT_ROLE() AS database_role, CAST(? AS INTEGER) AS requested_value", "snowflake"))
@@ -71,7 +71,7 @@ live_spec <- function(backend) {
     host <- sub("/$", "", sub("^https://", "", live_env("OAUTHDB_DATABRICKS_HOST")))
     warehouse <- live_env("OAUTHDB_DATABRICKS_WAREHOUSE")
     return(list(service = "databricks",
-      bind = function(auth) shinyOAuthDB::oauth_db_token(auth, scopes = "all-apis"),
+      bind = function(auth) shinyOAuthDB::oauth_db_token(auth, required_scopes = "all-apis"),
       native_args = function(value) list(
         statement = "SELECT current_user() AS database_user, CAST(:value AS INT) AS requested_value",
         parameters = list(list(name = "value", value = as.character(value), type = "INT")),

@@ -82,9 +82,9 @@ output$rows <- renderPrint({
 
 The [integrated Fabric app](playground/fabric/README.md) discovers the persistent Shiny sandbox and demonstrates SQL, DAX, KQL, OneLake, GraphQL, and discovery in one app.
 
-The [Databricks app](playground/example-databricks.R) uses `oauth_db_token(auth$connection, scopes = "all-apis")` and passes its bearer string directly to upstream `brickster::db_sql_query()`. For DBI, use `oauth_db_databricks()` with `host` and either `warehouse_id` or the native `http_path`. Call the accessor for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
+The [Databricks app](playground/example-databricks.R) uses `oauth_db_token(auth$connection, required_scopes = "all-apis")` and passes its bearer string directly to upstream `brickster::db_sql_query()`. For DBI, use `oauth_db_databricks()` with `host` and either `warehouse_id` or the native `http_path`. Call the accessor for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
 
-For Entra REST access, use `oauth_db_token(auth$connection, target = "databricks", scopes = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")`, matching the Microsoft client's configuration.
+For Entra REST access, use `oauth_db_token(auth$connection, target = "databricks", required_scopes = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")`, matching the Microsoft client's configuration.
 
 Queries retain their native arguments, return values, and errors. There is no query callback API, query registry, or task system.
 
@@ -102,7 +102,7 @@ Queries retain their native arguments, return values, and errors. There is no qu
 
 Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
 
-Snowflake's native OAuth scope follows `role` automatically; set `scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
+Snowflake's native OAuth scope follows `role` automatically; set `required_scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
 
 ## Several authorizations at once
 
@@ -128,7 +128,7 @@ independent queries. It uses shinyOAuth's existing connection manager.
 
 ## Control providers and clients
 
-Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `default_token_target`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `scopes` to your client configuration.
+Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `default_token_target`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `required_scopes` to your client configuration.
 
 For provider-only setup, use `shinyOAuth::oauth_provider_microsoft()`, `oauth_db_databricks_provider()`, or `oauth_db_snowflake_provider()`, then construct the client yourself:
 
@@ -146,7 +146,7 @@ client <- shinyOAuth::oauth_client(
 
 The Snowflake and Databricks provider presets accept native provider settings through `...`. Databricks discovery uses shinyOAuth directly. Native Snowflake OAuth and external OAuth use their respective identity-provider configurations.
 
-Already using shinyOAuth? Keep your client and login module and add a database helper. If your client has no named token targets, set `target = NULL`; otherwise use the name you configured in `token_targets`. The helper's `scopes` checks granted permissions; consent is configured on the client.
+Already using shinyOAuth? Keep your client and login module and add a database helper. If your client has no named token targets, set `target = NULL`; otherwise use the name you configured in `token_targets`. The helper's `required_scopes` checks granted permissions; `scopes` requests consent on the client.
 
 ## Another database client
 
@@ -156,7 +156,7 @@ Pass a native connection function and name its credential argument:
 con <- oauth_db_connect(auth$connection,
   connect = DBI::dbConnect,
   drv = MyDriver::Driver(), host = "database.example.com",
-  token_arg = "access_token", scopes = "data.read"
+  token_arg = "access_token", required_scopes = "data.read"
 )
 output$rows <- renderTable({
   connection <- con()
@@ -172,7 +172,7 @@ cached SDK client. Non-DBI connections may supply
 `disconnect = TheirPackage::disconnect`; their validity checks belong to the
 native package.
 
-For an API that accepts a bearer string directly, `token <- oauth_db_token(auth$connection, scopes = "data.read")` supplies that string through `token()`.
+For an API that accepts a bearer string directly, `token <- oauth_db_token(auth$connection, required_scopes = "data.read")` supplies that string through `token()`.
 
 ## Ordinary Shiny behavior
 
@@ -237,10 +237,10 @@ source("playground/example-offline.R")
 
 The offline app uses simulated A/B grants and seeded SQLite rows to demonstrate native connection reuse and cleanup. It does not test a real OAuth exchange. [Playground setup](playground/README.md) lists the complete apps and deployment settings. Live user mapping and database permissions require verification against your deployment.
 
-## Breaking redesign
-
-Replace source construction plus `oauth_db_session()` with a backend accessor such as `con <- oauth_db_azure_sql(auth$connection, ...)`, then call native database functions with `con()`. Source descriptors, operation mappings, managed query results, and worker execution have been removed.
-
-[Implementation notes](docs/implementation.md) describe the bridge's boundaries. [Opt-in cloud checks](tests/integration/README.md) and the [PostgreSQL/Keycloak fixture](integration/postgres-keycloak/README.md) cover deployment-specific integration. Older architecture and API-draft documents record the previous design.
+[Implementation notes](docs/implementation.md) describe the bridge's boundaries.
+[Migration notes](docs/migration.md) cover earlier development APIs.
+[Opt-in cloud checks](tests/integration/README.md) and the
+[PostgreSQL/Keycloak fixture](integration/postgres-keycloak/README.md) cover
+deployment-specific integration.
 
 Run `testthat::test_local()` for package tests and `Rscript tools/check-playground.R --test` for source-checkout example checks.

@@ -79,7 +79,7 @@ multiple_app <- function(fixture, env = parent.frame()) {
   app <- playground_load_example("example-multiple-connections.R")
   app$manager <- fixture$manager
   app$oauth_db_azure_sql <- function(authorization, ...) {
-    oauth_db_connect(authorization, scopes = "demo.read", connect = function(token) {
+    oauth_db_connect(authorization, required_scopes = "demo.read", connect = function(token) {
       con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
       DBI::dbWriteTable(con, "example",
         data.frame(database_user = sub("^fixture-", "", token)))

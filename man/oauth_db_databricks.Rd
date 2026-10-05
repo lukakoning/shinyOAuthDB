@@ -12,7 +12,7 @@ oauth_db_databricks(
   http_path = NULL,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
-  scopes = NULL,
+  required_scopes = NULL,
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -38,7 +38,7 @@ grant explicitly when several exist.}
 \item{target}{Declared token target. Defaults to \code{"databricks"} for Entra;
 native Databricks OAuth uses the main authorization.}
 
-\item{scopes}{Delegated scopes, or \code{NULL} for the chosen authentication mode.}
+\item{required_scopes}{Delegated scopes, or \code{NULL} for the chosen authentication mode.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
@@ -71,7 +71,7 @@ output$rows <- shiny::renderTable({
 })
 
 # Or use brickster's API directly with a current bearer string:
-token <- oauth_db_token(auth$connection, scopes = "all-apis")
+token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
 output$result <- shiny::renderPrint({
   brickster::db_sql_query(host = "example.cloud.databricks.com",
     warehouse_id = "warehouse-id", statement = "SELECT current_user()",

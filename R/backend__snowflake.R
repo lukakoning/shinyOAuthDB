@@ -2,11 +2,11 @@
 #'
 #' Configure the OAuth client in shinyOAuth to match the account's native or
 #' external OAuth integration. Native Snowflake OAuth derives its scope from
-#' `role`; supply explicit `scopes` for an external or customized integration.
+#' `role`; supply explicit `required_scopes` for an external or customized integration.
 #' The ODBC driver receives `authenticator = "oauth"` and the user's access token.
 #' @inheritParams oauth_db_azure_sql
 #' @param schema,warehouse,role Explicit Snowflake connection context.
-#' @param scopes Scopes configured by the account's OAuth integration. Defaults
+#' @param required_scopes Scopes configured by the account's OAuth integration. Defaults
 #'   to `paste0("session:role:", role)` for native Snowflake OAuth.
 #' @param target Optional named shinyOAuth token target for external OAuth.
 #' @returns A session-local reactive accessor for a native DBI connection.
@@ -25,7 +25,7 @@
 #' @export
 oauth_db_snowflake <- function(
   authorization, server, database, schema, warehouse, role, ...,
-  scopes = paste0("session:role:", role),
+  required_scopes = paste0("session:role:", role),
   target = NULL, driver = "SnowflakeDSIIDriver", min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
@@ -42,7 +42,7 @@ oauth_db_snowflake <- function(
   .odb_odbc_values(options)
   .odb_bind(authorization, .odb_backend_snowflake, server = server,
     database = database, schema = schema, warehouse = warehouse, role = role,
-    driver = driver, options = options, target = target, scopes = scopes,
+    driver = driver, options = options, target = target, required_scopes = required_scopes,
     min_valid_for = min_valid_for, session = session)
 }
 

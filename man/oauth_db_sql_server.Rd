@@ -10,7 +10,7 @@ oauth_db_sql_server(
   database,
   ...,
   target = "sql",
-  scopes = "https://database.windows.net//user_impersonation",
+  required_scopes = "https://database.windows.net//user_impersonation",
   driver = "ODBC Driver 18 for SQL Server",
   port = 1433L,
   min_valid_for = 60,
@@ -33,7 +33,7 @@ grant explicitly when several exist.}
 \item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
 uses its default, including clients without named token targets.}
 
-\item{scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
+\item{required_scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
 configured on the shinyOAuth client, not checked as a literal permission.}
 
 \item{driver}{Installed ODBC driver name.}

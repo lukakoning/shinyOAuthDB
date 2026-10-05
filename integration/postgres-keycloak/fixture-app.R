@@ -138,7 +138,7 @@ postgres_browser_app <- function(config) {
       port = config$pg_port,
       dbname = config$pg_dbname,
       sslrootcert = config$ca_file,
-      scopes = "database.read",
+      required_scopes = "database.read",
       min_valid_for = 1,
       disconnect = function(native) {
         disconnects(shiny::isolate(disconnects()) + 1L)

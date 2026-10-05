@@ -14,19 +14,8 @@
   invisible(grant)
 }
 
-.odb_authorization_call <- function(grant, method, args) {
-  fun <- .odb_authorization_field(grant, method)
-  accepts <- names(formals(fun))
-  if (!"target" %in% accepts && !"..." %in% accepts) {
-    if (!is.null(args$target)) .odb_abort("This authorization does not support named token targets.",
-                                        "unsupported_authorization_target")
-    args$target <- NULL
-  }
-  do.call(fun, args)
-}
-
-.odb_authorization_has_scopes <- function(grant, scopes, target) {
-  result <- .odb_authorization_call(grant, "has_scopes", list(scopes = scopes, target = target))
+.odb_authorization_has_scopes <- function(grant, required_scopes, target) {
+  result <- grant$has_scopes(required_scopes, target = target)
   if (!is.logical(result) || length(result) != 1L || is.na(result)) {
     .odb_abort("has_scopes() must return one non-missing logical.", "invalid_authorization")
   }

@@ -22,7 +22,7 @@ server <- function(input, output, session) {
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
-  token <- oauth_db_token(auth$connection, scopes = "all-apis")
+  token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
   output$rows <- renderPrint({
     brickster::db_sql_query(
       host = host, warehouse_id = Sys.getenv("OAUTHDB_DATABRICKS_WAREHOUSE"),

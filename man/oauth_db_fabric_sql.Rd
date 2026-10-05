@@ -10,7 +10,7 @@ oauth_db_fabric_sql(
   database = NULL,
   ...,
   target = "sql",
-  scopes = "https://database.windows.net//user_impersonation",
+  required_scopes = "https://database.windows.net//user_impersonation",
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -31,7 +31,7 @@ grant explicitly when several exist.}
 \item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
 uses its default, including clients without named token targets.}
 
-\item{scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
+\item{required_scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
 configured on the shinyOAuth client, not checked as a literal permission.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}

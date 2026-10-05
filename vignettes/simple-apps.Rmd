@@ -184,7 +184,7 @@ database role for the visitor or their group, and the server's CA bundle:
 
 ```{r azure-postgres}
 con <- oauth_db_azure_postgres(auth$connection,
-  host = "example.postgres.database.azure.com", database = "sales",
+  host = "example.postgres.database.azure.com", dbname = "sales",
   user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
 output$rows <- renderTable({
   connection <- con()
@@ -476,7 +476,7 @@ the visitor's current bearer string. Change
 brickster's native response:
 
 ```{r databricks-rest}
-token <- oauth_db_token(auth$connection, scopes = "all-apis")
+token <- oauth_db_token(auth$connection, required_scopes = "all-apis")
 output$rows <- renderPrint({
   brickster::db_sql_query(
     host = host, warehouse_id = "warehouse-id",
@@ -544,7 +544,7 @@ and `oauth_db_databricks_provider()`. You can supply a provider you configured
 directly through shinyOAuth instead.
 
 For Snowflake External OAuth, use the external identity provider's configuration
-and supply explicit `scopes` and `target` to `oauth_db_snowflake()`. Its default
+and supply explicit `required_scopes` and `target` to `oauth_db_snowflake()`. Its default
 `session:role:READER` scope is for native Snowflake OAuth. Whenever you customize
 a client, keep each database helper's target and required scopes consistent
 with that client's configuration.
@@ -561,7 +561,7 @@ For a client without named token targets, use `target = NULL`. For example,
 client's default authorization for KQL; the client must already request the
 appropriate KQL permissions.
 
-The helper's `scopes` argument checks required granted permissions. It does not
+The helper's `required_scopes` argument checks required granted permissions. It does not
 request extra consent. Configure consent on the shinyOAuth client, then keep
 the helper's requirements consistent with it. A token target identifies an API;
 a connection-manager authorization ID identifies a particular retained grant.
@@ -582,7 +582,7 @@ con <- oauth_db_connect(auth$connection,
 ```
 
 The client's PostgreSQL target already configures `.default` consent. The
-generic bridge's `scopes` argument checks actual granted permissions; consent
+generic bridge's `required_scopes` argument checks actual granted permissions; consent
 settings stay on the shinyOAuth client.
 
 For another connector, supply that package's function, options, and credential

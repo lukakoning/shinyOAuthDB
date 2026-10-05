@@ -24,7 +24,7 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   con <- oauth_db_azure_postgres(auth$connection,
-    host = Sys.getenv("OAUTHDB_POSTGRES_HOST"), database = Sys.getenv("OAUTHDB_DATABASE"),
+    host = Sys.getenv("OAUTHDB_POSTGRES_HOST"), dbname = Sys.getenv("OAUTHDB_DATABASE"),
     user = Sys.getenv("OAUTHDB_POSTGRES_USER"),
     sslrootcert = Sys.getenv("OAUTHDB_POSTGRES_SSLROOTCERT"))
   output$rows <- renderTable({

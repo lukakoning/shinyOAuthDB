@@ -1,17 +1,17 @@
 test_that("Microsoft backends separate consent markers from operation permissions", {
   local_mocked_bindings(.odb_bind = capture_backend, .odb_require = function(...) TRUE)
   scope <- "https://example.invalid/.default"
-  expect_identical(oauth_db_azure_sql(NULL, "host", "db", scopes = scope)$scopes, character())
-  expect_identical(oauth_db_azure_postgres(NULL, "host", "db", "role", scopes = scope)$scopes, character())
-  expect_identical(oauth_db_fabric_sql(NULL, "host", "db", scopes = scope)$scopes, character())
-  expect_identical(oauth_db_fabric(NULL, "kql", scopes = scope)$scopes, character())
-  expect_identical(oauth_db_databricks(NULL, "host", "wh", auth_mode = "entra", scopes = scope)$scopes,
+  expect_identical(oauth_db_azure_sql(NULL, "host", "db", required_scopes = scope)$required_scopes, character())
+  expect_identical(oauth_db_azure_postgres(NULL, "host", "db", "role", required_scopes = scope)$required_scopes, character())
+  expect_identical(oauth_db_fabric_sql(NULL, "host", "db", required_scopes = scope)$required_scopes, character())
+  expect_identical(oauth_db_fabric(NULL, "kql", required_scopes = scope)$required_scopes, character())
+  expect_identical(oauth_db_databricks(NULL, "host", "wh", auth_mode = "entra", required_scopes = scope)$required_scopes,
                    character())
   permission <- "https://example.invalid/read"
-  expect_identical(oauth_db_azure_sql(NULL, "host", "db", scopes = c(scope, permission))$scopes,
+  expect_identical(oauth_db_azure_sql(NULL, "host", "db", required_scopes = c(scope, permission))$required_scopes,
                    permission)
   # Native Databricks OAuth does not apply Microsoft's scope conventions.
-  expect_identical(oauth_db_databricks(NULL, "host", "wh", scopes = scope)$scopes, scope)
+  expect_identical(oauth_db_databricks(NULL, "host", "wh", required_scopes = scope)$required_scopes, scope)
 })
 
 test_that("PostgreSQL's default consent works with real shinyOAuth permission evidence", {
@@ -42,7 +42,7 @@ test_that("PostgreSQL's default consent works with real shinyOAuth permission ev
     expect_false(grant$has_scopes(client@token_targets$postgres$scopes, target = "postgres"))
     con <- oauth_db_azure_postgres(grant, "host", "db", "role")
     expect_identical(con(), list(bearer = "postgres-visitor"))
-    strict <- oauth_db_azure_postgres(grant, "host", "db", "role", scopes = permission)
+    strict <- oauth_db_azure_postgres(grant, "host", "db", "role", required_scopes = permission)
     expect_identical(strict(), list(bearer = "postgres-visitor"))
     token(make_token(character()))
     expect_error(strict(), class = "shiny.silent.error")
@@ -55,9 +55,9 @@ test_that("generic accessors do not reinterpret provider-specific scope names", 
   odb_test_domain(function(session) {
     scope <- "https://example.invalid/.default"
     auth <- odb_test_authorization(session, scopes = scope)
-    token <- oauth_db_token(auth$connection, scopes = scope)
+    token <- oauth_db_token(auth$connection, required_scopes = scope)
     con <- oauth_db_connect(auth$connection, connect = function(token) token,
-                            scopes = scope)
+                            required_scopes = scope)
     expect_identical(token(), "fixture-A")
     expect_identical(con(), "fixture-A")
     auth$token(auth$make_token("changed", permissions = character()))

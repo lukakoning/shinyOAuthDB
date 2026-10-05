@@ -8,7 +8,7 @@ oauth_db_fabric(
   authorization,
   service = c("fabric", "sql", "dax", "kql", "onelake", "graphql"),
   target = .odb_fabric_profile(service)$target,
-  scopes = NULL,
+  required_scopes = NULL,
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -27,7 +27,7 @@ grant explicitly when several exist.}
 Set \code{NULL} to use the authorization's own default, including clients without
 named token targets.}
 
-\item{scopes}{Delegated scopes; \code{NULL} uses the service's query/read defaults.}
+\item{required_scopes}{Delegated scopes; \code{NULL} uses the service's query/read defaults.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 

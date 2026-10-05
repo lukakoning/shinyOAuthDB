@@ -7,13 +7,13 @@
 oauth_db_azure_postgres(
   authorization,
   host,
-  database,
+  dbname,
   user,
   ...,
   port = 5432L,
   sslrootcert = NULL,
   target = "postgres",
-  scopes = "https://ossrdbms-aad.database.windows.net/.default",
+  required_scopes = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -27,7 +27,7 @@ grant explicitly when several exist.}
 
 \item{host}{PostgreSQL hostname.}
 
-\item{database}{Database name.}
+\item{dbname}{Database name, passed to RPostgres unchanged.}
 
 \item{user}{Provisioned individual or group database role.}
 
@@ -40,8 +40,8 @@ grant explicitly when several exist.}
 \item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
 uses its default, including clients without named token targets.}
 
-\item{scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
-configured on the shinyOAuth client, not checked as a literal permission.}
+\item{required_scopes}{Required granted permissions, empty by default. Supply
+actual permission scopes if your deployment requires an additional check.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.}
 
@@ -53,14 +53,14 @@ A session-local reactive accessor for a native DBI connection.
 }
 \description{
 Uses RPostgres with the user's Entra token as the password. The provisioned
-database role and server permissions must already exist. The default
-\code{.default} scope is a consent request, not a literal token permission.
+database role and server permissions must already exist. Configure \code{.default}
+consent on the shinyOAuth client; it is not a literal token permission.
 }
 \examples{
 \dontrun{
 # Inside server(); configure the Microsoft client with services = "postgres".
 con <- oauth_db_azure_postgres(auth$connection,
-  host = "example.postgres.database.azure.com", database = "sales",
+  host = "example.postgres.database.azure.com", dbname = "sales",
   user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
 output$rows <- shiny::renderTable({
   connection <- con()

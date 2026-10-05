@@ -10,7 +10,7 @@ test_that("the bridge returns native connections and preserves them through toke
   odb_test_domain(function(session) {
     a <- odb_test_authorization(session)
     selected <- shiny::reactiveVal(a$connection)
-    con <- oauth_db_connect(selected, core_connect, scopes = "read")
+    con <- oauth_db_connect(selected, core_connect, required_scopes = "read")
     expect_type(con, "closure")
     first <- con()
     expect_s4_class(first, "DBIConnection")
@@ -44,7 +44,7 @@ test_that("normal Shiny reads track authorization and input changes without quer
     b <- odb_test_authorization(session, "B")
     selected <- shiny::reactiveVal(NULL)
     parameter <- shiny::reactiveVal(1L)
-    con <- oauth_db_connect(selected, core_connect, scopes = "read")
+    con <- oauth_db_connect(selected, core_connect, required_scopes = "read")
     calls <- 0L
     rows <- shiny::reactive({
       native <- con()
@@ -77,8 +77,8 @@ test_that("token access is fresh and native providers stay pinned to their grant
     a <- odb_test_authorization(session)
     b <- odb_test_authorization(session, "A") # Even the same ID cannot revive a provider.
     selected <- shiny::reactiveVal(a$connection)
-    token <- oauth_db_token(selected, scopes = "read")
-    provider <- .odb_bind(selected, identity, scopes = "read")
+    token <- oauth_db_token(selected, required_scopes = "read")
+    provider <- .odb_bind(selected, identity, required_scopes = "read")
     saved <- provider()
     expect_equal(token(), "fixture-A")
     a$token(a$make_token("rotated"))
@@ -101,7 +101,7 @@ test_that("required permission loss and req-gated selectors retire native connec
   odb_test_domain(function(session) {
     a <- odb_test_authorization(session)
     gate <- shiny::reactiveVal(TRUE)
-    con <- oauth_db_connect(function() { shiny::req(gate()); a$connection }, core_connect, scopes = "read")
+    con <- oauth_db_connect(function() { shiny::req(gate()); a$connection }, core_connect, required_scopes = "read")
     rows <- shiny::reactive({
       connection <- con()
       DBI::dbReadTable(connection, "identity")
@@ -183,7 +183,7 @@ test_that("selector failures retire connections and reactive errors recover", {
 test_that("first declared token targets acquire lazily", {
   odb_test_domain(function(session) {
     a <- odb_test_authorization(session, target = "data", unacquired = TRUE)
-    token <- oauth_db_token(a$connection, target = "data", scopes = a$scopes[[1L]])
+    token <- oauth_db_token(a$connection, target = "data", required_scopes = a$scopes[[1L]])
     expect_equal(a$calls$acquire, 0L)
     expect_match(token(), "acquired")
     expect_equal(a$calls$acquire, 1L)
@@ -211,8 +211,8 @@ test_that("accessors enforce ownership on every call, including cached native va
 test_that("native arguments and errors stay native, tokens are clean and explicit", {
   odb_test_domain(function(session) {
     raw <- shiny::reactiveVal(structure("valid-token", secret = new.env()))
-    grant <- list(id = "A", has_scopes = function(scopes) TRUE,
-      access_token = function(required_scopes, min_valid_for, force_refresh, async) raw())
+    grant <- list(id = "A", has_scopes = function(scopes, target = NULL) TRUE,
+      access_token = function(required_scopes, min_valid_for, force_refresh, async, target = NULL) raw())
     token <- oauth_db_token(grant)
     expect_identical(token(), "valid-token")
     raw("token;UID=other")
@@ -232,8 +232,10 @@ test_that("configuration errors point to the public arguments the caller can fix
     auth <- list(connection = function() NULL)
     expect_error(oauth_db_token(auth), "Pass auth\\$connection",
                   class = "shinyOAuthDB_invalid_authorization")
-    expect_error(oauth_db_token(auth$connection, scopes = "read write"), "scopes must",
+    expect_error(oauth_db_token(auth$connection, required_scopes = "read write"), "required_scopes must",
                   class = "shinyOAuthDB_invalid_configuration")
+    expect_error(oauth_db_connect(auth$connection, scopes = "read"),
+      "scopes was renamed to required_scopes", fixed = TRUE)
     expect_error(oauth_db_connect(auth$connection, timeout = 1, timeout = 2),
       "Native configuration.*unique names", class = "shinyOAuthDB_invalid_configuration")
   })

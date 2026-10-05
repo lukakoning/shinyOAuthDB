@@ -25,7 +25,7 @@ server <- function(input, output, session) {
     if (is.null(grant) || !grant$has_scopes(permissions, target = "sql")) return(NULL)
     grant
   })
-  con <- oauth_db_azure_sql(auth$connection, scopes = permissions,
+  con <- oauth_db_azure_sql(auth$connection, required_scopes = permissions,
     server = Sys.getenv("OAUTHDB_SERVER"), database = Sys.getenv("OAUTHDB_DATABASE"))
 
   rows <- reactiveVal(NULL)

@@ -16,8 +16,8 @@ test_that("button queries clear stored results on authorization and permission c
     calls$select <- selected
     list(connection = selected, request_login = function() NULL, logout = function() selected(NULL))
   }
-  app$oauth_db_azure_sql <- function(authorization, scopes, ...) {
-    oauth_db_connect(authorization, scopes = scopes, target = "sql", connect = function(token) {
+  app$oauth_db_azure_sql <- function(authorization, required_scopes, ...) {
+    oauth_db_connect(authorization, required_scopes = required_scopes, target = "sql", connect = function(token) {
       con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
       DBI::dbWriteTable(con, "identity", data.frame(user = sub("^fixture-", "", token)))
       con

@@ -12,7 +12,7 @@ oauth_db_snowflake(
   warehouse,
   role,
   ...,
-  scopes = paste0("session:role:", role),
+  required_scopes = paste0("session:role:", role),
   target = NULL,
   driver = "SnowflakeDSIIDriver",
   min_valid_for = 60,
@@ -34,7 +34,7 @@ grant explicitly when several exist.}
 
 \item{...}{Additional named options passed to the native connection function.}
 
-\item{scopes}{Scopes configured by the account's OAuth integration. Defaults
+\item{required_scopes}{Scopes configured by the account's OAuth integration. Defaults
 to \code{paste0("session:role:", role)} for native Snowflake OAuth.}
 
 \item{target}{Optional named shinyOAuth token target for external OAuth.}
@@ -52,7 +52,7 @@ A session-local reactive accessor for a native DBI connection.
 \description{
 Configure the OAuth client in shinyOAuth to match the account's native or
 external OAuth integration. Native Snowflake OAuth derives its scope from
-\code{role}; supply explicit \code{scopes} for an external or customized integration.
+\code{role}; supply explicit \code{required_scopes} for an external or customized integration.
 The ODBC driver receives \code{authenticator = "oauth"} and the user's access token.
 }
 \examples{

@@ -24,10 +24,10 @@ test_that("the two-provider app queries and disconnects each authorization indep
     con
   }
   app$oauth_db_azure_sql <- function(authorization, ...) {
-    oauth_db_connect(authorization, connect, scopes = "demo.read")
+    oauth_db_connect(authorization, connect, required_scopes = "demo.read")
   }
   app$oauth_db_databricks <- function(authorization, ...) {
-    oauth_db_connect(authorization, connect, scopes = "warehouse.read")
+    oauth_db_connect(authorization, connect, required_scopes = "warehouse.read")
   }
   native_query <- DBI::dbGetQuery
   local_mocked_bindings(dbGetQuery = function(conn, statement, ...) {

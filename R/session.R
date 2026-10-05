@@ -14,7 +14,7 @@
 #' @param token_arg Name of the connector argument receiving the bearer token.
 #' @param target Named token target configured on the shinyOAuth client. `NULL`
 #'   uses its default, including clients without named token targets.
-#' @param scopes Required granted permissions. Consent scopes belong in the
+#' @param required_scopes Required granted permissions. Consent scopes belong in the
 #'   shinyOAuth client configuration; setting this argument does not request
 #'   additional consent.
 #' @param disconnect Native cleanup function. NULL calls `DBI::dbDisconnect()`
@@ -61,20 +61,23 @@
 #' @export
 oauth_db_connect <- function(
   authorization, connect = DBI::dbConnect, ..., token_arg = "token",
-  target = NULL, scopes = character(), disconnect = NULL, min_valid_for = 60,
+  target = NULL, required_scopes = character(), disconnect = NULL, min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   if (!is.function(connect)) .odb_abort("connect must be a native connection function.")
   .odb_string(token_arg, "token_arg")
   args <- list(...)
   .odb_named_args(args)
+  if ("scopes" %in% names(args)) {
+    .odb_abort("scopes was renamed to required_scopes for database accessors; consent scopes stay on the shinyOAuth client.")
+  }
   if (token_arg %in% names(args)) .odb_abort("The bridge supplies the token argument; omit it from ... .")
   factory <- function(token) {
     native_args <- args
     native_args[[token_arg]] <- token()
     do.call(connect, native_args)
   }
-  .odb_bind(authorization, factory, target = target, scopes = scopes,
+  .odb_bind(authorization, factory, target = target, required_scopes = required_scopes,
             disconnect = disconnect, min_valid_for = min_valid_for, session = session)
 }
 
@@ -84,23 +87,23 @@ oauth_db_connect <- function(
 #' @return A reactive accessor returning a current bearer token. Call `token()`
 #'   when making a native request; do not save its value globally.
 #' @export
-oauth_db_token <- function(authorization, target = NULL, scopes = character(),
+oauth_db_token <- function(authorization, target = NULL, required_scopes = character(),
                            min_valid_for = 60, session = shiny::getDefaultReactiveDomain()) {
-  provider <- .odb_bind(authorization, identity, target = target, scopes = scopes,
+  provider <- .odb_bind(authorization, identity, target = target, required_scopes = required_scopes,
                         min_valid_for = min_valid_for, session = session)
   function() provider()()
 }
 
 # Backend factories receive a grant-pinned credential callback. Only native
 # connections/providers are cached; query execution is entirely outside here.
-.odb_bind <- function(authorization, connect, ..., target = NULL, scopes = character(),
+.odb_bind <- function(authorization, connect, ..., target = NULL, required_scopes = character(),
                       disconnect = NULL, cache_key = NULL, min_valid_for = 60,
                       session = shiny::getDefaultReactiveDomain()) {
   if (!is.function(connect) || (!is.null(disconnect) && !is.function(disconnect))) {
     .odb_abort("connect and disconnect must be functions (disconnect may be NULL).")
   }
   .odb_string(target, "target", optional = TRUE)
-  scopes <- .odb_scopes(scopes)
+  required_scopes <- .odb_scopes(required_scopes)
   .odb_seconds(min_valid_for, "min_valid_for", positive = TRUE)
   args <- list(...)
   .odb_named_args(args)
@@ -135,7 +138,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
       next_grant <- reader()
       if (!is.null(next_grant)) {
         .odb_authorization_validate(next_grant)
-        next_available <- .odb_authorization_has_scopes(next_grant, scopes, target)
+        next_available <- .odb_authorization_has_scopes(next_grant, required_scopes, target)
         if (!next_available) {
           targets <- .odb_authorization_field(next_grant, "targets")
           # This status read also distinguishes an ended reference from denied
@@ -144,7 +147,7 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
           next_available <- !is.null(target) &&
             identical(statuses[[target]]$status, "not_acquired")
           shiny::validate(shiny::need(next_available,
-            "The selected authorization lacks the required permissions. Check the client's consent scopes and this helper's target and scopes."))
+            "The selected authorization lacks the required permissions. Check the client's consent scopes and this helper's target and required_scopes."))
         }
       }
     }, error = function(e) {
@@ -184,10 +187,10 @@ oauth_db_token <- function(authorization, target = NULL, scopes = character(),
     token <- function(force_refresh = FALSE) {
       .odb_flag(force_refresh, "force_refresh")
       current(captured)
-      value <- shiny::isolate(.odb_authorization_call(pinned, "access_token", list(
-        required_scopes = scopes, min_valid_for = min_valid_for,
+      value <- shiny::isolate(pinned$access_token(
+        required_scopes = required_scopes, min_valid_for = min_valid_for,
         force_refresh = force_refresh, async = FALSE, target = target
-      )))
+      ))
       current(captured)
       .odb_string(value, "access token")
       attributes(value) <- NULL
