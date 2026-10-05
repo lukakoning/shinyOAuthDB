@@ -122,6 +122,10 @@ token_kql <- oauth_db_fabric(
 
 Populate both selectors with the `connection_id` values returned by `auth$connections()`. These are authorization IDs, not client profile names such as `"sql"`. Both accessors can be used simultaneously; disconnecting one grant leaves the other accessor bound to its own grant.
 
+The [two-provider app](playground/example-two-authorizations.R) includes complete
+Azure SQL and Databricks client registrations, callback routes, selectors, and
+independent queries. It uses shinyOAuth's existing connection manager.
+
 ## Control providers and clients
 
 Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `default_token_target`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `scopes` to your client configuration.
@@ -176,6 +180,11 @@ The native accessor is reactive. A `renderTable()`, `renderPrint()`, or `reactiv
 
 Application-owned caches and `eventReactive()` keep their usual Shiny behavior. The bridge does not clear query results stored by the app or manage queries already in progress. Applications that retain results across events must handle their authorization lifecycle.
 
+The [query-button app](playground/example-query-button.R) runs only when clicked.
+It clears its stored rows when the selected authorization changes or loses
+permissions, and shows query errors in the output. A token refresh alone does
+not clear the result or rerun the query.
+
 Resolve `con()` or `token()` for each operation. Logout prevents subsequent
 accessor use and attempts native cleanup. Already returned values retain native
 behavior: a copied bearer string is not revoked, and upstream brickster's
@@ -191,16 +200,33 @@ package's supported transport, with app-owned result checks.
 
 ## Installation and examples
 
-This development version requires matching **shinyOAuth** support for module-managed access tokens and token targets. Fabric uses **fabricQueryR**'s existing token callback API (tested with 1.0.1, before its Shiny integration). Databricks uses upstream **brickster** (tested with 0.2.14). No fork, Shiny helpers, or new credential hooks in either database package are required. The sibling fabricQueryR checkout's former Shiny helpers and duplicate apps have been removed; its persistent sandbox now points to the [integrated app here](playground/fabric/README.md).
+This development version requires **shinyOAuth >= 0.6.1.9000**, including its
+module-managed `access_token()`, `has_scopes()`, and `targets()` interfaces.
+Fabric uses **fabricQueryR >= 1.0.1**'s existing token callback API. Databricks
+uses upstream **brickster >= 0.2.14**. These are the tested minimum versions;
+no fork, Shiny helpers, or new credential hooks in either database package are
+required.
 
-From sibling checkouts, install the packages needed for your backend:
+Install from the upstream repositories, then install the optional backend you
+use:
 
-```sh
-R CMD INSTALL ../shinyOAuth
-R CMD INSTALL ../fabricQueryR   # Fabric only
-# Databricks: install upstream databrickslabs/brickster, not a modified fork.
-R CMD INSTALL .
+```r
+install.packages("remotes")
+remotes::install_github("lukakoning/shinyOAuth")
+remotes::install_github("lukakoning/shinyOAuthDB", dependencies = NA)
+
+# Fabric only:
+remotes::install_github("kennispunttwente/fabricQueryR")
+# Databricks only:
+remotes::install_github("databrickslabs/brickster")
 ```
+
+For a local shinyOAuthDB checkout, use `R CMD INSTALL .` after installing its
+dependencies. No sibling checkout is needed. For reproducible validation,
+fabricQueryR 1.0.1 at commit `c6523dec95a4520e2acdc88e574465e8bf8b33b4` and
+brickster 0.2.14 at `8a56667f15494d7e01d880d0815e9b213ffce1b8` provide the
+unmodified native APIs used by the tests; `remotes::install_github()` accepts
+`owner/repo@commit`.
 
 Install your database driver separately. Install `RSQLite` for the local demonstration:
 

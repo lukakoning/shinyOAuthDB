@@ -624,6 +624,11 @@ Create one database accessor for each authorization your app uses. They can
 coexist in the same session, including authorizations from different providers.
 Disconnecting one does not select or disconnect another.
 
+The source checkout's `playground/example-two-authorizations.R` is a complete
+example with Microsoft SQL and native Databricks OAuth clients, separate
+callback routes, two grant selectors, and two native DBI outputs. Its manager
+is ordinary shinyOAuth; the bridge adds only the two database accessors.
+
 ## Understand connection lifetime
 
 The earlier examples query inside `renderTable()` so the output follows
@@ -660,6 +665,14 @@ If you add `eventReactive()`, your own caches, or background queries, your app
 owns those results and their lifetime. Decide when to clear them after logout
 or an authorization change. Login, consent, and token renewal remain in
 shinyOAuth; query execution remains in the database package.
+
+For a tested synchronous pattern, see `playground/example-query-button.R` in
+the source checkout. It stores rows in a `reactiveVal()`, clears them when the
+selected grant or its required permissions change, and runs the query in an
+`observeEvent(input$run, ...)`. The render checks that the stored rows still
+belong to the current authorization. Token rotation does not rerun the query;
+regaining permissions waits for another click. Query errors replace old rows
+and appear in the output.
 
 ## When an example does not connect
 

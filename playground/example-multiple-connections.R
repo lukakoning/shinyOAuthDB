@@ -39,7 +39,7 @@ server <- function(input, output, session) {
     records <- Filter(function(x) !x$status %in% c("disconnected", "unavailable"),
                       auth$connections())
     ids <- vapply(records, function(x) x$connection_id, character(1))
-    labels <- paste("Authorization", seq_along(ids))
+    labels <- paste("Authorization", seq_along(ids), recycle0 = TRUE)
     selected <- isolate(input$authorization_id)
     if (is.null(selected) || !selected %in% ids) selected <- ""
     updateSelectInput(session, "authorization_id",

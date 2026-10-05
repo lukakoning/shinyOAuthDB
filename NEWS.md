@@ -1,5 +1,6 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add complete, tested apps for button-triggered queries and simultaneous Microsoft/Databricks authorizations. Verify result clearing on grant and permission changes, and independent queries and disconnects across providers. Declare tested native backend minimum versions and document installation from upstream repositories without sibling checkouts.
 * Define the generic connector as connection-time token injection and document native-handle, logout, acquisition-lifetime, and asynchronous-refresh limits. Put the existing-shinyOAuth path next to the first app, including explicit default and custom target selection.
 * Make `oauth_db_databricks()` always return a DBI connection accessor, accepting either native `warehouse_id` or `http_path`. Replace its former bearer-string mode with `oauth_db_token(auth$connection, scopes = "all-apis")`; Entra REST calls use their configured target and permissions explicitly.
 * Preserve target and authorization-selection errors, and display missing permissions as a Shiny validation message. Logged-out access still waits quietly; failures retire cached connections without terminating the cleanup observer.

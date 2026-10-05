@@ -18,10 +18,10 @@ Imports:
     shiny (>= 1.8.1),
     shinyOAuth (>= 0.6.1.9000)
 Suggests:
-    brickster,
+    brickster (>= 0.2.14),
     dbplyr,
     dplyr,
-    fabricQueryR,
+    fabricQueryR (>= 1.0.1),
     knitr,
     odbc (>= 1.3.4),
     pkgload,

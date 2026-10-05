@@ -13,7 +13,10 @@ Install `RSQLite` and select simulated user A or B. The table follows the select
 
 ## Run a live app
 
-Install shinyOAuthDB and the target-enabled development shinyOAuth package. Fabric uses fabricQueryR's existing token callback API; Databricks uses unmodified upstream brickster. Install the client package and native driver for your backend.
+Follow the [package installation instructions](../README.md#installation-and-examples)
+for shinyOAuth >= 0.6.1.9000 and shinyOAuthDB. Fabric requires fabricQueryR >= 1.0.1;
+Databricks uses unmodified upstream brickster >= 0.2.14. Install the native driver
+for your backend.
 
 Configure the environment before sourcing the app:
 
@@ -58,7 +61,28 @@ Add multiple grants and select one explicitly. The table reads through the selec
 
 For an app with separate login and database grants, keep login policy in the app and return the selected database connection from the accessor. App login alone does not supply database credentials.
 
-These examples read directly in render functions. If your app adds event-based result caching or background work, use the usual Shiny tools and decide how those app-owned results should behave when authorization changes.
+[example-two-authorizations.R](example-two-authorizations.R) runs Azure SQL and
+Databricks queries simultaneously using different providers and client
+registrations. Set the SQL and Databricks backend variables above, plus
+`OAUTHDB_SQL_CLIENT_ID`, `OAUTHDB_SQL_CLIENT_SECRET`,
+`OAUTHDB_DATABRICKS_CLIENT_ID`, and `OAUTHDB_DATABRICKS_CLIENT_SECRET`.
+Register `/callback/sql` on the Microsoft client and `/callback/databricks` on
+the Databricks client, under `OAUTHDB_APP_ORIGIN` (default
+`http://localhost:8100`). Its unique client labels separate the two selectors;
+the native clients' required permissions still enforce access. Removing a
+selected grant uses `revoke = FALSE`: it ends local use through the manager
+without requesting provider-wide token revocation.
+
+## Queries on demand
+
+[example-query-button.R](example-query-button.R) uses the Azure SQL settings
+and runs a query only when **Run query** is clicked. Ordinary `reactiveVal()`,
+`observeEvent()`, and `renderTable()` own the result. Changing authorizations,
+logging out, or losing required permissions clears it; restoring access waits
+for a new click. Token rotation preserves the result. Query errors replace the
+previous result without closing the Shiny session. This is a synchronous
+example; background jobs need their own authorization check before publishing
+results.
 
 ## Checks
 

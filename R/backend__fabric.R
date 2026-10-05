@@ -23,7 +23,7 @@ oauth_db_fabric_sql <- function(
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
-  .odb_require("fabricQueryR")
+  .odb_require("fabricQueryR", version = "1.0.1")
   options <- .odb_options(list(...), blocked = c(
     "server", "database", "tenant_id", "client_id", "client_secret", "token",
     "access_token", "sql_token", "token_provider", "auth_args", "authentication",

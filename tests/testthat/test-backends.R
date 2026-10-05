@@ -1,3 +1,14 @@
+test_that("unsupported installed backend versions fail before opening a connection", {
+  skip_if_not_installed("fabricQueryR")
+  skip_if_not_installed("brickster")
+  local_mocked_bindings(packageVersion = function(pkg, ...) package_version("0.0.1"),
+    .package = "utils")
+  expect_error(oauth_db_fabric_sql(NULL, "server", "db"),
+    "fabricQueryR >= 1.0.1", fixed = TRUE, class = "shinyOAuthDB_missing_dependency")
+  expect_error(oauth_db_databricks(NULL, "workspace.example", "warehouse"),
+    "brickster >= 0.2.14", fixed = TRUE, class = "shinyOAuthDB_missing_dependency")
+})
+
 test_that("backend helpers bind OAuth resources without query operation mappings", {
   local_mocked_bindings(.odb_bind = capture_backend, .odb_require = function(...) TRUE,
     .package = "shinyOAuthDB")

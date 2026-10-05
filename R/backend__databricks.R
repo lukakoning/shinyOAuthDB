@@ -67,7 +67,7 @@ oauth_db_databricks <- function(
     "host", "warehouse_id", "http_path", "drv", "token", "access_token",
     "token_provider", "auth_args", "authentication", "authenticator", "user",
     "password", "client_id", "client_secret"))
-  .odb_require("brickster")
+  .odb_require("brickster", version = "0.2.14")
   # brickster stores a fixed bearer string, so rebuild when that token changes.
   .odb_bind(authorization, .odb_backend_databricks, host = host,
     warehouse_id = warehouse_id, http_path = http_path, options = options, target = target,

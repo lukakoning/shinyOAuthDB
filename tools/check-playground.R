@@ -33,7 +33,7 @@ if ("--test" %in% commandArgs(trailingOnly = TRUE)) {
 
   testthat::test_dir(
     "tests/testthat",
-    filter = "playground|multiple-connections|standalone-apps|fabric-app",
+    filter = "playground|multiple-connections|standalone-apps|fabric-app|query-button|two-authorizations",
     stop_on_failure = TRUE
   )
 }

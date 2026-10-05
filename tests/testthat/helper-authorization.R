@@ -5,7 +5,8 @@ odb_test_authorization <- function(
   id = "A",
   scopes = c("read", "write"),
   target = NULL,
-  unacquired = FALSE
+  unacquired = FALSE,
+  resource = "https://example.invalid/api"
 ) {
   provider <- shinyOAuth::oauth_provider(
     name = "test",
@@ -14,7 +15,6 @@ odb_test_authorization <- function(
     token_auth_style = "public",
     token_target_mode = if (is.null(target)) "none" else "rfc8707"
   )
-  resource <- "https://example.invalid/api"
   declared <- if (is.null(target)) scopes else paste0(resource, "/", scopes)
   targets <- if (is.null(target)) {
     list()
