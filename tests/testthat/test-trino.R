@@ -55,20 +55,20 @@ test_that("Trino follows selected accounts and usernames and revokes retained ca
     second <- con()
     expect_false(DBI::dbIsValid(renamed))
     expect_identical(DBI::dbGetQuery(second, "SELECT current_user")$database_user, "reader-B")
-    expect_error(renamed@auth(httr2::request("https://trino.example.org")), class = "shinyOAuthDB_authorization_unavailable")
+    expect_error(renamed@auth(httr2::request("https://trino.example.org:8443")), class = "shinyOAuthDB_authorization_unavailable")
     b$status("insufficient_scope")
     expect_error(con(), class = "shiny.silent.error")
     expect_false(DBI::dbIsValid(second))
     b$status("active")
     selected(NULL)
     expect_error(con(), class = "shiny.silent.error")
-    expect_error(second@auth(httr2::request("https://trino.example.org")), class = "shinyOAuthDB_authorization_unavailable")
+    expect_error(second@auth(httr2::request("https://trino.example.org:8443")), class = "shinyOAuthDB_authorization_unavailable")
     selected(a$connection)
     retained <<- con()
   })
   expect_false(DBI::dbIsValid(retained))
   odb_test_domain(function(session) {
-    expect_error(retained@auth(httr2::request("https://trino.example.org")), class = "shinyOAuthDB_authorization_unavailable")
+    expect_error(retained@auth(httr2::request("https://trino.example.org:8443")), class = "shinyOAuthDB_authorization_unavailable")
   })
 })
 
@@ -137,5 +137,35 @@ test_that("Trino native errors do not trigger query replay by the bridge", {
     expect_error(DBI::dbGetQuery(native, "DELETE FROM orders"), class = "httr2_http_401")
     expect_identical(submissions, 1L)
     expect_identical(auth$calls$acquire, 0L)
+  })
+})
+
+test_that("Trino rejects pagination outside its HTTPS origin before sending credentials", {
+  skip_if_not_installed("RTrino", "0.1.0")
+  for (next_uri in c(
+    "http://trino.example.org/v1/statement/query/1",
+    "https://other.example.org/v1/statement/query/1",
+    "https://trino.example.org:8443/v1/statement/query/1",
+    "https://trino.example.org.evil.example/v1/statement/query/1",
+    "https://user:password@trino.example.org/v1/statement/query/1"
+  )) local({
+    requests <- list()
+    httr2::local_mocked_responses(function(req) {
+      requests[[length(requests) + 1L]] <<- req
+      response <- trino_test_response(req, paginate = TRUE)
+      if (identical(req$method, "POST")) {
+        payload <- httr2::resp_body_json(response, simplifyVector = FALSE)
+        payload$nextUri <- next_uri
+        response$body <- charToRaw(jsonlite::toJSON(payload, auto_unbox = TRUE))
+      }
+      response
+    })
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      con <- oauth_db_trino(auth$connection, "https://trino.example.org", "lake", "reports", "reader")
+      expect_error(DBI::dbGetQuery(con(), "SELECT current_user"), class = "shinyOAuthDB_invalid_audience")
+    })
+    expect_length(requests, 2L)
+    expect_true(all(vapply(requests, function(req) identical(req$options$followlocation, FALSE), logical(1))))
   })
 })

@@ -83,7 +83,19 @@ oauth_db_trino <- function(
 
 .odb_backend_trino <- function(token, host, port, catalog, schema, user, ca_bundle, options) {
   force(token)
-  auth <- function(req) httr2::req_auth_bearer_token(req, token())
+  hostname <- tolower(httr2::url_parse(host)$hostname)
+  auth <- function(req) {
+    address <- tryCatch(httr2::url_parse(req$url), error = function(e) NULL)
+    request_port <- if (is.null(address$port)) 443L else suppressWarnings(as.integer(address$port))
+    if (is.null(address) || !identical(tolower(address$scheme), "https") ||
+        !identical(tolower(address$hostname), hostname) ||
+        !identical(request_port, as.integer(port)) ||
+        !is.null(address$username) || !is.null(address$password)) {
+      .odb_abort("Trino requests must remain within the configured HTTPS origin.", "invalid_audience")
+    }
+    req <- httr2::req_options(req, followlocation = FALSE)
+    httr2::req_auth_bearer_token(req, token())
+  }
   do.call(DBI::dbConnect, c(list(
     drv = RTrino::Trino(), host = host, port = port,
     catalog = catalog, schema = schema, user = user(), auth = auth,
