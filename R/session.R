@@ -215,10 +215,12 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     shiny::req(available)
     captured <- epoch
     pinned <- grant
-    token <- function(force_refresh = FALSE, scopes = character()) {
+    token <- function(force_refresh = FALSE, scopes = character(), .check_only = FALSE) {
       .odb_flag(force_refresh, "force_refresh")
+      .odb_flag(.check_only, ".check_only")
       operation_scopes <- union(required_scopes, .odb_scopes(scopes))
       current(captured)
+      if (.check_only) return(invisible(NULL))
       value <- shiny::isolate(pinned$access_token(
         required_scopes = operation_scopes, min_valid_for_seconds = min_valid_for,
         force_refresh = force_refresh, async = FALSE, target = target

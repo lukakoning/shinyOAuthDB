@@ -279,3 +279,26 @@ test_that("BigQuery sign-in uses Google scopes and preserves custom clients", {
   expect_identical(custom@provider, provider)
   expect_identical(custom@scopes, c("openid", "custom"))
 })
+
+test_that("BigQuery accepts completed responses without renewing a still-live token", {
+  auth <- NULL
+  deny <- FALSE
+  requests <- 0L
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    auth$token(auth$make_token("fixture-A", lifetime = 59,
+      permissions = if (deny) "write" else auth$scopes))
+    bq_test_response(bq_test_result("completed"))
+  })
+  odb_test_domain(function(session) {
+    auth <<- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing", required_scopes = "read")
+    expect_identical(api$query("SELECT value")$value, "completed")
+    expect_identical(auth$calls$acquire, 0L)
+    auth$token(auth$make_token("fixture-A"))
+    deny <<- TRUE
+    expect_error(api$query("SELECT value"), class = "shinyOAuthDB_authorization_unavailable")
+    expect_identical(requests, 2L)
+    expect_identical(auth$calls$acquire, 0L)
+  })
+})

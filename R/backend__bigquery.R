@@ -283,7 +283,7 @@ oauth_db_bigquery_client <- function(
     resp <- perform(refreshed)
   }
   # Discard a response if the selected grant changed while its request ran.
-  token()
+  token(.check_only = TRUE)
   if (deadline <= .odb_bigquery_time()) .odb_abort("BigQuery operation timed out; the remote job may still be running.", "timeout")
   status <- httr2::resp_status(resp)
   if (status < 200L || status >= 300L) {
