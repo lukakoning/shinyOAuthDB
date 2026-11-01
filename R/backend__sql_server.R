@@ -53,7 +53,8 @@ oauth_db_azure_sql <- function(
   }
   .odb_odbc_values(list(server, database, driver, port))
   options <- .odb_options(list(...), blocked = c(
-    "server", "database", "driver", "port", "drv", "dsn", ".connection_string",
+    "server", "addr", "address", "database", "driver", "port", "drv", "dsn",
+    "filedsn", "savefile", "failover_partner", ".connection_string",
     "connection_string", "attributes", "token", "access_token", "user", "uid",
     "pwd", "password", "authentication", "authenticator", "trusted_connection",
     "integrated_security", "encrypt", "trust_server_certificate"))

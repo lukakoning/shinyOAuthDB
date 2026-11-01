@@ -63,3 +63,20 @@ test_that("ODBC delimiters cannot escape the quoted value", {
   expect_error(oauth_db_snowflake(NULL, "account", "db", "PUBLIC", "WH", "READER",
     `APP=x;TOKEN_FILE_PATH` = "path"), "option names")
 })
+
+test_that("ODBC endpoint aliases and file settings cannot override connection identity", {
+  local_mocked_bindings(.odb_require = function(...) TRUE, .odb_bind = capture_backend)
+  for (name in c("Addr", "ADDRESS", "FileDSN", "SaveFile", "FailoverPartner")) {
+    option <- stats::setNames(list("sensitive-fixture-value"), name)
+    for (helper in list(oauth_db_azure_sql, oauth_db_sql_server, oauth_db_fabric_sql)) {
+      error <- expect_error(do.call(helper, c(list(NULL, "fixed.example.org", "reports"), option)),
+        "cannot be overridden", class = "shinyOAuthDB_invalid_configuration")
+      expect_false(grepl("sensitive-fixture-value", conditionMessage(error), fixed = TRUE))
+    }
+  }
+  for (helper in list(oauth_db_snowflake, oauth_db_redshift)) for (name in c("FileDSN", "SaveFile")) {
+    args <- c(list(NULL, "fixed.example.org", "reports"), stats::setNames(list("other.dsn"), name))
+    if (identical(helper, oauth_db_snowflake)) args$role <- "READER"
+    expect_error(do.call(helper, args), "cannot be overridden", class = "shinyOAuthDB_invalid_configuration")
+  }
+})

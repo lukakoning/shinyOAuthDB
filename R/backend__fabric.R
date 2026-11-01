@@ -43,9 +43,10 @@ oauth_db_fabric_sql <- function(
 ) {
   .odb_require("fabricQueryR", version = "1.0.1")
   options <- .odb_options(list(...), blocked = c(
-    "server", "database", "tenant_id", "client_id", "client_secret", "token",
+    "server", "addr", "address", "database", "tenant_id", "client_id", "client_secret", "token",
     "access_token", "sql_token", "token_provider", "auth_args", "authentication",
-    "authenticator", "user", "uid", "pwd", "password", "dsn", "drv", "attributes",
+    "authenticator", "user", "uid", "pwd", "password", "dsn", "filedsn", "savefile",
+    "failover_partner", "drv", "attributes",
     ".connection_string", "connection_string", "trusted_connection",
     "integrated_security", "encrypt", "trust_server_certificate"))
   .odb_bind(authorization, .odb_backend_fabric_sql, server = server,

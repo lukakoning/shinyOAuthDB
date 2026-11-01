@@ -53,7 +53,7 @@ oauth_db_snowflake <- function(
   .odb_string(role, "role")
   .odb_odbc_values(list(server, database, schema, warehouse, role, driver))
   options <- .odb_options(list(...), blocked = c(
-    "server", "database", "schema", "warehouse", "role", "driver", "drv", "dsn",
+    "server", "database", "schema", "warehouse", "role", "driver", "drv", "dsn", "filedsn", "savefile",
     ".connection_string", "connection_string", "attributes", "user", "uid", "pwd",
     "password", "token", "access_token", "authentication", "authenticator",
     "token_file_path", "client_secret", "oauth_client_id", "oauth_client_secret",
