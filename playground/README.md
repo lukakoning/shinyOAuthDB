@@ -36,6 +36,7 @@ Choose an app and set its connection details:
 
 | App | Additional variables |
 | --- | --- |
+| [BigQuery](example-bigquery.R) | `OAUTHDB_BIGQUERY_PROJECT`; optional `OAUTHDB_BIGQUERY_LOCATION` (default `EU`) |
 | [Azure SQL](example-azure-sql.R) | `OAUTHDB_SERVER`, `OAUTHDB_DATABASE` |
 | [SQL Server with Entra](example-sql-server.R) | Same as Azure SQL |
 | [Azure PostgreSQL](example-azure-postgres.R) | `OAUTHDB_POSTGRES_HOST`, `OAUTHDB_DATABASE`, `OAUTHDB_POSTGRES_USER`, `OAUTHDB_POSTGRES_SSLROOTCERT` |

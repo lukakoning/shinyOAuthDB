@@ -22,6 +22,7 @@ Snowflake's built-in OAuth integration. For standard setup, use
 }
 \seealso{
 Other sign-in configuration:
+\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
 \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},

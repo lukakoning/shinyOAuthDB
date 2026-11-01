@@ -1,5 +1,7 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a per-user BigQuery REST client with Google sign-in, named parameters,
+  result paging, and token renewal through shinyOAuth.
 * Require shinyOAuth 0.7.0 and use its released client and token interfaces.
 * Connect Azure SQL, Fabric SQL, Databricks SQL, Snowflake, and Azure
   PostgreSQL to the signed-in user's authorization. Helpers return functions

@@ -68,6 +68,7 @@ output$warehouses <- shiny::renderPrint({
 \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}
 
 Other platform API clients:
+\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
 \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
 }
 \concept{platform API clients}

@@ -8,8 +8,8 @@
 #' Read `vignette("getting-started", package = "shinyOAuthDB")` for a complete
 #' app. Choose a database helper in
 #' `vignette("databases", package = "shinyOAuthDB")`, or see
-#' `vignette("platform-apis", package = "shinyOAuthDB")` for Fabric and
-#' Databricks API calls.
+#' `vignette("platform-apis", package = "shinyOAuthDB")` for BigQuery,
+#' Fabric, and Databricks API calls.
 #'
 #' @section Database queries:
 #' Create a helper such as [oauth_db_azure_sql()] inside `server()`, passing
@@ -21,6 +21,7 @@
 #' [oauth_db_fabric_api()] and [oauth_db_databricks_api()] let you call native
 #' R functions with the visitor's credentials. Fabric resource objects can
 #' also use those credentials in their own methods.
+#' [oauth_db_bigquery_api()] runs GoogleSQL through the BigQuery REST API.
 #'
 #' @section Sign-in settings:
 #' Keep an existing shinyOAuth client or use [oauth_db_microsoft_client()],

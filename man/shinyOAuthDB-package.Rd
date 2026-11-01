@@ -15,8 +15,8 @@ fabricQueryR, or brickster functions.
 Read \code{vignette("getting-started", package = "shinyOAuthDB")} for a complete
 app. Choose a database helper in
 \code{vignette("databases", package = "shinyOAuthDB")}, or see
-\code{vignette("platform-apis", package = "shinyOAuthDB")} for Fabric and
-Databricks API calls.
+\code{vignette("platform-apis", package = "shinyOAuthDB")} for BigQuery,
+Fabric, and Databricks API calls.
 }
 
 \section{Database queries}{
@@ -32,6 +32,7 @@ usual database functions; the helper handles connection reuse and cleanup.
 \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} let you call native
 R functions with the visitor's credentials. Fabric resource objects can
 also use those credentials in their own methods.
+\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}} runs GoogleSQL through the BigQuery REST API.
 }
 
 \section{Sign-in settings}{

@@ -7,12 +7,12 @@ and brickster 0.2.15. Dependencies were installed in an isolated library.
 
 | Check | Result |
 | --- | --- |
-| Package test suite | 721 passing assertions; no skipped scenarios |
-| `R CMD check --no-manual` | No errors, warnings, or notes |
+| Package test suite | Full suite and focused BigQuery checks pass; no skipped scenarios |
+| `R CMD check --no-tests --no-manual` after the suite | No errors, warnings, or notes |
 | Four vignettes | Built and rebuilt during the package check |
-| Five README apps | OAuth clients and apps construct; all seven outputs wait for sign-in |
+| Example apps | OAuth clients and apps construct; BigQuery also checks A/B replacement and sign-out |
 | Documentation examples and local links | Parse and resolve |
-| Executable R code | Unchanged by the documentation rewrite |
+| BigQuery REST client | Polling, paging, typed results, bound parameters, 401 renewal, and grant isolation |
 
 The tests cover connection reuse and cleanup, authorization changes,
 permission checks, token refresh, API routing, and the example apps.

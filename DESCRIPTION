@@ -5,7 +5,7 @@ Authors@R: person("Luka", "Koning", email = "koningluka@gmail.com", role = c("au
 Description: Use a Shiny visitor's own database access with 'DBI', 'dbplyr',
     'fabricQueryR', and 'brickster'. Connects 'shinyOAuth' sign-in to database
     connections and platform API calls, with connection reuse and cleanup for
-    each visitor. Supports Azure SQL, Microsoft Fabric, Databricks, Snowflake,
+    each visitor. Supports Azure SQL, Microsoft Fabric, BigQuery, Databricks, Snowflake,
     and Azure PostgreSQL.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
@@ -14,6 +14,8 @@ Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     DBI (>= 1.2.0),
+    httr2 (>= 1.0.0),
+    openssl,
     R6,
     rlang,
     shiny (>= 1.8.1),
@@ -23,7 +25,6 @@ Suggests:
     dbplyr,
     dplyr,
     fabricQueryR (>= 1.0.1),
-    httr2,
     jsonlite,
     knitr,
     odbc (>= 1.4.2),

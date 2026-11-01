@@ -1,8 +1,8 @@
 ---
-title: "Fabric and Databricks APIs"
+title: "Platform APIs"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{3. Fabric and Databricks APIs}
+  %\VignetteIndexEntry{3. Platform APIs}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,14 +11,47 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use an API client when you need platform features beyond a SQL connection:
-find workspaces, read OneLake files, query a semantic model, or list Databricks
-warehouses.
+Use an API client to query BigQuery, find Fabric workspaces, read OneLake
+files, query a semantic model, or list Databricks warehouses.
 
-Create the API client inside `server()` and pass a fabricQueryR or brickster function to
-`$call()`. You use that function's usual arguments and return value; the
-client supplies authentication for the signed-in person. The
+Create the client inside `server()` with `auth$connection`. The
 [getting-started guide](getting-started.html) shows how to create `auth`.
+Fabric and Databricks clients call their R packages through `$call()`;
+the BigQuery client has its own query methods.
+
+## Google BigQuery
+
+Use `oauth_db_bigquery_client()` instead of the getting-started app's
+Microsoft client. Supply the client ID and secret from a Google Cloud Web
+OAuth registration, with the same redirect URI as the app.
+
+Inside `server()`, create the BigQuery client and query with GoogleSQL:
+
+```{r bigquery-query}
+bigquery <- oauth_db_bigquery_api(
+  auth$connection, project = "billing-project", location = "EU"
+)
+output$rows <- shiny::renderTable({
+  bigquery$query(
+    "SELECT * FROM reporting.Orders WHERE country = @country LIMIT 20",
+    parameters = list(country = "NL")
+  )
+})
+```
+
+The project pays for the query; users need permission to create query jobs
+there and read the selected data. Choose the location of your datasets.
+`$datasets()` lists dataset IDs and `$tables("reporting")` lists table IDs.
+
+Queries return a data frame after polling and fetching all result pages.
+INT64 and decimal columns remain strings to preserve precision; nested and
+repeated values become list columns. `raw = TRUE` returns the REST result
+and schema. Use `maximum_bytes_billed = "1000000000"` to limit query charges.
+
+This client uses the REST API directly. Its credentials stay within the
+visitor's authorization, including during refresh and pagination. Queries
+run synchronously; a timeout or sign-out stops fetching but does not cancel
+an already submitted job.
 
 ## Fabric functions
 

@@ -1,16 +1,61 @@
 # shinyOAuthDB
 
 Build Shiny apps that use each visitor's own access to Azure SQL, Microsoft
-Fabric, Databricks, Snowflake, or Azure PostgreSQL. Sign them in, then query
+Fabric, BigQuery, Databricks, Snowflake, or Azure PostgreSQL. Sign them in, then query
 with DBI or use the platform's R functions. The database decides what each
 person can access.
 
 Choose your platform below. Each example is a complete `app.R`, including
 the matching shinyOAuth sign-in configuration.
 
-[Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
+[BigQuery](#google-bigquery) · [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
 [Snowflake](#snowflake) · [Azure PostgreSQL](#azure-postgresql)
+
+## Google BigQuery
+
+Use a Google Cloud Web OAuth registration and give users permission to run
+query jobs in the billing project and read the data. This app queries BigQuery
+directly through its REST API.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_bigquery_client(
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  bigquery <- oauth_db_bigquery_api(
+    auth$connection,
+    project = "billing-project",
+    location = "EU"
+  )
+  output$rows <- renderTable({
+    bigquery$query("SELECT * FROM reporting.Orders LIMIT 20")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+`bigquery$query()` returns a data frame and handles polling and result pages.
+It also accepts named parameters, such as `parameters = list(country = "NL")`.
+See [Platform APIs](vignettes/platform-apis.Rmd#google-bigquery) for more.
 
 ## Azure SQL and SQL Server
 
@@ -294,7 +339,7 @@ Use its usual arguments and return value.
 
 - [Getting started](vignettes/getting-started.Rmd): installation and the first app.
 - [Database connections](vignettes/databases.Rmd): drivers and connection options.
-- [Fabric and Databricks APIs](vignettes/platform-apis.Rmd): more functions and resource objects.
+- [Platform APIs](vignettes/platform-apis.Rmd): BigQuery queries, platform functions, and resource objects.
 - [Authentication and sessions](vignettes/authorization.Rmd): existing logins, permissions, multiple accounts, and stored results.
 
 The [playground](playground/README.md) has runnable scripts and an offline

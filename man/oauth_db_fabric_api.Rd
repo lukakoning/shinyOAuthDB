@@ -81,6 +81,7 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}
 
 Other platform API clients:
+\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
 \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}
 }
 \concept{platform API clients}

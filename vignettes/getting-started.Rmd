@@ -123,6 +123,6 @@ Use your database package's parameter-binding functions when queries include
 values entered by a visitor.
 
 Choose a helper in [Database connections](databases.html), or use
-[Fabric and Databricks APIs](platform-apis.html) for platform-specific work.
+[Platform APIs](platform-apis.html) for BigQuery and platform-specific work.
 If you already have a login setup, [Authentication and sessions](authorization.html)
 shows how to keep it.

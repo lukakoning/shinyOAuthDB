@@ -4,7 +4,7 @@ For using the package, start with the [README](../README.md) and
 [getting-started guide](../vignettes/getting-started.Rmd).
 
 The remaining user guides cover [database connections](../vignettes/databases.Rmd),
-[Fabric and Databricks APIs](../vignettes/platform-apis.Rmd), and
+[platform APIs](../vignettes/platform-apis.Rmd), and
 [authentication and sessions](../vignettes/authorization.Rmd).
 Runnable apps are in the [playground](../playground/README.md).
 

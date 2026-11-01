@@ -8,7 +8,8 @@ odb_test_authorization <- function(
   unacquired = FALSE,
   resource = "https://example.invalid/api",
   client_required_scopes = character(),
-  client = NULL
+  client = NULL,
+  refresh_token = NA_character_
 ) {
   provider <- shinyOAuth::oauth_provider(
     name = "test",
@@ -63,6 +64,7 @@ odb_test_authorization <- function(
     shinyOAuth::OAuthToken(
       access_token = value,
       token_type = "Bearer",
+      refresh_token = refresh_token,
       expires_at = as.numeric(Sys.time()) + lifetime,
       granted_scopes = permissions,
       granted_scopes_verified = TRUE

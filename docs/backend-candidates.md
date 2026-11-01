@@ -1,7 +1,7 @@
 # Additional OAuth backends
 
-Investigated 1 November 2026. This is a feasibility assessment; the proposed
-helpers below are not implemented.
+Investigated 1 November 2026. BigQuery now uses a direct REST implementation.
+The Redshift and Trino interfaces below remain proposals.
 
 Trino is the best next addition technically. Redshift has a suitable ODBC
 interface but needs a configured AWS deployment for testing. BigQuery remains
@@ -12,7 +12,7 @@ valuable, although its R client needs a different integration design.
 | Trino / Starburst Enterprise | RTrino DBI connection with an authentication callback | Proceed to a backend prototype |
 | Redshift | DBI + AWS ODBC driver, supplied user token | Proceed with a live Identity Center fixture |
 | Dremio Enterprise | DBI + Flight SQL ODBC; consider adbi/ADBC for token exchange | Start with a configured external token provider |
-| BigQuery | bigrquery API client, if calls can use a bounded authentication scope | Investigate further before promising DBI support |
+| BigQuery | Direct REST client with per-user tokens | Implemented as `oauth_db_bigquery_api()` |
 
 ## Trino and Starburst
 
@@ -153,56 +153,23 @@ edition before claiming delegated OAuth support. No live Dremio tests ran.
 
 ## Google BigQuery
 
-**A bigrquery DBI connection currently does not own its authentication.**
-In bigrquery 1.6.2, `dbConnect()` stores query settings, while requests obtain
-the package's current token. The `token` argument in `dbConnect(..., token = x)`
-is ignored. See the [connection constructor](https://github.com/r-dbi/bigrquery/blob/main/R/dbi-driver.R)
-and [authentication state](https://github.com/r-dbi/bigrquery/blob/main/R/bq-auth.R).
+Implemented with `oauth_db_bigquery_api()` and
+`oauth_db_bigquery_client()`. Queries, polling, and pagination use a token
+callback tied to the selected authorization. The client returns data frames,
+preserves INT64 and decimal precision, and supports named query parameters.
+See the [BigQuery guide](../vignettes/platform-apis.Rmd#google-bigquery).
 
-A local probe created two connections with different fixture tokens, then
-called `dbListTables()` through each with HTTP mocked. Both used user B after
-`bq_auth(token = B)`. Switching the package token back to A changed subsequent
-requests through the existing connection.
+The direct REST approach avoids bigrquery's package-global authentication.
+The investigation with bigrquery 1.6.2 confirmed that two DBI connections used
+the most recently configured package token, even when created with different
+`token` arguments. Its [constructor](https://github.com/r-dbi/bigrquery/blob/main/R/dbi-driver.R)
+does not bind authentication to the connection.
 
-An API client is a possible narrower design:
-
-```r
-bigquery$call(
-  bigrquery::bq_project_query,
-  "billing-project",
-  "SELECT * FROM reporting.Orders LIMIT 20"
-)
-```
-
-A prototype using only public bigrquery functions temporarily installed a
-token for one synchronous call and restored prior authentication on exit.
-Sequential A/B/A metadata calls used the right token; success and errors both
-restored the prior state, including an initially unauthenticated state.
-
-This proves a possible mechanism, not a general session-safe adapter.
-Before shipping it, define serialization/reentrancy rules, prevent DBI
-connections or deferred work from escaping the scope, and test refresh and
-the BigQuery Storage/Arrow download path. A per-connection or per-request
-credential hook upstream would avoid the shared-state restriction.
-
-Two driver alternatives also need separate treatment:
-
-- The [Foundry Go driver](https://adbc-drivers.org/drivers/bigquery/#connection-options)
-  documents ADC, credential JSON, and driver-managed user refresh. The reviewed
-  interface does not provide the direct Google access-token callback needed
-  for this bridge. The C# driver's
-  [`adbc.bigquery.access_token` option](https://github.com/adbc-drivers/bigquery/blob/c371d617d5619b451f11faf33dec76bbd18d9389/csharp/src/AdbcDrivers.BigQuery/readme.md)
-  belongs to its Entra federation path; it is not a drop-in Google OAuth token
-  argument or an R callback.
-- Progress DataDirect documents access-token-only authentication, making
-  DBI/odbc a possible vendor-specific route. Its client settings, deployment
-  requirements, and token expiry need a real-driver test.
-  See its [driver guide, pages 50–51 and 76–77](https://progress-be-prod.zoominsoftware.io/bundle/datadirect-pdfs/raw/resource/enus/datadirect-google-bigquery-odbc-80.pdf).
-
-Use shinyOAuth's existing Google provider for any future Google sign-in setup.
-Billing project and dataset remain query settings, rather than Microsoft-style
-OAuth token targets. Do not publish a general `oauth_db_bigquery()` DBI helper
-based on package-global `bq_auth()`.
+Google's [query](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query)
+and [result](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/getQueryResults)
+APIs define the transport. A unique request ID protects a submission's single
+401 refresh retry; other failures do not resubmit SQL. Local timeouts and
+sign-out stop fetching, while an already submitted Google job can continue.
 
 ## Scope of the evidence
 
