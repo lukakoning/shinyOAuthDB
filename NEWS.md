@@ -1,5 +1,7 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add Redshift DBI connections using externally supplied user tokens through
+  the AWS ODBC driver, with explicit token mode and verified TLS.
 * Add a per-user BigQuery REST client with Google sign-in, named parameters,
   result paging, and token renewal through shinyOAuth.
 * Require shinyOAuth 0.7.0 and use its released client and token interfaces.

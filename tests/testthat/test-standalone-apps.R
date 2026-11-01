@@ -1,5 +1,6 @@
 # Execute real app definitions while mocking only OAuth and native transports.
 playground_cases <- list(
+  list("redshift", "redshift", "DBI", "dbGetQuery"),
   list("azure-sql", "azure_sql", "DBI", "dbGetQuery"),
   list("sql-server", "sql_server", "DBI", "dbGetQuery"),
   list("azure-postgres", "azure_postgres", "DBI", "dbGetQuery"),

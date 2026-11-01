@@ -1,7 +1,7 @@
 # Additional OAuth backends
 
-Investigated 1 November 2026. BigQuery now uses a direct REST implementation.
-The Redshift and Trino interfaces below remain proposals.
+Investigated 1 November 2026. BigQuery and Redshift are implemented.
+The Trino interface below remains a proposal; Dremio is deferred.
 
 Trino is the best next addition technically. Redshift has a suitable ODBC
 interface but needs a configured AWS deployment for testing. BigQuery remains
@@ -10,7 +10,7 @@ valuable, although its R client needs a different integration design.
 | Platform | Preferred route | Assessment |
 | --- | --- | --- |
 | Trino / Starburst Enterprise | RTrino DBI connection with an authentication callback | Proceed to a backend prototype |
-| Redshift | DBI + AWS ODBC driver, supplied user token | Proceed with a live Identity Center fixture |
+| Redshift | DBI + AWS ODBC driver, supplied user token | Implemented as `oauth_db_redshift()`; live deployment checks remain |
 | Dremio Enterprise | DBI + Flight SQL ODBC; consider adbi/ADBC for token exchange | Start with a configured external token provider |
 | BigQuery | Direct REST client with per-user tokens | Implemented as `oauth_db_bigquery_api()` |
 
@@ -73,7 +73,7 @@ their sign-in flow: `plugin_name = "IdpTokenAuthPlugin"`, with `token` and
 This requires the deployment's Identity Center integration and user mapping.
 See [AWS's integration guide](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html).
 
-Proposed interface:
+Implemented interface:
 
 ```r
 con <- oauth_db_redshift(
@@ -88,8 +88,8 @@ con <- oauth_db_redshift(
 The existing generic connector can already pass a token to DBI/odbc using
 `odbc::odbc()`. The convenience [`odbc::redshift()`](https://odbc.r-dbi.org/reference/redshift.html)
 method discovers IAM credentials, which is unsuitable for this supplied-token
-path. A dedicated helper would set the native authentication options, enforce
-TLS, and close the connection on authorization changes. The client's IdP and token
+path. The helper sets the native authentication options, enforces
+TLS, and closes the connection on authorization changes. The client's IdP and token
 audience depend on the deployment, so a universal Redshift sign-in preset
 would be misleading.
 

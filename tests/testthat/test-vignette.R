@@ -29,7 +29,7 @@ test_that("documented DBI queries wait quietly for sign-in", {
     expect_error(output$rows, class = "shiny.silent.error")
   })
 
-  cases <- c("azure-sql", "fabric-sql", "azure-postgres", "databricks-dbi", "snowflake")
+  cases <- c("azure-sql", "fabric-sql", "azure-postgres", "databricks-dbi", "snowflake", "redshift")
   for (label in cases) {
     server <- app$server
     body(server) <- bquote({
@@ -51,7 +51,7 @@ test_that("documented sign-in clients use the released shinyOAuth interface", {
   )
   chunks <- vignette_chunks("databases")
   app <- new.env(parent = globalenv())
-  for (label in c("databricks-client", "snowflake-client")) {
+  for (label in c("databricks-client", "snowflake-client", "redshift-client")) {
     eval(chunks[[label]], app)
     expect_s3_class(app$client, "shinyOAuth::OAuthClient")
   }

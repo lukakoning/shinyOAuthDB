@@ -130,6 +130,51 @@ provider's shinyOAuth configuration and supply the integration's `target`
 and `required_scopes` to the connection helper. These settings depend on
 your Snowflake integration.
 
+## Amazon Redshift
+
+Install `odbc` and the AWS Redshift ODBC 2.x driver with
+`IdpTokenAuthPlugin` support. Your administrator must connect Redshift to
+IAM Identity Center and configure its trusted issuer and user mapping.
+
+For Microsoft Entra as that issuer, create this client outside `server()`.
+Set the two Redshift environment variables to the resource and delegated
+scope configured for your Entra registration:
+
+```{r redshift-client}
+client <- oauth_db_microsoft_client(
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  token_targets = list(redshift = list(
+    resource = Sys.getenv("OAUTHDB_REDSHIFT_RESOURCE"),
+    scopes = Sys.getenv("OAUTHDB_REDSHIFT_SCOPE")
+  ))
+)
+```
+
+Inside `server()`:
+
+```{r redshift}
+con <- oauth_db_redshift(
+  auth$connection,
+  server = "cluster.example.eu-west-1.redshift.amazonaws.com",
+  database = "reporting",
+  target = "redshift",
+  token_type = "EXT_JWT"
+)
+```
+
+`EXT_JWT` uses an external issuer's JWT access token. For an IAM Identity
+Center access token, use `token_type = "ACCESS_TOKEN"` with the matching
+shinyOAuth client. Other external identity providers can supply their own
+client instead of the Microsoft example.
+
+Set `driver` to the installed driver name or path if needed.
+`CaFile` and `LoginTimeout` can be passed through to the driver.
+The helper supplies the token, token type, and verified TLS settings, and
+closes connections on account changes, sign-out, or session end.
+
 ## Azure PostgreSQL
 
 Install `RPostgres` and use the Microsoft client with `services = "postgres"`.

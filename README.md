@@ -1,7 +1,7 @@
 # shinyOAuthDB
 
 Build Shiny apps that use each visitor's own access to Azure SQL, Microsoft
-Fabric, BigQuery, Databricks, Snowflake, or Azure PostgreSQL. Sign them in, then query
+Fabric, BigQuery, Redshift, Databricks, Snowflake, or Azure PostgreSQL. Sign them in, then query
 with DBI or use the platform's R functions. The database decides what each
 person can access.
 
@@ -10,7 +10,7 @@ the matching shinyOAuth sign-in configuration.
 
 [BigQuery](#google-bigquery) · [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
-[Snowflake](#snowflake) · [Azure PostgreSQL](#azure-postgresql)
+[Redshift](#amazon-redshift) · [Snowflake](#snowflake) · [Azure PostgreSQL](#azure-postgresql)
 
 ## Google BigQuery
 
@@ -259,6 +259,60 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 
 For External OAuth through Entra, Okta, or another provider, see the
 [Snowflake connection guide](vignettes/databases.Rmd#snowflake).
+
+## Amazon Redshift
+
+This example uses Microsoft Entra sign-in for a Redshift deployment linked
+to IAM Identity Center. Set `OAUTHDB_REDSHIFT_RESOURCE` and
+`OAUTHDB_REDSHIFT_SCOPE` to the resource and delegated scope of the Entra
+registration trusted by that deployment.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  token_targets = list(redshift = list(
+    resource = Sys.getenv("OAUTHDB_REDSHIFT_RESOURCE"),
+    scopes = Sys.getenv("OAUTHDB_REDSHIFT_SCOPE")
+  ))
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_redshift(
+    auth$connection,
+    server = "cluster.example.eu-west-1.redshift.amazonaws.com",
+    database = "reporting",
+    target = "redshift"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Install the AWS Redshift ODBC 2.x driver and select its installed name with
+the helper's `driver` argument if it differs from the default. Other identity
+providers can use their own shinyOAuth client with the same connection helper.
+See [Redshift setup](vignettes/databases.Rmd#amazon-redshift).
 
 ## Azure PostgreSQL
 
