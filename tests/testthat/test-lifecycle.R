@@ -43,6 +43,90 @@ test_that("credential expiry alone preserves established SQL sessions", {
   })
 })
 
+test_that("expired and unknown lifetimes cannot hide client or target permission loss", {
+  skip_if_not_installed("RSQLite")
+  for (target in list(NULL, "data")) for (lifetime in c(-1, NA_real_)) {
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session, scopes = c("essential", "read"),
+        target = target, client_required_scopes = if (is.null(target)) "essential" else character(),
+        refresh_token = "fixture-refresh")
+      con <- oauth_db_connect(auth$connection,
+        connect = function(token) DBI::dbConnect(RSQLite::SQLite(), ":memory:"),
+        target = target, required_scopes = auth$scopes[[2L]])
+      first <- con()
+      session$flushReact()
+      auth$token(auth$make_token("denied", auth$scopes[[2L]], lifetime = lifetime))
+      session$flushReact()
+      expect_false(DBI::dbIsValid(first))
+      expect_error(con(), "lacks the required permissions", class = "shiny.silent.error")
+      expect_identical(auth$calls$acquire, 0L)
+      auth$token(auth$make_token("restored"))
+      session$flushReact()
+      expect_true(DBI::dbIsValid(con()))
+    })
+  }
+})
+
+test_that("unknown expiry alone preserves SQL sessions without a refresh credential", {
+  skip_if_not_installed("RSQLite")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, client_required_scopes = "read")
+    con <- oauth_db_connect(auth$connection,
+      connect = function(token) DBI::dbConnect(RSQLite::SQLite(), ":memory:"))
+    first <- con()
+    session$flushReact()
+    auth$token(auth$make_token("unknown-expiry", lifetime = NA_real_))
+    session$flushReact()
+    expect_identical(con(), first)
+    expect_identical(auth$calls$acquire, 0L)
+  })
+})
+
+test_that("permission validation cannot return a cached connection after access becomes uncertain", {
+  skip_if_not_installed("RSQLite")
+  odb_test_domain(function(session) {
+    status <- shiny::reactiveVal("active")
+    grant <- list(id = "state-transition",
+      summary = function() list(status = status()),
+      has_scopes = function(scopes, target = NULL) status() %in% c("active", "expired"),
+      access_token = function(...) {
+        if (identical(status(), "expired")) {
+          status("uncertain")
+          getFromNamespace("connection_access_error", "shinyOAuth")("interaction_required")
+        }
+        "fixture-token"
+      })
+    con <- oauth_db_connect(grant,
+      connect = function(token) DBI::dbConnect(RSQLite::SQLite(), ":memory:"))
+    first <- con()
+    status("expired")
+    expect_error(con(), class = "shiny.silent.error")
+    expect_false(DBI::dbIsValid(first))
+  })
+})
+
+test_that("permission observers do not renew repeatedly when expiry stays unknown", {
+  odb_test_domain(function(session) {
+    generation <- shiny::reactiveVal(0L)
+    renewals <- 0L
+    grant <- list(id = "unknown-expiry",
+      has_scopes = function(scopes, target = NULL) TRUE,
+      summary = function() { generation(); list(status = "expiry_unknown") },
+      access_token = function(...) {
+        renewals <<- renewals + 1L
+        if (renewals > 3L) stop("Repeated renewal")
+        generation(renewals)
+        getFromNamespace("connection_access_error", "shinyOAuth")("lifetime_unavailable")
+      })
+    oauth_db_connect(grant, connect = function(token) stop("Must remain lazy"))
+    session$flushReact()
+    expect_identical(renewals, 1L)
+    generation(10L)
+    session$flushReact()
+    expect_identical(renewals, 1L)
+  })
+})
+
 test_that("zero minimum lifetime accepts live tokens but still refreshes expired ones", {
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session)

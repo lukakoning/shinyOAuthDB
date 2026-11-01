@@ -154,12 +154,21 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
       if (!is.null(next_grant)) {
         .odb_authorization_validate(next_grant)
         next_available <- .odb_authorization_has_scopes(next_grant, required_scopes, target)
-        status <- .odb_authorization_status(next_grant, target)
+        # Permission evidence drives notifications. Watching token status here
+        # could retrigger renewal indefinitely when expiry remains unknown.
+        status <- shiny::isolate(.odb_authorization_status(next_grant, target))
         # has_scopes() checks operation scopes, not the client's requirements.
-        # Keep an observed denial until upstream supplies affirmative evidence;
-        # expiry/refresh can mask it in the public status ordering.
-        next_denied <- identical(status, "insufficient_scope") ||
-          (identical(next_grant, grant) && denied && !status %in% c("active", "limited"))
+        # Validate those separately when expiry masks the permission status;
+        # preserve a previous denial while a refresh hides its evidence.
+        next_denied <- .odb_authorization_denied(next_grant, required_scopes, target, status)
+        if (isTRUE(status %in% c("expired", "expiry_unknown"))) {
+          # Validation can renew credentials or end local access on failure.
+          next_available <- .odb_authorization_has_scopes(next_grant, required_scopes, target)
+          status <- shiny::isolate(.odb_authorization_status(next_grant, target))
+        }
+        next_denied <- next_denied || identical(status, "insufficient_scope") ||
+          (identical(next_grant, grant) && denied &&
+            !status %in% c("active", "limited", "expired", "expiry_unknown"))
         next_available <- next_available && !next_denied
         if (!next_available) {
           if (identical(status, "refreshing") && !next_denied) shiny::req(FALSE)
