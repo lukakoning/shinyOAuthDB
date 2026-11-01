@@ -525,7 +525,7 @@ which API the token is intended for, such as SQL or KQL.
 
 The client helpers return normal shinyOAuth clients. Their defaults are
 replaceable: Microsoft accepts `provider`, `token_targets`,
-`default_token_target`, and `scopes`; Databricks and Snowflake accept `provider`
+`token_target_default`, and `scopes`; Databricks and Snowflake accept `provider`
 and `scopes`. Explicit values replace their corresponding defaults. Additional
 `shinyOAuth::oauth_client()` settings pass through `...`.
 
@@ -627,7 +627,7 @@ client <- shinyOAuth::oauth_client(provider,
   scopes = c("openid", "profile", "offline_access", sql_scope),
   token_targets = list(reporting = list(
     resource = "https://database.windows.net/", scopes = sql_scope)),
-  default_token_target = "reporting")
+  token_target_default = "reporting")
 
 # Inside server(), using that client's existing auth module:
 con <- oauth_db_azure_sql(auth$connection,

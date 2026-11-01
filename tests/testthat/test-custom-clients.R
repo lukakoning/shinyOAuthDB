@@ -10,7 +10,7 @@ test_that("ordinary Microsoft clients retain explicit scope and target configura
       scopes = c("openid", "profile", "offline_access", permission),
       token_targets = if (is.null(target)) list() else list(reporting = list(
         resource = "https://database.windows.net/", scopes = permission)),
-      default_token_target = if (is.null(target)) character() else "reporting")
+      token_target_default = if (is.null(target)) character() else "reporting")
     auth <- odb_test_authorization(session, scopes = permission, client = client)
     con <- oauth_db_azure_sql(auth$connection, "server", "Reporting", target = target)
     expect_identical(con(), list(bearer = "fixture-A"))

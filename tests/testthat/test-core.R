@@ -212,7 +212,7 @@ test_that("native arguments and errors stay native, tokens are clean and explici
   odb_test_domain(function(session) {
     raw <- shiny::reactiveVal(structure("valid-token", secret = new.env()))
     grant <- list(id = "A", has_scopes = function(scopes, target = NULL) TRUE,
-      access_token = function(required_scopes, min_valid_for, force_refresh, async, target = NULL) raw())
+      access_token = function(required_scopes, min_valid_for_seconds, force_refresh, async, target = NULL) raw())
     token <- oauth_db_token(grant)
     expect_identical(token(), "valid-token")
     raw("token;UID=other")

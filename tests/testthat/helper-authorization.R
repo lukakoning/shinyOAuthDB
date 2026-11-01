@@ -50,7 +50,7 @@ odb_test_authorization <- function(
     scopes = if (unacquired) c(primary_scope, declared) else declared,
     required_scopes = client_required_scopes,
     token_targets = targets,
-    default_token_target = if (unacquired) {
+    token_target_default = if (unacquired) {
       "primary"
     } else if (is.null(target)) {
       character()

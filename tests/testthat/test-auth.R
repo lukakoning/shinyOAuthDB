@@ -2,7 +2,7 @@ test_that("Microsoft convenience configures native targets without source object
   client <- oauth_db_microsoft_client(c("sql", "dax", "graphql"), "organizations", "app",
                                       "http://localhost:8100")
   expect_s3_class(client, "shinyOAuth::OAuthClient")
-  expect_equal(client@default_token_target, "sql")
+  expect_equal(client@token_target_default, "sql")
   expect_equal(client@token_targets$sql$resource, "https://database.windows.net/")
   expect_equal(client@token_targets$sql$scopes, "https://database.windows.net//user_impersonation")
   expect_length(client@token_targets$power_bi$scopes, 2L)
@@ -25,7 +25,7 @@ test_that("Microsoft presets accept native providers and derive consent from cus
     scope_validation = "strict", label = "Reporting database")
   expect_identical(client@provider, provider)
   expect_identical(client@token_targets, targets)
-  expect_identical(client@default_token_target, "reporting")
+  expect_identical(client@token_target_default, "reporting")
   expect_identical(client@scopes, c("openid", "profile", "offline_access",
     targets$reporting$scopes))
   expect_identical(client@scope_validation, "strict")
@@ -36,7 +36,7 @@ test_that("Microsoft presets accept native providers and derive consent from cus
     token_targets = list(), scopes = targets$reporting$scopes,
     resource = "https://database.windows.net/", required_scopes = targets$reporting$scopes)
   expect_identical(single@token_targets, list())
-  expect_identical(single@default_token_target, character())
+  expect_identical(single@token_target_default, character())
   expect_identical(single@scopes, targets$reporting$scopes)
   expect_identical(single@required_scopes, targets$reporting$scopes)
   expect_identical(single@resource, "https://database.windows.net/")
@@ -49,8 +49,8 @@ test_that("Microsoft presets accept native providers and derive consent from cus
 
 test_that("Microsoft presets let callers select another default target", {
   client <- oauth_db_microsoft_client(c("sql", "kql"), "organizations", "app",
-    "http://localhost:8100", default_token_target = "kusto")
-  expect_identical(client@default_token_target, "kusto")
+    "http://localhost:8100", token_target_default = "kusto")
+  expect_identical(client@token_target_default, "kusto")
   expect_setequal(names(client@token_targets), c("sql", "kusto"))
 })
 

@@ -139,7 +139,7 @@ independent queries. It uses shinyOAuth's existing connection manager.
 
 ## Control providers and clients
 
-Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `default_token_target`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `required_scopes` to your client configuration.
+Client helpers are optional presets returning ordinary shinyOAuth clients, usable with its usual modules and managers. Microsoft accepts explicit `provider`, `token_targets`, `token_target_default`, and `scopes`; Databricks and Snowflake accept explicit `provider` and `scopes`. Other native `oauth_client()` settings pass through `...`. Explicit values replace defaults rather than being merged. Match each backend accessor's `target` and `required_scopes` to your client configuration.
 
 For provider-only setup, use `shinyOAuth::oauth_provider_microsoft()`, `oauth_db_databricks_provider()`, or `oauth_db_snowflake_provider()`, then construct the client yourself:
 
@@ -214,7 +214,7 @@ package's supported transport, with app-owned result checks.
 
 ## Installation and examples
 
-This development version requires **shinyOAuth >= 0.6.1.9000**, including its
+This development version requires **shinyOAuth >= 0.7.0**, including its
 module-managed `access_token()`, `has_scopes()`, and `targets()` interfaces.
 Fabric uses **fabricQueryR >= 1.0.1**'s existing token callback API. Databricks
 uses upstream **brickster >= 0.2.14**. These are the tested minimum versions;

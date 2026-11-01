@@ -14,7 +14,7 @@ oauth_db_microsoft_client(
   provider = shinyOAuth::oauth_provider_microsoft(tenant = tenant_id, id_token_validation
     = TRUE, userinfo_required = FALSE),
   token_targets = .odb_microsoft_targets(services),
-  default_token_target = if (length(token_targets)) names(token_targets)[[1L]] else
+  token_target_default = if (length(token_targets)) names(token_targets)[[1L]] else
     character(),
   scopes = c("openid", "profile", "offline_access", unique(unlist(lapply(token_targets,
     `[[`, "scopes"), use.names = FALSE)))
@@ -41,7 +41,7 @@ token target. Compatible services sharing a resource combine their scopes.}
 \item{token_targets}{Named shinyOAuth token targets, replacing the service
 defaults. Use \code{list()} for a client without named targets.}
 
-\item{default_token_target}{Default target name, or \code{character()} for none.}
+\item{token_target_default}{Default target name, or \code{character()} for none.}
 
 \item{scopes}{Complete client consent scopes, replacing the preset defaults.}
 }

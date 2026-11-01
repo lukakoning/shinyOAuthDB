@@ -25,7 +25,7 @@ live_client <- function(spec) {
       provider = shinyOAuth::oauth_provider_microsoft(tenant = live_env("OAUTHDB_TENANT_ID")),
       scopes = c("openid", "profile", scopes),
       token_targets = list(snowflake = list(resource = live_env("OAUTHDB_SNOWFLAKE_RESOURCE"), scopes = scopes)),
-      default_token_target = "snowflake"), args)))
+      token_target_default = "snowflake"), args)))
   }
   do.call(shinyOAuthDB::oauth_db_microsoft_client,
     c(list(services = spec$service, tenant_id = live_env("OAUTHDB_TENANT_ID")), args))

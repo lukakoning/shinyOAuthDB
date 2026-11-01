@@ -16,7 +16,7 @@ Imports:
     DBI (>= 1.2.0),
     rlang,
     shiny (>= 1.8.1),
-    shinyOAuth (>= 0.6.1.9000)
+    shinyOAuth (>= 0.7.0)
 Suggests:
     brickster (>= 0.2.14),
     dbplyr,
