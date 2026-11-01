@@ -311,3 +311,40 @@ test_that("BigQuery numeric parameter values ignore the display decimal mark", {
     list(list(value = "1.25"), list(value = "-2.5")))
   expect_identical(parameters[[3L]]$parameterValue$value, "42")
 })
+
+test_that("BigQuery rechecks the deadline after obtaining credentials for each attempt", {
+  for (method in c("POST", "GET")) local({
+    now <- 0
+    requests <- 0L
+    local_mocked_bindings(.odb_bigquery_time = function() now)
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      bq_test_response(bq_test_result())
+    })
+    token <- function(...) { now <<- 20; "fixture-token" }
+    expect_error(.odb_bigquery_request(token, method, c("projects", "billing", "queries"), deadline = 10),
+      class = "shinyOAuthDB_timeout")
+    expect_identical(requests, 0L)
+  })
+  now <- 0
+  requests <- list()
+  retry <- FALSE
+  local_mocked_bindings(.odb_bigquery_time = function() now)
+  httr2::local_mocked_responses(function(req) {
+    requests[[length(requests) + 1L]] <<- req
+    if (retry) bq_test_response(list(), 401L) else bq_test_response(bq_test_result())
+  })
+  token <- function(force_refresh = FALSE, .check_only = FALSE) {
+    if (!.check_only) now <<- if (force_refresh) 20 else 6
+    "fixture-token"
+  }
+  expect_identical(.odb_bigquery_request(token, "GET", c("projects", "billing", "datasets"),
+    deadline = 10)$jobComplete, TRUE)
+  expect_equal(requests[[1L]]$options$timeout_ms, 4000)
+  now <- 0
+  requests <- list()
+  retry <- TRUE
+  expect_error(.odb_bigquery_request(token, "POST", c("projects", "billing", "queries"), deadline = 10),
+    class = "shinyOAuthDB_timeout")
+  expect_length(requests, 1L)
+})

@@ -265,21 +265,24 @@ oauth_db_bigquery_client <- function(
     paste(vapply(path, utils::URLencode, "", reserved = TRUE), collapse = "/"))
   req <- httr2::request(url)
   req <- httr2::req_method(req, method)
-  req <- httr2::req_timeout(req, min(remaining, 30))
   req <- httr2::req_options(req, followlocation = FALSE)
   req <- httr2::req_error(req, is_error = function(resp) FALSE)
   if (length(query)) req <- do.call(httr2::req_url_query, c(list(req), query))
   if (!is.null(body)) req <- httr2::req_body_json(req, body, auto_unbox = TRUE)
-  perform <- function(value) httr2::req_perform(httr2::req_auth_bearer_token(req, value))
+  perform <- function(value) {
+    force(value)
+    remaining <- deadline - .odb_bigquery_time()
+    if (remaining <= 0) .odb_abort("BigQuery operation timed out; the remote job may still be running.", "timeout")
+    request <- httr2::req_timeout(req, min(remaining, 30))
+    httr2::req_perform(httr2::req_auth_bearer_token(request, value))
+  }
   resp <- perform(token())
   if (httr2::resp_status(resp) == 401L) {
     if (deadline <= .odb_bigquery_time()) .odb_abort("BigQuery operation timed out.", "timeout")
     refreshed <- token(force_refresh = TRUE)
-    remaining <- deadline - .odb_bigquery_time()
-    if (remaining <= 0 || method == "POST" && .odb_bigquery_time() - started >= 900) {
+    if (method == "POST" && .odb_bigquery_time() - started >= 900) {
       .odb_abort("BigQuery submission retry timed out; inspect the job in Google Cloud.", "timeout")
     }
-    req <- httr2::req_timeout(req, min(remaining, 30))
     resp <- perform(refreshed)
   }
   # Discard a response if the selected grant changed while its request ran.
