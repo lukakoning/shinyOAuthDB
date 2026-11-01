@@ -1,15 +1,14 @@
 # Integration checks
 
-The ordinary package suite uses local fixtures and mocked cloud responses.
-Use these additional checks to verify browser sign-in or access to a real
-database.
+Use these checks to test browser sign-in or queries against a real database.
+The ordinary package tests use local data and mocked services.
 
 ## Local browser sign-in and PostgreSQL
 
 The [PostgreSQL/Keycloak fixture](../../integration/postgres-keycloak/README.md)
 runs in Docker. It checks real OAuth sign-in, database-enforced user permissions,
 refresh, and sign-out. Its native PostgreSQL token helper is for this fixture
-only; the Azure PostgreSQL helper uses a different connection method.
+only. For Azure PostgreSQL, use the package's Entra connection helper.
 
 ## Fabric sandbox
 
@@ -21,15 +20,18 @@ Rscript tools/check-fabric-sandbox.R
 Rscript tools/check-fabric-browser.R
 ```
 
-These verify queries and app rendering with the shared sandbox application.
-They do not test delegated visitor sign-in.
+These check queries and app rendering with the shared sandbox account.
+Test visitor sign-in separately.
 
 ## Your own cloud database
 
-`run-live.R` checks a backend with two existing delegated user tokens.
-It verifies native connection reuse where applicable, user replacement,
-expected query results, and sign-out. Browser sign-in, consent, and token
-refresh need a separate browser test.
+`run-live.R` uses two existing user tokens to check queries, account
+changes, sign-out, and connection reuse where applicable. It supports
+Azure SQL, SQL Server, Fabric, Azure PostgreSQL, Databricks, and Snowflake
+with Entra External OAuth. BigQuery, Redshift, and Trino can be tested
+manually with their playground apps.
+
+Browser sign-in, consent, and refresh need a separate browser test.
 
 1. Install the database client and driver. Set the backend's connection
    variables listed in [source-config.R](source-config.R).
@@ -56,7 +58,7 @@ Rscript tests/integration/run-live.R
 
 The summary reports pass or fail without printing tokens or query results.
 
-## Before deploying an app
+## Check browser sign-in
 
 Use separate browser profiles for A and B and check that the same query returns
 the right data for each. Then replace A with B in one session, refresh an

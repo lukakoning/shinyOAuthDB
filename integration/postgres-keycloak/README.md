@@ -1,9 +1,9 @@
 # PostgreSQL and Keycloak browser test
 
-Use this Docker fixture to test the complete path from browser sign-in to
-database-enforced permissions. It runs Shiny, Keycloak, PostgreSQL 18, and
-Chromium in containers. Alice and Bob run the same SQL query and receive
-different rows through PostgreSQL row-level security.
+Test browser sign-in and database permissions with a local Shiny app.
+Alice and Bob run the same SQL query and receive different rows through
+PostgreSQL row-level security. Docker runs the app, Keycloak, PostgreSQL 18,
+and Chromium.
 
 The fixture creates its own database and volumes. Its accounts and secrets
 are public test data.
@@ -33,8 +33,8 @@ bash integration/postgres-keycloak/run-integration.sh
 
 The runner builds the images, starts the services, runs native and browser
 tests, then removes the containers and volumes. The first build takes longer
-because it compiles PostgreSQL and R dependencies. Host R and Chromium
-installations are not needed.
+because it compiles PostgreSQL and R dependencies. The containers supply
+R and Chromium.
 
 On Windows, `-SkipBuild` reuses images and `-Keep` retains services for
 inspection, printing a cleanup command.
@@ -46,15 +46,15 @@ runner. Open `http://localhost:18100` and sign in as `alice` or `bob`.
 Their passwords are `alice-fixture-password` and `bob-fixture-password`.
 Your browser may ask you to trust the fixture's local Keycloak certificate.
 
-The app exposes refresh, sign-out, permission changes, and broken-connection
-controls. Stop the runner to close it and clean up.
+Use the app's controls to refresh tokens, sign out, change permissions, or
+break a connection. Stop the runner to close it and clean up.
 
 ## What the tests cover
 
-The browser tests check PKCE sign-in, simultaneous Alice/Bob sessions,
-row and table permissions, connection reuse, refresh, authorization replacement,
-and sign-out. Negative cases check wrong audiences, missing scopes, role
-impersonation, and broken connections.
+The browser tests sign Alice and Bob in at the same time and check their
+row and table permissions, connection reuse, refresh, account changes, and
+sign-out. Additional cases cover PKCE, wrong audiences, missing scopes,
+role impersonation, and broken connections.
 
 See [fixture SQL](sql/01-fixture.sql),
 [identity mappings](config/pg_ident.conf), and

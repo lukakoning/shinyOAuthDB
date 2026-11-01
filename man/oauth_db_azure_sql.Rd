@@ -18,48 +18,51 @@ oauth_db_azure_sql(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
 \item{database}{Database name.}
 
-\item{...}{Additional named odbc connection options, such as \code{timeout}.
-The helper supplies authentication and verified TLS settings.}
+\item{...}{Named odbc connection options, such as \code{timeout}.
+The helper sets authentication and verified TLS.}
 
-\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
-default token, including clients without named targets.}
+\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
+default token, including for clients without named targets.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
 \item{driver}{Installed ODBC driver name.}
 
 \item{port}{Database port.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
-A reactive function returning a DBI connection. Create \code{con} in
-\code{server()}, then call \code{connection <- con()} before each database operation.
+A reactive function returning an odbc DBI connection.
 }
 \description{
-Create a DBI connection for queries with DBI or dbplyr. Use this for Azure
-SQL Database, SQL Managed Instance, or a compatible Synapse SQL endpoint.
-The database must be configured to accept Microsoft Entra authentication.
+Query Azure SQL with the visitor's Microsoft account using DBI or dbplyr.
+Use this for Azure SQL Database, SQL Managed Instance, or a compatible
+Synapse SQL endpoint.
 }
 \details{
-Install odbc and Microsoft ODBC Driver 18 for SQL Server. Configure the
-Microsoft sign-in client with \code{services = "sql"}, or use an existing client
-with the appropriate token target.
+Install odbc and Microsoft ODBC Driver 18 for SQL Server. The database must
+accept Microsoft Entra authentication. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+with \code{services = "sql"} to set up sign-in.
 
-Connections open on first use and close on sign-out or session end. For
-server or database names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
+Create \code{con} inside \code{server()}. In a render or reactive expression,
+get \code{connection <- con()} before calling DBI or dbplyr. Connections open
+on first use and close when the authorization or Shiny session ends.
+
+For names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
 }
 \examples{
 \dontrun{
@@ -76,7 +79,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}.
+\code{vignette("azure-sql", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},

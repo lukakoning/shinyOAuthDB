@@ -1,4 +1,4 @@
-# Complete app; configure the environment described in playground/README.md.
+# Query Azure SQL as the signed-in user; see playground/README.md for setup.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

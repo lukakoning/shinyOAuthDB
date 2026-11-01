@@ -25,40 +25,39 @@ oauth_db_microsoft_client(
 \code{"dax"}, \code{"graphql"}, \code{"onelake"}, or \code{"databricks_entra"}.
 The first service selects the default token target.}
 
-\item{tenant_id}{Microsoft Entra tenant ID. Not used when \code{provider} is supplied.}
+\item{tenant_id}{Microsoft Entra tenant ID. Ignored when \code{provider} is supplied.}
 
 \item{client_id}{Application ID from the OAuth registration.}
 
 \item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{client_secret}{Registered client secret, or \code{NULL} for a public client.}
+\item{client_secret}{Client secret, or \code{NULL} for a public client.}
 
-\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
+\item{...}{Other arguments for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
+\item{provider}{Custom shinyOAuth provider, replacing the default.}
 
 \item{token_targets}{Named token targets, replacing the service defaults.
 Use \code{list()} for a client without named targets.}
 
 \item{token_target_default}{Default target name, or \code{character()} for none.}
 
-\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
+\item{scopes}{OAuth scopes to request, replacing the defaults.}
 }
 \value{
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create sign-in settings for Azure or Fabric services. Pass the result to
-shinyOAuth's UI and server modules so visitors can use their own accounts.
-Choose the services your app needs with \code{services}.
+Create a sign-in client for an app that queries Azure or Microsoft Fabric.
+Choose the services the app uses, then pass the client to shinyOAuth's UI
+and server modules.
 }
 \details{
-Your app registration needs delegated permissions for the chosen services,
-and users still need access to the database or Fabric items.
+The Entra registration needs delegated permissions for the selected services.
+Users also need access to the database or Fabric items.
 
-You can keep an existing shinyOAuth client instead of using this helper.
-Custom scopes, providers, and targets replace the corresponding defaults;
-see \code{vignette("authorization", package = "shinyOAuthDB")}.
+Custom \code{scopes}, \code{provider}, and \code{token_targets} replace their defaults.
+An existing shinyOAuth client can be used in place of this preset.
 }
 \examples{
 \dontrun{
@@ -72,6 +71,10 @@ client <- oauth_db_microsoft_client(
 }
 }
 \seealso{
+\code{vignette("getting-started", package = "shinyOAuthDB")} links to
+each source's setup. For custom permissions and targets, see
+\code{vignette("authorization", package = "shinyOAuthDB")}.
+
 Other sign-in configuration:
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},

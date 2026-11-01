@@ -16,44 +16,51 @@ oauth_db_fabric_sql(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
 \item{database}{Database name.}
 
-\item{...}{Options for \code{fabricQueryR::fabric_sql_connect()}, such as
+\item{...}{Arguments for \code{fabricQueryR::fabric_sql_connect()}, such as
 \code{backend}, \code{read_only}, and \code{timeout}.}
 
-\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
-default token, including clients without named targets.}
+\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
+default token, including for clients without named targets.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
 A reactive function returning a DBI connection.
 }
 \description{
-Use DBI or dbplyr to query a Fabric Warehouse, Lakehouse SQL analytics
-endpoint, or SQL Database. Supply the server and database from the item's
-SQL connection settings.
+Read data from a Fabric Warehouse, Lakehouse SQL analytics endpoint, or
+SQL Database with DBI or dbplyr. Queries use the visitor's Microsoft account.
 }
 \details{
-Install fabricQueryR and the chosen SQL driver. Configure the Microsoft
-client with \code{services = "sql"}. The default backend uses odbc; pass
-\code{backend = "adbc"} to use ADBC after installing its dependencies.
+Install fabricQueryR and the SQL driver. Copy the server and database
+from the item's SQL connection settings. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+with \code{services = "sql"} for sign-in.
 
-Create the helper in \code{server()}. Connections open on first use, are reused
-for later operations, and close on sign-out or session end.
+Create \code{con} inside \code{server()} and get \code{connection <- con()} inside a
+render or reactive expression before querying. The helper reuses the
+connection and closes it when the authorization or session ends.
 }
+\section{SQL drivers}{
+
+The default backend uses odbc. To use ADBC, install fabricQueryR's ADBC
+dependencies and the MSSQL driver, then pass \code{backend = "adbc"}.
+}
+
 \examples{
 \dontrun{
 con <- oauth_db_fabric_sql(
@@ -68,7 +75,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
+\code{vignette("fabric", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},

@@ -1,4 +1,4 @@
-# Local lifecycle demo. Simulated grants and SQLite rows do not test real OAuth.
+# Try account changes and sign-out with simulated users and SQLite; no OAuth requests.
 library(shiny)
 library(shinyOAuthDB)
 

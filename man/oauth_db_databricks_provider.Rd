@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__databricks.R
 \name{oauth_db_databricks_provider}
 \alias{oauth_db_databricks_provider}
-\title{Set up a Databricks OAuth provider}
+\title{Create a Databricks OAuth provider}
 \usage{
 oauth_db_databricks_provider(
   host,
@@ -13,22 +13,29 @@ oauth_db_databricks_provider(
 \arguments{
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
-\item{token_auth_style}{\code{"header"} for a client with a secret, or \code{"public"}
-for an app registered without one.}
+\item{token_auth_style}{\code{"header"} for a client with a secret, or
+\code{"public"} for an app registered without one.}
 
-\item{...}{Settings for \code{shinyOAuth::oauth_provider_oidc_discover()},
-replacing preset values.}
+\item{...}{Arguments for \code{shinyOAuth::oauth_provider_oidc_discover()},
+replacing defaults.}
 }
 \value{
-A shinyOAuth \code{OAuthProvider}. Construction makes an HTTPS
-discovery request.
+A shinyOAuth \code{OAuthProvider}.
 }
 \description{
-Use this when constructing your own \code{shinyOAuth::oauth_client()}. It
-discovers sign-in endpoints from the workspace. For standard setup, use
+Use this to choose provider settings when constructing
+\code{shinyOAuth::oauth_client()} yourself. For a typical app, use
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
 }
+\details{
+The function makes an HTTPS request to discover the workspace's sign-in
+endpoints.
+}
 \seealso{
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
+\code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
+
 Other sign-in configuration:
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},

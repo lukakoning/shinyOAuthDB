@@ -1,4 +1,4 @@
-# Complete app; configure the environment described in playground/README.md.
+# Query SQL Server with Microsoft sign-in; see playground/README.md for setup.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

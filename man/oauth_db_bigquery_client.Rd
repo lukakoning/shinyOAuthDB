@@ -18,21 +18,25 @@ oauth_db_bigquery_client(
 
 \item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{client_secret}{Client secret from the Google Web OAuth registration.}
+\item{client_secret}{Client secret from a Google Web OAuth registration.}
 
-\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
+\item{...}{Other arguments for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
+\item{provider}{Custom shinyOAuth provider, replacing the default.}
 
-\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
+\item{scopes}{OAuth scopes to request, replacing the defaults.}
 }
 \value{
-A shinyOAuth OAuthClient. Create it outside \code{server()}.
+A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create the Google sign-in settings for an app that queries BigQuery.
-Register a Web OAuth client in Google Cloud and give its users access to
-the query project and datasets.
+Create a sign-in client for a Shiny app that queries BigQuery.
+Pass it to shinyOAuth's UI and server modules, then query with
+\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}}.
+}
+\details{
+Register a Web OAuth client in Google Cloud. Users need access to the
+query project and datasets.
 }
 \examples{
 \dontrun{
@@ -44,7 +48,9 @@ client <- oauth_db_bigquery_client(
 }
 }
 \seealso{
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}}
+\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}}.
+\code{vignette("bigquery", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other sign-in configuration:
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},

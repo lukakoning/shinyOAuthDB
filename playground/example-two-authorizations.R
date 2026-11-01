@@ -1,4 +1,4 @@
-# Two providers and client registrations, with independent native connections.
+# Use independent Azure SQL and Databricks sign-ins in one app.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

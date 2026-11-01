@@ -1,3 +1,4 @@
+# Query BigQuery with Google sign-in; see playground/README.md for setup.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

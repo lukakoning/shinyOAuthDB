@@ -1,34 +1,33 @@
-#' Use a visitor's database access in a Shiny app
+#' Query data with a Shiny user's own account
 #'
-#' shinyOAuthDB connects shinyOAuth sign-in to existing database packages.
-#' Visitors query with their own account; your app uses familiar DBI, dbplyr,
-#' fabricQueryR, or brickster functions.
+#' Build Shiny apps that query databases using each visitor's own permissions.
+#' Use DBI or dbplyr for SQL, or call fabricQueryR and brickster functions with
+#' the user's sign-in.
 #'
-#' @section Getting started:
-#' Choose your source in
-#' `vignette("getting-started", package = "shinyOAuthDB")`.
-#' Each source has its own guide with sign-in setup and a complete Shiny app,
-#' for example `vignette("snowflake", package = "shinyOAuthDB")` or
-#' `vignette("fabric", package = "shinyOAuthDB")`.
+#' @section Start with your source:
+#' `vignette("getting-started", package = "shinyOAuthDB")` links to a guide
+#' for each source. Each includes sign-in setup and a complete Shiny app.
+#' For example, use `vignette("snowflake", package = "shinyOAuthDB")` for
+#' Snowflake or `vignette("fabric", package = "shinyOAuthDB")` for Fabric.
 #'
 #' @section Database queries:
-#' Create a helper such as [oauth_db_azure_sql()] inside `server()`, passing
-#' `auth$connection` from shinyOAuth. Call the returned function inside a
-#' render or reactive expression to obtain a DBI connection. Query with your
-#' usual database functions; the helper handles connection reuse and cleanup.
+#' Inside `server()`, pass shinyOAuth's `auth$connection` to a helper such
+#' as [oauth_db_azure_sql()]. It returns a connection function, `con`.
+#' Get `connection <- con()` inside a render or reactive expression, then
+#' query with DBI or dbplyr.
 #'
-#' @section Platform APIs:
-#' [oauth_db_fabric_api()] and [oauth_db_databricks_api()] let you call native
-#' R functions with the visitor's credentials. Fabric resource objects can
-#' also use those credentials in their own methods.
-#' [oauth_db_bigquery_api()] runs GoogleSQL through the BigQuery REST API.
+#' @section Platform functions:
+#' [oauth_db_fabric_api()] and [oauth_db_databricks_api()] call functions from
+#' their platforms' R packages with the visitor's credentials.
+#' [oauth_db_bigquery_api()] runs GoogleSQL and returns data frames.
 #'
 #' @section Sign-in settings:
-#' Keep an existing shinyOAuth client or use [oauth_db_microsoft_client()],
+#' The source guides create clients with [oauth_db_microsoft_client()],
 #' [oauth_db_bigquery_client()], [oauth_db_databricks_client()], or
-#' [oauth_db_snowflake_client()] to set one up.
-#' Read `vignette("authorization", package = "shinyOAuthDB")` for permission
-#' settings, multiple authorizations, and session behavior.
+#' [oauth_db_snowflake_client()]. You can also use an existing shinyOAuth client.
+#'
+#' See `vignette("authorization", package = "shinyOAuthDB")` for custom
+#' permissions, multiple accounts, and saved query results.
 #'
 #' @keywords package
 #' @importFrom R6 R6Class

@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__fabric.R
 \name{oauth_db_fabric}
 \alias{oauth_db_fabric}
-\title{Supply a token callback for one Fabric service}
+\title{Get a token callback for one Fabric service}
 \usage{
 oauth_db_fabric(
   authorization,
@@ -14,36 +14,38 @@ oauth_db_fabric(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{service}{One of \code{"fabric"}, \code{"sql"}, \code{"dax"}, \code{"kql"}, \code{"onelake"},
 or \code{"graphql"}.}
 
 \item{target}{Token target name. Defaults to the service's preset target.
-Use \code{NULL} for an authorization without named targets.}
+Use \code{NULL} if the authorization has no named targets.}
 
-\item{required_scopes}{Extra permissions to check. \code{NULL} uses the service's
-read/query defaults.}
+\item{required_scopes}{Additional permissions to check. \code{NULL} uses the
+service's read/query defaults.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
-A reactive function. Calling \code{callback()} returns a token-provider
-function for fabricQueryR's \code{token} argument.
+A reactive function. Call \code{callback()} to get the function to pass
+as fabricQueryR's \code{token} argument.
 }
 \description{
-Use this when calling a fabricQueryR function directly and you need a token
-callback for one service. For an app using several Fabric services or
-resource objects, use \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
+Use this to call a fabricQueryR function directly with the visitor's
+credentials. It supplies the callback expected by the function's \code{token}
+argument. For several services or resource objects, use
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
 }
 \details{
-Create the helper inside \code{server()}. Its callback renews tokens through
-shinyOAuth and remains tied to the authorization that created it.
+Create the helper inside \code{server()}. The callback obtains and renews tokens
+through shinyOAuth. It stays tied to the authorization that created it.
 }
 \examples{
 \dontrun{
@@ -60,7 +62,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
+\code{vignette("fabric", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other advanced connection helpers:
 \code{\link[=oauth_db_connect]{oauth_db_connect()}},

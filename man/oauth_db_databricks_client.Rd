@@ -15,35 +15,36 @@ oauth_db_databricks_client(
 )
 }
 \arguments{
-\item{host}{Workspace hostname or HTTPS origin. Not used when \code{provider}
+\item{host}{Workspace hostname or HTTPS origin. Ignored when \code{provider}
 is supplied.}
 
 \item{client_id}{Application ID from the OAuth registration.}
 
 \item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{client_secret}{Registered client secret, or \code{NULL} for a public client.}
+\item{client_secret}{Client secret, or \code{NULL} for a public client.}
 
-\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
+\item{...}{Other arguments for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
+\item{provider}{Custom shinyOAuth provider, replacing the default.}
 
-\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
+\item{scopes}{OAuth scopes to request, replacing the defaults.}
 }
 \value{
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create sign-in settings for a Databricks workspace. Pass this client to
-shinyOAuth's UI and server modules, then use the resulting authorization
-with the SQL or API helper.
+Create a sign-in client for a Databricks workspace. Pass it to shinyOAuth's
+UI and server modules, then use the resulting authorization with
+\code{\link[=oauth_db_databricks]{oauth_db_databricks()}} or \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
 }
 \details{
-Register the app and redirect URI with Databricks first. The default scopes
-include \code{all-apis} and refresh access; you can supply a different scope list.
+Register the app and redirect URI with Databricks. The defaults request
+\code{all-apis} and refresh access; supply \code{scopes} to change them.
 
-For Azure Databricks using Entra tokens, use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
-with \code{services = "databricks_entra"} instead.
+For a public app registration without a secret, omit \code{client_secret}.
+For Azure Databricks with Entra tokens, use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+with \code{services = "databricks_entra"}.
 }
 \examples{
 \dontrun{
@@ -56,7 +57,9 @@ client <- oauth_db_databricks_client(
 }
 }
 \seealso{
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}
+\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}.
+\code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other sign-in configuration:
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},

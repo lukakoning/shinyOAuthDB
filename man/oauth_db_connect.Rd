@@ -17,49 +17,53 @@ oauth_db_connect(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{connect}{Function that opens the connection, such as \code{DBI::dbConnect}.}
 
-\item{...}{Named arguments passed to \code{connect}, excluding the token argument.}
+\item{...}{Named arguments for \code{connect}, excluding the token argument.}
 
 \item{token_arg}{Name of the argument that receives the user's access token.}
 
-\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
-default token, including clients without named targets.}
+\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
+default token, including for clients without named targets.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
-\item{disconnect}{Optional function to close the connection. By default,
-DBI connections use \code{DBI::dbDisconnect()}; other objects have no cleanup.}
+\item{disconnect}{Function to close the connection. By default, DBI
+connections use \code{DBI::dbDisconnect()}; other objects have no cleanup.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
-A reactive function. Call \code{connection <- con()} inside a render or
-reactive expression to obtain the connection. Before sign-in, it waits
-quietly like \code{shiny::req()}.
+A reactive function such as \code{con}. Call \code{connection <- con()}
+inside a render or reactive expression to get the connection.
+Before sign-in, it waits quietly, like \code{shiny::req()}.
 }
 \description{
-Use this helper when a database driver accepts an OAuth access token but
-doesn't have a dedicated shinyOAuthDB helper. Supply its connection function
-and the name of the argument that takes the token.
+Use this when a database driver accepts an OAuth token and has no dedicated
+shinyOAuthDB helper. Supply the function that opens its connection and name
+the argument that receives the token.
 }
 \details{
-The helper reuses a connection within the selected authorization and closes
-it on sign-out or session end. A valid DBI connection stays open through token
-refresh; an invalid connection reopens on the next call to \code{con()}.
+Create the helper inside \code{server()} and call \code{con()} before each query.
+The helper reuses the connection and closes it when the selected
+authorization changes, ends, or loses required permissions, or when the
+Shiny session ends.
 
-This helper supplies a token when opening a connection. For an API that uses
-a token on every request, use \code{\link[=oauth_db_token]{oauth_db_token()}} or a platform API helper.
-See \code{vignette("authorization", package = "shinyOAuthDB")} for connection
-lifetime, cached results, and background work.
+A valid DBI connection stays open through token refresh. If the connection
+becomes invalid, the next call opens a new one.
+
+This helper supplies the token when opening a connection. For a function
+that takes a token on each request, use \code{\link[=oauth_db_token]{oauth_db_token()}} or a platform
+API client.
 }
 \examples{
 \dontrun{
@@ -78,6 +82,9 @@ con <- oauth_db_connect(
 }
 }
 \seealso{
+\code{\link[=oauth_db_token]{oauth_db_token()}}. For saved results and connection lifetime, see
+\code{vignette("authorization", package = "shinyOAuthDB")}.
+
 Other advanced connection helpers:
 \code{\link[=oauth_db_fabric]{oauth_db_fabric()}},
 \code{\link[=oauth_db_token]{oauth_db_token()}}

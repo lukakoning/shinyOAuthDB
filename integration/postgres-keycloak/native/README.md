@@ -1,9 +1,11 @@
 # PostgreSQL token helper for integration tests
 
-This Linux-only package lets the local test app pass an existing access token
-to libpq 18 through RPostgres. It returns an ordinary DBI connection.
-It is installed in the disposable [PostgreSQL/Keycloak image](../README.md),
-not as a shinyOAuthDB dependency.
+Connect the local test app to PostgreSQL with a user's existing OAuth token.
+The helper returns an RPostgres DBI connection. PostgreSQL validates the
+token and checks database access.
+
+This Linux-only package uses libpq 18 and is installed in the disposable
+[PostgreSQL/Keycloak image](../README.md). It isn't a shinyOAuthDB dependency.
 
 ## Use in the fixture
 
@@ -43,7 +45,7 @@ Both RPostgres and this package must use the same shared libpq instance.
 `pg_bearer_runtime()` checks the loaded hook symbol and reports version and
 hook state. Matching major versions alone is insufficient.
 
-## Constraints
+## Connection lifetime
 
 The process-wide hook exists only during a synchronous, single-threaded
 connection opening. `R_UnwindProtect()` restores the previous hook and erases

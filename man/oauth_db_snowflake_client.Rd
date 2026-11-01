@@ -16,7 +16,7 @@ oauth_db_snowflake_client(
 )
 }
 \arguments{
-\item{server}{Snowflake account hostname. Not used when \code{provider} is supplied.}
+\item{server}{Snowflake account hostname. Ignored when \code{provider} is supplied.}
 
 \item{client_id}{Application ID from the OAuth registration.}
 
@@ -24,24 +24,26 @@ oauth_db_snowflake_client(
 
 \item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{role}{Requested database role. Not used when \code{scopes} is supplied.}
+\item{role}{Requested Snowflake role. Ignored when \code{scopes} is supplied.}
 
-\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
+\item{...}{Other arguments for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
+\item{provider}{Custom shinyOAuth provider, replacing the default.}
 
-\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
+\item{scopes}{OAuth scopes to request, replacing the defaults.}
 }
 \value{
-A shinyOAuth \code{OAuthClient} for its UI and server modules.
+A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create sign-in settings for Snowflake's own OAuth integration. Use this
-before \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}} when your app needs a particular Snowflake role.
+Create a sign-in client for Snowflake's own OAuth integration and a role
+your app's users can access. Pass it to shinyOAuth's UI and server modules,
+then connect with \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}.
 }
 \details{
-Create the client outside \code{server()}. For External OAuth through Entra or
-another identity provider, use that provider's shinyOAuth configuration.
+Register the app's redirect URI in the Snowflake OAuth integration.
+For External OAuth through Entra, Okta, or another provider, use that
+provider's shinyOAuth client configuration.
 }
 \examples{
 \dontrun{
@@ -55,7 +57,9 @@ client <- oauth_db_snowflake_client(
 }
 }
 \seealso{
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}, \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}.
+\code{vignette("snowflake", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other sign-in configuration:
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},

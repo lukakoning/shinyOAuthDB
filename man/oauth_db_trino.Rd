@@ -20,58 +20,64 @@ oauth_db_trino(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{host}{Cluster hostname or HTTPS origin.}
 
 \item{catalog, schema}{Default Trino catalog and schema.}
 
-\item{user}{Trino username, or a function returning the username mapped for
-the selected authorization. A reactive function follows profile changes.}
+\item{user}{Trino username, or a function returning it for the selected
+account. Use a reactive function when the username can change.}
 
-\item{...}{Other RTrino connection options, such as timeout, bigint,
-query_max_run_time, and extra.headers.}
+\item{...}{RTrino connection options, such as \code{timeout}, \code{bigint},
+\code{query_max_run_time}, or \code{extra.headers}.}
 
-\item{port}{HTTPS port. NULL uses the port in host, or 443.}
+\item{port}{HTTPS port. \code{NULL} uses the port in \code{host}, or \code{443}.}
 
-\item{ca_bundle}{Optional CA bundle path for RTrino.}
+\item{ca_bundle}{Optional CA certificate bundle path for RTrino.}
 
-\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
-default token, including clients without named targets.}
+\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
+default token, including for clients without named targets.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
 A reactive function returning an RTrino DBI connection.
 }
 \description{
-Query a Trino or Starburst Enterprise cluster with DBI or dbplyr through
-RTrino. The cluster must accept access tokens from your identity provider
-and map them to database users.
+Query a Trino or Starburst Enterprise cluster using DBI or dbplyr through
+RTrino. Users sign in with an identity provider accepted by the cluster.
 }
 \details{
-Install RTrino 0.1.0 or later. Create the helper in server() and obtain
-the connection before each query. Its authentication callback obtains a
-current user token for each HTTP request, including result pages.
-
-Ordinary token rotation preserves the connection. Account or username
-changes replace it; sign-out and session end close it. Retained authentication
-callbacks stay bound to their original authorization.
-
-Configure sign-in with shinyOAuth for the cluster's trusted issuer and
-audience. The user value must match the cluster's principal mapping;
-the server enforces impersonation permissions. This helper does not start
-RTrino's separate OAuth client-credentials flow. Starburst Galaxy's OAuth
-registration and endpoint setup require separate deployment validation.
+Install RTrino 0.1.0 or later. Create \code{con} inside \code{server()} and get
+\code{connection <- con()} inside a render or reactive expression before
+querying.
 }
+\section{Sign-in settings}{
+
+Configure a shinyOAuth client for the cluster's trusted issuer and
+audience. The \code{user} value must match the cluster's principal mapping;
+the server checks impersonation permissions.
+}
+
+\section{Connection lifetime}{
+
+RTrino gets a current token for each HTTP request, including result pages.
+Ordinary token refresh preserves the connection. Account or username
+changes replace it; sign-out and session end close it.
+
+A saved authentication callback stays tied to its original authorization.
+}
+
 \examples{
 \dontrun{
 con <- oauth_db_trino(
@@ -88,6 +94,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
+\code{vignette("trino", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
+
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
 \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},

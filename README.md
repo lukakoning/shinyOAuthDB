@@ -1,12 +1,12 @@
 # shinyOAuthDB
 
-Build Shiny apps that use each visitor's own access to Azure SQL, Microsoft
-Fabric, BigQuery, Redshift, Databricks, Snowflake, Trino, or Azure PostgreSQL. Sign them in, then query
-with DBI or use the platform's R functions. The database decides what each
-person can access.
+Build Shiny apps that query data with each visitor's own account. Connect
+to Azure SQL, Microsoft Fabric, BigQuery, Redshift, Databricks, Snowflake,
+Trino, or Azure PostgreSQL using DBI or the platform's R package.
+Each person's data permissions still apply.
 
-Choose your platform below. Each example is a complete `app.R`, including
-the matching shinyOAuth sign-in configuration.
+Choose your source below. Each example is a complete `app.R` with sign-in
+and a first query.
 
 [BigQuery](#google-bigquery) · [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
@@ -15,9 +15,9 @@ the matching shinyOAuth sign-in configuration.
 
 ## Google BigQuery
 
-Use a Google Cloud Web OAuth registration and give users permission to run
-query jobs in the billing project and read the data. This app queries BigQuery
-directly through its REST API.
+Query BigQuery with a user's Google account and display the result as a data
+frame. Create a Google Cloud Web OAuth registration; users need permission
+to run query jobs in the billing project and read the data.
 
 ```r
 library(shiny)
@@ -54,14 +54,15 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-`bigquery$query()` returns a data frame and handles polling and result pages.
-It also accepts named parameters, such as `parameters = list(country = "NL")`.
-See [BigQuery guide](vignettes/bigquery.Rmd) for more.
+`bigquery$query()` returns a data frame. Pass named values in `parameters`
+for queries that use parameters such as `@country`. See the
+[BigQuery guide](vignettes/bigquery.Rmd) for examples.
 
 ## Azure SQL and SQL Server
 
-Use an Entra registration with delegated SQL access. This app lists tables
-the signed-in person can access.
+List the database tables a user can access after Microsoft sign-in.
+Use an Entra Web app registration with permission to access SQL on the
+user's behalf.
 
 ```r
 library(shiny)
@@ -109,8 +110,8 @@ and connection options.
 
 ## Microsoft Fabric
 
-This app queries a Warehouse or Lakehouse SQL endpoint and lists the user's
-Fabric workspaces. Use an Entra registration with delegated SQL and Fabric
+Query a Warehouse or Lakehouse SQL endpoint and list the user's Fabric
+workspaces. The Entra Web app registration needs delegated SQL and Fabric
 workspace-read permissions.
 
 ```r
@@ -157,14 +158,15 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-The API client also works with fabricQueryR's resource objects and functions
-for OneLake, DAX, KQL, and GraphQL. See the
-[Fabric guide](vignettes/fabric.Rmd).
+Use the same API client with fabricQueryR functions for OneLake, DAX, KQL,
+or GraphQL. The [Fabric guide](vignettes/fabric.Rmd) also shows how to use
+Lakehouse and semantic model objects.
 
 ## Databricks
 
-Register a Databricks OAuth application for your workspace. This app runs a
-SQL query and lists warehouses through brickster.
+Query a SQL warehouse and list warehouses through brickster using the
+visitor's Databricks account. Register a Databricks OAuth application
+for the workspace first.
 
 ```r
 library(shiny)
@@ -217,8 +219,9 @@ and more brickster examples.
 
 ## Snowflake
 
-Use a Snowflake OAuth integration and a role your users can access.
-This app shows the signed-in user's Snowflake identity and role.
+Check the signed-in user's Snowflake username and role, then add your own
+SQL. You'll need a Snowflake OAuth integration and a role your users can
+access.
 
 ```r
 library(shiny)
@@ -266,10 +269,10 @@ For External OAuth through Entra, Okta, or another provider, see the
 
 ## Amazon Redshift
 
-This example uses Microsoft Entra sign-in for a Redshift deployment linked
-to IAM Identity Center. Set `OAUTHDB_REDSHIFT_RESOURCE` and
-`OAUTHDB_REDSHIFT_SCOPE` to the resource and delegated scope of the Entra
-registration trusted by that deployment.
+Query Redshift through an IAM Identity Center deployment using Microsoft
+Entra sign-in. Ask the administrator for the OAuth resource and delegated
+scope, and set them in `OAUTHDB_REDSHIFT_RESOURCE` and
+`OAUTHDB_REDSHIFT_SCOPE`.
 
 ```r
 library(shiny)
@@ -313,16 +316,17 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Install the AWS Redshift ODBC 2.x driver and select its installed name with
-the helper's `driver` argument if it differs from the default. Other identity
-providers can use their own shinyOAuth client with the same connection helper.
-See [Redshift guide](vignettes/redshift.Rmd).
+Install the AWS Redshift ODBC 2.x driver with `IdpTokenAuthPlugin` support.
+Set `driver` if its installed name differs from the default. The
+[Redshift guide](vignettes/redshift.Rmd) covers other sign-in providers
+and token types.
 
 ## Trino and Starburst Enterprise
 
-Use the cluster's OIDC provider and configure the cluster to accept tokens
-issued for your app. This example maps the verified profile's email to the
-Trino username; use the claim that matches your cluster's principal mapping.
+Query Trino with DBI after signing in through the cluster's identity
+provider. The cluster must accept your app's tokens. This example uses
+the profile's email as the Trino username; use the field your cluster
+expects.
 
 ```r
 library(shiny)
@@ -367,15 +371,15 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Set `OAUTHDB_TRINO_ISSUER` to the provider's issuer URL and install `RTrino`.
-Adjust scopes to your IdP registration. RTrino handles DBI queries while
-shinyOAuthDB supplies a current token for each request.
-See [Trino guide](vignettes/trino.Rmd).
+Install `RTrino` and set `OAUTHDB_TRINO_ISSUER` to the provider's issuer URL.
+Use the scopes allowed by the registration. See the
+[Trino guide](vignettes/trino.Rmd) for setup and connection options.
 
 ## Azure PostgreSQL
 
-Use an Entra registration for Azure PostgreSQL and a database role provisioned
-for the user or their group. This app connects through RPostgres.
+Query Azure PostgreSQL through RPostgres using a Microsoft account.
+Use an Entra registration for PostgreSQL access and a database role
+created for the user or their group.
 
 ```r
 library(shiny)
@@ -428,9 +432,10 @@ Register an OAuth application with your platform and use
 Entra Web app registration with delegated permissions for the chosen service.
 Users also need access to the database or platform.
 
-Put the registration's credentials in `OAUTHDB_CLIENT_ID` and
-`OAUTHDB_CLIENT_SECRET`, for example in your local `.Renviron`. Microsoft
-examples also use `OAUTHDB_TENANT_ID`. Restart R after editing `.Renviron`.
+Save the client ID and secret in `OAUTHDB_CLIENT_ID` and
+`OAUTHDB_CLIENT_SECRET`, for example in a local `.Renviron` file.
+Microsoft examples also need `OAUTHDB_TENANT_ID`.
+Restart R after editing `.Renviron`.
 
 Replace the example connection settings, save the code as `app.R`, and run
 `shiny::runApp(port = 8100)`. Open `http://localhost:8100` to sign in.
@@ -447,8 +452,9 @@ inside your render or reactive expression, then query with DBI or dbplyr.
 The helper opens the connection on first use, reuses it, and closes it on
 sign-out or session end. Outputs stay blank before sign-in.
 
-API clients supply credentials to the R function passed to `$call()`.
-Use its usual arguments and return value.
+Fabric and Databricks API clients pass credentials to the function supplied
+to `$call()`. Use the function's usual arguments and return value.
+BigQuery provides query methods such as `$query()`.
 
 ## Further reading
 

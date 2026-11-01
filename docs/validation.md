@@ -14,15 +14,14 @@ brickster 0.2.15, and RTrino 0.1.0. Dependencies were installed in an isolated l
 | Rendered guides | All ten pages present; 20 local page links and anchors resolve |
 | README apps | All eight construct; all ten outputs wait for sign-in |
 | Playground apps | Client setup, queries, account replacement, and sign-out pass with mocked services |
-| Documentation examples and local links | 49 R blocks parse; 87 local links resolve |
-| BigQuery REST client | Polling, paging, typed results, bound parameters, 401 renewal, and grant isolation |
-| Redshift adapter | Explicit ODBC token mode, verified TLS, argument protection, and connection lifecycle |
-| Trino DBI client | Native RTrino requests, pagination, refresh, username changes, and callback retirement |
+| Documentation examples and local links | 46 R blocks parse; 89 local links resolve |
+| BigQuery REST client | Bound parameters, result types, paging, refresh, and account separation |
+| Redshift adapter | ODBC token and TLS options; connection reuse and cleanup |
+| Trino DBI client | RTrino requests, paging, refresh, username changes, and sign-out |
 
-The tests cover connection reuse and cleanup, authorization changes,
-permission checks, token refresh, API routing, and the example apps.
-Cloud responses are mocked. No live cloud queries or browser sign-ins were
-performed for this update.
+Cloud responses are mocked. No live cloud queries or browser sign-ins ran
+for this update. The tests cover connection cleanup, account and permission
+changes, token refresh, and the example apps.
 
 ## Reproduce
 

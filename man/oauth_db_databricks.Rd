@@ -18,48 +18,54 @@ oauth_db_databricks(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
 \item{warehouse_id}{SQL warehouse ID. Supply this or \code{http_path}.}
 
-\item{...}{Connection options for brickster, such as \code{catalog} and \code{schema}.}
+\item{...}{brickster connection options, such as \code{catalog} and \code{schema}.}
 
 \item{http_path}{Warehouse HTTP path, such as
 \code{"/sql/1.0/warehouses/warehouse-id"}. Supply this or \code{warehouse_id}.}
 
 \item{auth_mode}{\code{"databricks_oauth"}, or \code{"entra"} for Azure Databricks
-using a Microsoft authorization.}
+with Microsoft sign-in.}
 
-\item{target}{Token target name. Defaults to \code{"databricks"} for Entra;
-native Databricks OAuth uses the authorization's default token.}
+\item{target}{Token target name. Defaults to \code{"databricks"} for Entra.
+Databricks OAuth uses the authorization's default token.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
 A reactive function returning a brickster DBI connection.
 }
 \description{
-Use this for SQL queries with DBI or dbplyr through brickster. Supply a SQL
-warehouse and the user's Databricks OAuth or Entra authorization.
+Query a Databricks SQL warehouse with DBI or dbplyr through brickster.
+Users can sign in with Databricks OAuth or Microsoft Entra.
 }
 \details{
-Install brickster. Create \code{con} in \code{server()} and call it for each operation;
-the helper replaces brickster's connection when its stored token changes.
-A saved handle keeps its own token, even after local sign-out.
+Install brickster. Create \code{con} inside \code{server()} and get
+\code{connection <- con()} in a render or reactive expression before querying.
 
-For workspace APIs and other brickster functions, use
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
+For other brickster functions, use \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
 }
+\section{Connection lifetime}{
+
+The helper replaces the connection when its stored token changes.
+A saved connection can retain its token after local sign-out; call
+\code{con()} for each operation.
+}
+
 \examples{
 \dontrun{
 con <- oauth_db_databricks(
@@ -74,7 +80,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
+\code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},

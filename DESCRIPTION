@@ -2,11 +2,12 @@ Package: shinyOAuthDB
 Title: Use Database OAuth Access in Shiny Apps
 Version: 0.0.0.9000
 Authors@R: person("Luka", "Koning", email = "koningluka@gmail.com", role = c("aut", "cre", "cph"))
-Description: Use a Shiny visitor's own database access with 'DBI', 'dbplyr',
-    'fabricQueryR', and 'brickster'. Connects 'shinyOAuth' sign-in to database
-    connections and platform API calls, with connection reuse and cleanup for
-    each visitor. Supports Azure SQL, Microsoft Fabric, BigQuery, Redshift,
-    Databricks, Snowflake, Trino, and Azure PostgreSQL.
+Description: Query databases and data platforms in Shiny using each visitor's
+    own OAuth authorization. Provides 'DBI' connections for SQL queries and
+    supplies user credentials to 'fabricQueryR' and 'brickster' functions.
+    Uses 'shinyOAuth' for sign-in and token renewal, and manages connections
+    within each Shiny session. Supports Azure SQL, Microsoft Fabric, BigQuery,
+    Redshift, Databricks, Snowflake, Trino, and Azure PostgreSQL.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues

@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__sql_server.R
 \name{oauth_db_sql_server}
 \alias{oauth_db_sql_server}
-\title{Query an Entra-enabled SQL Server as the signed-in user}
+\title{Query SQL Server as the signed-in user}
 \usage{
 oauth_db_sql_server(
   authorization,
@@ -18,40 +18,49 @@ oauth_db_sql_server(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
 \item{database}{Database name.}
 
-\item{...}{Additional named odbc connection options, such as \code{timeout}.
-The helper supplies authentication and verified TLS settings.}
+\item{...}{Named odbc connection options, such as \code{timeout}.
+The helper sets authentication and verified TLS.}
 
-\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
-default token, including clients without named targets.}
+\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
+default token, including for clients without named targets.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
 \item{driver}{Installed ODBC driver name.}
 
 \item{port}{Database port.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
-A reactive function returning a DBI connection.
+A reactive function returning an odbc DBI connection.
 }
 \description{
-Use this for SQL Server deployments configured to accept Microsoft Entra
-access tokens. It uses the same connection settings as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}}.
+Use this for SQL Server configured to accept Microsoft Entra tokens.
+It takes the same connection arguments as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}}.
+}
+\details{
+Create the helper inside \code{server()} and call it inside a render or
+reactive expression before querying with DBI or dbplyr.
 }
 \seealso{
+\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}.
+\code{vignette("azure-sql", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
+
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
 \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},

@@ -1,4 +1,4 @@
-# Advanced example: retain several database grants and select one explicitly.
+# Save several database sign-ins and choose which account to query.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

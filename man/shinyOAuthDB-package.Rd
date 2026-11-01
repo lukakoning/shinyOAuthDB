@@ -4,44 +4,43 @@
 \name{shinyOAuthDB-package}
 \alias{shinyOAuthDB}
 \alias{shinyOAuthDB-package}
-\title{Use a visitor's database access in a Shiny app}
+\title{Query data with a Shiny user's own account}
 \description{
-shinyOAuthDB connects shinyOAuth sign-in to existing database packages.
-Visitors query with their own account; your app uses familiar DBI, dbplyr,
-fabricQueryR, or brickster functions.
+Build Shiny apps that query databases using each visitor's own permissions.
+Use DBI or dbplyr for SQL, or call fabricQueryR and brickster functions with
+the user's sign-in.
 }
-\section{Getting started}{
+\section{Start with your source}{
 
-Choose your source in
-\code{vignette("getting-started", package = "shinyOAuthDB")}.
-Each source has its own guide with sign-in setup and a complete Shiny app,
-for example \code{vignette("snowflake", package = "shinyOAuthDB")} or
-\code{vignette("fabric", package = "shinyOAuthDB")}.
+\code{vignette("getting-started", package = "shinyOAuthDB")} links to a guide
+for each source. Each includes sign-in setup and a complete Shiny app.
+For example, use \code{vignette("snowflake", package = "shinyOAuthDB")} for
+Snowflake or \code{vignette("fabric", package = "shinyOAuthDB")} for Fabric.
 }
 
 \section{Database queries}{
 
-Create a helper such as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} inside \code{server()}, passing
-\code{auth$connection} from shinyOAuth. Call the returned function inside a
-render or reactive expression to obtain a DBI connection. Query with your
-usual database functions; the helper handles connection reuse and cleanup.
+Inside \code{server()}, pass shinyOAuth's \code{auth$connection} to a helper such
+as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}}. It returns a connection function, \code{con}.
+Get \code{connection <- con()} inside a render or reactive expression, then
+query with DBI or dbplyr.
 }
 
-\section{Platform APIs}{
+\section{Platform functions}{
 
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} let you call native
-R functions with the visitor's credentials. Fabric resource objects can
-also use those credentials in their own methods.
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}} runs GoogleSQL through the BigQuery REST API.
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} call functions from
+their platforms' R packages with the visitor's credentials.
+\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}} runs GoogleSQL and returns data frames.
 }
 
 \section{Sign-in settings}{
 
-Keep an existing shinyOAuth client or use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+The source guides create clients with \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, or
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} to set one up.
-Read \code{vignette("authorization", package = "shinyOAuthDB")} for permission
-settings, multiple authorizations, and session behavior.
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}. You can also use an existing shinyOAuth client.
+
+See \code{vignette("authorization", package = "shinyOAuthDB")} for custom
+permissions, multiple accounts, and saved query results.
 }
 
 \seealso{

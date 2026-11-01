@@ -1,36 +1,40 @@
 #' Connect another database package to a user's sign-in
 #'
-#' Use this helper when a database driver accepts an OAuth access token but
-#' doesn't have a dedicated shinyOAuthDB helper. Supply its connection function
-#' and the name of the argument that takes the token.
+#' Use this when a database driver accepts an OAuth token and has no dedicated
+#' shinyOAuthDB helper. Supply the function that opens its connection and name
+#' the argument that receives the token.
 #'
-#' @param authorization `auth$connection` from a shinyOAuth module, without
-#'   parentheses. With a connection manager, use a function that selects
-#'   `auth$connection(id)`.
+#' @param authorization `auth$connection` from a shinyOAuth server module,
+#'   without parentheses. To select a saved authorization, pass a function
+#'   that calls `auth$connection(id)`.
 #' @param connect Function that opens the connection, such as `DBI::dbConnect`.
-#' @param ... Named arguments passed to `connect`, excluding the token argument.
+#' @param ... Named arguments for `connect`, excluding the token argument.
 #' @param token_arg Name of the argument that receives the user's access token.
-#' @param target Token target name from the shinyOAuth client. `NULL` uses its
-#'   default token, including clients without named targets.
-#' @param required_scopes Extra permissions to check before use. Configure
-#'   consent and client requirements in shinyOAuth.
-#' @param disconnect Optional function to close the connection. By default,
-#'   DBI connections use `DBI::dbDisconnect()`; other objects have no cleanup.
-#' @param min_valid_for Minimum remaining token lifetime in seconds when
-#'   obtaining a token. Defaults to 60; use 0 to accept any unexpired token.
-#' @param session Shiny session. Usually inferred; create helpers in `server()`.
-#' @return A reactive function. Call `connection <- con()` inside a render or
-#'   reactive expression to obtain the connection. Before sign-in, it waits
-#'   quietly like `shiny::req()`.
+#' @param target Token target name in the shinyOAuth client. `NULL` uses its
+#'   default token, including for clients without named targets.
+#' @param required_scopes Additional permissions to check before use. Request
+#'   consent and set the client's permission requirements in shinyOAuth.
+#' @param disconnect Function to close the connection. By default, DBI
+#'   connections use `DBI::dbDisconnect()`; other objects have no cleanup.
+#' @param min_valid_for Minimum remaining token lifetime, in seconds, when
+#'   obtaining a token. Use `0` to accept any unexpired token.
+#' @param session Shiny session. Inferred when the helper is created in
+#'   `server()`.
+#' @return A reactive function such as `con`. Call `connection <- con()`
+#'   inside a render or reactive expression to get the connection.
+#'   Before sign-in, it waits quietly, like `shiny::req()`.
 #' @details
-#' The helper reuses a connection within the selected authorization and closes
-#' it on sign-out or session end. A valid DBI connection stays open through token
-#' refresh; an invalid connection reopens on the next call to `con()`.
+#' Create the helper inside `server()` and call `con()` before each query.
+#' The helper reuses the connection and closes it when the selected
+#' authorization changes, ends, or loses required permissions, or when the
+#' Shiny session ends.
 #'
-#' This helper supplies a token when opening a connection. For an API that uses
-#' a token on every request, use [oauth_db_token()] or a platform API helper.
-#' See `vignette("authorization", package = "shinyOAuthDB")` for connection
-#' lifetime, cached results, and background work.
+#' A valid DBI connection stays open through token refresh. If the connection
+#' becomes invalid, the next call opens a new one.
+#'
+#' This helper supplies the token when opening a connection. For a function
+#' that takes a token on each request, use [oauth_db_token()] or a platform
+#' API client.
 #' @examples
 #' \dontrun{
 #' # Inside server(); client configured for Azure PostgreSQL:
@@ -46,6 +50,8 @@
 #'   sslmode = "verify-full"
 #' )
 #' }
+#' @seealso [oauth_db_token()]. For saved results and connection lifetime, see
+#'   `vignette("authorization", package = "shinyOAuthDB")`.
 #' @family advanced connection helpers
 #' @export
 oauth_db_connect <- function(
@@ -69,16 +75,19 @@ oauth_db_connect <- function(
 
 #' Get a user's access token for another R package
 #'
-#' Use this when an R function accepts an access token as an argument.
-#' shinyOAuth obtains or renews the token when you call the returned function.
-#' For Fabric and Databricks, the platform API helpers supply credentials for you.
+#' Use this when an R function accepts an access token directly. Call the
+#' returned function for a current token each time you make a request.
+#'
+#' For Fabric or Databricks functions, the platform API clients below can
+#' supply the credentials for you.
 #'
 #' @inheritParams oauth_db_connect
-#' @return A reactive function returning a bearer-token string. Call `bearer()`
-#'   when making a request, inside the user's Shiny session.
+#' @return A reactive function returning a bearer token string. Call
+#'   `bearer()` inside the user's Shiny session.
 #' @details
-#' Copied token strings have their own lifetime. Obtain the token for each
-#' operation and keep it out of global variables.
+#' shinyOAuth obtains or renews the token. Keep the function in the Shiny
+#' session and get a token for each operation; a copied token string keeps
+#' its own expiry time.
 #' @examples
 #' \dontrun{
 #' bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
@@ -89,7 +98,8 @@ oauth_db_connect <- function(
 #'   )
 #' })
 #' }
-#' @seealso [oauth_db_fabric_api()], [oauth_db_databricks_api()]
+#' @seealso [oauth_db_fabric_api()], [oauth_db_databricks_api()].
+#'   See `vignette("authorization", package = "shinyOAuthDB")` for token lifetime.
 #' @family advanced connection helpers
 #' @export
 oauth_db_token <- function(authorization, target = NULL, required_scopes = character(),
@@ -99,8 +109,8 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     min_valid_for = min_valid_for, session = session)
 }
 
-# Backend factories receive a grant-pinned credential callback. Only native
-# connections/providers are cached; query execution is entirely outside here.
+# The token callback can use only the authorization that created it.
+# Cache connections and providers; the caller runs queries.
 .odb_bind <- function(authorization, connect, ..., target = NULL, required_scopes = character(),
                       disconnect = NULL, cache_key = NULL, min_valid_for = 60,
                       session = shiny::getDefaultReactiveDomain()) {

@@ -15,44 +15,48 @@ oauth_db_databricks_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
 \item{auth_mode}{\code{"databricks_oauth"}, or \code{"entra"} for Azure Databricks
-using a Microsoft authorization.}
+with Microsoft sign-in.}
 
-\item{target}{Token target name. Defaults to \code{"databricks"} for Entra;
-native Databricks OAuth uses the authorization's default token.}
+\item{target}{Token target name. Defaults to \code{"databricks"} for Entra.
+Databricks OAuth uses the authorization's default token.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
 An R6 client with \verb{$call(.fn, ...)}. Pass a brickster function as
-\code{.fn} and its usual arguments through \code{...}, omitting \code{host} and \code{token}.
-The method returns the function's result.
+\code{.fn} and its usual arguments through \code{...}, omitting \code{host} and
+\code{token}. The method returns the function's result.
 }
 \description{
-Use brickster functions to list warehouses, run SQL, or work with other
-Databricks APIs. The client supplies the workspace host and a current user
-token when you call \verb{$call()}.
+Call brickster functions to list warehouses, run SQL, or use other
+Databricks APIs. The client supplies the workspace host and the user's
+credentials.
 }
 \details{
-Create the client inside \code{server()}. Configure authentication on this client;
-authentication arguments cannot be overridden through \verb{$call()}.
-
-Each call obtains a current token. A long-running native operation retains
-that token during polling or fetching. The client doesn't retry operations
-or close connections returned by an upstream function.
+Create the client inside \code{server()}. Set the authentication options when
+creating it; \verb{$call()} uses those settings.
 }
+\section{Longer operations}{
+
+Each call obtains a current token. Polling and fetching within that
+brickster call keep the supplied token. The client doesn't retry the
+operation or close connections returned by the function.
+}
+
 \examples{
 \dontrun{
 databricks <- oauth_db_databricks_api(
@@ -65,7 +69,9 @@ output$warehouses <- shiny::renderPrint({
 }
 }
 \seealso{
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}
+\code{\link[=oauth_db_databricks]{oauth_db_databricks()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
+\code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other platform API clients:
 \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},

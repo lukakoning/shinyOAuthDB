@@ -1,29 +1,30 @@
 #' Query Redshift as the signed-in user
 #'
-#' Use DBI or dbplyr with a user token accepted by Redshift's IAM Identity
-#' Center integration. Keep your shinyOAuth client configured for that
-#' deployment's identity provider and token audience.
+#' Query Redshift with a visitor's own access using DBI or dbplyr.
+#' This helper connects through Redshift's IAM Identity Center integration.
 #'
 #' @inheritParams oauth_db_azure_sql
-#' @param token_type "EXT_JWT" for an external IdP's JWT access token, or "ACCESS_TOKEN"
-#'   for an IAM Identity Center access token.
-#' @param ... Additional named Redshift ODBC options, such as CaFile or
-#'   LoginTimeout. Authentication, profiles, and TLS settings are supplied
-#'   by the helper.
-#' @return A reactive function returning a DBI connection.
+#' @param token_type `"EXT_JWT"` for an external provider's JWT access token,
+#'   or `"ACCESS_TOKEN"` for an IAM Identity Center access token.
+#' @param ... Named Redshift ODBC options, such as `CaFile` or `LoginTimeout`.
+#'   The helper sets authentication and verified TLS.
+#' @return A reactive function returning an odbc DBI connection.
 #' @details
-#' Install odbc and the AWS Redshift ODBC 2.x driver with IdpTokenAuthPlugin
-#' support. The AWS deployment must trust the issuer and map the user's
-#' identity and permissions. A successful web sign-in alone is insufficient.
+#' Install odbc and the AWS Redshift ODBC 2.x driver with
+#' `IdpTokenAuthPlugin` support. The deployment must trust your app's sign-in
+#' provider and map users to database permissions. Configure a shinyOAuth
+#' client for that provider and the required token audience.
 #'
-#' This uses plain odbc::odbc() with an explicit token and token type.
-#' It does not discover IAM credentials or open the driver's browser login.
-#' Connections use verified TLS, open on first use, and close on authorization
-#' changes or session end. Established SQL sessions remain open during ordinary
-#' token refresh; a new connection obtains a current token.
-#'
-#' Identity-enhanced IAM credentials and SUBJECT_TOKEN are separate
-#' authentication paths and are not accepted by this helper.
+#' Create `con` inside `server()` and call it before querying in a render
+#' or reactive expression.
+#' @section Connection lifetime:
+#' Connections open on first use and close on authorization changes,
+#' sign-out, or session end. Ordinary token refresh preserves an established
+#' SQL connection; a new connection obtains a current token.
+#' @section Authentication options:
+#' The helper passes the token to the driver's `IdpTokenAuthPlugin`.
+#' Use one of the two `token_type` values above. Identity-enhanced IAM
+#' credentials and `SUBJECT_TOKEN` use separate authentication flows.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_redshift(
@@ -37,6 +38,9 @@
 #'   DBI::dbGetQuery(connection, "SELECT current_user")
 #' })
 #' }
+#' @seealso [oauth_db_microsoft_client()].
+#'   `vignette("redshift", package = "shinyOAuthDB")` has sign-in setup
+#'   and a complete app.
 #' @family database connections
 #' @export
 oauth_db_redshift <- function(

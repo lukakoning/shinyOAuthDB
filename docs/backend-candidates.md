@@ -1,185 +1,116 @@
-# Additional OAuth backends
+# Backend decisions
 
-Investigated 1 November 2026. BigQuery, Redshift, and Trino are implemented.
-Dremio remains deferred.
+Research notes from 1 November 2026. BigQuery, Redshift, and Trino are
+implemented; Dremio is deferred. For app examples, start with the
+[source guides](../vignettes/getting-started.Rmd).
 
-Trino uses RTrino's per-request authentication callback; Redshift supplies
-user tokens to the AWS ODBC driver. BigQuery uses its REST API directly.
-Live deployment validation remains separate from the local adapter tests.
+| Platform | Implementation |
+| --- | --- |
+| BigQuery | `oauth_db_bigquery_api()`: direct REST queries |
+| Redshift | `oauth_db_redshift()`: user tokens through the AWS ODBC driver |
+| Trino / Starburst Enterprise | `oauth_db_trino()`: RTrino with an authentication callback |
+| Dremio | Not implemented |
 
-| Platform | Preferred route | Assessment |
-| --- | --- | --- |
-| Trino / Starburst Enterprise | RTrino DBI connection with an authentication callback | Implemented as `oauth_db_trino()` |
-| Redshift | DBI + AWS ODBC driver, supplied user token | Implemented as `oauth_db_redshift()`; live deployment checks remain |
-| Dremio Enterprise | DBI + Flight SQL ODBC; consider adbi/ADBC for token exchange | Deferred |
-| BigQuery | Direct REST client with per-user tokens | Implemented as `oauth_db_bigquery_api()` |
+The probes used fixture credentials and mocked HTTP on Windows with R 4.5.1,
+shinyOAuth 0.7.0, bigrquery 1.6.2, and RTrino 0.1.0. Extra packages were
+installed in a temporary library. No browser sign-in or live cloud queries
+ran during this investigation.
 
-## Trino and Starburst
+## BigQuery: use the REST API
 
-[RTrino 0.1.0](https://cran.r-project.org/package=RTrino), published on
-15 October 2026, is a better starting point than RPresto. Its `dbConnect()`
-accepts an `auth` function that receives an httr2 request. The
-[request builder](https://github.com/AngelCasasbl/RTrino/blob/3421e6f508a83f77f6e28d12a70048cd838d8b02/R/utils.R)
-calls it for connection checks and query requests, including pagination.
-This gives shinyOAuthDB a public place to obtain a current token.
+bigrquery 1.6.2 uses package-wide authentication. In a local probe, two DBI
+connections used the most recently configured package token even when they
+were created with different `token` arguments. Its
+[connection constructor](https://github.com/r-dbi/bigrquery/blob/main/R/dbi-driver.R)
+doesn't keep separate credentials for each connection.
 
-A local probe used the released R package, real DBI calls, and shinyOAuth
-fixture authorizations, with HTTP responses mocked. A token rotated between
-the query submission and a result page; the page used the new token and the
-same DBI connection remained usable. Changing accounts closed the old
-connection. Retained callbacks failed after replacement, logout, and session
-closure.
+The BigQuery client therefore calls Google's
+[query](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query)
+and [result](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/getQueryResults)
+APIs directly. Each operation keeps the authorization it started with and
+gets a current token for polling and result pages. Queries return data
+frames, preserve INT64 and decimal precision, and accept named parameters.
 
-Implemented interface:
+A unique request ID protects the single 401 refresh retry. Other failures
+don't resubmit SQL. A timeout or sign-out stops fetching results, while a
+submitted Google job may continue. See the [BigQuery guide](../vignettes/bigquery.Rmd).
 
-```r
-con <- oauth_db_trino(
-  auth$connection,
-  host = "https://trino.example.org",
-  port = 443,
-  catalog = "lakehouse",
-  schema = "reporting",
-  user = "mapped-database-user"
-)
-```
+## Redshift: supply the user token to ODBC
 
-It returns the usual connection function. The existing grant-bound callback
-prevents an old connection from adopting a newly selected account.
-RTrino's `trino_auth_oauth2()` uses client credentials;
-the adapter supplies the visitor's token through `auth`.
-See the [authentication helpers](https://github.com/AngelCasasbl/RTrino/blob/3421e6f508a83f77f6e28d12a70048cd838d8b02/R/auth.R).
+AWS's [Identity Center integration](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html)
+accepts tokens through `IdpTokenAuthPlugin`. The `EXT_JWT` mode uses a JWT
+from a trusted external provider; `ACCESS_TOKEN` uses an IAM Identity Center
+access token. The deployment supplies the issuer and user mapping, so the
+package has no universal Redshift sign-in preset.
 
-The username needs an explicit mapping to the selected authorization.
-The helper accepts a reactive function for this mapping and replaces the
-connection when the username changes.
-Before release, test against a real cluster, including principal mapping,
-permission denial, cancellation, and token expiry. Per-request acquisition
-does not guarantee renewal within an HTTP retry or replay after a 401.
-
-For [Starburst Enterprise](https://docs.starburst.io/latest/security/oauth2.html),
-the same transport is a candidate once the cluster trusts the IdP and maps
-the user. **Galaxy needs its own sign-in configuration**:
-it supports custom public and confidential OAuth clients. Confidential
-clients require HTTPS redirect URIs. Its OAuth endpoints and permissions
-must be tested separately; compatibility with Trino's SQL protocol does not
-establish Galaxy sign-in support.
-See [Galaxy client registration](https://docs.starburst.io/starburst-galaxy/security-and-compliance/manage-galaxy-access/setup-oauth-clients.html).
-
-## Amazon Redshift
-
-AWS documents an external-token route specifically for applications that own
-their sign-in flow: `plugin_name = "IdpTokenAuthPlugin"`, with `token` and
-`token_type`. `EXT_JWT` denotes a token from an integrated external IdP;
-`ACCESS_TOKEN` denotes an IAM Identity Center access token.
-This requires the deployment's Identity Center integration and user mapping.
-See [AWS's integration guide](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html).
-
-Implemented interface:
-
-```r
-con <- oauth_db_redshift(
-  auth$connection,
-  server = "cluster.example.eu-west-1.redshift.amazonaws.com",
-  database = "reporting",
-  driver = "your installed Redshift ODBC driver",
-  token_type = "EXT_JWT"
-)
-```
-
-The existing generic connector can already pass a token to DBI/odbc using
-`odbc::odbc()`. The convenience [`odbc::redshift()`](https://odbc.r-dbi.org/reference/redshift.html)
-method discovers IAM credentials, which is unsuitable for this supplied-token
-path. The helper sets the native authentication options, enforces
-TLS, and closes the connection on authorization changes. The client's IdP and token
-audience depend on the deployment, so a universal Redshift sign-in preset
-would be misleading.
+The helper uses `odbc::odbc()` with explicit `token` and `token_type`
+arguments. The convenience [`odbc::redshift()`](https://odbc.r-dbi.org/reference/redshift.html)
+function discovers IAM credentials.
 
 The reviewed AWS ODBC 2.3.0
-[plugin source](https://github.com/aws/amazon-redshift-odbc-driver/blob/868e9b0d035f5e219890c2de424b9d29d130f300/src/odbc/rsodbc/iam/plugins/IdpTokenAuthPlugin.cpp)
-uses the supplied token when both token fields are present. Missing both
-allows AWS default-credential discovery; partial pairs and mixed IAM/token
-credentials fail. The helper should require the pair and prevent profiles,
-DSNs, or other credential options from selecting a different identity.
+[plugin](https://github.com/aws/amazon-redshift-odbc-driver/blob/868e9b0d035f5e219890c2de424b9d29d130f300/src/odbc/rsodbc/iam/plugins/IdpTokenAuthPlugin.cpp)
+uses the supplied token when both token fields are present. If both are
+missing, it can discover default AWS credentials. The helper always supplies
+the pair and rejects profiles, DSNs, and competing credential options.
 
-Set `SSLMode = "verify-full"` explicitly. The
+It also sets `SSLMode = "verify-full"` explicitly because the
 [2.3.0 changelog](https://github.com/aws/amazon-redshift-odbc-driver/blob/868e9b0d035f5e219890c2de424b9d29d130f300/CHANGELOG.md)
-describes a compatibility exception for the driver's implicit default.
+documents a compatibility exception for the implicit default.
 
-Start with the documented external-token flow. Identity-enhanced IAM sessions
-and `SUBJECT_TOKEN` involve another acquisition path; they should be separate
-work. Live tests must establish the actual database principal, A/B grants,
-expiry/reconnection, and isolation from ambient AWS credentials.
-No AWS driver or remote connection was tested in this investigation.
+The adapter tests cover arguments and connection lifetime. Live tests still
+need to check the database principal, separate A/B access, reconnection, and
+isolation from the host's AWS credentials. No AWS driver connection was
+tested in this investigation. Identity-enhanced IAM credentials and
+`SUBJECT_TOKEN` require separate work.
 
-## Dremio
+## Trino: use RTrino's authentication callback
+
+RTrino 0.1.0 accepts an `auth` function in `dbConnect()`. Its
+[request builder](https://github.com/AngelCasasbl/RTrino/blob/3421e6f508a83f77f6e28d12a70048cd838d8b02/R/utils.R)
+calls this function for connection checks, query submission, and result pages.
+The helper uses it to obtain a current user token.
+
+Tests with the released package and mocked HTTP confirmed that a result
+page could use a renewed token on the same DBI connection. Switching
+accounts closed the old connection. Retained callbacks failed after account
+replacement, sign-out, and session end.
+
+The `user` argument must match the cluster's principal mapping. The helper
+accepts a reactive function and replaces the connection when the username
+changes. RTrino's
+[`trino_auth_oauth2()`](https://github.com/AngelCasasbl/RTrino/blob/3421e6f508a83f77f6e28d12a70048cd838d8b02/R/auth.R)
+uses client credentials; this helper supplies the visitor's token.
+
+Live validation still needs to cover principal mapping, permission denial,
+cancellation, and expiry. Obtaining a token per request doesn't guarantee
+renewal during an HTTP retry or replay after a 401.
+
+[Starburst Enterprise](https://docs.starburst.io/latest/security/oauth2.html)
+needs the corresponding issuer and user mapping. Galaxy requires its own
+[OAuth registration](https://docs.starburst.io/starburst-galaxy/security-and-compliance/manage-galaxy-access/setup-oauth-clients.html);
+its confidential clients require HTTPS redirects. SQL protocol compatibility
+alone doesn't establish Galaxy sign-in support.
+
+## Dremio: deferred
 
 The [Enterprise authentication guide](https://docs.dremio.com/current/security/authentication/)
-supports both direct external JWTs and exchanging an external JWT for a
-Dremio token. The [Flight SQL ODBC guide](https://docs.dremio.com/current/client-applications/drivers/arrow-flight-sql-odbc-driver/)
-explicitly accepts an OAuth access token through `TOKEN`. A configured
-Enterprise deployment is therefore a reasonable first target.
+describes direct external JWTs and JWT exchange. The
+[Flight SQL ODBC driver](https://docs.dremio.com/current/client-applications/drivers/arrow-flight-sql-odbc-driver/)
+accepts an OAuth token through `TOKEN`. A future helper would need a
+deployment with a configured external identity provider.
 
-Proposed interface for direct token use:
+Dremio's `/oauth/token` endpoint performs token exchange; sign-in still
+needs the external provider. An [exchanged token](https://docs.dremio.com/current/reference/api/oauth-token/#exchange-an-external-jwt)
+lasts no longer than the external JWT, capped at one hour. Selecting a
+shinyOAuth token target doesn't perform this exchange.
 
-```r
-con <- oauth_db_dremio(
-  auth$connection,
-  host = "dremio.example.org",
-  port = 32010,
-  driver = "your installed Flight SQL ODBC driver"
-)
-```
+The [ADBC Flight SQL driver](https://arrow.apache.org/adbc/current/driver/flight_sql.html#oauth-2-0-options)
+exposes token-exchange settings. Investigate its R support through adbi
+before adding another token store to shinyOAuthDB.
 
-Use the deployment's external IdP for sign-in. Dremio's `/oauth/token`
-endpoint alone does not provide a browser authorization-code flow.
-
-For [JWT exchange](https://docs.dremio.com/current/reference/api/oauth-token/#exchange-an-external-jwt),
-Dremio accepts an RFC 8693 request. The resulting token lasts no longer than
-the external JWT, capped at one hour. Choosing a shinyOAuth token target
-does not perform this exchange.
-
-Prefer an existing driver's exchange support over adding another OAuth token
-store here. The [ADBC Flight SQL driver](https://arrow.apache.org/adbc/current/driver/flight_sql.html#oauth-2-0-options)
-exposes token-exchange options, including the subject token and token endpoint.
-That makes `adbi` an alternative worth testing, with connections rebuilt when
-a stored subject token changes. Its R loading, exchange behavior, and query
-lifetime still need verification.
-
-Keep **Dremio Cloud** separate. Its
-[authentication overview](https://docs.dremio.com/dremio-cloud/security/authentication/)
-describes external JWT exchange, but its
-[SQL driver page](https://docs.dremio.com/dremio-cloud/explore-analyze/client-apps/drivers/arrow-flight-sql-odbc/)
-describes the token property as a PAT. Validate the exact Cloud driver and
-edition before claiming delegated OAuth support. No live Dremio tests ran.
-
-## Google BigQuery
-
-Implemented with `oauth_db_bigquery_api()` and
-`oauth_db_bigquery_client()`. Queries, polling, and pagination use a token
-callback tied to the selected authorization. The client returns data frames,
-preserves INT64 and decimal precision, and supports named query parameters.
-See the [BigQuery guide](../vignettes/bigquery.Rmd).
-
-The direct REST approach avoids bigrquery's package-global authentication.
-The investigation with bigrquery 1.6.2 confirmed that two DBI connections used
-the most recently configured package token, even when created with different
-`token` arguments. Its [constructor](https://github.com/r-dbi/bigrquery/blob/main/R/dbi-driver.R)
-does not bind authentication to the connection.
-
-Google's [query](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query)
-and [result](https://docs.cloud.google.com/bigquery/docs/reference/rest/v2/jobs/getQueryResults)
-APIs define the transport. A unique request ID protects a submission's single
-401 refresh retry; other failures do not resubmit SQL. Local timeouts and
-sign-out stop fetching, while an already submitted Google job can continue.
-
-## Scope of the evidence
-
-The R probes ran on Windows with R 4.5.1, shinyOAuth 0.7.0, bigrquery 1.6.2,
-and RTrino 0.1.0. Additional packages went into a temporary research library.
-The probes used fixture credentials and mocked HTTP; no cloud resources,
-browser OAuth flows, or production credentials were used.
-
-The next implementation should keep native DBI objects and ordinary queries.
-New R6 clients are useful where a connection cannot carry its own credentials,
-as with the potential BigQuery API client. Source links on development branches
-may change; the installed R package versions above identify the runtime probes.
+Dremio Cloud needs separate validation: its
+[authentication guide](https://docs.dremio.com/dremio-cloud/security/authentication/)
+describes external JWT exchange, while its
+[SQL driver guide](https://docs.dremio.com/dremio-cloud/explore-analyze/client-apps/drivers/arrow-flight-sql-odbc/)
+describes a PAT. The edition and driver determine the usable path.
+No live Dremio tests ran.

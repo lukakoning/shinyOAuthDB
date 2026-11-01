@@ -1,20 +1,24 @@
 #' Query Azure PostgreSQL as the signed-in user
 #'
-#' Use this to query Azure PostgreSQL with DBI or dbplyr. The server must accept
-#' Entra authentication, and the requested database role must already exist
-#' for the user or their group.
+#' Query Azure Database for PostgreSQL with a visitor's Microsoft account.
+#' The connection works with DBI or dbplyr through RPostgres.
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param host PostgreSQL hostname.
 #' @param dbname Database name.
-#' @param user Database role provisioned for the user or their group.
-#' @param sslrootcert CA bundle path, or `NULL` to use libpq's configured bundle.
-#' @param ... Additional RPostgres connection options, such as `connect_timeout`.
+#' @param user Database role created for the user or their group.
+#' @param sslrootcert CA certificate bundle path, or `NULL` to use libpq's
+#'   configured bundle.
+#' @param ... RPostgres connection options, such as `connect_timeout`.
 #' @return A reactive function returning an RPostgres DBI connection.
 #' @details
-#' Install RPostgres and configure the Microsoft client with
-#' `services = "postgres"`. Connections use verified TLS and the user's
-#' Entra token as the password.
+#' Install RPostgres and use [oauth_db_microsoft_client()] with
+#' `services = "postgres"`. The server must accept Entra authentication,
+#' and the database role must already exist.
+#'
+#' Create the helper inside `server()` and get `connection <- con()`
+#' inside a render or reactive expression before querying.
+#' The connection uses verified TLS.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_azure_postgres(
@@ -29,7 +33,9 @@
 #'   DBI::dbGetQuery(connection, "SELECT current_user")
 #' })
 #' }
-#' @seealso [oauth_db_microsoft_client()]
+#' @seealso [oauth_db_microsoft_client()].
+#'   `vignette("azure-postgres", package = "shinyOAuthDB")` has sign-in setup
+#'   and a complete app.
 #' @family database connections
 #' @export
 oauth_db_azure_postgres <- function(

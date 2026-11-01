@@ -1,8 +1,8 @@
 # Updating earlier development apps
 
-The current interface uses ordinary Shiny code and native database functions.
-Choose your source in [Getting started](../vignettes/getting-started.Rmd).
-Earlier development interfaces have no compatibility aliases.
+Update older development apps to use connection helpers and Shiny reactive
+expressions. Choose your source in [Getting started](../vignettes/getting-started.Rmd)
+for a complete app. The earlier interfaces have no compatibility aliases.
 
 ## Changed arguments
 
@@ -19,9 +19,10 @@ check. Snowflake derives its default role scope from `role`.
 
 ## Databricks and Fabric
 
-`oauth_db_databricks()` now always supplies a DBI connection. Pass a `host`
-and either `warehouse_id` or `http_path`. For brickster API functions, use
-`oauth_db_databricks_api()$call()`; it supplies the host and current token.
+`oauth_db_databricks()` returns a function that provides a DBI connection.
+Pass `host` and either `warehouse_id` or `http_path`. For brickster API
+functions, create `databricks <- oauth_db_databricks_api(...)` and use
+`databricks$call()`.
 
 For Fabric API calls and resource objects, use `oauth_db_fabric_api()`.
 The single-service `oauth_db_fabric()` callback helper remains available.
@@ -34,6 +35,6 @@ Replace source descriptors and `oauth_db_session()` with a helper such as
 `con <- oauth_db_azure_sql(auth$connection, ...)`. Obtain `connection <- con()`
 inside a reactive expression, then call DBI or dbplyr.
 
-Queries, stored results, and background work now belong to the app.
-The [query-button example](../playground/example-query-button.R) shows how to
-run queries on demand and clear stored results when the authorization changes.
+Keep query results and background work in your app. The
+[query-button example](../playground/example-query-button.R) runs SQL on
+a button click and clears saved results when the authorization changes.

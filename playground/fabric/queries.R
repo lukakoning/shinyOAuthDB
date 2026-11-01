@@ -1,4 +1,4 @@
-# Ordinary fabricQueryR calls against the persistent Shiny sandbox fixtures.
+# fabricQueryR queries for the prepared Fabric sandbox.
 fabric_demo_sources <- c(
   "Warehouse / SQL" = "warehouse", "Lakehouse / SQL" = "lakehouse",
   "Semantic model / DAX" = "dax", "Semantic model / DAX / Arrow" = "dax_arrow",

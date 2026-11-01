@@ -1,3 +1,4 @@
+# Query Redshift with Microsoft sign-in; see playground/README.md for setup.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

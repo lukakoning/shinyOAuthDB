@@ -1,4 +1,4 @@
-# Query only on demand; clear app-owned results when authorization changes.
+# Run SQL on a button click and clear saved results when access changes.
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)

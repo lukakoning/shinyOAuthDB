@@ -20,45 +20,50 @@ oauth_db_snowflake(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
-\item{database, schema, warehouse}{Optional connection settings. \code{NULL} uses the
-driver's or account's defaults.}
+\item{database, schema, warehouse}{Optional connection settings. \code{NULL} uses
+the driver's or account's defaults.}
 
 \item{role}{Snowflake role for this connection.}
 
-\item{...}{Additional named Snowflake ODBC connection options.}
+\item{...}{Named Snowflake ODBC connection options.}
 
-\item{required_scopes}{OAuth permissions to check. Defaults to the native
+\item{required_scopes}{Permissions to check before use. The default is the
 Snowflake role scope, \code{paste0("session:role:", role)}. For External OAuth,
-supply the scopes configured by your integration.}
+supply the scope names configured by the integration.}
 
-\item{target}{Optional shinyOAuth token target, for example for External OAuth.}
+\item{target}{Named shinyOAuth token target, or \code{NULL} for the default token.}
 
 \item{driver}{Installed ODBC driver name.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
 A reactive function returning an odbc DBI connection.
 }
 \description{
-Use a Snowflake OAuth authorization with DBI or dbplyr. Supply a role the user
-can access and, optionally, the warehouse, database, and schema for queries.
+Query Snowflake with the visitor's account and role using DBI or dbplyr.
+Set the warehouse, database, and schema for your queries, or use the
+account's defaults.
 }
 \details{
 Install odbc and the Snowflake ODBC driver. Use \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}
-for native Snowflake OAuth, or keep your existing External OAuth client.
+for Snowflake's own OAuth integration, or a shinyOAuth client configured
+for your External OAuth provider.
 
-Create the helper in \code{server()} and call \code{con()} for each operation.
-Connections open on first use and close on sign-out or session end.
+Create \code{con} inside \code{server()} and get \code{connection <- con()} inside a
+render or reactive expression before querying. The helper opens the
+connection on first use and closes it when the authorization or session ends.
+
 For names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
 }
 \examples{
@@ -77,7 +82,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
+\code{vignette("snowflake", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},

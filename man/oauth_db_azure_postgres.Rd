@@ -19,45 +19,50 @@ oauth_db_azure_postgres(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
-parentheses. With a connection manager, use a function that selects
-\code{auth$connection(id)}.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
+without parentheses. To select a saved authorization, pass a function
+that calls \code{auth$connection(id)}.}
 
 \item{host}{PostgreSQL hostname.}
 
 \item{dbname}{Database name.}
 
-\item{user}{Database role provisioned for the user or their group.}
+\item{user}{Database role created for the user or their group.}
 
-\item{...}{Additional RPostgres connection options, such as \code{connect_timeout}.}
+\item{...}{RPostgres connection options, such as \code{connect_timeout}.}
 
 \item{port}{Database port.}
 
-\item{sslrootcert}{CA bundle path, or \code{NULL} to use libpq's configured bundle.}
+\item{sslrootcert}{CA certificate bundle path, or \code{NULL} to use libpq's
+configured bundle.}
 
-\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
-default token, including clients without named targets.}
+\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
+default token, including for clients without named targets.}
 
-\item{required_scopes}{Extra permissions to check before use. Configure
-consent and client requirements in shinyOAuth.}
+\item{required_scopes}{Additional permissions to check before use. Request
+consent and set the client's permission requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum remaining token lifetime in seconds when
-obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
+\item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
+obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
+\item{session}{Shiny session. Inferred when the helper is created in
+\code{server()}.}
 }
 \value{
 A reactive function returning an RPostgres DBI connection.
 }
 \description{
-Use this to query Azure PostgreSQL with DBI or dbplyr. The server must accept
-Entra authentication, and the requested database role must already exist
-for the user or their group.
+Query Azure Database for PostgreSQL with a visitor's Microsoft account.
+The connection works with DBI or dbplyr through RPostgres.
 }
 \details{
-Install RPostgres and configure the Microsoft client with
-\code{services = "postgres"}. Connections use verified TLS and the user's
-Entra token as the password.
+Install RPostgres and use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with
+\code{services = "postgres"}. The server must accept Entra authentication,
+and the database role must already exist.
+
+Create the helper inside \code{server()} and get \code{connection <- con()}
+inside a render or reactive expression before querying.
+The connection uses verified TLS.
 }
 \examples{
 \dontrun{
@@ -75,7 +80,9 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}.
+\code{vignette("azure-postgres", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
 
 Other database connections:
 \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},

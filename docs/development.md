@@ -1,20 +1,20 @@
 # Package development
 
-shinyOAuthDB supplies user credentials to existing R clients. Keep sign-in
-and token renewal in shinyOAuth, queries in the database package, and result
-storage in the Shiny app.
+shinyOAuthDB connects a user's sign-in to database and platform functions.
+shinyOAuth handles login and token renewal; the database package runs queries.
+The Shiny app manages any results it saves.
 
 ## Finding the code
 
 Each `R/backend__*.R` file contains one platform's connection helpers,
-OAuth presets, and driver options. Shared code handles authorization checks
-(`authorization.R`), connection reuse and cleanup (`session.R`), and native
+OAuth presets, and driver options. Shared code checks authorizations
+(`authorization.R`), manages connections (`session.R`), and prepares
 API calls (`api.R`).
 
 When adding a backend, prefer a public token or callback argument in an
-existing client. Return its native connection or results. Check that a
-missing or expired credential cannot switch to the hosting environment's
-account. Keep backend-specific settings in the backend file.
+existing client. Return that package's connection or result. Check that
+missing or expired credentials don't cause the client to use the hosting
+environment's account. Keep platform settings in the backend file.
 
 ## Local checks
 
@@ -37,10 +37,10 @@ roxygen2::roxygenise()
 ```
 
 The documentation check parses R examples and checks local links. Regression
-tests also build each source guide's complete app with its real OAuth client
-and check that queries wait for sign-in. Each guide should work on its own:
-keep sign-in setup and native query examples together, with advanced options
-at the end.
+tests also construct each source guide's app and check that queries wait
+for sign-in. Each guide should work on its own: explain what the app can
+do, show a complete example with ordinary queries, then introduce advanced
+options. Keep sign-in setup and query examples together.
 
 ## Live checks
 

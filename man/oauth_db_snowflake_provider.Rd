@@ -2,25 +2,31 @@
 % Please edit documentation in R/backend__snowflake.R
 \name{oauth_db_snowflake_provider}
 \alias{oauth_db_snowflake_provider}
-\title{Set up a Snowflake OAuth provider}
+\title{Create a Snowflake OAuth provider}
 \usage{
 oauth_db_snowflake_provider(server, ...)
 }
 \arguments{
 \item{server}{Snowflake account hostname.}
 
-\item{...}{Settings for \code{shinyOAuth::oauth_provider()}, replacing preset values.}
+\item{...}{Settings for \code{shinyOAuth::oauth_provider()}, replacing defaults.}
 }
 \value{
-A shinyOAuth \code{OAuthProvider}. External OAuth uses the external
-identity provider's configuration instead.
+A shinyOAuth \code{OAuthProvider} for Snowflake's own OAuth integration.
 }
 \description{
-Use this when constructing your own \code{shinyOAuth::oauth_client()} for
-Snowflake's built-in OAuth integration. For standard setup, use
+Use this to choose provider settings when constructing
+\code{shinyOAuth::oauth_client()} yourself. For a typical app, use
 \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
 }
+\details{
+External OAuth uses the external identity provider's configuration.
+}
 \seealso{
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
+\code{vignette("snowflake", package = "shinyOAuthDB")} has sign-in setup
+and a complete app.
+
 Other sign-in configuration:
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
