@@ -330,7 +330,7 @@ oauth_db_bigquery_client <- function(
       if (length(x) == 0L || is.na(x)) return(list(value = NULL))
       text <- if (inherits(x, "POSIXct")) format(x, "%Y-%m-%d %H:%M:%OS6+00:00", tz = "UTC")
       else if (is.logical(x)) if (x) "true" else "false"
-      else if (is.numeric(x) && !inherits(x, "Date")) format(x, scientific = FALSE, trim = TRUE, digits = 17)
+      else if (is.numeric(x) && !inherits(x, "Date")) format(x, scientific = FALSE, trim = TRUE, digits = 17, decimal.mark = ".")
       else as.character(x)
       list(value = text)
     }

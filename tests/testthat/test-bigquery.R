@@ -302,3 +302,12 @@ test_that("BigQuery accepts completed responses without renewing a still-live to
     expect_identical(auth$calls$acquire, 0L)
   })
 })
+
+test_that("BigQuery numeric parameter values ignore the display decimal mark", {
+  withr::local_options(OutDec = ",")
+  parameters <- .odb_bigquery_parameters(list(x = 1.25, xs = c(1.25, -2.5), id = 42L), NULL)
+  expect_identical(parameters[[1L]]$parameterValue$value, "1.25")
+  expect_identical(parameters[[2L]]$parameterValue$arrayValues,
+    list(list(value = "1.25"), list(value = "-2.5")))
+  expect_identical(parameters[[3L]]$parameterValue$value, "42")
+})
