@@ -11,20 +11,21 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use the signed-in visitor's Microsoft account to query Azure SQL with DBI
-or dbplyr. This example lists the database tables they can see.
+Let people sign in with their Microsoft account and query Azure SQL from
+your Shiny app. Their database permissions determine which data they can see.
+
+`oauth_db_azure_sql()` provides a connection for ordinary DBI or dbplyr
+queries. The app below starts by listing the tables the user can access.
 
 ## Set up access
 
 Install `odbc` and Microsoft ODBC Driver 18 for SQL Server. Your database
-administrator must enable [Microsoft Entra authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
-and give users or their groups database access.
+administrator must [enable Microsoft Entra authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
+and give users or their groups access to the database.
 
-Create a Microsoft Entra Web app registration with delegated SQL access,
-and register `http://localhost:8100` as its redirect URI. The
-`services = "sql"` preset below requests the SQL token for you.
-
-Put your registration's values in a local `.Renviron` file and restart R:
+Create a Microsoft Entra Web app registration with permission to access
+SQL on a user's behalf. Register `http://localhost:8100` as its redirect
+URI, then save these values in a local `.Renviron` file and restart R:
 
 ```text
 OAUTHDB_TENANT_ID=your-tenant-id
@@ -34,7 +35,7 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 
 ## A complete app
 
-Save this as `app.R` and replace the example connection settings:
+Save this as `app.R`, replacing the server and database:
 
 ```{r app}
 library(shiny)
@@ -75,18 +76,17 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Run `shiny::runApp(port = 8100)` in that directory, then open
-`http://localhost:8100` and sign in. The output waits for sign-in and clears
-when you sign out.
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears the
+output.
 
-## Query your own tables
+## Query with dbplyr
 
-Create `con` inside `server()`, passing `auth$connection` without
-parentheses. Call `con()` in a render or reactive expression before querying.
-The helper reuses the connection and closes it when the authorization or
-Shiny session ends.
+In the app, `con` is a function. Calling `con()` inside `renderTable()`
+gets the signed-in user's DBI connection.
 
-For an `Orders` table, you could replace the output with a dbplyr query:
+To read an `Orders` table with dbplyr, install `dbplyr` and `dplyr`,
+then replace the output expression with:
 
 ```{r dbplyr-query}
 output$rows <- renderTable({
@@ -97,15 +97,16 @@ output$rows <- renderTable({
 })
 ```
 
-Install `dbplyr` and `dplyr` for this alternative. Use DBI parameter binding
-when a SQL query includes values supplied by visitors.
+For SQL queries that include values entered by a user, use DBI parameter
+binding.
 
 ## Other SQL Server deployments
 
-For SQL Managed Instance or Synapse SQL, supply that deployment's server
-and database to `oauth_db_azure_sql()`. For SQL Server configured to accept
-Entra tokens, use `oauth_db_sql_server()` with the same arguments and client.
+Use the same `oauth_db_azure_sql()` helper for SQL Managed Instance or
+Synapse SQL, with that deployment's server and database. For SQL Server
+configured to accept Entra tokens, use `oauth_db_sql_server()` with the
+same arguments and client.
 
-Driver options such as `driver`, `port`, and `timeout` are documented in
-`?oauth_db_azure_sql`. For custom permissions or an existing login, see
-[Authentication and sessions](authorization.html).
+See `?oauth_db_azure_sql` for driver settings such as `driver`, `port`,
+and `timeout`. [Authentication and sessions](authorization.html) covers
+custom permissions and existing logins.

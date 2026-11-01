@@ -11,21 +11,59 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use this guide when adapting an existing login, selecting between accounts,
-or saving query results between user actions. For a first app, choose a
-source in [Getting started](getting-started.html); each source guide
-includes its own sign-in setup.
+Keep each person's database connections and query results in their Shiny
+session. Reactive outputs follow sign-in changes; if you cache data, clear
+it when users sign out or change account.
 
-## Keep an existing login
+For a complete app with sign-in setup, choose your source in
+[Getting started](getting-started.html).
 
-The `*_client()` helpers provide optional sign-in configurations. If you
-already use shinyOAuth, keep your provider, client, UI, and server module.
+## Follow sign-in changes
+
+Create connection helpers inside `server()` and call `con()` in each
+render or reactive expression that queries the database. The helper reuses
+the connection and closes it when the authorization or Shiny session ends.
+
+Put API client calls inside reactive expressions too. This lets Shiny
+update the output when the selected account changes.
+
+## Save query results
+
+If you keep results in `reactiveVal()`, `eventReactive()`, or another
+cache, clear or hide them when the user signs out or changes account.
+Closing a database connection doesn't erase data the app has already
+fetched. A cache keyed only by SQL text can share protected results between
+users.
+
+The source checkout's `playground/example-query-button.R` shows a query
+button that clears results on sign-out, account changes, and loss of required
+permissions.
+
+## Request permissions
+
+OAuth scopes describe the permissions your app requests during sign-in.
+Set them on the shinyOAuth client. The presets supply defaults for the
+selected services.
+
+A helper's `required_scopes` checks for permissions before use. It doesn't
+request additional consent or add database privileges. The shinyOAuth client
+still enforces its configured requirements.
+
+Microsoft's `/.default` requests the registration's configured permissions.
+It isn't a granted permission name, so don't put it in `required_scopes`.
+The [Snowflake guide](snowflake.html#external-oauth) describes its role scopes.
+
+## Use an existing login
+
+You can keep an existing shinyOAuth provider, client, UI, and server module.
+The `*_client()` helpers are optional presets.
+
 The token must be intended for the database or API you're calling.
+Named token targets let one authorization obtain tokens for different
+services, each with its own permission requirements. Microsoft's presets
+use names such as `"sql"` and `"storage"`.
 
-In shinyOAuth, named **token targets** let one authorization obtain tokens
-for different services. Microsoft's presets use names such as `"sql"`
-and `"storage"`. If your existing SQL target is named `"reporting"`,
-select it explicitly:
+For an existing SQL target named `"reporting"`, select it explicitly:
 
 ```{r custom-sql-target}
 con <- oauth_db_azure_sql(
@@ -37,29 +75,15 @@ con <- oauth_db_azure_sql(
 ```
 
 For a client without named targets, use `target = NULL` with a suitable
-default token. The [Fabric guide](fabric.html#connection-options-and-custom-sign-in)
-shows its API client's service-to-target mapping.
-
-## Request and check permissions
-
-OAuth scopes describe the permissions your app requests from the provider.
-Configure them on the shinyOAuth client or its token targets. The presets
-supply defaults for the selected services; replace these when your
-registration requires different settings.
-
-A helper's `required_scopes` argument checks permissions before use. It
-doesn't request consent or add database privileges. The shinyOAuth client
-and target still enforce their configured requirements.
-
-Microsoft's `/.default` requests the registration's configured permissions;
-it isn't a granted permission name. Don't put it in `required_scopes`.
-The [Snowflake guide](snowflake.html#external-oauth) explains its role scopes.
+default token. The [Fabric guide](fabric.html#use-an-existing-sign-in)
+shows how to map services to your client's targets.
 
 ## Select among several accounts
 
-Use shinyOAuth's connection manager when a visitor should retain several
-authorizations. See
-`vignette("multiple-authorizations", package = "shinyOAuth")` for manager setup.
+Use shinyOAuth's connection manager when a user needs to keep several
+authorizations and choose between them.
+`vignette("multiple-authorizations", package = "shinyOAuth")` covers
+the manager setup.
 
 Pass a function that selects the database authorization:
 
@@ -71,39 +95,27 @@ con <- oauth_db_azure_sql(
 )
 ```
 
-Populate the selector with `connection_id` values from `auth$connections()`.
-These identify saved authorizations, rather than token targets such as
-`"sql"`. Create separate helpers for different selected accounts if needed.
+Use the `connection_id` values from `auth$connections()` in the account
+selector. These identify saved authorizations, rather than token targets
+such as `"sql"`.
 
-## Clear stored results
+You can create separate helpers for different selected accounts.
+The source checkout's `playground/example-two-authorizations.R` shows
+independent SQL and Databricks authorizations.
 
-Outputs that call a connection helper or API client in their reactive
-expression follow sign-in changes. Data your app has already fetched needs
-separate care: if you save results in `reactiveVal()`, `eventReactive()`,
-or another cache, clear or hide them when the selected authorization ends
-or changes. A cache keyed only by SQL text can share protected data between
-users.
-
-The source checkout's `playground/example-query-button.R` shows a query
-button that clears results on sign-out, account changes, and loss of required
-permissions. `playground/example-two-authorizations.R` shows independent
-SQL and Databricks authorizations.
-
-## Refresh and longer work
+## Token refresh and background work
 
 shinyOAuth renews tokens. Call `con()` before each operation so the helper
 can check the current authorization and replace a connection when needed.
-The source guides describe how their clients use refreshed credentials.
+Each source guide describes how its client uses refreshed credentials.
 
-`min_valid_for` asks for enough remaining token lifetime when obtaining a
-credential; it doesn't guarantee validity for a whole query. If a refresh
-is already running, accessors wait quietly and ordinary reactive consumers
-can resume when it finishes. Event-bound code may need another click.
+If refresh is already running, ordinary reactive outputs wait and can resume
+when it finishes. A button-triggered query may need another click.
+`min_valid_for` asks for enough token lifetime at the start of an operation;
+it doesn't guarantee validity for a whole query.
 
-Previously returned handles and copied token strings follow their own
-package's rules. Local sign-out doesn't necessarily invalidate those copies
-or cancel work already submitted to a platform.
-
-Keep live connections and session-bound token callbacks in their owning
-Shiny session. For background work, use the database package's supported
-approach and check the current authorization before displaying a result.
+Keep live connections and token callbacks in the Shiny session that created
+them. For background work, use the database package's supported approach and
+check the current authorization before displaying a result. Local sign-out
+doesn't necessarily invalidate a copied token or cancel work already
+submitted to a platform.

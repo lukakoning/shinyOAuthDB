@@ -11,31 +11,34 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Query BigQuery with each visitor's Google account. The client returns data
-frames and handles waiting for query jobs and fetching result pages; you
-don't need bigrquery or an ODBC driver.
+Run GoogleSQL in a Shiny app using each visitor's Google account.
+`bigquery$query()` returns a data frame you can display with
+`renderTable()`.
+
+The first app checks which Google account is signed in. You can then use
+the same client to query your tables.
 
 ## Google Cloud setup
 
 Create a [Web OAuth client](https://developers.google.com/identity/protocols/oauth2/web-server)
-in Google Cloud, configure its consent screen, and register
-`http://localhost:8100` as the redirect URI. Enable the BigQuery API for the
-query project. Users need permission to create query jobs in that project
-and to read any data they query.
+in Google Cloud and configure its consent screen. Register
+`http://localhost:8100` as the redirect URI and enable the BigQuery API
+for the query project.
 
-Put your registration's values in a local `.Renviron` file and restart R:
+Users need permission to run query jobs in that project and read the data.
+BigQuery bills queries to this project. Set `location` to match your
+datasets; this example uses `"EU"`.
+
+Save the client ID and secret in a local `.Renviron` file and restart R:
 
 ```text
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
-The `project` below runs and pays for queries. Set `location` to match
-your datasets when querying data; the example uses `"EU"`.
-
 ## A complete app
 
-Save this as `app.R` and replace the example connection settings:
+Save this as `app.R`, replacing `"billing-project"` with your project ID:
 
 ```{r app}
 library(shiny)
@@ -72,55 +75,58 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Run `shiny::runApp(port = 8100)` in that directory, then open
-`http://localhost:8100` and sign in. The output waits for sign-in and clears
-when you sign out.
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears the
+output.
 
-The first query shows the signed-in Google identity. Replace it with
-GoogleSQL for your data, using `project.dataset.table` names when the data
-belongs to a different project.
+## Query your data
 
-## Query with parameters
+Replace the identity query with SQL for your tables. Use
+`project.dataset.table` names when the data is in another project.
 
-Use named parameters for values entered by a visitor. This example assumes
-a `reporting.Orders` table with a `country` column:
+For values entered by a user, pass named R values in `parameters`.
+This example assumes a `reporting.Orders` table with a `country` column:
 
 ```{r parameters}
 output$rows <- renderTable({
   bigquery$query(
     "SELECT * FROM reporting.Orders WHERE country = @country LIMIT 20",
-    parameters = list(country = "NL"),
-    maximum_bytes_billed = "1000000000"
+    parameters = list(country = "NL")
   )
 })
 ```
 
-`maximum_bytes_billed` limits the bytes a query may bill. A row limit on
-its own doesn't provide that limit.
+## Find datasets and tables
 
-## Browse datasets and tables
-
-These methods return dataset or table IDs. Call them inside a render or
-reactive expression:
+`$datasets()` lists dataset IDs in the project; `$tables("reporting")`
+lists the table IDs in that dataset. Add these outputs inside `server()`:
 
 ```{r browse}
 output$datasets <- renderPrint(bigquery$datasets())
 output$tables <- renderPrint(bigquery$tables("reporting"))
 ```
 
-Add `verbatimTextOutput("datasets")` and `verbatimTextOutput("tables")` to
-the UI if you use these outputs. Set `dataset = "reporting"` when creating
-the client to use it as the default dataset for unqualified table names.
+Add `verbatimTextOutput("datasets")` and `verbatimTextOutput("tables")`
+to the UI. To use `reporting` as the default dataset in SQL, set
+`dataset = "reporting"` when creating the BigQuery client.
 
-## Results and longer queries
+## Query costs and larger results
 
-INT64 and decimal values remain strings to preserve precision. Dates become
+Set `maximum_bytes_billed = "1000000000"` on `$query()` to limit the
+bytes a query may bill. `LIMIT` restricts the rows returned, but doesn't
+provide the same cost limit.
+
+Queries run synchronously and collect all result pages into R memory.
+Choose queries whose results fit in memory. A timeout or sign-out stops
+fetching results; it doesn't cancel a submitted BigQuery job.
+
+## Result types
+
+INT64 and decimal columns remain strings to preserve precision. Dates become
 `Date`, timestamps become UTC `POSIXct`, and nested or repeated fields use
-list columns. Use `raw = TRUE` to inspect the REST result and schema;
-`?oauth_db_bigquery_api` describes parameter types and other options.
+list columns.
 
-Queries run synchronously and collect their results in R memory. A timeout
-or sign-out stops fetching results but doesn't cancel a submitted BigQuery
-job. Each request obtains a current token for the authorization that started
-the query. For stored results or background work, see
+Use `raw = TRUE` to inspect the REST result and schema.
+`?oauth_db_bigquery_api` describes parameter types and other options.
+For saved results or background work, see
 [Authentication and sessions](authorization.html).

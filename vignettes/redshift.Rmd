@@ -11,23 +11,25 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Connect to Redshift with a visitor's own OAuth authorization and query with
-DBI. This guide uses Microsoft Entra as the external issuer for a deployment
-linked to AWS IAM Identity Center.
+Query Amazon Redshift from Shiny using each visitor's own database access.
+The connection works with DBI, so you can use your existing SQL queries.
 
-## Prepare the deployment
+This example signs users in through Microsoft Entra. It requires a Redshift
+deployment already linked to AWS IAM Identity Center.
+
+## Set up access
 
 Install `odbc` and the AWS Redshift ODBC 2.x driver with
-`IdpTokenAuthPlugin` support. Your administrator must configure
-[Redshift's IAM Identity Center integration and trusted issuer](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html),
-including user mapping and data access.
+`IdpTokenAuthPlugin` support. Ask your administrator to configure
+[Redshift's IAM Identity Center integration](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html)
+and set up users' database permissions.
 
-Create an Entra Web app registration with `http://localhost:8100` as the
-redirect URI. Request the resource and delegated scope trusted by the
-Redshift deployment. These are deployment-specific; ask the administrator
-for their values.
+Create an Entra Web app registration with `http://localhost:8100` as its
+redirect URI. Ask the administrator for the OAuth resource and delegated
+scope this deployment accepts.
 
-Put your registration's values in a local `.Renviron` file and restart R:
+Save those values and the app credentials in a local `.Renviron` file,
+then restart R:
 
 ```text
 OAUTHDB_TENANT_ID=your-tenant-id
@@ -39,7 +41,7 @@ OAUTHDB_REDSHIFT_SCOPE=your-redshift-delegated-scope
 
 ## A complete app
 
-Save this as `app.R` and replace the example connection settings:
+Save this as `app.R`, replacing the server and database:
 
 ```{r app}
 library(shiny)
@@ -83,33 +85,30 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Run `shiny::runApp(port = 8100)` in that directory, then open
-`http://localhost:8100` and sign in. The output waits for sign-in and clears
-when you sign out.
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears the
+output.
 
-The query shows the database user chosen by the deployment's mapping.
-Replace it with a query for a table that user can read.
-
-## Token types and other issuers
-
-The default `token_type = "EXT_JWT"` supplies an external issuer's JWT
-access token. For an IAM Identity Center access token, set
-`token_type = "ACCESS_TOKEN"` and use a shinyOAuth client configured to
-obtain that token. Other external issuers can use their own shinyOAuth
-client in place of the Entra example.
-
-The `target = "redshift"` argument selects the named token target in the
-example client. Use the name from your client, or `target = NULL` if it
-has no named targets. This helper supplies user tokens to the driver;
-IAM key and role-based connection flows need a different setup.
+The query shows the Redshift database user. Replace it with SQL for a table
+that user can read. Call `con()` inside the reactive expression before
+querying with DBI.
 
 ## Driver settings
 
-Set `driver` to the installed driver name or path if it differs from
-`"Amazon Redshift (x64)"`. You can pass `CaFile` and `LoginTimeout`
-through to the driver. The helper configures token authentication and
-verified TLS.
+The default driver name is `"Amazon Redshift (x64)"`. Set `driver` if
+your installed driver has a different name or path. You can also pass
+`CaFile` and `LoginTimeout` to the driver. The helper configures token
+authentication and verified TLS.
 
-Call `con()` before each query. Connections remain open through ordinary
-token refresh and close on account changes, sign-out, or session end. For
-cached query results, see [Authentication and sessions](authorization.html).
+## Other OAuth configurations
+
+The default `token_type = "EXT_JWT"` uses an external provider's JWT access
+token, as in the Entra example. To use an IAM Identity Center access token,
+set `token_type = "ACCESS_TOKEN"` and configure a shinyOAuth client that
+obtains it. Other identity providers can use their own shinyOAuth client
+with the same connection helper.
+
+`target = "redshift"` selects the token target defined in the example
+client. Match that name to your client, or use `target = NULL` if your
+client has no named targets.
+[Authentication and sessions](authorization.html) explains these settings.

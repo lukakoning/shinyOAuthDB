@@ -11,24 +11,26 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use a visitor's Snowflake account to query with DBI or dbplyr. The example
-shows their Snowflake username and active role before you add your own SQL.
+Add Snowflake data to a Shiny app using each visitor's own account and role.
+Query through a DBI connection, or use dbplyr to work with tables.
+
+The example first shows the signed-in user's Snowflake username and role,
+so you can check the connection before querying your data.
 
 ## Snowflake setup
 
-Install `odbc` and the Snowflake ODBC driver. Ask your Snowflake administrator
-for a [custom-client OAuth integration](https://docs.snowflake.com/en/user-guide/oauth-custom)
-with `http://localhost:8100` as the redirect URI. Use its client ID and
-secret in the Shiny app. The requested role must be available to the users
-signing in and have access to the warehouse and data.
+Install `odbc` and the Snowflake ODBC driver. Ask your administrator for a
+[custom-client OAuth integration](https://docs.snowflake.com/en/user-guide/oauth-custom)
+with `http://localhost:8100` as its redirect URI. Users need a role with
+access to the warehouse and data.
 
-For this local HTTP example, the administrator must allow the callback with
-`OAUTH_ALLOW_NON_TLS_REDIRECT_URI = TRUE` in the development integration.
-Use an HTTPS redirect URI when deploying. See the
-[integration settings](https://docs.snowflake.com/en/sql-reference/sql/create-security-integration-oauth-snowflake)
-for this option and refresh-token settings.
+For this local HTTP callback, the development integration needs
+`OAUTH_ALLOW_NON_TLS_REDIRECT_URI = TRUE`. Use an HTTPS callback when
+deploying. The [integration settings](https://docs.snowflake.com/en/sql-reference/sql/create-security-integration-oauth-snowflake)
+describe this option and refresh-token settings.
 
-Put your registration's values in a local `.Renviron` file and restart R:
+Save the integration's client ID and secret in a local `.Renviron` file,
+then restart R:
 
 ```text
 OAUTHDB_CLIENT_ID=your-client-id
@@ -37,7 +39,8 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 
 ## A complete app
 
-Save this as `app.R` and replace the example connection settings:
+Save this as `app.R`. Replace the connection settings, keeping the server
+and role the same in the sign-in client and connection helper:
 
 ```{r app}
 library(shiny)
@@ -80,17 +83,14 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Run `shiny::runApp(port = 8100)` in that directory, then open
-`http://localhost:8100` and sign in. The output waits for sign-in and clears
-when you sign out.
-
-Keep the server hostname and role consistent between the sign-in client and
-the connection helper. Replace the warehouse and database with your own.
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears the
+output.
 
 ## Query a table
 
-The returned connection works with ordinary DBI calls. For example, replace
-the output with a query against your `ANALYTICS.PUBLIC.ORDERS` table:
+Replace the output expression with SQL for your data. For example, if your
+table is `ANALYTICS.PUBLIC.ORDERS`:
 
 ```{r table-query}
 output$rows <- renderTable({
@@ -99,25 +99,24 @@ output$rows <- renderTable({
 })
 ```
 
-Call `con()` before querying. The helper reuses the connection and closes it
-when the authorization or Shiny session ends.
+`con()` gets the current user's connection. Call it inside the render or
+reactive expression before using DBI or dbplyr.
 
-## Defaults and driver options
+## Connection defaults
 
-Set `schema = "PUBLIC"` on the connection helper to choose a default schema.
-You can omit `warehouse`, `database`, and `schema` to use the account's
-defaults. Set `driver` to the installed Snowflake ODBC driver name if it
-differs from the default. See `?oauth_db_snowflake` for other options.
+Set `schema = "PUBLIC"` on the helper to choose a default schema. Omit
+`warehouse`, `database`, or `schema` to use the account's defaults.
+If the installed ODBC driver has a different name, set `driver`.
+See `?oauth_db_snowflake` for the full arguments.
 
 ## External OAuth
 
-If Snowflake trusts Entra, Okta, or another external issuer, configure a
-shinyOAuth client for that issuer instead of using
-`oauth_db_snowflake_client()`. It must request the audience and role scopes
-accepted by your Snowflake integration.
+If Snowflake uses Entra, Okta, or another external provider for OAuth,
+configure a shinyOAuth client for that provider. Request the audience and
+role scopes accepted by your Snowflake integration.
 
-Use the same `oauth_db_snowflake()` helper, passing `target` if the client
-uses named token targets, and `required_scopes` matching the integration's
-role scope. Native Snowflake OAuth derives that scope from `role` by default;
-an external provider may use different names. See
-[Authentication and sessions](authorization.html) for custom targets and scopes.
+Connect with `oauth_db_snowflake()` as above. Set `target` if your client
+uses named token targets, and `required_scopes` to the integration's role
+scope. For native Snowflake OAuth, the helper derives that scope from
+`role`; external providers may use different scope names.
+[Authentication and sessions](authorization.html) explains custom targets.

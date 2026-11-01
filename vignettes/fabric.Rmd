@@ -11,22 +11,21 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Query a Warehouse, Lakehouse SQL endpoint, or Fabric SQL Database using the
-visitor's Microsoft account. The same sign-in can also support workspace
-discovery, OneLake, and semantic model queries through fabricQueryR.
+Use Fabric data in a Shiny app with each visitor's Microsoft account.
+For a Warehouse, Lakehouse SQL endpoint, or SQL Database, query with DBI
+or dbplyr. For other Fabric work, call fabricQueryR functions with the same
+sign-in.
 
-## Start with SQL
+## Set up SQL access
 
 Install `fabricQueryR` and `odbc`, plus Microsoft ODBC Driver 18 for SQL
 Server. Copy the server and database from the item's SQL connection settings.
-Users need access to the item and data; see
+Users need access to that item and its data; see
 [Fabric SQL connectivity](https://learn.microsoft.com/en-us/fabric/data-warehouse/connectivity).
 
-Create an Entra Web app registration with delegated SQL access and register
-`http://localhost:8100` as its redirect URI. Start with `services = "sql"`;
-you can add the permissions for other Fabric services as your app needs them.
-
-Put your registration's values in a local `.Renviron` file and restart R:
+Create an Entra Web app registration with permission to access SQL on a
+user's behalf. Register `http://localhost:8100` as its redirect URI.
+Save these values in a local `.Renviron` file and restart R:
 
 ```text
 OAUTHDB_TENANT_ID=your-tenant-id
@@ -36,7 +35,7 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 
 ## A complete app
 
-Save this as `app.R` and replace the example connection settings:
+Save this as `app.R`, replacing the server and database:
 
 ```{r app}
 library(shiny)
@@ -77,19 +76,22 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Run `shiny::runApp(port = 8100)` in that directory, then open
-`http://localhost:8100` and sign in. The output waits for sign-in and clears
-when you sign out.
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears the
+output.
 
-The query shows the database identity. Replace it with SQL for your tables,
-or use dbplyr with the connection returned by `con()`.
+The query shows the database user. Replace it with SQL for your tables.
+Call `con()` inside the reactive expression to get the DBI connection;
+you can also use it with dbplyr.
 
-## Discover workspaces
+## List workspaces
 
-To add workspace discovery, change the client's services to
-`services = c("sql", "fabric")` and configure the registration's delegated
-Fabric workspace-read permission. Add `verbatimTextOutput("workspaces")`
-to the UI, then put this inside `server()`:
+To list the workspaces a user can access, change the client's services to
+`services = c("sql", "fabric")`. The registration needs the delegated
+Fabric workspace-read permission too.
+
+Add `verbatimTextOutput("workspaces")` to the UI and put this inside
+`server()`:
 
 ```{r workspaces}
 fabric <- oauth_db_fabric_api(auth$connection)
@@ -99,13 +101,13 @@ output$workspaces <- renderPrint({
 })
 ```
 
-`$call()` takes a fabricQueryR function and its usual arguments. It supplies
-the visitor's credentials and returns the function's normal result.
+Pass a fabricQueryR function and its arguments to `$call()`. The client
+supplies the user's credentials and returns the function's result.
 
 ## Choose additional services
 
-Add the services your app uses to `oauth_db_microsoft_client()`. Each also
-needs the corresponding delegated permissions in the Entra registration:
+Include the services your app uses in `oauth_db_microsoft_client()` and
+configure their delegated permissions in the Entra registration:
 
 | `services` entry | Use it for |
 | --- | --- |
@@ -116,12 +118,11 @@ needs the corresponding delegated permissions in the Entra registration:
 | `"kql"` | KQL queries |
 | `"graphql"` | GraphQL queries |
 
-The preset requests tokens for those services; users still need access to
-the relevant workspace, items, and data. SQL access alone doesn't grant
-OneLake or semantic model access.
+Users need access to each workspace and item they query. SQL, OneLake,
+and semantic models have their own permissions.
 
-For KQL, include `"kql"` in the client's services. With `fabric` created as
-above, replace the table output with:
+For KQL, include `"kql"` in the client's services. With `fabric` created
+as above, replace the table output with:
 
 ```{r kql}
 output$rows <- renderTable({
@@ -134,12 +135,14 @@ output$rows <- renderTable({
 })
 ```
 
-## Work with Lakehouse and semantic model objects
+## Read a Lakehouse table
 
-fabricQueryR's resource objects offer methods for reading data. Configure
-`services = c("fabric", "onelake")` for the following example, or add those
-services to the SQL app's client. Put discovery in a reactive expression so
-a change of account obtains a new object:
+Use `services = c("fabric", "onelake")` to discover a Lakehouse and read its
+tables. Add these services to the client if you're also using SQL.
+
+`fabric_item()` returns a fabricQueryR object with methods such as
+`$read_table()`. Put the lookup inside `reactive()` so it runs again if
+the signed-in account changes:
 
 ```{r lakehouse}
 lakehouse <- reactive({
@@ -155,25 +158,24 @@ output$rows <- renderTable({
 })
 ```
 
-These are fabricQueryR's own R6 objects. A Warehouse offers
-`$sql_query(sql)`; a semantic model offers `$dax_query(dax)`. Include
-`"sql"` or `"dax"` respectively in the client's services. See
-fabricQueryR's help for the other methods and their arguments.
+Warehouse objects offer `$sql_query(sql)`, and semantic model objects offer
+`$dax_query(dax)`. Include `"sql"` or `"dax"` in the client's services
+for those methods. See fabricQueryR's help for their arguments.
 
-## Connection options and custom sign-in
+## Connection options
 
-The SQL helper uses fabricQueryR's ODBC backend by default. To use ADBC,
-install fabricQueryR's ADBC dependencies and the MSSQL driver, then pass
-`backend = "adbc"` to `oauth_db_fabric_sql()`. Other options, such as
-`timeout` and `read_only`, go to `fabricQueryR::fabric_sql_connect()`.
+The SQL helper uses ODBC by default. For ADBC, install fabricQueryR's ADBC
+dependencies and the MSSQL driver, then pass `backend = "adbc"` to
+`oauth_db_fabric_sql()`. Options such as `timeout` and `read_only` go to
+`fabricQueryR::fabric_sql_connect()`.
 
-Use the SQL helper for a DBI connection managed by shinyOAuthDB. Connections
-opened by native API functions or resource methods belong to your app.
-For a direct native function call, `token = fabric$token_provider()` supplies
-the callback; `?oauth_db_fabric` shows the single-service alternative.
+The helper manages its own DBI connection. Your app must close connections
+it opens through fabricQueryR functions or resource methods.
 
-If an existing shinyOAuth client uses different target names, supply the
-service-to-target mapping when creating the API client:
+## Use an existing sign-in
+
+If your shinyOAuth client uses different token target names, map the
+services to those targets:
 
 ```{r targets}
 fabric <- oauth_db_fabric_api(
@@ -182,10 +184,14 @@ fabric <- oauth_db_fabric_api(
 )
 ```
 
-This mapping replaces the defaults and lists the services available to the
-client. Use `targets = list(kql = NULL)` for one service without named
-targets. DAX and GraphQL share the Power BI resource and must use the same
-target; different resources need different targets.
+The mapping replaces the defaults. For one service without a named target,
+use `targets = list(kql = NULL)`. DAX and GraphQL share the Power BI
+resource and must use the same target; different resources need different
+targets.
 
-See [Authentication and sessions](authorization.html) for permission checks,
-multiple accounts, and cached results.
+To call a fabricQueryR function directly, pass
+`token = fabric$token_provider()`. `?oauth_db_fabric` shows the alternative
+for a single service.
+
+See [Authentication and sessions](authorization.html) for target settings
+and saved query results.

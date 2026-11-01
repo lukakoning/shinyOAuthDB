@@ -11,66 +11,62 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-shinyOAuthDB lets Shiny visitors query data using their own database or
-platform account. Use it when the data each person may access should follow
-their database permissions.
+With shinyOAuthDB, people sign in to your app and query a database with their
+own permissions. You can use DBI, dbplyr, or the platform's R package to read
+the data.
 
-Choose your source below. Each guide includes its sign-in setup and a
-complete Shiny app, followed by examples for working with your data.
+Each source guide includes a complete app with sign-in and a first query.
 
 ## Choose your source
 
-| Source | What the guide covers |
+| Source | What you can do |
 | --- | --- |
-| [Azure SQL and SQL Server](azure-sql.html) | Entra sign-in, DBI, and dbplyr |
-| [Microsoft Fabric](fabric.html) | SQL endpoints, fabricQueryR functions, and resource objects |
-| [Databricks](databricks.html) | SQL warehouses and brickster API calls |
-| [Snowflake](snowflake.html) | Snowflake OAuth, roles, and DBI queries |
-| [Google BigQuery](bigquery.html) | Google sign-in and GoogleSQL queries returning data frames |
-| [Amazon Redshift](redshift.html) | Delegated user tokens through the AWS ODBC driver |
-| [Trino and Starburst Enterprise](trino.html) | OIDC sign-in and RTrino DBI queries |
-| [Azure PostgreSQL](azure-postgres.html) | Entra sign-in and RPostgres connections |
+| [Azure SQL and SQL Server](azure-sql.html) | Query with DBI or dbplyr |
+| [Microsoft Fabric](fabric.html) | Query SQL endpoints, read OneLake tables, and call fabricQueryR functions |
+| [Databricks](databricks.html) | Query SQL warehouses and call brickster functions |
+| [Snowflake](snowflake.html) | Query with a user's Snowflake account and role |
+| [Google BigQuery](bigquery.html) | Run GoogleSQL and get data frames |
+| [Amazon Redshift](redshift.html) | Query Redshift with DBI |
+| [Trino and Starburst Enterprise](trino.html) | Query with RTrino and DBI |
+| [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
 
-## Install the package
-
-shinyOAuthDB is available from GitHub:
+## Install shinyOAuthDB
 
 ```{r installation}
 install.packages("remotes")
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
-This installs shinyOAuth too. Some sources also need an R client and a
-system database driver; the source guide tells you which ones.
+This also installs shinyOAuth. Your source may need another R package or a
+database driver; its guide lists those requirements.
 
-## Sign-in and data access
+## Run your first app
 
-Register an OAuth application with the source's identity provider. The
-registration gives your Shiny app a client ID and, for a confidential app,
-a client secret. It also sets the redirect URI, where the browser returns
-after sign-in. The example apps use `http://localhost:8100`.
+Start with the guide for your data source. You'll register an OAuth
+application, which gives your Shiny app a client ID and client secret.
+The registration also records the redirect URI: the address where the
+browser returns after sign-in. The examples use `http://localhost:8100`.
 
-You don't need an existing shinyOAuth configuration. Each source guide
-creates the appropriate client, and uses shinyOAuth's UI and server module
-to let visitors sign in. The user also needs permission to read the data;
-registering an app or granting OAuth consent doesn't provide database access.
+Save the credentials in a local `.Renviron` file as shown in the guide
+and restart R. Copy the example into `app.R`, replace the connection
+settings, and run `shiny::runApp(port = 8100)` from that directory.
 
-Create the sign-in client outside `server()`. Inside `server()`, pass
-`auth$connection` to a database helper or API client. This keeps data access
-in the visitor's Shiny session and follows their sign-in changes.
+The people signing in need access to the data. OAuth consent lets the app
+act on their behalf; their database permissions determine what they can read.
 
-With a DBI helper, call `connection <- con()` inside a render or reactive
-expression before querying. You can then use ordinary DBI or dbplyr calls.
-The helper opens and reuses the connection, then closes it when the
-authorization or Shiny session ends. API clients provide query methods or
-call the source's R functions with the visitor's credentials.
+## How it fits into Shiny
 
-## Adapt an example
+Create the sign-in `client` outside `server()`. Inside `server()`,
+`oauth_module_server()` handles each visitor's login. Pass its
+`auth$connection` function to a database helper or API client.
 
-Start with your source's complete app and replace its example connection
-settings and query. Save credentials in a local `.Renviron` file as shown
-in the guide, restart R, then run `shiny::runApp(port = 8100)` from the app
-directory. Keep the app's URL and registered redirect URI consistent.
+A DBI helper returns a function such as `con`. In a render or reactive
+expression, call `connection <- con()` before using DBI or dbplyr.
+The helper reuses that visitor's connection and closes it when their
+authorization or Shiny session ends.
 
-For an existing login, several accounts, or results saved between button
-clicks, continue with [Authentication and sessions](authorization.html).
+API clients either offer query methods, such as BigQuery's `$query()`,
+or call functions from the platform's R package through `$call()`.
+
+For an existing login, several accounts, or query results saved between
+button clicks, see [Authentication and sessions](authorization.html).

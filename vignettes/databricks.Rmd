@@ -11,32 +11,32 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Query a SQL warehouse with DBI or call brickster functions using the
-visitor's Databricks account. Start with a query; add workspace API calls
-when your app needs them.
+Query a Databricks SQL warehouse from Shiny using each visitor's Databricks
+account. `oauth_db_databricks()` gives you a DBI connection for SQL or
+dbplyr queries.
+
+The same sign-in works with brickster's API functions, including warehouse
+listing and query submission.
 
 ## Register the app
 
-Install `brickster`. Ask your Databricks administrator to
-[register a custom OAuth application](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth)
-with `http://localhost:8100` as a redirect URI. Allow the scopes requested
-by the client preset, including `all-apis` and `offline_access`. Users need
-access to the workspace, SQL warehouse, and queried data.
+Install `brickster` and ask your administrator to
+[register a Databricks OAuth application](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth)
+with a client secret and `http://localhost:8100` as its redirect URI.
+Allow the scopes requested by the preset, including `all-apis` and
+`offline_access`. Users need access to the workspace, warehouse, and data.
 
-Put your registration's values in a local `.Renviron` file and restart R:
+Save the client ID and secret in a local `.Renviron` file and restart R:
 
 ```text
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
-This example uses a confidential OAuth app with a client secret. For a public
-registration, omit `client_secret`. Find the SQL warehouse ID in the
-warehouse's connection details.
-
 ## A complete app
 
-Save this as `app.R` and replace the example connection settings:
+Save this as `app.R`. Replace the workspace host and copy the warehouse ID
+from the warehouse's connection details:
 
 ```{r app}
 library(shiny)
@@ -77,18 +77,18 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-Run `shiny::runApp(port = 8100)` in that directory, then open
-`http://localhost:8100` and sign in. The output waits for sign-in and clears
-when you sign out.
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears the
+output.
 
 The query shows the Databricks user. Replace it with SQL for your tables.
-For dbplyr, obtain `connection <- con()` first, then pass `connection` to
+For dbplyr, get `connection <- con()` first, then pass it to
 `dplyr::tbl()`.
 
 ## Call brickster functions
 
-Keep the same sign-in client. Add `verbatimTextOutput("warehouses")` to
-the UI and this code inside `server()`:
+To list warehouses, add `verbatimTextOutput("warehouses")` to the UI
+and this code inside `server()`:
 
 ```{r warehouses}
 databricks <- oauth_db_databricks_api(auth$connection, host = host)
@@ -98,9 +98,11 @@ output$warehouses <- renderPrint({
 })
 ```
 
-Pass the function's usual arguments to `$call()`. The client supplies the
-workspace host and visitor's current token. For example, brickster's query
-API can replace the DBI output:
+Pass the function and its usual arguments to `$call()`. The client
+supplies the workspace host and the user's current token.
+
+For example, to use brickster's query API, replace the table output with
+`verbatimTextOutput("rows")` and the render expression with:
 
 ```{r api-query}
 output$rows <- renderPrint({
@@ -114,14 +116,25 @@ output$rows <- renderPrint({
 })
 ```
 
-Use `verbatimTextOutput("rows")` for this alternative, which keeps
-brickster's native return value. Use the DBI helper when you want a data frame
-from `DBI::dbGetQuery()`.
+This returns brickster's query result. Use the DBI helper above when you
+want `DBI::dbGetQuery()` to return a data frame.
+
+## Connection options
+
+Supply `http_path = "/sql/1.0/warehouses/warehouse-id"` instead of
+`warehouse_id` if you have the HTTP path. Set `catalog` and `schema`
+to choose SQL defaults; other connection options go to brickster.
+
+Call `con()` before each operation. When its token changes, the helper
+replaces the connection. It closes the connection on sign-out or session
+end. See [Authentication and sessions](authorization.html) for results
+saved in the app.
 
 ## Azure Databricks with Entra sign-in
 
-If your workspace uses Microsoft Entra tokens, replace the sign-in client
-with:
+For a workspace that accepts Microsoft Entra tokens, use an Entra Web app
+registration with delegated Databricks access. Set `OAUTHDB_TENANT_ID`
+and replace the client with:
 
 ```{r entra-client}
 client <- oauth_db_microsoft_client(
@@ -133,17 +146,6 @@ client <- oauth_db_microsoft_client(
 )
 ```
 
-Use an Entra Web registration with the appropriate delegated Databricks
-permission, and set `OAUTHDB_TENANT_ID`. Replace `host` with your Azure
-workspace hostname and set `auth_mode = "entra"` on both
-`oauth_db_databricks()` and `oauth_db_databricks_api()`.
-
-## Connection options
-
-Supply `http_path = "/sql/1.0/warehouses/warehouse-id"` instead of
-`warehouse_id` if you prefer. Optional `catalog` and `schema` arguments
-set the SQL defaults. Other connection options go to brickster.
-
-Call `con()` before each operation. The helper replaces the DBI handle when
-its token changes and closes it on sign-out or session end. For results you
-store in the app, see [Authentication and sessions](authorization.html).
+Change `host` to the Azure workspace hostname and set
+`auth_mode = "entra"` on both `oauth_db_databricks()` and
+`oauth_db_databricks_api()`.
