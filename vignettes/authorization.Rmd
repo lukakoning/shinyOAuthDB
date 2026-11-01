@@ -127,6 +127,9 @@ credential. It doesn't guarantee a token for an entire query. Databricks API
 calls keep the supplied token during that call; Fabric callbacks can obtain
 renewed tokens while their original authorization remains valid.
 
+BigQuery obtains a current token for each REST request. Polling and result
+pages remain tied to the authorization that started the query.
+
 If a refresh is already running, connection accessors wait quietly and normal
 reactive consumers can resume when it finishes. Event-bound code may need a
 new click. The bridge doesn't replay a native operation after an error.

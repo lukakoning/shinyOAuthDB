@@ -92,6 +92,7 @@ Other database connections:
 \code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
 \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
 \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
+\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
+\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
 \concept{database connections}

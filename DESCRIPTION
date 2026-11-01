@@ -6,7 +6,7 @@ Description: Use a Shiny visitor's own database access with 'DBI', 'dbplyr',
     'fabricQueryR', and 'brickster'. Connects 'shinyOAuth' sign-in to database
     connections and platform API calls, with connection reuse and cleanup for
     each visitor. Supports Azure SQL, Microsoft Fabric, BigQuery, Redshift,
-    Databricks, Snowflake, and Azure PostgreSQL.
+    Databricks, Snowflake, Trino, and Azure PostgreSQL.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
@@ -30,6 +30,7 @@ Suggests:
     odbc (>= 1.4.2),
     pkgload,
     RPostgres,
+    RTrino (>= 0.1.0),
     rmarkdown,
     RSQLite,
     testthat (>= 3.2.0),

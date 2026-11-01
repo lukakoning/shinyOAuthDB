@@ -1,7 +1,7 @@
 # shinyOAuthDB
 
 Build Shiny apps that use each visitor's own access to Azure SQL, Microsoft
-Fabric, BigQuery, Redshift, Databricks, Snowflake, or Azure PostgreSQL. Sign them in, then query
+Fabric, BigQuery, Redshift, Databricks, Snowflake, Trino, or Azure PostgreSQL. Sign them in, then query
 with DBI or use the platform's R functions. The database decides what each
 person can access.
 
@@ -10,7 +10,8 @@ the matching shinyOAuth sign-in configuration.
 
 [BigQuery](#google-bigquery) · [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
-[Redshift](#amazon-redshift) · [Snowflake](#snowflake) · [Azure PostgreSQL](#azure-postgresql)
+[Redshift](#amazon-redshift) · [Snowflake](#snowflake) · [Trino](#trino-and-starburst-enterprise) ·
+[Azure PostgreSQL](#azure-postgresql)
 
 ## Google BigQuery
 
@@ -313,6 +314,60 @@ Install the AWS Redshift ODBC 2.x driver and select its installed name with
 the helper's `driver` argument if it differs from the default. Other identity
 providers can use their own shinyOAuth client with the same connection helper.
 See [Redshift setup](vignettes/databases.Rmd#amazon-redshift).
+
+## Trino and Starburst Enterprise
+
+Use the cluster's OIDC provider and configure the cluster to accept tokens
+issued for your app. This example maps the verified profile's email to the
+Trino username; use the claim that matches your cluster's principal mapping.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_TRINO_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_trino(
+    auth$connection,
+    host = "https://trino.example.org",
+    catalog = "lakehouse",
+    schema = "reporting",
+    user = function() req(auth$token@userinfo$email)
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT * FROM Orders LIMIT 20")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Set `OAUTHDB_TRINO_ISSUER` to the provider's issuer URL and install `RTrino`.
+Adjust scopes to your IdP registration. RTrino handles DBI queries while
+shinyOAuthDB supplies a current token for each request.
+See [Trino setup](vignettes/databases.Rmd#trino-and-starburst-enterprise).
 
 ## Azure PostgreSQL
 

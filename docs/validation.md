@@ -3,16 +3,19 @@
 ## 1 November 2026
 
 Checked on Windows 11 with R 4.5.1, shinyOAuth 0.7.0, fabricQueryR 1.0.1,
-and brickster 0.2.15. Dependencies were installed in an isolated library.
+brickster 0.2.15, and RTrino 0.1.0. Dependencies were installed in an isolated library.
 
 | Check | Result |
 | --- | --- |
-| Package test suite | Full suite and focused BigQuery checks pass; no skipped scenarios |
-| `R CMD check --no-tests --no-manual` after the suite | No errors, warnings, or notes |
+| Package test suite | 982 passing assertions; no skipped scenarios |
+| `R CMD check --no-manual` | No errors, warnings, or notes |
 | Four vignettes | Built and rebuilt during the package check |
-| Example apps | OAuth clients and apps construct; BigQuery also checks A/B replacement and sign-out |
-| Documentation examples and local links | Parse and resolve |
+| README apps | All eight construct; all ten outputs wait for sign-in |
+| Playground apps | Client setup, queries, account replacement, and sign-out pass with mocked services |
+| Documentation examples and local links | 43 R blocks parse; 70 local links resolve |
 | BigQuery REST client | Polling, paging, typed results, bound parameters, 401 renewal, and grant isolation |
+| Redshift adapter | Explicit ODBC token mode, verified TLS, argument protection, and connection lifecycle |
+| Trino DBI client | Native RTrino requests, pagination, refresh, username changes, and callback retirement |
 
 The tests cover connection reuse and cleanup, authorization changes,
 permission checks, token refresh, API routing, and the example apps.

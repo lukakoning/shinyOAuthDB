@@ -76,6 +76,7 @@ Other database connections:
 \code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
 \code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
 \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
+\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
+\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
 \concept{database connections}

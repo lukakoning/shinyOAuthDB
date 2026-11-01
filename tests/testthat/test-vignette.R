@@ -29,7 +29,7 @@ test_that("documented DBI queries wait quietly for sign-in", {
     expect_error(output$rows, class = "shiny.silent.error")
   })
 
-  cases <- c("azure-sql", "fabric-sql", "azure-postgres", "databricks-dbi", "snowflake", "redshift")
+  cases <- c("azure-sql", "fabric-sql", "azure-postgres", "databricks-dbi", "snowflake", "redshift", "trino")
   for (label in cases) {
     server <- app$server
     body(server) <- bquote({

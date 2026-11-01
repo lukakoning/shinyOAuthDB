@@ -1,17 +1,17 @@
 # Additional OAuth backends
 
-Investigated 1 November 2026. BigQuery and Redshift are implemented.
-The Trino interface below remains a proposal; Dremio is deferred.
+Investigated 1 November 2026. BigQuery, Redshift, and Trino are implemented.
+Dremio remains deferred.
 
-Trino is the best next addition technically. Redshift has a suitable ODBC
-interface but needs a configured AWS deployment for testing. BigQuery remains
-valuable, although its R client needs a different integration design.
+Trino uses RTrino's per-request authentication callback; Redshift supplies
+user tokens to the AWS ODBC driver. BigQuery uses its REST API directly.
+Live deployment validation remains separate from the local adapter tests.
 
 | Platform | Preferred route | Assessment |
 | --- | --- | --- |
-| Trino / Starburst Enterprise | RTrino DBI connection with an authentication callback | Proceed to a backend prototype |
+| Trino / Starburst Enterprise | RTrino DBI connection with an authentication callback | Implemented as `oauth_db_trino()` |
 | Redshift | DBI + AWS ODBC driver, supplied user token | Implemented as `oauth_db_redshift()`; live deployment checks remain |
-| Dremio Enterprise | DBI + Flight SQL ODBC; consider adbi/ADBC for token exchange | Start with a configured external token provider |
+| Dremio Enterprise | DBI + Flight SQL ODBC; consider adbi/ADBC for token exchange | Deferred |
 | BigQuery | Direct REST client with per-user tokens | Implemented as `oauth_db_bigquery_api()` |
 
 ## Trino and Starburst
@@ -30,7 +30,7 @@ same DBI connection remained usable. Changing accounts closed the old
 connection. Retained callbacks failed after replacement, logout, and session
 closure.
 
-A future helper could look like:
+Implemented interface:
 
 ```r
 con <- oauth_db_trino(
@@ -43,14 +43,15 @@ con <- oauth_db_trino(
 )
 ```
 
-It would return the usual connection function. Reuse the existing
-grant-bound callback internally so an old connection cannot adopt a newly
-selected account. RTrino's `trino_auth_oauth2()` uses client credentials;
-the adapter should supply the visitor's token through `auth` instead.
+It returns the usual connection function. The existing grant-bound callback
+prevents an old connection from adopting a newly selected account.
+RTrino's `trino_auth_oauth2()` uses client credentials;
+the adapter supplies the visitor's token through `auth`.
 See the [authentication helpers](https://github.com/AngelCasasbl/RTrino/blob/3421e6f508a83f77f6e28d12a70048cd838d8b02/R/auth.R).
 
 The username needs an explicit mapping to the selected authorization.
-RTrino's operating-system username default is unsuitable for this purpose.
+The helper accepts a reactive function for this mapping and replaces the
+connection when the username changes.
 Before release, test against a real cluster, including principal mapping,
 permission denial, cancellation, and token expiry. Per-request acquisition
 does not guarantee renewal within an HTTP retry or replay after a 401.

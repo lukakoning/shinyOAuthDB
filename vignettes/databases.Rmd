@@ -175,6 +175,51 @@ Set `driver` to the installed driver name or path if needed.
 The helper supplies the token, token type, and verified TLS settings, and
 closes connections on account changes, sign-out, or session end.
 
+## Trino and Starburst Enterprise
+
+Install `RTrino`. The cluster must accept OAuth access tokens from your
+issuer, with the audience issued for your app, and map their principals to
+Trino users. Its web UI's successful sign-in does not establish that setup
+for a separate Shiny OAuth client.
+
+Create an OIDC client outside `server()`:
+
+```{r trino-client}
+provider <- shinyOAuth::oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_TRINO_ISSUER")
+)
+client <- shinyOAuth::oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+```
+
+Inside `server()`, supply the mapped username. This example uses the signed-in
+profile's email; change that field to match your issuer and cluster:
+
+```{r trino}
+con <- oauth_db_trino(
+  auth$connection,
+  host = "https://trino.example.org",
+  catalog = "lakehouse",
+  schema = "reporting",
+  user = function() shiny::req(auth$token@userinfo$email)
+)
+```
+
+The helper supplies a current token on each RTrino HTTP request, including
+result pages. Connections remain open through ordinary refresh, and close
+when the account changes, the user signs out, or the session ends. A changed
+username replaces the connection too.
+
+Use `port` or include a port in `host`. For a private CA, set `ca_bundle`.
+Other options, such as `timeout` and `query_max_run_time`, go to RTrino.
+Starburst Galaxy's OAuth client registration needs separate setup and live
+validation.
+
 ## Azure PostgreSQL
 
 Install `RPostgres` and use the Microsoft client with `services = "postgres"`.

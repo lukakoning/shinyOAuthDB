@@ -1,5 +1,7 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add Trino DBI connections through RTrino, using per-request user tokens
+  and a username callback for the selected authorization.
 * Add Redshift DBI connections using externally supplied user tokens through
   the AWS ODBC driver, with explicit token mode and verified TLS.
 * Add a per-user BigQuery REST client with Google sign-in, named parameters,
