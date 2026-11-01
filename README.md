@@ -111,6 +111,10 @@ Create accessors inside `server()`. Pass `auth$connection` directly, or an acces
 
 Snowflake's native OAuth scope follows the explicit `role`; database, schema, and warehouse are optional. Set `required_scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
 
+Snowflake uses DBI + odbc. The [Snowflake backend decision](docs/snowflake-backends.md)
+records why Posit's skiLift and skiPatrol are deferred and what would be needed
+to support them.
+
 ## Several authorizations at once
 
 Register your native clients with a normal shinyOAuth connection manager. Each database accessor can follow a different selected grant, including grants from different client registrations or providers:
