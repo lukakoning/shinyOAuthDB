@@ -77,7 +77,7 @@ oauth_db_trino <- function(
   .odb_bind(authorization, .odb_backend_trino, host = address$host, port = address$port,
     catalog = catalog, schema = schema, user = username, ca_bundle = ca_bundle,
     options = options, target = target, required_scopes = required_scopes,
-    cache_key = function(token) { token(); username() },
+    cache_key = function(token) { token(); NULL }, identity_key = username,
     min_valid_for = min_valid_for, session = session)
 }
 
@@ -98,7 +98,7 @@ oauth_db_trino <- function(
   }
   do.call(DBI::dbConnect, c(list(
     drv = RTrino::Trino(), host = host, port = port,
-    catalog = catalog, schema = schema, user = user(), auth = auth,
+    catalog = catalog, schema = schema, user = shiny::isolate(user()), auth = auth,
     ssl_options = RTrino::trino_ssl(verify = TRUE, ca_bundle = ca_bundle),
     allow_http_auth = FALSE
   ), options))

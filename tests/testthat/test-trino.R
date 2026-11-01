@@ -169,3 +169,37 @@ test_that("Trino rejects pagination outside its HTTPS origin before sending cred
     expect_true(all(vapply(requests, function(req) identical(req$options$followlocation, FALSE), logical(1))))
   })
 })
+
+test_that("Trino tracks resolved usernames without replaying SQL on profile token rotation", {
+  skip_if_not_installed("RTrino", "0.1.0")
+  submissions <- 0L
+  httr2::local_mocked_responses(function(req) {
+    if (identical(req$method, "POST")) submissions <<- submissions + 1L
+    trino_test_response(req)
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    select_user <- function(token, email) {
+      value <- auth$make_token(token)
+      value@userinfo <- list(email = email)
+      auth$token(value)
+    }
+    select_user("initial", "reader-A")
+    con <- oauth_db_trino(auth$connection, "https://trino.example.org", "lake", "reports",
+      user = function() shiny::req(auth$token()@userinfo$email))
+    rows <- shiny::reactive(DBI::dbGetQuery(con(), "SELECT current_user"))
+    session$flushReact()
+    first <- con()
+    expect_identical(rows()$database_user, "reader-A")
+    select_user("rotated", "reader-A")
+    session$flushReact()
+    expect_identical(rows()$database_user, "reader-A")
+    expect_identical(submissions, 1L)
+    expect_identical(con(), first)
+    select_user("renamed", "reader-B")
+    session$flushReact()
+    expect_false(DBI::dbIsValid(first))
+    expect_identical(rows()$database_user, "reader-B")
+    expect_identical(submissions, 2L)
+  })
+})

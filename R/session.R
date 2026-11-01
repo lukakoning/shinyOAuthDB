@@ -112,7 +112,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
 # The token callback can use only the authorization that created it.
 # Cache connections and providers; the caller runs queries.
 .odb_bind <- function(authorization, connect, ..., target = NULL, required_scopes = character(),
-                      disconnect = NULL, cache_key = NULL, min_valid_for = 60,
+                      disconnect = NULL, cache_key = NULL, identity_key = NULL, min_valid_for = 60,
                       session = shiny::getDefaultReactiveDomain()) {
   if (!is.function(connect) || (!is.null(disconnect) && !is.function(disconnect))) {
     .odb_abort("connect and disconnect must be functions (disconnect may be NULL).")
@@ -128,7 +128,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     .odb_abort("Create the database helper inside server(), in its owning Shiny session.", "authorization_unavailable")
   }
   reader <- .odb_authorization_reader(authorization)
-  grant <- native <- native_key <- failure <- failure_key <- NULL
+  grant <- native <- native_key <- identity <- failure <- failure_key <- NULL
   available <- closed <- denied <- FALSE
   epoch <- 0L
   changed <- shiny::reactiveVal(0L)
@@ -147,7 +147,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
   }
   sync <- function() {
     assert_owner()
-    next_grant <- next_failure <- NULL
+    next_grant <- next_identity <- next_failure <- NULL
     next_available <- next_denied <- FALSE
     tryCatch({
       next_grant <- reader()
@@ -176,6 +176,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
           shiny::validate(shiny::need(next_available,
             "The selected authorization lacks the required permissions. Check the client's requested and required scopes, and this helper's target and required_scopes. The helper does not request consent."))
         }
+        if (next_available && is.function(identity_key)) next_identity <- identity_key()
       }
     }, error = function(e) {
       ended <- inherits(e, "shinyOAuth_access_error") &&
@@ -184,13 +185,15 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
       if (!ended && !waiting) next_failure <<- e
     })
     next_failure_key <- .odb_failure_key(next_failure)
-    if (!identical(next_grant, grant) || !identical(next_available, available) ||
+    if (!identical(next_grant, grant) || !identical(next_identity, identity) ||
+        !identical(next_available, available) ||
         !identical(next_failure_key, failure_key)) {
       close_native()
       epoch <<- epoch + 1L
       changed(epoch)
     }
     grant <<- next_grant
+    identity <<- next_identity
     available <<- next_available
     denied <<- next_denied
     failure <<- next_failure
