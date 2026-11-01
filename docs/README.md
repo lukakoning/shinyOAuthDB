@@ -14,3 +14,4 @@ Notes for existing apps and package development:
 - [Development and checks](development.md)
 - [Validation record](validation.md)
 - [Snowflake backend decision: why skiLift is deferred](snowflake-backends.md)
+- [Additional OAuth backends: feasibility and proposed interfaces](backend-candidates.md)
