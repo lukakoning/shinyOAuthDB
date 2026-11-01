@@ -220,10 +220,20 @@ oauth_db_fabric_api <- function(
     },
     token_provider = function() {
       private$read()
-      # Keep callbacks for this authorization. Missing targets matter only
-      # when a request asks for their tokens.
+      # Capture every callback for this authorization, but subscribe to a
+      # target's changes only when an operation actually requests its token.
       providers <- lapply(private$providers, function(accessor) {
-        tryCatch(accessor(), error = identity)
+        provider <- shiny::isolate(tryCatch(accessor(), error = identity))
+        function(force_refresh = FALSE, scopes = character()) {
+          tryCatch(accessor(), error = function(error) {
+            # A retained callback must report its original authorization's
+            # end, rather than becoming a new consumer waiting for sign-in.
+            if (!inherits(provider, "condition")) provider(.check_only = TRUE)
+            stop(error)
+          })
+          if (inherits(provider, "condition")) stop(provider)
+          provider(force_refresh = force_refresh, scopes = scopes)
+        }
       })
       .odb_fabric_api_provider(providers, private$groups)
     },

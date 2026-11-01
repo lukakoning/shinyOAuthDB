@@ -258,3 +258,52 @@ test_that("native brickster functions keep their result shape through the API cl
       brickster::db_sql_warehouse_list(host = "workspace.example", token = "fixture-A"))
   })
 })
+
+test_that("Fabric operations subscribe only to targets they actually use", {
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  odb_test_domain(function(session) {
+    a <- odb_test_fabric_authorization(session)
+    b <- odb_test_fabric_authorization(session, id = "B")
+    selected <- shiny::reactiveVal(a$connection)
+    api <- oauth_db_fabric_api(selected)
+    fabric_calls <- 0L
+    sql_calls <- 0L
+    fabric_rows <- shiny::reactive(api$call(function(token) {
+      fabric_calls <<- fabric_calls + 1L
+      token("https://api.fabric.microsoft.com/.default")
+    }))
+    sql_rows <- shiny::reactive(api$call(function(token) {
+      sql_calls <<- sql_calls + 1L
+      token("https://database.windows.net//.default")
+    }))
+    session$flushReact()
+    expect_identical(fabric_rows(), "A-fabric")
+    expect_identical(sql_rows(), "A-sql")
+    saved <- api$token_provider()
+    values <- a$tokens()
+    values$sql <- a$make_token("sql", "denied", scopes = character())
+    a$tokens(values)
+    session$flushReact()
+    expect_identical(fabric_rows(), "A-fabric")
+    expect_identical(fabric_calls, 1L)
+    expect_error(sql_rows(), class = "shiny.silent.error")
+    values$sql <- a$make_token("sql", "restored")
+    a$tokens(values)
+    session$flushReact()
+    expect_identical(sql_rows(), "restored")
+    expect_identical(fabric_rows(), "A-fabric")
+    expect_identical(fabric_calls, 1L)
+    values$fabric <- a$make_token("fabric", "rotated")
+    a$tokens(values)
+    session$flushReact()
+    expect_identical(fabric_rows(), "A-fabric")
+    expect_identical(fabric_calls, 1L)
+    selected(b$connection)
+    session$flushReact()
+    expect_identical(fabric_rows(), "B-fabric")
+    expect_identical(sql_rows(), "B-sql")
+    expect_identical(fabric_calls, 2L)
+    expect_error(saved("https://api.fabric.microsoft.com/.default"),
+      class = "shinyOAuthDB_authorization_unavailable")
+  })
+})
