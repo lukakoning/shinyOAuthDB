@@ -1,0 +1,111 @@
+---
+title: "Azure SQL and SQL Server"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Azure SQL and SQL Server}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Use the signed-in visitor's Microsoft account to query Azure SQL with DBI
+or dbplyr. This example lists the database tables they can see.
+
+## Set up access
+
+Install `odbc` and Microsoft ODBC Driver 18 for SQL Server. Your database
+administrator must enable [Microsoft Entra authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
+and give users or their groups database access.
+
+Create a Microsoft Entra Web app registration with delegated SQL access,
+and register `http://localhost:8100` as its redirect URI. The
+`services = "sql"` preset below requests the SQL token for you.
+
+Put your registration's values in a local `.Renviron` file and restart R:
+
+```text
+OAUTHDB_TENANT_ID=your-tenant-id
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+## A complete app
+
+Save this as `app.R` and replace the example connection settings:
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "sql",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_azure_sql(
+    auth$connection,
+    server = "example.database.windows.net",
+    database = "Reporting"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` in that directory, then open
+`http://localhost:8100` and sign in. The output waits for sign-in and clears
+when you sign out.
+
+## Query your own tables
+
+Create `con` inside `server()`, passing `auth$connection` without
+parentheses. Call `con()` in a render or reactive expression before querying.
+The helper reuses the connection and closes it when the authorization or
+Shiny session ends.
+
+For an `Orders` table, you could replace the output with a dbplyr query:
+
+```{r dbplyr-query}
+output$rows <- renderTable({
+  connection <- con()
+  dplyr::tbl(connection, "Orders") |>
+    dplyr::filter(amount > 100) |>
+    dplyr::collect()
+})
+```
+
+Install `dbplyr` and `dplyr` for this alternative. Use DBI parameter binding
+when a SQL query includes values supplied by visitors.
+
+## Other SQL Server deployments
+
+For SQL Managed Instance or Synapse SQL, supply that deployment's server
+and database to `oauth_db_azure_sql()`. For SQL Server configured to accept
+Entra tokens, use `oauth_db_sql_server()` with the same arguments and client.
+
+Driver options such as `driver`, `port`, and `timeout` are documented in
+`?oauth_db_azure_sql`. For custom permissions or an existing login, see
+[Authentication and sessions](authorization.html).

@@ -7,12 +7,14 @@ brickster 0.2.15, and RTrino 0.1.0. Dependencies were installed in an isolated l
 
 | Check | Result |
 | --- | --- |
-| Package test suite | 982 passing assertions; no skipped scenarios |
+| Package test suite | 1,029 passing assertions; no skipped scenarios |
 | `R CMD check --no-manual` | No errors, warnings, or notes |
-| Four vignettes | Built and rebuilt during the package check |
+| Ten vignettes | Eight source guides, getting started, and sessions; built and rebuilt during the package check |
+| Source guide apps | All eight construct with real OAuth clients and wait for sign-in |
+| Rendered guides | All ten pages present; 20 local page links and anchors resolve |
 | README apps | All eight construct; all ten outputs wait for sign-in |
 | Playground apps | Client setup, queries, account replacement, and sign-out pass with mocked services |
-| Documentation examples and local links | 43 R blocks parse; 70 local links resolve |
+| Documentation examples and local links | 49 R blocks parse; 87 local links resolve |
 | BigQuery REST client | Polling, paging, typed results, bound parameters, 401 renewal, and grant isolation |
 | Redshift adapter | Explicit ODBC token mode, verified TLS, argument protection, and connection lifecycle |
 | Trino DBI client | Native RTrino requests, pagination, refresh, username changes, and callback retirement |

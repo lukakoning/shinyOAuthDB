@@ -1,0 +1,191 @@
+---
+title: "Microsoft Fabric"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Microsoft Fabric}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Query a Warehouse, Lakehouse SQL endpoint, or Fabric SQL Database using the
+visitor's Microsoft account. The same sign-in can also support workspace
+discovery, OneLake, and semantic model queries through fabricQueryR.
+
+## Start with SQL
+
+Install `fabricQueryR` and `odbc`, plus Microsoft ODBC Driver 18 for SQL
+Server. Copy the server and database from the item's SQL connection settings.
+Users need access to the item and data; see
+[Fabric SQL connectivity](https://learn.microsoft.com/en-us/fabric/data-warehouse/connectivity).
+
+Create an Entra Web app registration with delegated SQL access and register
+`http://localhost:8100` as its redirect URI. Start with `services = "sql"`;
+you can add the permissions for other Fabric services as your app needs them.
+
+Put your registration's values in a local `.Renviron` file and restart R:
+
+```text
+OAUTHDB_TENANT_ID=your-tenant-id
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+## A complete app
+
+Save this as `app.R` and replace the example connection settings:
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "sql",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_fabric_sql(
+    auth$connection,
+    server = "example.datawarehouse.fabric.microsoft.com",
+    database = "Reporting"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` in that directory, then open
+`http://localhost:8100` and sign in. The output waits for sign-in and clears
+when you sign out.
+
+The query shows the database identity. Replace it with SQL for your tables,
+or use dbplyr with the connection returned by `con()`.
+
+## Discover workspaces
+
+To add workspace discovery, change the client's services to
+`services = c("sql", "fabric")` and configure the registration's delegated
+Fabric workspace-read permission. Add `verbatimTextOutput("workspaces")`
+to the UI, then put this inside `server()`:
+
+```{r workspaces}
+fabric <- oauth_db_fabric_api(auth$connection)
+
+output$workspaces <- renderPrint({
+  fabric$call(fabricQueryR::fabric_workspaces)
+})
+```
+
+`$call()` takes a fabricQueryR function and its usual arguments. It supplies
+the visitor's credentials and returns the function's normal result.
+
+## Choose additional services
+
+Add the services your app uses to `oauth_db_microsoft_client()`. Each also
+needs the corresponding delegated permissions in the Entra registration:
+
+| `services` entry | Use it for |
+| --- | --- |
+| `"sql"` | Warehouse, Lakehouse SQL endpoint, and SQL Database |
+| `"fabric"` | Workspace and item discovery |
+| `"onelake"` | OneLake files and tables |
+| `"dax"` | Semantic model queries |
+| `"kql"` | KQL queries |
+| `"graphql"` | GraphQL queries |
+
+The preset requests tokens for those services; users still need access to
+the relevant workspace, items, and data. SQL access alone doesn't grant
+OneLake or semantic model access.
+
+For KQL, include `"kql"` in the client's services. With `fabric` created as
+above, replace the table output with:
+
+```{r kql}
+output$rows <- renderTable({
+  fabric$call(
+    fabricQueryR::fabric_kql_query,
+    cluster = "https://example.kusto.fabric.microsoft.com",
+    database = "Events",
+    query = "Events | take 20"
+  )
+})
+```
+
+## Work with Lakehouse and semantic model objects
+
+fabricQueryR's resource objects offer methods for reading data. Configure
+`services = c("fabric", "onelake")` for the following example, or add those
+services to the SQL app's client. Put discovery in a reactive expression so
+a change of account obtains a new object:
+
+```{r lakehouse}
+lakehouse <- reactive({
+  fabric$call(
+    fabricQueryR::fabric_item,
+    workspace = "workspace-guid",
+    item = "lakehouse-guid"
+  )
+})
+
+output$rows <- renderTable({
+  lakehouse()$read_table("Orders", limit = 100L)
+})
+```
+
+These are fabricQueryR's own R6 objects. A Warehouse offers
+`$sql_query(sql)`; a semantic model offers `$dax_query(dax)`. Include
+`"sql"` or `"dax"` respectively in the client's services. See
+fabricQueryR's help for the other methods and their arguments.
+
+## Connection options and custom sign-in
+
+The SQL helper uses fabricQueryR's ODBC backend by default. To use ADBC,
+install fabricQueryR's ADBC dependencies and the MSSQL driver, then pass
+`backend = "adbc"` to `oauth_db_fabric_sql()`. Other options, such as
+`timeout` and `read_only`, go to `fabricQueryR::fabric_sql_connect()`.
+
+Use the SQL helper for a DBI connection managed by shinyOAuthDB. Connections
+opened by native API functions or resource methods belong to your app.
+For a direct native function call, `token = fabric$token_provider()` supplies
+the callback; `?oauth_db_fabric` shows the single-service alternative.
+
+If an existing shinyOAuth client uses different target names, supply the
+service-to-target mapping when creating the API client:
+
+```{r targets}
+fabric <- oauth_db_fabric_api(
+  auth$connection,
+  targets = c(fabric = "discovery", sql = "reporting", onelake = "files")
+)
+```
+
+This mapping replaces the defaults and lists the services available to the
+client. Use `targets = list(kql = NULL)` for one service without named
+targets. DAX and GraphQL share the Power BI resource and must use the same
+target; different resources need different targets.
+
+See [Authentication and sessions](authorization.html) for permission checks,
+multiple accounts, and cached results.

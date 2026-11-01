@@ -5,11 +5,11 @@
 #' fabricQueryR, or brickster functions.
 #'
 #' @section Getting started:
-#' Read `vignette("getting-started", package = "shinyOAuthDB")` for a complete
-#' app. Choose a database helper in
-#' `vignette("databases", package = "shinyOAuthDB")`, or see
-#' `vignette("platform-apis", package = "shinyOAuthDB")` for BigQuery,
-#' Fabric, and Databricks API calls.
+#' Choose your source in
+#' `vignette("getting-started", package = "shinyOAuthDB")`.
+#' Each source has its own guide with sign-in setup and a complete Shiny app,
+#' for example `vignette("snowflake", package = "shinyOAuthDB")` or
+#' `vignette("fabric", package = "shinyOAuthDB")`.
 #'
 #' @section Database queries:
 #' Create a helper such as [oauth_db_azure_sql()] inside `server()`, passing
@@ -25,7 +25,8 @@
 #'
 #' @section Sign-in settings:
 #' Keep an existing shinyOAuth client or use [oauth_db_microsoft_client()],
-#' [oauth_db_databricks_client()], or [oauth_db_snowflake_client()] to set one up.
+#' [oauth_db_bigquery_client()], [oauth_db_databricks_client()], or
+#' [oauth_db_snowflake_client()] to set one up.
 #' Read `vignette("authorization", package = "shinyOAuthDB")` for permission
 #' settings, multiple authorizations, and session behavior.
 #'

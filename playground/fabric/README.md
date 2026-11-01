@@ -47,7 +47,7 @@ This app uses Fabric, SQL, Power BI, Kusto, Storage, and GraphQL. The Entra
 registration needs delegated permissions for all six, including
 `Dataset.Read.All` and `GraphQLApi.Execute.All` for Power BI. Visitors also
 need access to the workspace and items, including Build on semantic models.
-See the [platform API guide](../../vignettes/platform-apis.Rmd) for service
+See the [Fabric guide](../../vignettes/fabric.Rmd#choose-additional-services) for service
 selection.
 
 For the shared sandbox identity, set `FABRICQUERYR_TENANT_ID`,

@@ -2,7 +2,7 @@
 title: "Authentication and sessions"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{4. Authentication and sessions}
+  %\VignetteIndexEntry{Authentication and sessions}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,21 +11,21 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-This guide covers apps with an existing login setup, custom permissions,
-multiple accounts, or results kept between user actions. For a first app,
-start with [Getting started](getting-started.html).
+Use this guide when adapting an existing login, selecting between accounts,
+or saving query results between user actions. For a first app, choose a
+source in [Getting started](getting-started.html); each source guide
+includes its own sign-in setup.
 
-## Keep your existing login
+## Keep an existing login
 
-The `*_client()` helpers are optional sign-in configurations. If you already
-use shinyOAuth, keep your provider, client, UI, and server module.
+The `*_client()` helpers provide optional sign-in configurations. If you
+already use shinyOAuth, keep your provider, client, UI, and server module.
+The token must be intended for the database or API you're calling.
 
-A database needs a token intended for its service. For example, a token for
-Microsoft Graph cannot be used to connect to SQL. In shinyOAuth, named
-**token targets** let one authorization obtain tokens for different services.
-
-The Microsoft presets use names such as `"sql"` and `"storage"`. If your
-SQL target is named `"reporting"`, select that name:
+In shinyOAuth, named **token targets** let one authorization obtain tokens
+for different services. Microsoft's presets use names such as `"sql"`
+and `"storage"`. If your existing SQL target is named `"reporting"`,
+select it explicitly:
 
 ```{r custom-sql-target}
 con <- oauth_db_azure_sql(
@@ -36,46 +36,24 @@ con <- oauth_db_azure_sql(
 )
 ```
 
-For a client without named token targets, use `target = NULL`. The client's
-default token must already be suitable for SQL.
+For a client without named targets, use `target = NULL` with a suitable
+default token. The [Fabric guide](fabric.html#connection-options-and-custom-sign-in)
+shows its API client's service-to-target mapping.
 
-Fabric's API client takes a service-to-target mapping instead:
+## Request and check permissions
 
-```{r fabric-targets}
-fabric <- oauth_db_fabric_api(
-  auth$connection,
-  targets = c(fabric = "discovery", sql = "reporting", onelake = "files")
-)
-```
+OAuth scopes describe the permissions your app requests from the provider.
+Configure them on the shinyOAuth client or its token targets. The presets
+supply defaults for the selected services; replace these when your
+registration requires different settings.
 
-This mapping lists the services the client can use. For one service without
-named targets, use a list such as `targets = list(kql = NULL)`. DAX and
-GraphQL share the Power BI resource and must map to the same target;
-different resources need different targets.
+A helper's `required_scopes` argument checks permissions before use. It
+doesn't request consent or add database privileges. The shinyOAuth client
+and target still enforce their configured requirements.
 
-## Choose permissions
-
-OAuth **scopes** describe the permissions your app requests from the provider.
-Configure them on your shinyOAuth client or token targets. The presets provide
-defaults for their supported services; you can replace these with your
-registration's settings.
-
-The connection helpers' `required_scopes` argument adds a permission check
-before use. It doesn't request consent. Azure SQL, Fabric SQL and Databricks
-helpers leave this extra check empty by default, while shinyOAuth enforces
-the client's and target's requirements.
-
-Microsoft's `/.default` scope requests the registration's configured
-permissions. It isn't a permission returned in a token, so don't use it as a
-required granted scope. An existing SQL client using `/.default` can use
-the same database helper without an extra scope override.
-
-For native Snowflake OAuth, the connection helper checks the role scope
-derived from `role`. For External OAuth, supply the scope names used by your
-integration.
-
-Database and platform permissions still apply after OAuth succeeds. A user
-may be able to sign in but lack access to a table or workspace.
+Microsoft's `/.default` requests the registration's configured permissions;
+it isn't a granted permission name. Don't put it in `required_scopes`.
+The [Snowflake guide](snowflake.html#external-oauth) explains its role scopes.
 
 ## Select among several accounts
 
@@ -94,47 +72,38 @@ con <- oauth_db_azure_sql(
 ```
 
 Populate the selector with `connection_id` values from `auth$connections()`.
-These identify saved authorizations, rather than client names such as `"sql"`.
-You can create separate database helpers for different selected accounts.
-The source checkout's `playground/example-two-authorizations.R` shows SQL
-and Databricks in the same app.
+These identify saved authorizations, rather than token targets such as
+`"sql"`. Create separate helpers for different selected accounts if needed.
 
-## Sign-out and cached results
+## Clear stored results
 
-A render or reactive expression that calls `con()` follows changes in
-authorization. The helper reuses its connection, closes it on sign-out or
-session end, and checks the selected authorization before subsequent use.
+Outputs that call a connection helper or API client in their reactive
+expression follow sign-in changes. Data your app has already fetched needs
+separate care: if you save results in `reactiveVal()`, `eventReactive()`,
+or another cache, clear or hide them when the selected authorization ends
+or changes. A cache keyed only by SQL text can share protected data between
+users.
 
-Your app owns data it has already fetched. If you store results in
-`reactiveVal()`, `eventReactive()`, or another cache, clear or hide them when
-the selected authorization ends or changes. A cache keyed only by SQL text
-must not share protected results among users.
+The source checkout's `playground/example-query-button.R` shows a query
+button that clears results on sign-out, account changes, and loss of required
+permissions. `playground/example-two-authorizations.R` shows independent
+SQL and Databricks authorizations.
 
-The source checkout's `playground/example-query-button.R` demonstrates a
-button-triggered query that clears results on sign-out, account changes, and
-loss of required permissions.
+## Refresh and longer work
 
-## Refresh and long-running work
-
-shinyOAuth handles token renewal. Ordinary refresh preserves established SQL
-connections; Databricks' accessor replaces its handle when the stored token
-changes. Call `con()` for each operation rather than keeping a handle for later.
-Previously returned handles and copied token strings follow their own package's
-rules and aren't necessarily invalidated by local sign-out.
+shinyOAuth renews tokens. Call `con()` before each operation so the helper
+can check the current authorization and replace a connection when needed.
+The source guides describe how their clients use refreshed credentials.
 
 `min_valid_for` asks for enough remaining token lifetime when obtaining a
-credential. It doesn't guarantee a token for an entire query. Databricks API
-calls keep the supplied token during that call; Fabric callbacks can obtain
-renewed tokens while their original authorization remains valid.
+credential; it doesn't guarantee validity for a whole query. If a refresh
+is already running, accessors wait quietly and ordinary reactive consumers
+can resume when it finishes. Event-bound code may need another click.
 
-BigQuery obtains a current token for each REST request. Polling and result
-pages remain tied to the authorization that started the query.
+Previously returned handles and copied token strings follow their own
+package's rules. Local sign-out doesn't necessarily invalidate those copies
+or cancel work already submitted to a platform.
 
-If a refresh is already running, connection accessors wait quietly and normal
-reactive consumers can resume when it finishes. Event-bound code may need a
-new click. The bridge doesn't replay a native operation after an error.
-
-Connection helpers, API clients, and token callbacks run in their owning Shiny
-session. For background work, use the database package's supported approach
-and check the current authorization before showing a result. Avoid exporting
-a live DBI connection or a session-bound token callback to a worker.
+Keep live connections and session-bound token callbacks in their owning
+Shiny session. For background work, use the database package's supported
+approach and check the current authorization before displaying a result.

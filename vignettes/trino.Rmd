@@ -1,0 +1,113 @@
+---
+title: "Trino and Starburst Enterprise"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Trino and Starburst Enterprise}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Query a Trino or Starburst Enterprise cluster with DBI or dbplyr using each
+visitor's OAuth authorization. RTrino runs the queries; shinyOAuthDB supplies
+a current token for its requests.
+
+## Set up sign-in
+
+Install `RTrino` 0.1.0 or later. Your cluster must accept access tokens from
+your app's issuer and audience, and map their principals to Trino users.
+Ask the cluster administrator which issuer, scopes, and user claim to use.
+The cluster's web UI sign-in alone doesn't establish access for a separate
+Shiny OAuth client. See [Trino's OAuth configuration](https://trino.io/docs/current/security/oauth2.html)
+for the server setup.
+
+Register `http://localhost:8100` as the Shiny app's redirect URI with that
+issuer. The example uses an OIDC confidential client and the verified
+profile's email as the Trino username.
+
+Put your registration's values in a local `.Renviron` file and restart R:
+
+```text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_TRINO_ISSUER=https://your-identity-provider.example.org
+```
+
+## A complete app
+
+Save this as `app.R` and replace the example connection settings:
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_TRINO_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_trino(
+    auth$connection,
+    host = "https://trino.example.org",
+    catalog = "lakehouse",
+    schema = "reporting",
+    user = function() req(auth$token@userinfo$email)
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` in that directory, then open
+`http://localhost:8100` and sign in. The output waits for sign-in and clears
+when you sign out.
+
+Replace the issuer, scopes, and username mapping with those your cluster
+accepts. The query shows the current Trino user; use your own SQL to read
+data in the chosen catalog and schema.
+
+## Map the database user
+
+The `user` argument must match the cluster's principal mapping. Pass a
+function when the username comes from the selected authorization, as above.
+Change `email` to the appropriate verified profile field for your issuer.
+The helper recreates the connection when that username changes.
+
+## Connection settings
+
+Include the HTTPS port in `host`, or pass it as `port`. For a private CA,
+set `ca_bundle` to its certificate bundle. Other options, such as
+`timeout` and `query_max_run_time`, go to RTrino; see `?oauth_db_trino`.
+
+RTrino obtains a current token for each request, including result pages.
+Ordinary token rotation preserves the connection. Account changes,
+sign-out, and session end close it. Call `con()` before each operation and
+see [Authentication and sessions](authorization.html) for stored results.
+
+Starburst Galaxy requires its own OAuth registration and endpoint setup;
+this guide covers Trino and Starburst Enterprise.

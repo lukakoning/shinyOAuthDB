@@ -37,8 +37,10 @@ roxygen2::roxygenise()
 ```
 
 The documentation check parses R examples and checks local links. Regression
-tests also exercise the getting-started app and connection snippets through
-Shiny. Keep these examples small enough to read as a whole.
+tests also build each source guide's complete app with its real OAuth client
+and check that queries wait for sign-in. Each guide should work on its own:
+keep sign-in setup and native query examples together, with advanced options
+at the end.
 
 ## Live checks
 

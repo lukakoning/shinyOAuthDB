@@ -1,0 +1,114 @@
+---
+title: "Azure PostgreSQL"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Azure PostgreSQL}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Query Azure Database for PostgreSQL with a visitor's Microsoft account.
+The app uses RPostgres and DBI, so you can use the same queries and dbplyr
+code as with other PostgreSQL connections.
+
+## Enable Entra access
+
+Install `RPostgres`. Your administrator must
+[enable Entra authentication and provision database roles](https://learn.microsoft.com/en-us/azure/postgresql/security/security-entra-configure)
+for the users or groups who will use the app. Obtain the database role name
+and a CA bundle trusted by the server.
+
+Create an Entra Web app registration for PostgreSQL access with
+`http://localhost:8100` as the redirect URI. The `services = "postgres"`
+preset below requests the PostgreSQL token.
+
+Put your registration's values in a local `.Renviron` file and restart R:
+
+```text
+OAUTHDB_TENANT_ID=your-tenant-id
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+## A complete app
+
+Save this as `app.R` and replace the example connection settings:
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "postgres",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_azure_postgres(
+    auth$connection,
+    host = "example.postgres.database.azure.com",
+    dbname = "reporting",
+    user = "reporting-readers",
+    sslrootcert = "path/to/root-ca.pem"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` in that directory, then open
+`http://localhost:8100` and sign in. The output waits for sign-in and clears
+when you sign out.
+
+Replace `user` with the database role provisioned for the visitor or their
+group. The example uses a shared group role; the database verifies the
+signed-in person's membership. Set `sslrootcert` to your CA bundle path.
+You can omit it if libpq already has the correct bundle configured.
+
+## Read a table
+
+Replace the identity query with SQL against your data, for example:
+
+```{r table-query}
+output$rows <- renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT * FROM reporting.orders LIMIT 20")
+})
+```
+
+For dbplyr, pass `connection` to `dplyr::tbl()`. Use DBI parameter binding
+for SQL values entered by visitors.
+
+## Connection options
+
+The helper uses `dbname` for the database name, following RPostgres.
+Options such as `port` and `connect_timeout` go to RPostgres; see
+`?oauth_db_azure_postgres`.
+
+Create `con` inside `server()` and call it before each operation. The helper
+reuses connections and closes them on account changes, sign-out, or session
+end. For custom login settings or cached data, see
+[Authentication and sessions](authorization.html).

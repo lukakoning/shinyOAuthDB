@@ -1,0 +1,115 @@
+---
+title: "Amazon Redshift"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Amazon Redshift}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Connect to Redshift with a visitor's own OAuth authorization and query with
+DBI. This guide uses Microsoft Entra as the external issuer for a deployment
+linked to AWS IAM Identity Center.
+
+## Prepare the deployment
+
+Install `odbc` and the AWS Redshift ODBC 2.x driver with
+`IdpTokenAuthPlugin` support. Your administrator must configure
+[Redshift's IAM Identity Center integration and trusted issuer](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html),
+including user mapping and data access.
+
+Create an Entra Web app registration with `http://localhost:8100` as the
+redirect URI. Request the resource and delegated scope trusted by the
+Redshift deployment. These are deployment-specific; ask the administrator
+for their values.
+
+Put your registration's values in a local `.Renviron` file and restart R:
+
+```text
+OAUTHDB_TENANT_ID=your-tenant-id
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_REDSHIFT_RESOURCE=your-redshift-resource
+OAUTHDB_REDSHIFT_SCOPE=your-redshift-delegated-scope
+```
+
+## A complete app
+
+Save this as `app.R` and replace the example connection settings:
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  token_targets = list(redshift = list(
+    resource = Sys.getenv("OAUTHDB_REDSHIFT_RESOURCE"),
+    scopes = Sys.getenv("OAUTHDB_REDSHIFT_SCOPE")
+  ))
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_redshift(
+    auth$connection,
+    server = "cluster.example.eu-west-1.redshift.amazonaws.com",
+    database = "reporting",
+    target = "redshift"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` in that directory, then open
+`http://localhost:8100` and sign in. The output waits for sign-in and clears
+when you sign out.
+
+The query shows the database user chosen by the deployment's mapping.
+Replace it with a query for a table that user can read.
+
+## Token types and other issuers
+
+The default `token_type = "EXT_JWT"` supplies an external issuer's JWT
+access token. For an IAM Identity Center access token, set
+`token_type = "ACCESS_TOKEN"` and use a shinyOAuth client configured to
+obtain that token. Other external issuers can use their own shinyOAuth
+client in place of the Entra example.
+
+The `target = "redshift"` argument selects the named token target in the
+example client. Use the name from your client, or `target = NULL` if it
+has no named targets. This helper supplies user tokens to the driver;
+IAM key and role-based connection flows need a different setup.
+
+## Driver settings
+
+Set `driver` to the installed driver name or path if it differs from
+`"Amazon Redshift (x64)"`. You can pass `CaFile` and `LoginTimeout`
+through to the driver. The helper configures token authentication and
+verified TLS.
+
+Call `con()` before each query. Connections remain open through ordinary
+token refresh and close on account changes, sign-out, or session end. For
+cached query results, see [Authentication and sessions](authorization.html).

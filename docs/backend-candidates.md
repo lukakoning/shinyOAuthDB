@@ -158,7 +158,7 @@ Implemented with `oauth_db_bigquery_api()` and
 `oauth_db_bigquery_client()`. Queries, polling, and pagination use a token
 callback tied to the selected authorization. The client returns data frames,
 preserves INT64 and decimal precision, and supports named query parameters.
-See the [BigQuery guide](../vignettes/platform-apis.Rmd#google-bigquery).
+See the [BigQuery guide](../vignettes/bigquery.Rmd).
 
 The direct REST approach avoids bigrquery's package-global authentication.
 The investigation with bigrquery 1.6.2 confirmed that two DBI connections used

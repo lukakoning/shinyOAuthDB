@@ -17,5 +17,6 @@
   Snowflake presets, or supply an existing shinyOAuth client.
 * Replace the earlier source and operation API with ordinary Shiny code and
   native database functions. See the [migration notes](docs/migration.md).
-* Replace the long introductory vignette with four guides: getting started,
-  database connections, platform APIs, and authentication and sessions.
+* Organize vignettes by source, each with sign-in setup and a complete app.
+  Keep SQL and API examples for Fabric and Databricks in their source guides,
+  with separate guides for getting started and advanced session behaviour.

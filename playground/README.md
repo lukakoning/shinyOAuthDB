@@ -2,7 +2,7 @@
 
 Run these apps to try the package or adapt one for your own database.
 The [getting-started guide](../vignettes/getting-started.Rmd) explains the
-common sign-in and connection pattern.
+common pattern and links to a guide for each source.
 
 ## Try it without a database
 
@@ -19,7 +19,7 @@ connection reuse and sign-out with local data; it does not perform OAuth.
 ## Connect to your platform
 
 Install the package and your platform's client and driver as described in
-[Database connections](../vignettes/databases.Rmd). Configure the app
+[your source guide](../vignettes/getting-started.Rmd#choose-your-source). Configure the app
 registration and database access before running an example.
 
 The basic apps use these environment variables:

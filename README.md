@@ -56,7 +56,7 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 
 `bigquery$query()` returns a data frame and handles polling and result pages.
 It also accepts named parameters, such as `parameters = list(country = "NL")`.
-See [Platform APIs](vignettes/platform-apis.Rmd#google-bigquery) for more.
+See [BigQuery guide](vignettes/bigquery.Rmd) for more.
 
 ## Azure SQL and SQL Server
 
@@ -104,7 +104,8 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 
 For SQL Server configured for Entra authentication, use
 `oauth_db_sql_server()` with your server and database. The rest of the app
-stays the same.
+stays the same. See the [Azure SQL guide](vignettes/azure-sql.Rmd) for dbplyr
+and connection options.
 
 ## Microsoft Fabric
 
@@ -158,7 +159,7 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 
 The API client also works with fabricQueryR's resource objects and functions
 for OneLake, DAX, KQL, and GraphQL. See the
-[Fabric API examples](vignettes/platform-apis.Rmd).
+[Fabric guide](vignettes/fabric.Rmd).
 
 ## Databricks
 
@@ -211,6 +212,8 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 
 For Azure Databricks with Entra sign-in, use the Microsoft client with
 `services = "databricks_entra"` and set `auth_mode = "entra"` on both helpers.
+See the [Databricks guide](vignettes/databricks.Rmd) for that client setup
+and more brickster examples.
 
 ## Snowflake
 
@@ -259,7 +262,7 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
 For External OAuth through Entra, Okta, or another provider, see the
-[Snowflake connection guide](vignettes/databases.Rmd#snowflake).
+[Snowflake guide](vignettes/snowflake.Rmd).
 
 ## Amazon Redshift
 
@@ -313,7 +316,7 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Install the AWS Redshift ODBC 2.x driver and select its installed name with
 the helper's `driver` argument if it differs from the default. Other identity
 providers can use their own shinyOAuth client with the same connection helper.
-See [Redshift setup](vignettes/databases.Rmd#amazon-redshift).
+See [Redshift guide](vignettes/redshift.Rmd).
 
 ## Trino and Starburst Enterprise
 
@@ -367,7 +370,7 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Set `OAUTHDB_TRINO_ISSUER` to the provider's issuer URL and install `RTrino`.
 Adjust scopes to your IdP registration. RTrino handles DBI queries while
 shinyOAuthDB supplies a current token for each request.
-See [Trino setup](vignettes/databases.Rmd#trino-and-starburst-enterprise).
+See [Trino guide](vignettes/trino.Rmd).
 
 ## Azure PostgreSQL
 
@@ -415,6 +418,9 @@ server <- function(input, output, session) {
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
+The [Azure PostgreSQL guide](vignettes/azure-postgres.Rmd) covers database
+roles and connection settings.
+
 ## Run an example
 
 Register an OAuth application with your platform and use
@@ -446,9 +452,7 @@ Use its usual arguments and return value.
 
 ## Further reading
 
-- [Getting started](vignettes/getting-started.Rmd): installation and the first app.
-- [Database connections](vignettes/databases.Rmd): drivers and connection options.
-- [Platform APIs](vignettes/platform-apis.Rmd): BigQuery queries, platform functions, and resource objects.
+- [Getting started](vignettes/getting-started.Rmd): installation and a guide for each source.
 - [Authentication and sessions](vignettes/authorization.Rmd): existing logins, permissions, multiple accounts, and stored results.
 
 The [playground](playground/README.md) has runnable scripts and an offline

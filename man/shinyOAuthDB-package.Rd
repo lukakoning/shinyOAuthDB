@@ -12,11 +12,11 @@ fabricQueryR, or brickster functions.
 }
 \section{Getting started}{
 
-Read \code{vignette("getting-started", package = "shinyOAuthDB")} for a complete
-app. Choose a database helper in
-\code{vignette("databases", package = "shinyOAuthDB")}, or see
-\code{vignette("platform-apis", package = "shinyOAuthDB")} for BigQuery,
-Fabric, and Databricks API calls.
+Choose your source in
+\code{vignette("getting-started", package = "shinyOAuthDB")}.
+Each source has its own guide with sign-in setup and a complete Shiny app,
+for example \code{vignette("snowflake", package = "shinyOAuthDB")} or
+\code{vignette("fabric", package = "shinyOAuthDB")}.
 }
 
 \section{Database queries}{
@@ -38,7 +38,8 @@ also use those credentials in their own methods.
 \section{Sign-in settings}{
 
 Keep an existing shinyOAuth client or use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, or \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} to set one up.
+\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, or
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} to set one up.
 Read \code{vignette("authorization", package = "shinyOAuthDB")} for permission
 settings, multiple authorizations, and session behavior.
 }

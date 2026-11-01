@@ -1,7 +1,7 @@
 # Updating earlier development apps
 
 The current interface uses ordinary Shiny code and native database functions.
-Start with the [getting-started app](../vignettes/getting-started.Rmd).
+Choose your source in [Getting started](../vignettes/getting-started.Rmd).
 Earlier development interfaces have no compatibility aliases.
 
 ## Changed arguments
@@ -25,7 +25,8 @@ and either `warehouse_id` or `http_path`. For brickster API functions, use
 
 For Fabric API calls and resource objects, use `oauth_db_fabric_api()`.
 The single-service `oauth_db_fabric()` callback helper remains available.
-See the [platform API guide](../vignettes/platform-apis.Rmd) for examples.
+See the [Fabric](../vignettes/fabric.Rmd) and
+[Databricks](../vignettes/databricks.Rmd) guides for examples.
 
 ## Former source and operation API
 
