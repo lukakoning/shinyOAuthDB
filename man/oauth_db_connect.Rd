@@ -2,7 +2,7 @@
 % Please edit documentation in R/session.R
 \name{oauth_db_connect}
 \alias{oauth_db_connect}
-\title{Connect a native database client using a shinyOAuth authorization}
+\title{Connect another database package to a user's sign-in}
 \usage{
 oauth_db_connect(
   authorization,
@@ -17,79 +17,69 @@ oauth_db_connect(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
-\item{connect}{Native connection function, defaulting to \code{DBI::dbConnect}.}
+\item{connect}{Function that opens the connection, such as \code{DBI::dbConnect}.}
 
-\item{...}{Named arguments for the native connector, such as \code{drv}, \code{host}
-and \code{dbname}. Do not include the argument named by \code{token_arg}.}
+\item{...}{Named arguments passed to \code{connect}, excluding the token argument.}
 
-\item{token_arg}{Name of the connector argument receiving the bearer token.}
+\item{token_arg}{Name of the argument that receives the user's access token.}
 
-\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
-uses its default, including clients without named token targets.}
+\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
+default token, including clients without named targets.}
 
-\item{required_scopes}{Required granted permissions. Consent scopes belong in the
-shinyOAuth client configuration; setting this argument does not request
-additional consent.}
+\item{required_scopes}{Extra permissions to check before use. Configure
+consent and client requirements in shinyOAuth.}
 
-\item{disconnect}{Native cleanup function. NULL calls \code{DBI::dbDisconnect()}
-for DBI connections and leaves other native values alone. Cleanup is best
-effort; it does not revoke credentials already given to the native package.}
+\item{disconnect}{Optional function to close the connection. By default,
+DBI connections use \code{DBI::dbDisconnect()}; other objects have no cleanup.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A reactive accessor function: call \code{con()} inside normal Shiny
-reactive or render code to obtain the native connection. Before authorization
-it stops silently, like \code{shiny::req()}. Resolve \code{connection <- con()} before
-passing \code{connection} to a DBI method so Shiny can wait quietly for sign-in.
-Missing permissions produce a Shiny validation message. Invalid targets,
-ambiguous authorization selection and other configuration errors retain
-their original conditions so the app can explain how to recover.
+A reactive function. Call \code{connection <- con()} inside a render or
+reactive expression to obtain the connection. Before sign-in, it waits
+quietly like \code{shiny::req()}.
 }
 \description{
-Supply a native connector that authenticates when opening a connection and
-its normal arguments. The bridge obtains the user's token when it opens the
-connection, passes it to the connector, and manages connection lifetime.
+Use this helper when a database driver accepts an OAuth access token but
+doesn't have a dedicated shinyOAuthDB helper. Supply its connection function
+and the name of the argument that takes the token.
 }
 \details{
-Native connections are reused within one session and authorization. Logout,
-replacement, observed required permission loss or session end retires the
-cached value and attempts its native cleanup. Subsequent accessor use checks
-the current authorization. A valid DBI connection stays open through token
-refresh, preserving transactions and temporary tables. Invalid DBI connections
-reopen on next access; operations are never retried. The driver determines
-established-connection expiry.
+The helper reuses a connection within the selected authorization and closes
+it on sign-out or session end. A valid DBI connection stays open through token
+refresh; an invalid connection reopens on the next call to \code{con()}.
 
-This generic helper injects credentials only when opening a connection. It
-does not update bearer strings stored inside cached SDK clients, or check
-non-DBI clients for validity. For APIs authenticating each request with a
-string, call \code{\link[=oauth_db_token]{oauth_db_token()}} for each operation. Backend helpers implement
-any additional lifecycle their native client needs.
-
-Always resolve the accessor for each operation. Previously returned native
-objects and copied bearer strings retain their own lifetime; the bridge cannot
-make them unusable or revoke them. A backend's native disconnect operation
-may be a no-op. See each backend helper for its credential callback and native
-connection behavior.
-
-\code{min_valid_for} applies when acquiring a token, not to the duration of a query.
-Credential acquisition is synchronous. If shinyOAuth is already refreshing,
-the accessor waits silently and a normal reactive consumer resumes when the
-upstream status changes. Event-bound code keeps its usual Shiny behavior and
-needs another event. Once a native operation has started, credential callback
-errors propagate without scheduling a replay. Other acquisition errors remain
-available to the app. These accessors run in their owning session, not a worker.
-
-Queries, their results, event caches and background execution belong to the
-app and native packages. This bridge does not wrap or store query results.
+This helper supplies a token when opening a connection. For an API that uses
+a token on every request, use \code{\link[=oauth_db_token]{oauth_db_token()}} or a platform API helper.
+See \code{vignette("authorization", package = "shinyOAuthDB")} for connection
+lifetime, cached results, and background work.
 }
+\examples{
+\dontrun{
+# Inside server(); client configured for Azure PostgreSQL:
+con <- oauth_db_connect(
+  auth$connection,
+  connect = DBI::dbConnect,
+  drv = RPostgres::Postgres(),
+  token_arg = "password",
+  target = "postgres",
+  host = "example.postgres.database.azure.com",
+  dbname = "reporting",
+  user = "reporting-readers",
+  sslmode = "verify-full"
+)
+}
+}
+\seealso{
+Other advanced connection helpers:
+\code{\link[=oauth_db_fabric]{oauth_db_fabric()}},
+\code{\link[=oauth_db_token]{oauth_db_token()}}
+}
+\concept{advanced connection helpers}

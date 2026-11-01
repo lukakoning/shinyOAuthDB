@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__databricks.R
 \name{oauth_db_databricks_client}
 \alias{oauth_db_databricks_client}
-\title{Configure a native Databricks shinyOAuth client}
+\title{Set up Databricks OAuth sign-in}
 \usage{
 oauth_db_databricks_client(
   host,
@@ -15,26 +15,53 @@ oauth_db_databricks_client(
 )
 }
 \arguments{
-\item{host}{Databricks workspace hostname or HTTPS origin. Unused when
-\code{provider} is supplied.}
+\item{host}{Workspace hostname or HTTPS origin. Not used when \code{provider}
+is supplied.}
 
-\item{client_id}{Registered application ID.}
+\item{client_id}{Application ID from the OAuth registration.}
 
-\item{redirect_uri}{Registered OAuth callback URL.}
+\item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{client_secret}{Confidential client secret, or NULL for a public client.}
+\item{client_secret}{Registered client secret, or \code{NULL} for a public client.}
 
-\item{...}{Settings passed unchanged to \code{shinyOAuth::oauth_client()}, such as
-\code{label}, \code{resource}, \code{required_scopes}, or \code{scope_validation}.}
+\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Native shinyOAuth provider. Defaults to the service's provider.}
+\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
 
-\item{scopes}{Complete client consent scopes, replacing the preset defaults.}
+\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
 }
 \value{
-A native shinyOAuth client. Default provider discovery makes an HTTPS
-request to the workspace; supplying \code{provider} bypasses discovery.
+A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Configure a native Databricks shinyOAuth client
+Create sign-in settings for a Databricks workspace. Pass this client to
+shinyOAuth's UI and server modules, then use the resulting authorization
+with the SQL or API helper.
 }
+\details{
+Register the app and redirect URI with Databricks first. The default scopes
+include \code{all-apis} and refresh access; you can supply a different scope list.
+
+For Azure Databricks using Entra tokens, use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+with \code{services = "databricks_entra"} instead.
+}
+\examples{
+\dontrun{
+client <- oauth_db_databricks_client(
+  host = "example.cloud.databricks.com",
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+}
+}
+\seealso{
+\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}
+
+Other sign-in configuration:
+\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
+\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
+}
+\concept{sign-in configuration}

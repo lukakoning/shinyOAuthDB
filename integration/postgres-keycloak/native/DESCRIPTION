@@ -13,3 +13,5 @@ Imports: DBI, RPostgres
 SystemRequirements: Linux, libpq 18 development headers and shared library,
     pkg-config, a C compiler
 NeedsCompilation: yes
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0

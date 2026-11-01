@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__microsoft.R
 \name{oauth_db_microsoft_client}
 \alias{oauth_db_microsoft_client}
-\title{Configure a native shinyOAuth Microsoft client for database services}
+\title{Set up Microsoft sign-in for database access}
 \usage{
 oauth_db_microsoft_client(
   services = "sql",
@@ -21,42 +21,61 @@ oauth_db_microsoft_client(
 )
 }
 \arguments{
-\item{services}{Service names: \code{sql}, \code{postgres}, \code{fabric}, \code{kql}, \code{dax},
-\code{graphql}, \code{onelake} or \code{databricks_entra}. The first selects the default
-token target. Compatible services sharing a resource combine their scopes.}
+\item{services}{One or more of \code{"sql"}, \code{"postgres"}, \code{"fabric"}, \code{"kql"},
+\code{"dax"}, \code{"graphql"}, \code{"onelake"}, or \code{"databricks_entra"}.
+The first service selects the default token target.}
 
-\item{tenant_id}{Microsoft Entra tenant. Unused when \code{provider} is supplied.}
+\item{tenant_id}{Microsoft Entra tenant ID. Not used when \code{provider} is supplied.}
 
-\item{client_id}{Registered application ID.}
+\item{client_id}{Application ID from the OAuth registration.}
 
-\item{redirect_uri}{Registered OAuth callback URL.}
+\item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{client_secret}{Confidential client secret, or NULL for a public client.}
+\item{client_secret}{Registered client secret, or \code{NULL} for a public client.}
 
-\item{...}{Settings passed unchanged to \code{shinyOAuth::oauth_client()}, such as
-\code{label}, \code{resource}, \code{required_scopes}, or \code{scope_validation}.}
+\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Native shinyOAuth provider. Defaults to the service's provider.}
+\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
 
-\item{token_targets}{Named shinyOAuth token targets, replacing the service
-defaults. Use \code{list()} for a client without named targets.}
+\item{token_targets}{Named token targets, replacing the service defaults.
+Use \code{list()} for a client without named targets.}
 
 \item{token_target_default}{Default target name, or \code{character()} for none.}
 
-\item{scopes}{Complete client consent scopes, replacing the preset defaults.}
+\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
 }
 \value{
-A native shinyOAuth client for its existing UI and server modules.
+A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Optional presets returning ordinary \code{shinyOAuth::oauth_client()} objects.
-Use them with any shinyOAuth module or connection manager, or configure
-shinyOAuth directly. These helpers create no login module or database
-connection. Explicit settings replace defaults rather than being merged.
+Create sign-in settings for Azure or Fabric services. Pass the result to
+shinyOAuth's UI and server modules so visitors can use their own accounts.
+Choose the services your app needs with \code{services}.
 }
 \details{
-Keep the backend accessor's \code{target} and \code{required_scopes} consistent with
-your client configuration. For provider-only configuration, use
-\code{shinyOAuth::oauth_provider_microsoft()}, \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-or \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}} with \code{shinyOAuth::oauth_client()}.
+Your app registration needs delegated permissions for the chosen services,
+and users still need access to the database or Fabric items.
+
+You can keep an existing shinyOAuth client instead of using this helper.
+Custom scopes, providers, and targets replace the corresponding defaults;
+see \code{vignette("authorization", package = "shinyOAuthDB")}.
 }
+\examples{
+\dontrun{
+client <- oauth_db_microsoft_client(
+  services = c("fabric", "sql"),
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+}
+}
+\seealso{
+Other sign-in configuration:
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
+\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
+\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
+}
+\concept{sign-in configuration}

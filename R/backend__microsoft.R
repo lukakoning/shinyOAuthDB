@@ -1,28 +1,41 @@
-#' Configure a native shinyOAuth Microsoft client for database services
+#' Set up Microsoft sign-in for database access
 #'
-#' Optional presets returning ordinary `shinyOAuth::oauth_client()` objects.
-#' Use them with any shinyOAuth module or connection manager, or configure
-#' shinyOAuth directly. These helpers create no login module or database
-#' connection. Explicit settings replace defaults rather than being merged.
-#' @param services Service names: `sql`, `postgres`, `fabric`, `kql`, `dax`,
-#'   `graphql`, `onelake` or `databricks_entra`. The first selects the default
-#'   token target. Compatible services sharing a resource combine their scopes.
-#' @param tenant_id Microsoft Entra tenant. Unused when `provider` is supplied.
-#' @param client_id Registered application ID.
-#' @param redirect_uri Registered OAuth callback URL.
-#' @param client_secret Confidential client secret, or NULL for a public client.
-#' @param provider Native shinyOAuth provider. Defaults to the service's provider.
-#' @param scopes Complete client consent scopes, replacing the preset defaults.
-#' @param token_targets Named shinyOAuth token targets, replacing the service
-#'   defaults. Use `list()` for a client without named targets.
+#' Create sign-in settings for Azure or Fabric services. Pass the result to
+#' shinyOAuth's UI and server modules so visitors can use their own accounts.
+#' Choose the services your app needs with `services`.
+#'
+#' @param services One or more of `"sql"`, `"postgres"`, `"fabric"`, `"kql"`,
+#'   `"dax"`, `"graphql"`, `"onelake"`, or `"databricks_entra"`.
+#'   The first service selects the default token target.
+#' @param tenant_id Microsoft Entra tenant ID. Not used when `provider` is supplied.
+#' @param client_id Application ID from the OAuth registration.
+#' @param redirect_uri Registered URL where the browser returns after sign-in.
+#' @param client_secret Registered client secret, or `NULL` for a public client.
+#' @param provider Optional shinyOAuth provider, replacing the default provider.
+#' @param scopes Requested OAuth scopes, replacing the preset's defaults.
+#' @param token_targets Named token targets, replacing the service defaults.
+#'   Use `list()` for a client without named targets.
 #' @param token_target_default Default target name, or `character()` for none.
-#' @param ... Settings passed unchanged to `shinyOAuth::oauth_client()`, such as
-#'   `label`, `resource`, `required_scopes`, or `scope_validation`.
-#' @details Keep the backend accessor's `target` and `required_scopes` consistent with
-#'   your client configuration. For provider-only configuration, use
-#'   `shinyOAuth::oauth_provider_microsoft()`, [oauth_db_databricks_provider()],
-#'   or [oauth_db_snowflake_provider()] with `shinyOAuth::oauth_client()`.
-#' @return A native shinyOAuth client for its existing UI and server modules.
+#' @param ... Other settings for `shinyOAuth::oauth_client()`.
+#' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
+#' @details
+#' Your app registration needs delegated permissions for the chosen services,
+#' and users still need access to the database or Fabric items.
+#'
+#' You can keep an existing shinyOAuth client instead of using this helper.
+#' Custom scopes, providers, and targets replace the corresponding defaults;
+#' see `vignette("authorization", package = "shinyOAuthDB")`.
+#' @examples
+#' \dontrun{
+#' client <- oauth_db_microsoft_client(
+#'   services = c("fabric", "sql"),
+#'   tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+#'   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+#'   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+#'   redirect_uri = "http://localhost:8100"
+#' )
+#' }
+#' @family sign-in configuration
 #' @export
 oauth_db_microsoft_client <- function(
   services = "sql", tenant_id, client_id, redirect_uri, client_secret = NULL, ...,

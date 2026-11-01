@@ -1,31 +1,41 @@
-#' Use the user's authorization with Snowflake
+#' Query Snowflake as the signed-in user
 #'
-#' Configure the OAuth client in shinyOAuth to match the account's native or
-#' external OAuth integration. Native Snowflake OAuth derives its scope from
-#' `role`; supply explicit `required_scopes` for an external or customized integration.
-#' The ODBC driver receives `authenticator = "oauth"` and the user's access token.
-#' Use [odbc::quote_value()] for connection values containing ODBC delimiters.
+#' Use a Snowflake OAuth authorization with DBI or dbplyr. Supply a role the user
+#' can access and, optionally, the warehouse, database, and schema for queries.
+#'
 #' @inheritParams oauth_db_azure_sql
-#' @param database,schema,warehouse Optional Snowflake connection context. `NULL`
-#'   leaves the setting to the native driver and account defaults. Queries can
-#'   also use fully qualified names or set context through ordinary SQL.
-#' @param role Explicit Snowflake role used for this connection.
-#' @param required_scopes Scopes configured by the account's OAuth integration. Defaults
-#'   to `paste0("session:role:", role)` for native Snowflake OAuth.
-#' @param target Optional named shinyOAuth token target for external OAuth.
-#' @returns A session-local reactive accessor for a native DBI connection.
-#' @seealso [oauth_db_snowflake_client()], [oauth_db_snowflake_provider()]
+#' @param database,schema,warehouse Optional connection settings. `NULL` uses the
+#'   driver's or account's defaults.
+#' @param role Snowflake role for this connection.
+#' @param required_scopes OAuth permissions to check. Defaults to the native
+#'   Snowflake role scope, `paste0("session:role:", role)`. For External OAuth,
+#'   supply the scopes configured by your integration.
+#' @param target Optional shinyOAuth token target, for example for External OAuth.
+#' @param ... Additional named Snowflake ODBC connection options.
+#' @return A reactive function returning an odbc DBI connection.
+#' @details
+#' Install odbc and the Snowflake ODBC driver. Use [oauth_db_snowflake_client()]
+#' for native Snowflake OAuth, or keep your existing External OAuth client.
+#'
+#' Create the helper in `server()` and call `con()` for each operation.
+#' Connections open on first use and close on sign-out or session end.
+#' For names containing ODBC delimiters, use [odbc::quote_value()].
 #' @examples
 #' \dontrun{
-#' # Inside server(), using a Snowflake client configured for role READER:
-#' con <- oauth_db_snowflake(auth$connection,
-#'   server = "organization-account.snowflakecomputing.com", database = "SALES",
-#'   schema = "PUBLIC", warehouse = "REPORTING_WH", role = "READER")
+#' con <- oauth_db_snowflake(
+#'   auth$connection,
+#'   server = "organization-account.snowflakecomputing.com",
+#'   role = "REPORTING_READER",
+#'   warehouse = "REPORTING_WH",
+#'   database = "ANALYTICS"
+#' )
 #' output$rows <- shiny::renderTable({
 #'   connection <- con()
 #'   DBI::dbGetQuery(connection, "SELECT CURRENT_USER(), CURRENT_ROLE()")
 #' })
 #' }
+#' @seealso [oauth_db_snowflake_client()]
+#' @family database connections
 #' @export
 oauth_db_snowflake <- function(
   authorization, server, database = NULL, schema = NULL, warehouse = NULL, role, ...,
@@ -57,12 +67,31 @@ oauth_db_snowflake <- function(
     role = role, authenticator = "oauth", token = token()), context, options))
 }
 
-#' Configure a native Snowflake shinyOAuth client
-#' @param server Snowflake account hostname. Unused when `provider` is supplied.
-#' @param role Requested database role. Unused when `scopes` is supplied.
+#' Set up Snowflake OAuth sign-in
+#'
+#' Create sign-in settings for Snowflake's own OAuth integration. Use this
+#' before [oauth_db_snowflake()] when your app needs a particular Snowflake role.
+#'
 #' @inheritParams oauth_db_microsoft_client
-#' @return A native shinyOAuth client. External OAuth instead uses its configured
-#'   identity provider through shinyOAuth directly.
+#' @param server Snowflake account hostname. Not used when `provider` is supplied.
+#' @param client_secret Client secret from the Snowflake OAuth integration.
+#' @param role Requested database role. Not used when `scopes` is supplied.
+#' @return A shinyOAuth `OAuthClient` for its UI and server modules.
+#' @details
+#' Create the client outside `server()`. For External OAuth through Entra or
+#' another identity provider, use that provider's shinyOAuth configuration.
+#' @examples
+#' \dontrun{
+#' client <- oauth_db_snowflake_client(
+#'   server = "organization-account.snowflakecomputing.com",
+#'   role = "REPORTING_READER",
+#'   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+#'   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+#'   redirect_uri = "http://localhost:8100"
+#' )
+#' }
+#' @seealso [oauth_db_snowflake_provider()]
+#' @family sign-in configuration
 #' @export
 oauth_db_snowflake_client <- function(
   server, client_id, client_secret, redirect_uri, role, ...,
@@ -73,15 +102,17 @@ oauth_db_snowflake_client <- function(
   .odb_oauth_client(provider, client_id, redirect_uri, client_secret, scopes = scopes, ...)
 }
 
-#' Configure a native Snowflake shinyOAuth provider
+#' Set up a Snowflake OAuth provider
 #'
-#' A provider preset for Snowflake's built-in OAuth integration. Pass it to
-#' `shinyOAuth::oauth_client()` with your registered credentials and scopes.
-#' External OAuth uses the external identity provider's configuration instead.
+#' Use this when constructing your own `shinyOAuth::oauth_client()` for
+#' Snowflake's built-in OAuth integration. For standard setup, use
+#' [oauth_db_snowflake_client()].
+#'
 #' @param server Snowflake account hostname.
-#' @param ... Named `shinyOAuth::oauth_provider()` settings. Explicit values
-#'   replace the preset defaults, including endpoints and client authentication.
-#' @return An ordinary shinyOAuth provider, independent of the database bridge.
+#' @param ... Settings for `shinyOAuth::oauth_provider()`, replacing preset values.
+#' @return A shinyOAuth `OAuthProvider`. External OAuth uses the external
+#'   identity provider's configuration instead.
+#' @family sign-in configuration
 #' @export
 oauth_db_snowflake_provider <- function(server, ...) {
   .odb_string(server, "server")

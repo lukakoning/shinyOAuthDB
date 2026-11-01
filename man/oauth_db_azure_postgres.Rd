@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__postgres.R
 \name{oauth_db_azure_postgres}
 \alias{oauth_db_azure_postgres}
-\title{Use the user's authorization with Azure PostgreSQL}
+\title{Query Azure PostgreSQL as the signed-in user}
 \usage{
 oauth_db_azure_postgres(
   authorization,
@@ -19,56 +19,69 @@ oauth_db_azure_postgres(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
 \item{host}{PostgreSQL hostname.}
 
-\item{dbname}{Database name, passed to RPostgres unchanged.}
+\item{dbname}{Database name.}
 
-\item{user}{Provisioned individual or group database role.}
+\item{user}{Database role provisioned for the user or their group.}
 
-\item{...}{Additional named options passed to the native connection function.}
+\item{...}{Additional RPostgres connection options, such as \code{connect_timeout}.}
 
-\item{port}{Database port, an integer from 1 to 65535.}
+\item{port}{Database port.}
 
-\item{sslrootcert}{CA bundle path, or \code{NULL} for libpq's configured CA bundle.}
+\item{sslrootcert}{CA bundle path, or \code{NULL} to use libpq's configured bundle.}
 
-\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
-uses its default, including clients without named token targets.}
+\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
+default token, including clients without named targets.}
 
-\item{required_scopes}{Required granted permissions, empty by default. Supply
-actual permission scopes if your deployment requires an additional check.}
+\item{required_scopes}{Extra permissions to check before use. Configure
+consent and client requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A session-local reactive accessor for a native DBI connection.
+A reactive function returning an RPostgres DBI connection.
 }
 \description{
-Uses RPostgres with the user's Entra token as the password. The provisioned
-database role and server permissions must already exist. Configure \code{.default}
-consent on the shinyOAuth client; it is not a literal token permission.
+Use this to query Azure PostgreSQL with DBI or dbplyr. The server must accept
+Entra authentication, and the requested database role must already exist
+for the user or their group.
+}
+\details{
+Install RPostgres and configure the Microsoft client with
+\code{services = "postgres"}. Connections use verified TLS and the user's
+Entra token as the password.
 }
 \examples{
 \dontrun{
-# Inside server(); configure the Microsoft client with services = "postgres".
-con <- oauth_db_azure_postgres(auth$connection,
-  host = "example.postgres.database.azure.com", dbname = "sales",
-  user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
+con <- oauth_db_azure_postgres(
+  auth$connection,
+  host = "example.postgres.database.azure.com",
+  dbname = "reporting",
+  user = "reporting-readers",
+  sslrootcert = "path/to/root-ca.pem"
+)
 output$rows <- shiny::renderTable({
   connection <- con()
-  DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+  DBI::dbGetQuery(connection, "SELECT current_user")
 })
 }
 }
 \seealso{
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+
+Other database connections:
+\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
+\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
+\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
+\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
 }
+\concept{database connections}

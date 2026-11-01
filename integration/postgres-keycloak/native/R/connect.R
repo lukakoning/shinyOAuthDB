@@ -29,34 +29,37 @@ rpostgres_dll <- function() {
   dll[["path"]]
 }
 
-#' Inspect the native fixture runtime without disclosing credentials
+#' Check the PostgreSQL integration runtime
 #'
-#' Checks that this package and RPostgres resolve the same libpq auth-hook
-#' symbol, and that the linked libpq major version is 18. No connection is made.
+#' Use this before running the fixture to check that pgBearerHook and
+#' RPostgres share libpq 18 and the expected authentication hook.
+#'
+#' @return A list of runtime version and hook-status information.
+#'   This function doesn't open a connection.
 #' @export
 pg_bearer_runtime <- function() {
   .Call(C_pg_bearer_runtime, rpostgres_dll())
 }
 
-#' Connect RPostgres with an existing user bearer token
+#' Open a fixture connection with an existing OAuth token
 #'
-#' The token must have been acquired by the caller for the configured database
-#' issuer, audience and scope. The PostgreSQL validator validates those claims
-#' and maps the subject to the requested database user. This helper does not
-#' acquire or refresh tokens, parse a JWT or change the database identity.
+#' Use this in the PostgreSQL/Keycloak integration fixture to connect as a
+#' test user. RPostgres returns the DBI connection; PostgreSQL validates the
+#' token and checks whether it may authenticate the requested database role.
 #'
-#' This is a synchronous, single-threaded, Linux/libpq 18 integration fixture.
-#' Its hook exists only while RPostgres opens this connection. Broken
-#' connections must be discarded; resetting or cloning them is unsupported.
-#' The fixture image must omit libpq's optional built-in OAuth/device module.
-#' @param token Already acquired bearer token, without the Bearer prefix.
-#' @param issuer Exact HTTPS issuer used by the PostgreSQL HBA configuration.
+#' @param token Access token without the Bearer prefix.
+#' @param issuer Exact HTTPS issuer from the PostgreSQL authentication settings.
 #' @param scope Space-separated OAuth scopes for this database.
-#' @param host,port,dbname,user Explicit connection target and database role.
-#' @param sslmode Must be "verify-full".
-#' @param sslrootcert Database TLS CA certificate path; NULL uses libpq defaults.
+#' @param host,port,dbname,user Connection target and database role.
+#' @param sslmode Must be `"verify-full"`.
+#' @param sslrootcert Database CA certificate path, or `NULL` for libpq defaults.
 #' @param connect_timeout Connection timeout in seconds, at least two.
-#' @return An ordinary RPostgres PqConnection, managed through DBI.
+#' @return An RPostgres `PqConnection`, managed through DBI.
+#' @details
+#' This Linux/libpq 18 helper belongs to the disposable integration fixture.
+#' Its token hook is active only while opening the connection. It doesn't
+#' acquire or refresh tokens. Discard broken connections; resetting or cloning
+#' them is unsupported. See the fixture README for the required libpq build.
 #' @export
 pg_connect_bearer <- function(
   token,

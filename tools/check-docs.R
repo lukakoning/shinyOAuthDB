@@ -1,6 +1,7 @@
 # Read-only repository documentation check: Rscript tools/check-docs.R
 paths <- c(
   "README.md",
+  "NEWS.md",
   list.files("vignettes", "\\.Rmd$", full.names = TRUE),
   list.files("docs", "\\.md$", full.names = TRUE),
   list.files("playground", "\\.md$", full.names = TRUE, recursive = TRUE),
@@ -62,6 +63,11 @@ for (path in paths) {
     target <- utils::URLdecode(sub("#.*$", "", target))
     absolute <- grepl("^[A-Za-z]:[/\\\\]|^/", target)
     resolved <- if (absolute) target else file.path(dirname(path), target)
+    # Vignette links use the installed HTML name; check its source in a checkout.
+    if (!file.exists(resolved) && grepl("\\.html$", resolved) &&
+        identical(dirname(path), "vignettes")) {
+      resolved <- sub("\\.html$", ".Rmd", resolved)
+    }
     links <- links + 1L
     if (!file.exists(resolved)) {
       failures <- c(failures, paste(path, "missing local target:", target))

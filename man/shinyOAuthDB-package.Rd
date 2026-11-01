@@ -4,48 +4,42 @@
 \name{shinyOAuthDB-package}
 \alias{shinyOAuthDB}
 \alias{shinyOAuthDB-package}
-\title{Bridge Shiny user authorizations to native database clients}
+\title{Use a visitor's database access in a Shiny app}
 \description{
-Let Shiny visitors access a database using their own authorization.
-shinyOAuth handles sign-in and token renewal; shinyOAuthDB supplies the
-visitor's credentials to your database package, which runs ordinary queries.
+shinyOAuthDB connects shinyOAuth sign-in to existing database packages.
+Visitors query with their own account; your app uses familiar DBI, dbplyr,
+fabricQueryR, or brickster functions.
 }
-\section{Start here}{
+\section{Getting started}{
 
-Read \code{vignette("simple-apps", package = "shinyOAuthDB")} for a complete app
-followed by short connection examples. Inside \code{server()}, pass
-\code{auth$connection} to a helper and resolve its accessor
-inside your normal Shiny render or reactive expression.
-}
-
-\section{Choose a connection}{
-
-\itemize{
-\item \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} and \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}: SQL through DBI/odbc.
-\item \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}}: Azure PostgreSQL through RPostgres.
-\item \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}: Fabric SQL through fabricQueryR.
-\item \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}: brickster DBI with a warehouse ID or HTTP path.
-\item \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}: Snowflake through DBI/odbc.
-\item \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}: call fabricQueryR and reuse its native R6 resources.
-\item \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}: call brickster with a current user credential.
-\item \code{\link[=oauth_db_fabric]{oauth_db_fabric()}}: a token callback for fabricQueryR's native functions.
-\item \code{\link[=oauth_db_connect]{oauth_db_connect()}}: other native connections.
-\item \code{\link[=oauth_db_token]{oauth_db_token()}}: bearer strings for brickster REST and other native APIs.
-}
+Read \code{vignette("getting-started", package = "shinyOAuthDB")} for a complete
+app. Choose a database helper in
+\code{vignette("databases", package = "shinyOAuthDB")}, or see
+\code{vignette("platform-apis", package = "shinyOAuthDB")} for Fabric and
+Databricks API calls.
 }
 
-\section{Configure sign-in}{
+\section{Database queries}{
 
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, and
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} are optional presets returning ordinary
-shinyOAuth clients. You retain control over providers, scopes, targets,
-and multiple authorizations through shinyOAuth.
+Create a helper such as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} inside \code{server()}, passing
+\code{auth$connection} from shinyOAuth. Call the returned function inside a
+render or reactive expression to obtain a DBI connection. Query with your
+usual database functions; the helper handles connection reuse and cleanup.
+}
 
-SQL helpers add no scope requirement by default: configure required
-permissions on the shinyOAuth client or target, with \code{required_scopes} for
-an extra local check. Snowflake's native OAuth helper also checks its role
-scope. API helpers return small R6 clients; \verb{$call(.fn, ...)} injects
-authentication into a native function without wrapping its results.
+\section{Platform APIs}{
+
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} let you call native
+R functions with the visitor's credentials. Fabric resource objects can
+also use those credentials in their own methods.
+}
+
+\section{Sign-in settings}{
+
+Keep an existing shinyOAuth client or use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, or \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} to set one up.
+Read \code{vignette("authorization", package = "shinyOAuthDB")} for permission
+settings, multiple authorizations, and session behavior.
 }
 
 \seealso{

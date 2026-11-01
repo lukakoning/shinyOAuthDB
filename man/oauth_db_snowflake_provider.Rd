@@ -2,21 +2,29 @@
 % Please edit documentation in R/backend__snowflake.R
 \name{oauth_db_snowflake_provider}
 \alias{oauth_db_snowflake_provider}
-\title{Configure a native Snowflake shinyOAuth provider}
+\title{Set up a Snowflake OAuth provider}
 \usage{
 oauth_db_snowflake_provider(server, ...)
 }
 \arguments{
 \item{server}{Snowflake account hostname.}
 
-\item{...}{Named \code{shinyOAuth::oauth_provider()} settings. Explicit values
-replace the preset defaults, including endpoints and client authentication.}
+\item{...}{Settings for \code{shinyOAuth::oauth_provider()}, replacing preset values.}
 }
 \value{
-An ordinary shinyOAuth provider, independent of the database bridge.
+A shinyOAuth \code{OAuthProvider}. External OAuth uses the external
+identity provider's configuration instead.
 }
 \description{
-A provider preset for Snowflake's built-in OAuth integration. Pass it to
-\code{shinyOAuth::oauth_client()} with your registered credentials and scopes.
-External OAuth uses the external identity provider's configuration instead.
+Use this when constructing your own \code{shinyOAuth::oauth_client()} for
+Snowflake's built-in OAuth integration. For standard setup, use
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
 }
+\seealso{
+Other sign-in configuration:
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
+\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}
+}
+\concept{sign-in configuration}

@@ -1,0 +1,137 @@
+---
+title: "Fabric and Databricks APIs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{3. Fabric and Databricks APIs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Use an API client when you need platform features beyond a SQL connection:
+find workspaces, read OneLake files, query a semantic model, or list Databricks
+warehouses.
+
+Create the API client inside `server()` and pass a fabricQueryR or brickster function to
+`$call()`. You use that function's usual arguments and return value; the
+client supplies authentication for the signed-in person. The
+[getting-started guide](getting-started.html) shows how to create `auth`.
+
+## Fabric functions
+
+Install `fabricQueryR`. Configure `oauth_db_microsoft_client()` with the
+services your app needs:
+
+| `services` entry | What it enables |
+| --- | --- |
+| `"fabric"` | Workspace and item discovery |
+| `"sql"` | Warehouse, Lakehouse and SQL Database queries |
+| `"onelake"` | OneLake files and tables |
+| `"dax"` | Semantic model queries |
+| `"kql"` | KQL queries |
+| `"graphql"` | GraphQL queries |
+
+For workspace discovery, use `services = "fabric"`. Then add this inside
+`server()`, with a `verbatimTextOutput("workspaces")` in the UI:
+
+```{r fabric-workspaces}
+fabric <- oauth_db_fabric_api(auth$connection)
+
+output$workspaces <- shiny::renderPrint({
+  fabric$call(fabricQueryR::fabric_workspaces)
+})
+```
+
+To query KQL, include `"kql"` in `services` and supply the function's normal
+connection and query arguments:
+
+```{r fabric-kql}
+output$rows <- shiny::renderTable({
+  fabric$call(
+    fabricQueryR::fabric_kql_query,
+    cluster = "https://example.kusto.fabric.microsoft.com",
+    database = "Events",
+    query = "Events | take 20"
+  )
+})
+```
+
+The app registration needs the relevant delegated permissions, and the user
+needs access to the workspace, item, and data. Enabling a service here
+configures the OAuth request; it doesn't grant that access.
+
+## Fabric resource objects
+
+fabricQueryR returns workspace and item objects with methods for working with
+them. You can use those methods with the same sign-in.
+
+For example, configure `services = c("fabric", "onelake")`, then read a
+Lakehouse table:
+
+```{r fabric-lakehouse}
+lakehouse <- shiny::reactive({
+  fabric$call(
+    fabricQueryR::fabric_item,
+    workspace = "workspace-guid",
+    item = "lakehouse-guid"
+  )
+})
+
+output$rows <- shiny::renderTable({
+  lakehouse()$read_table("Orders", limit = 100L)
+})
+```
+
+These are fabricQueryR's R6 objects. A Warehouse offers `$sql_query(sql)`;
+a semantic model offers `$dax_query(dax)`. Include `"sql"` or `"dax"` in
+`services` for those methods. See fabricQueryR's help for its other methods
+and arguments.
+
+A resource object keeps the authorization used to create it. Recreate it
+after changing the selected account; putting discovery in `reactive()`,
+as above, does this for you.
+
+## Databricks functions
+
+Install `brickster` and use the Databricks sign-in client described in
+[Database connections](databases.html). Inside `server()`:
+
+```{r databricks-api}
+databricks <- oauth_db_databricks_api(
+  auth$connection,
+  host = "example.cloud.databricks.com"
+)
+
+output$warehouses <- shiny::renderPrint({
+  databricks$call(brickster::db_sql_warehouse_list)
+})
+
+output$rows <- shiny::renderPrint({
+  databricks$call(
+    brickster::db_sql_query,
+    warehouse_id = "warehouse-id",
+    statement = "SELECT current_user()",
+    disposition = "INLINE",
+    show_progress = FALSE
+  )
+})
+```
+
+Use `verbatimTextOutput()` for these outputs. The client supplies `host`
+and a current token, so leave them out of the function's arguments. For Entra
+authentication, use `auth_mode = "entra"` with a Microsoft client configured
+for `services = "databricks_entra"`.
+
+## Direct token callbacks
+
+If you prefer to call a Fabric function directly, pass
+`token = fabric$token_provider()`. For a single service, `oauth_db_fabric()`
+also returns a function you can call to obtain a token callback; its help
+page shows that alternative.
+
+API clients don't close database connections opened by those functions
+or resource methods. Use `oauth_db_fabric_sql()` or `oauth_db_databricks()`
+for a connection managed by shinyOAuthDB.

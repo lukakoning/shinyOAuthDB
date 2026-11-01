@@ -1,28 +1,36 @@
-#' Use the user's authorization with Azure PostgreSQL
+#' Query Azure PostgreSQL as the signed-in user
 #'
-#' Uses RPostgres with the user's Entra token as the password. The provisioned
-#' database role and server permissions must already exist. Configure `.default`
-#' consent on the shinyOAuth client; it is not a literal token permission.
+#' Use this to query Azure PostgreSQL with DBI or dbplyr. The server must accept
+#' Entra authentication, and the requested database role must already exist
+#' for the user or their group.
+#'
 #' @inheritParams oauth_db_azure_sql
 #' @param host PostgreSQL hostname.
-#' @param dbname Database name, passed to RPostgres unchanged.
-#' @param required_scopes Required granted permissions, empty by default. Supply
-#'   actual permission scopes if your deployment requires an additional check.
-#' @param user Provisioned individual or group database role.
-#' @param sslrootcert CA bundle path, or `NULL` for libpq's configured CA bundle.
-#' @returns A session-local reactive accessor for a native DBI connection.
-#' @seealso [oauth_db_microsoft_client()]
+#' @param dbname Database name.
+#' @param user Database role provisioned for the user or their group.
+#' @param sslrootcert CA bundle path, or `NULL` to use libpq's configured bundle.
+#' @param ... Additional RPostgres connection options, such as `connect_timeout`.
+#' @return A reactive function returning an RPostgres DBI connection.
+#' @details
+#' Install RPostgres and configure the Microsoft client with
+#' `services = "postgres"`. Connections use verified TLS and the user's
+#' Entra token as the password.
 #' @examples
 #' \dontrun{
-#' # Inside server(); configure the Microsoft client with services = "postgres".
-#' con <- oauth_db_azure_postgres(auth$connection,
-#'   host = "example.postgres.database.azure.com", dbname = "sales",
-#'   user = "reporting-readers", sslrootcert = "path/to/root-ca.pem")
+#' con <- oauth_db_azure_postgres(
+#'   auth$connection,
+#'   host = "example.postgres.database.azure.com",
+#'   dbname = "reporting",
+#'   user = "reporting-readers",
+#'   sslrootcert = "path/to/root-ca.pem"
+#' )
 #' output$rows <- shiny::renderTable({
 #'   connection <- con()
-#'   DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+#'   DBI::dbGetQuery(connection, "SELECT current_user")
 #' })
 #' }
+#' @seealso [oauth_db_microsoft_client()]
+#' @family database connections
 #' @export
 oauth_db_azure_postgres <- function(
   authorization, host, dbname, user, ..., port = 5432L, sslrootcert = NULL,

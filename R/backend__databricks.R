@@ -1,47 +1,40 @@
-#' Use the user's authorization with Databricks
+#' Query Databricks SQL as the signed-in user
 #'
-#' Returns a native brickster DBI connection. Supply either `warehouse_id` or
-#' `http_path`, as with brickster's `DBI::dbConnect()` method. For REST functions,
-#' use [oauth_db_token()] to supply their `token` argument instead.
-#' Call the accessor for each operation. Its native DBI connection holds a fixed
-#' token, so the accessor replaces it when shinyOAuth refreshes the credential.
-#' A previously returned connection is a snapshot; do not retain it
-#' across operations or authorizations. Endpoints belong in app configuration.
-#' Logout blocks subsequent accessor use, but upstream brickster's stateless
-#' `dbDisconnect()` does not invalidate a previously returned handle or revoke
-#' its bearer token. Resolve the accessor again for each operation.
+#' Use this for SQL queries with DBI or dbplyr through brickster. Supply a SQL
+#' warehouse and the user's Databricks OAuth or Entra authorization.
+#'
 #' @inheritParams oauth_db_connect
 #' @param host Databricks workspace hostname or HTTPS origin.
 #' @param warehouse_id SQL warehouse ID. Supply this or `http_path`.
-#' @param http_path Native SQL warehouse HTTP path, such as
-#'   `/sql/1.0/warehouses/warehouse-id`. Supply this or `warehouse_id`.
-#' @param ... Native `DBI::dbConnect()` options, such as `catalog` and `schema`.
-#' @param auth_mode `"databricks_oauth"` or `"entra"` for Azure Databricks.
-#' @param target Declared token target. Defaults to `"databricks"` for Entra;
-#'   native Databricks OAuth uses the main authorization.
-#' @param required_scopes Additional delegated permissions, empty by default.
-#'   shinyOAuth always enforces the client's and target's requirements. Set
-#'   `"sql"` or `"all-apis"` for an additional native OAuth permission check.
-#' @returns A session-local reactive accessor for a native DBI connection.
-#' @seealso [oauth_db_databricks_api()], [oauth_db_databricks_client()], [oauth_db_databricks_provider()]
+#' @param http_path Warehouse HTTP path, such as
+#'   `"/sql/1.0/warehouses/warehouse-id"`. Supply this or `warehouse_id`.
+#' @param ... Connection options for brickster, such as `catalog` and `schema`.
+#' @param auth_mode `"databricks_oauth"`, or `"entra"` for Azure Databricks
+#'   using a Microsoft authorization.
+#' @param target Token target name. Defaults to `"databricks"` for Entra;
+#'   native Databricks OAuth uses the authorization's default token.
+#' @return A reactive function returning a brickster DBI connection.
+#' @details
+#' Install brickster. Create `con` in `server()` and call it for each operation;
+#' the helper replaces brickster's connection when its stored token changes.
+#' A saved handle keeps its own token, even after local sign-out.
+#'
+#' For workspace APIs and other brickster functions, use
+#' [oauth_db_databricks_api()].
 #' @examples
 #' \dontrun{
-#' # Inside server(), after creating auth with shinyOAuth:
-#' con <- oauth_db_databricks(auth$connection,
-#'   host = "example.cloud.databricks.com", warehouse_id = "warehouse-id")
+#' con <- oauth_db_databricks(
+#'   auth$connection,
+#'   host = "example.cloud.databricks.com",
+#'   warehouse_id = "warehouse-id"
+#' )
 #' output$rows <- shiny::renderTable({
 #'   connection <- con()
-#'   DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
-#' })
-#'
-#' # Or use brickster's API directly with a current bearer string:
-#' bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
-#' output$result <- shiny::renderPrint({
-#'   brickster::db_sql_query(host = "example.cloud.databricks.com",
-#'     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
-#'     token = bearer())
+#'   DBI::dbGetQuery(connection, "SELECT current_user()")
 #' })
 #' }
+#' @seealso [oauth_db_databricks_client()]
+#' @family database connections
 #' @export
 oauth_db_databricks <- function(
   authorization, host, warehouse_id = NULL, ..., http_path = NULL,
@@ -79,40 +72,35 @@ oauth_db_databricks <- function(
     warehouse_id = warehouse_id, http_path = http_path, token = token()), options))
 }
 
-#' Call native brickster functions with the selected user's authorization
+#' Call Databricks functions as the signed-in user
 #'
-#' Create this client once inside `server()`. Its `$call(.fn, ...)` method
-#' supplies the configured `host` and a current bearer string to a native
-#' brickster function. Other arguments, return values and errors stay native.
+#' Use brickster functions to list warehouses, run SQL, or work with other
+#' Databricks APIs. The client supplies the workspace host and a current user
+#' token when you call `$call()`.
+#'
 #' @inheritParams oauth_db_databricks
-#' @param required_scopes Additional operation permissions, empty by default.
-#'   shinyOAuth always enforces the selected client's and target's requirements.
-#'   Set `"sql"` or `"all-apis"` when an additional local check is wanted.
-#' @return An R6 `OAuthDatabricksAPI` with `$call(.fn, ...)` and `$print()`.
+#' @return An R6 client with `$call(.fn, ...)`. Pass a brickster function as
+#'   `.fn` and its usual arguments through `...`, omitting `host` and `token`.
+#'   The method returns the function's result.
 #' @details
-#' The client obtains a current token before each call and never retries the
-#' function. A native operation can retain that string for polling or fetching;
-#' the bridge cannot refresh it during the operation. Native values returned
-#' by a call retain their upstream lifetime. Application result caches and
-#' background execution remain the app's responsibility.
+#' Create the client inside `server()`. Configure authentication on this client;
+#' authentication arguments cannot be overridden through `$call()`.
 #'
-#' Authentication arguments cannot be supplied through `$call()`. Configure
-#' `auth_mode`, `target` and `required_scopes` on this client. For DBI and dbplyr,
-#' use [oauth_db_databricks()] and resolve its connection accessor per operation.
+#' Each call obtains a current token. A long-running native operation retains
+#' that token during polling or fetching. The client doesn't retry operations
+#' or close connections returned by an upstream function.
 #' @examples
 #' \dontrun{
-#' # Inside server(), after creating auth with shinyOAuth:
-#' databricks <- oauth_db_databricks_api(auth$connection,
-#'   host = "example.cloud.databricks.com")
+#' databricks <- oauth_db_databricks_api(
+#'   auth$connection,
+#'   host = "example.cloud.databricks.com"
+#' )
 #' output$warehouses <- shiny::renderPrint({
 #'   databricks$call(brickster::db_sql_warehouse_list)
 #' })
-#' output$rows <- shiny::renderTable({
-#'   databricks$call(brickster::db_sql_query,
-#'     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
-#'     disposition = "INLINE", show_progress = FALSE)
-#' })
 #' }
+#' @seealso [oauth_db_databricks()], [oauth_db_databricks_client()]
+#' @family platform API clients
 #' @export
 oauth_db_databricks_api <- function(
   authorization, host, auth_mode = c("databricks_oauth", "entra"),
@@ -151,12 +139,33 @@ oauth_db_databricks_api <- function(
   private = list(bearer = NULL, host = NULL)
 )
 
-#' Configure a native Databricks shinyOAuth client
-#' @param host Databricks workspace hostname or HTTPS origin. Unused when
-#'   `provider` is supplied.
+#' Set up Databricks OAuth sign-in
+#'
+#' Create sign-in settings for a Databricks workspace. Pass this client to
+#' shinyOAuth's UI and server modules, then use the resulting authorization
+#' with the SQL or API helper.
+#'
 #' @inheritParams oauth_db_microsoft_client
-#' @return A native shinyOAuth client. Default provider discovery makes an HTTPS
-#'   request to the workspace; supplying `provider` bypasses discovery.
+#' @param host Workspace hostname or HTTPS origin. Not used when `provider`
+#'   is supplied.
+#' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
+#' @details
+#' Register the app and redirect URI with Databricks first. The default scopes
+#' include `all-apis` and refresh access; you can supply a different scope list.
+#'
+#' For Azure Databricks using Entra tokens, use [oauth_db_microsoft_client()]
+#' with `services = "databricks_entra"` instead.
+#' @examples
+#' \dontrun{
+#' client <- oauth_db_databricks_client(
+#'   host = "example.cloud.databricks.com",
+#'   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+#'   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+#'   redirect_uri = "http://localhost:8100"
+#' )
+#' }
+#' @seealso [oauth_db_databricks_provider()]
+#' @family sign-in configuration
 #' @export
 oauth_db_databricks_client <- function(
   host, client_id, redirect_uri, client_secret = NULL, ...,
@@ -173,16 +182,20 @@ oauth_db_databricks_client <- function(
       identical(client_secret, "")) "public" else "header")
 }
 
-#' Configure a native Databricks shinyOAuth provider
+#' Set up a Databricks OAuth provider
 #'
-#' Discovers the workspace's OpenID Connect endpoints using shinyOAuth.
-#' Independent of brickster; pass the result to `shinyOAuth::oauth_client()`.
+#' Use this when constructing your own `shinyOAuth::oauth_client()`. It
+#' discovers sign-in endpoints from the workspace. For standard setup, use
+#' [oauth_db_databricks_client()].
+#'
 #' @param host Databricks workspace hostname or HTTPS origin.
-#' @param token_auth_style `"header"` for a confidential client, or `"public"`
-#'   for an application registered without a secret.
-#' @param ... Named settings passed to `shinyOAuth::oauth_provider_oidc_discover()`.
-#'   Explicit settings replace the preset defaults.
-#' @return A native shinyOAuth provider. Discovery makes an HTTPS request.
+#' @param token_auth_style `"header"` for a client with a secret, or `"public"`
+#'   for an app registered without one.
+#' @param ... Settings for `shinyOAuth::oauth_provider_oidc_discover()`,
+#'   replacing preset values.
+#' @return A shinyOAuth `OAuthProvider`. Construction makes an HTTPS
+#'   discovery request.
+#' @family sign-in configuration
 #' @export
 oauth_db_databricks_provider <- function(host, token_auth_style = c("header", "public"), ...) {
   host <- .odb_databricks_host(host)

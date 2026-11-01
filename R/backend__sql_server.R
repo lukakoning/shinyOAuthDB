@@ -1,41 +1,40 @@
-#' Use the user's authorization with Azure SQL
+#' Query Azure SQL as the signed-in user
 #'
-#' These helpers adapt the user's authorization to a native client. Call the
-#' accessor inside an ordinary Shiny reactive or render function to obtain the
-#' native connection or credential provider. Connections open on first use.
-#' Supply driver options directly in `...`; query arguments stay in your native
-#' database call. Authentication and certificate verification cannot be
-#' overridden through `...`.
+#' Create a DBI connection for queries with DBI or dbplyr. Use this for Azure
+#' SQL Database, SQL Managed Instance, or a compatible Synapse SQL endpoint.
+#' The database must be configured to accept Microsoft Entra authentication.
 #'
 #' @inheritParams oauth_db_connect
-#' @details With an existing client without named targets, use `target = NULL`.
-#'   Configure consent and required permissions on the shinyOAuth client or
-#'   target. The helper adds no scope requirement by default; use
-#'   `required_scopes` for an additional check. SQL enforces database permissions.
-#'   See the simple-apps vignette for explicit-scope and `/.default` recipes.
-#'
-#'   For names containing ODBC delimiters, supply an [odbc::quote_value()]
-#'   value, for example `database = odbc::quote_value("Sales;Archive")`.
-#'   Quoted values pass through unchanged; control characters are rejected.
 #' @param server Database hostname.
 #' @param database Database name.
 #' @param driver Installed ODBC driver name.
-#' @param port Database port, an integer from 1 to 65535.
-#' @param required_scopes Required delegated scopes. Microsoft `/.default` consent is
-#'   configured on the shinyOAuth client, not checked as a literal permission.
-#' @param ... Additional named options passed to the native connection function.
-#' @returns A session-local reactive accessor for a native DBI connection.
-#' @seealso [oauth_db_microsoft_client()], [oauth_db_sql_server()]
+#' @param port Database port.
+#' @param ... Additional named odbc connection options, such as `timeout`.
+#'   The helper supplies authentication and verified TLS settings.
+#' @return A reactive function returning a DBI connection. Create `con` in
+#'   `server()`, then call `connection <- con()` before each database operation.
+#' @details
+#' Install odbc and Microsoft ODBC Driver 18 for SQL Server. Configure the
+#' Microsoft sign-in client with `services = "sql"`, or use an existing client
+#' with the appropriate token target.
+#'
+#' Connections open on first use and close on sign-out or session end. For
+#' server or database names containing ODBC delimiters, use [odbc::quote_value()].
 #' @examples
 #' \dontrun{
-#' # Inside server(), after creating auth with shinyOAuth:
-#' con <- oauth_db_azure_sql(auth$connection,
-#'   server = "example.database.windows.net", database = "Sales")
+#' # Inside server():
+#' con <- oauth_db_azure_sql(
+#'   auth$connection,
+#'   server = "example.database.windows.net",
+#'   database = "Reporting"
+#' )
 #' output$rows <- shiny::renderTable({
 #'   connection <- con()
-#'   DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
+#'   DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
 #' })
 #' }
+#' @seealso [oauth_db_microsoft_client()], [oauth_db_sql_server()]
+#' @family database connections
 #' @export
 oauth_db_azure_sql <- function(
   authorization, server, database, ...,
@@ -60,12 +59,14 @@ oauth_db_azure_sql <- function(
     required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)
 }
 
-#' Use the user's authorization with an Entra-enabled SQL Server
+#' Query an Entra-enabled SQL Server as the signed-in user
 #'
-#' An alias of [oauth_db_azure_sql()] for SQL Server deployments configured
-#' to accept Entra access tokens. The server must already support this login.
+#' Use this for SQL Server deployments configured to accept Microsoft Entra
+#' access tokens. It uses the same connection settings as [oauth_db_azure_sql()].
+#'
 #' @inheritParams oauth_db_azure_sql
-#' @returns A session-local reactive accessor for a native DBI connection.
+#' @return A reactive function returning a DBI connection.
+#' @family database connections
 #' @export
 oauth_db_sql_server <- oauth_db_azure_sql
 

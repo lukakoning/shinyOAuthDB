@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__fabric.R
 \name{oauth_db_fabric_sql}
 \alias{oauth_db_fabric_sql}
-\title{Use the user's authorization with Fabric SQL}
+\title{Query Fabric SQL as the signed-in user}
 \usage{
 oauth_db_fabric_sql(
   authorization,
@@ -16,49 +16,65 @@ oauth_db_fabric_sql(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
 \item{database}{Database name.}
 
-\item{...}{Additional named options passed to the native connection function.}
+\item{...}{Options for \code{fabricQueryR::fabric_sql_connect()}, such as
+\code{backend}, \code{read_only}, and \code{timeout}.}
 
-\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
-uses its default, including clients without named token targets.}
+\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
+default token, including clients without named targets.}
 
-\item{required_scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
-configured on the shinyOAuth client, not checked as a literal permission.}
+\item{required_scopes}{Extra permissions to check before use. Configure
+consent and client requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A session-local reactive accessor for a native DBI connection.
+A reactive function returning a DBI connection.
 }
 \description{
-Delegates connection details and the ODBC or ADBC transport to
-\code{fabricQueryR::fabric_sql_connect()}. Pass its native options such as
-\code{backend}, \code{odbc_driver}, \code{read_only}, and \code{timeout} in \code{...}.
+Use DBI or dbplyr to query a Fabric Warehouse, Lakehouse SQL analytics
+endpoint, or SQL Database. Supply the server and database from the item's
+SQL connection settings.
+}
+\details{
+Install fabricQueryR and the chosen SQL driver. Configure the Microsoft
+client with \code{services = "sql"}. The default backend uses odbc; pass
+\code{backend = "adbc"} to use ADBC after installing its dependencies.
+
+Create the helper in \code{server()}. Connections open on first use, are reused
+for later operations, and close on sign-out or session end.
 }
 \examples{
 \dontrun{
-# Inside server(); configure the Microsoft client with services = "sql".
-con <- oauth_db_fabric_sql(auth$connection,
-  server = "example.datawarehouse.fabric.microsoft.com", database = "Sales")
+con <- oauth_db_fabric_sql(
+  auth$connection,
+  server = "example.datawarehouse.fabric.microsoft.com",
+  database = "Reporting"
+)
 output$rows <- shiny::renderTable({
   connection <- con()
-  DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
+  DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
 })
 }
 }
 \seealso{
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_fabric]{oauth_db_fabric()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
+
+Other database connections:
+\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
+\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
+\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
+\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
 }
+\concept{database connections}

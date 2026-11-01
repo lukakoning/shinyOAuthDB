@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__snowflake.R
 \name{oauth_db_snowflake_client}
 \alias{oauth_db_snowflake_client}
-\title{Configure a native Snowflake shinyOAuth client}
+\title{Set up Snowflake OAuth sign-in}
 \usage{
 oauth_db_snowflake_client(
   server,
@@ -16,27 +16,51 @@ oauth_db_snowflake_client(
 )
 }
 \arguments{
-\item{server}{Snowflake account hostname. Unused when \code{provider} is supplied.}
+\item{server}{Snowflake account hostname. Not used when \code{provider} is supplied.}
 
-\item{client_id}{Registered application ID.}
+\item{client_id}{Application ID from the OAuth registration.}
 
-\item{client_secret}{Confidential client secret, or NULL for a public client.}
+\item{client_secret}{Client secret from the Snowflake OAuth integration.}
 
-\item{redirect_uri}{Registered OAuth callback URL.}
+\item{redirect_uri}{Registered URL where the browser returns after sign-in.}
 
-\item{role}{Requested database role. Unused when \code{scopes} is supplied.}
+\item{role}{Requested database role. Not used when \code{scopes} is supplied.}
 
-\item{...}{Settings passed unchanged to \code{shinyOAuth::oauth_client()}, such as
-\code{label}, \code{resource}, \code{required_scopes}, or \code{scope_validation}.}
+\item{...}{Other settings for \code{shinyOAuth::oauth_client()}.}
 
-\item{provider}{Native shinyOAuth provider. Defaults to the service's provider.}
+\item{provider}{Optional shinyOAuth provider, replacing the default provider.}
 
-\item{scopes}{Complete client consent scopes, replacing the preset defaults.}
+\item{scopes}{Requested OAuth scopes, replacing the preset's defaults.}
 }
 \value{
-A native shinyOAuth client. External OAuth instead uses its configured
-identity provider through shinyOAuth directly.
+A shinyOAuth \code{OAuthClient} for its UI and server modules.
 }
 \description{
-Configure a native Snowflake shinyOAuth client
+Create sign-in settings for Snowflake's own OAuth integration. Use this
+before \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}} when your app needs a particular Snowflake role.
 }
+\details{
+Create the client outside \code{server()}. For External OAuth through Entra or
+another identity provider, use that provider's shinyOAuth configuration.
+}
+\examples{
+\dontrun{
+client <- oauth_db_snowflake_client(
+  server = "organization-account.snowflakecomputing.com",
+  role = "REPORTING_READER",
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+}
+}
+\seealso{
+\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
+
+Other sign-in configuration:
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
+\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
+}
+\concept{sign-in configuration}

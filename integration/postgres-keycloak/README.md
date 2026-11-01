@@ -1,23 +1,17 @@
-# Self-hosted PostgreSQL OAuth integration
+# PostgreSQL and Keycloak browser test
 
-This opt-in Docker Compose fixture runs PostgreSQL 18, Keycloak and a real
-Chromium-driven Shiny application. The application obtains delegated user
-tokens through the current sibling shinyOAuth checkout, then uses shinyOAuthDB
-and an ordinary RPostgres DBI connection through `oauth_db_connect()`.
-Queries obtain `connection <- con()` in ordinary Shiny reactive code and pass
-it to `DBI::dbGetQuery()`.
-PostgreSQL validates the tokens and
-enforces its own role grants and row-level security.
+Use this Docker fixture to test the complete path from browser sign-in to
+database-enforced permissions. It runs Shiny, Keycloak, PostgreSQL 18, and
+Chromium in containers. Alice and Bob run the same SQL query and receive
+different rows through PostgreSQL row-level security.
 
-The fixture creates a separate database and Docker volumes. It does not connect
-to your existing PostgreSQL server. Users, passwords and client secrets in this
-directory are public test fixtures. This setup is for development, with a
-locally generated CA and a narrow Linux-only native helper.
+The fixture creates its own database and volumes. Its accounts and secrets
+are public test data.
 
 ## Run
 
-Requirements: Docker Compose v2 with Linux containers, network access for the
-first image build, and the development `shinyOAuth` checkout beside this repo:
+You need Docker Compose v2 with Linux containers and a shinyOAuth checkout
+beside this repository:
 
 ```text
 GitHub/
@@ -25,110 +19,67 @@ GitHub/
   shinyOAuthDB/
 ```
 
-From the shinyOAuthDB repository root on Windows:
+From the shinyOAuthDB root on Windows:
 
 ```powershell
 rtk proxy powershell -NoProfile -File integration/postgres-keycloak/run-integration.ps1
 ```
 
-On Linux/macOS or from Git Bash:
+On Linux, macOS, or Git Bash:
 
 ```sh
 bash integration/postgres-keycloak/run-integration.sh
 ```
 
-The runner builds the images, generates TLS material, starts the isolated
-services, waits for readiness, installs the current mounted R source packages
-into a temporary container library, runs native regression and browser tests,
-then removes that run's containers and volumes. The first build compiles
-PostgreSQL, RPostgres and R dependencies and takes longer; subsequent builds
-use Docker's cache. No host R packages or Chromium installation are needed.
+The runner builds the images, starts the services, runs native and browser
+tests, then removes the containers and volumes. The first build takes longer
+because it compiles PostgreSQL and R dependencies. Host R and Chromium
+installations are not needed.
 
-Tests fail on missing prerequisites or any skipped scenario. Failures return
-a nonzero exit status. The ordinary package test suite does not start Docker.
+On Windows, `-SkipBuild` reuses images and `-Keep` retains services for
+inspection, printing a cleanup command.
 
-Windows options: `-SkipBuild` uses existing images; `-Keep` retains that run's
-services for inspection and prints its project-specific cleanup command.
+## Explore the app
 
-For the interactive Shiny playground, add `-Playground` (or on Linux/macOS set
-`OAUTHDB_PLAYGROUND=1` before running the shell script). Open
-`http://localhost:18100`, authorize `alice` or `bob`, then load their granted
-rows (the load button repeats the read). Passwords are
-`alice-fixture-password` and `bob-fixture-password`.
-Refresh, logout, role/table denial and broken-connection controls use this same
-fixture. Your host browser may ask you to trust the locally signed Keycloak
-certificate; automated Chromium trusts the CA inside its container. Stop the
-runner to close the app and clean up its stack.
+Add `-Playground` on Windows, or set `OAUTHDB_PLAYGROUND=1` for the shell
+runner. Open `http://localhost:18100` and sign in as `alice` or `bob`.
+Their passwords are `alice-fixture-password` and `bob-fixture-password`.
+Your browser may ask you to trust the fixture's local Keycloak certificate.
 
-## What is tested
+The app exposes refresh, sign-out, permission changes, and broken-connection
+controls. Stop the runner to close it and clean up.
 
-| Scenario | Required result |
-|---|---|
-| Real browser sign-in | Authorization code flow with PKCE S256, using the public shinyOAuth module connection |
-| Concurrent Alice/Bob sessions | The same SQL query returns only each role's own RLS-protected rows |
-| Table permissions | Each role can read its own table and is denied access to the other role's table |
-| Role impersonation | Alice's valid token cannot connect as Bob, or Bob's as Alice |
-| Native connection reuse | Repeated reads preserve the PostgreSQL backend PID within one authorization |
-| Real forced refresh | Keycloak refreshes the selected grant; the valid native DBI connection remains open and retains its backend PID |
-| Logout and replacement | The native accessor invalidates, dependent Shiny output updates, the previous connection closes and retained authorization references fail |
-| Wrong audience | A valid token for a different resource is denied by PostgreSQL |
-| Missing database scope | The bridge denies before connecting; a separate native probe confirms PostgreSQL also rejects that token |
-| Broken native connection | Subsequent direct DBI calls fail; libpq cannot start another login or substitute credentials |
-| Native hook cleanup | The token hook is restored after success, errors and validation failures; unrelated connection metadata cannot consume its token |
+## What the tests cover
 
-Fixture SQL lives in [sql/01-fixture.sql](sql/01-fixture.sql), identity mappings
-in [config/pg_ident.conf](config/pg_ident.conf), and authentication rules in
-[config/pg_hba.conf](config/pg_hba.conf). The test application uses a fixed,
-trusted mapping from the verified OIDC subject to `alice` or `bob`.
-PostgreSQL independently checks that the token may authenticate that role.
-No query adds an application-side user filter to imitate row-level security.
-The Keycloak clients include its built-in `basic` scope so their access tokens
-contain `sub`, the identity claim used by the database mapping. Their separate
-`database.read` scope is the permission required by PostgreSQL; audience mappers
-identify the resource for which each client obtains tokens.
+The browser tests check PKCE sign-in, simultaneous Alice/Bob sessions,
+row and table permissions, connection reuse, refresh, authorization replacement,
+and sign-out. Negative cases check wrong audiences, missing scopes, role
+impersonation, and broken connections.
 
-## Network and certificates
+See [fixture SQL](sql/01-fixture.sql),
+[identity mappings](config/pg_ident.conf), and
+[authentication rules](config/pg_hba.conf) for the database setup.
+PostgreSQL checks the token and role; the query does not filter by user in R.
 
-Keycloak owns a shared Compose network namespace. PostgreSQL, the R test
-process and Chromium use that namespace too, so they all resolve the exact
-issuer `https://localhost:18443/realms/shinyoauthdb`. No hosts-file change is
-needed. Only Keycloak port 18443 and the temporary Shiny callback port 18100
-are published, on `127.0.0.1`. PostgreSQL port 5432 stays inside the namespace.
+## Runtime details
 
-The TLS service generates a private test CA and server certificate in a
-project-scoped volume. Provider requests and PostgreSQL connections verify
-the CA; PostgreSQL connections use `sslmode = "verify-full"`. The browser
-trusts this test CA through its private container profile.
+PostgreSQL/libpq 18.3 and Keycloak 26.6.1 are pinned in the build.
+RPostgres 1.4.10 and the [native token helper](native/README.md) link the same
+shared libpq. The helper is Linux-only and installed only in the test image.
+Production PostgreSQL native OAuth still needs a supported RPostgres token
+interface; use `oauth_db_azure_postgres()` for Azure's Entra authentication.
 
-## Reuse and remaining limits
+The server uses Percona's `pg_oidc_validator` at commit
+`ba9c4cb2dc9bd2e9779c7a33f7a30c9bb8c97862` with a fixture-specific
+[audience check](patches/validator-audience.patch). Build provenance is in
+`/opt/fixture-provenance` inside the images.
 
-PostgreSQL/libpq **18.3** is compiled from an archive with a checked SHA-256.
-Keycloak **26.6.1** and the Debian base use pinned image digests. RPostgres
-**1.4.10** is built against the same shared libpq as the
-[integration-only native helper](native/README.md).
+Services share a network namespace so the issuer is consistently
+`https://localhost:18443/realms/shinyoauthdb`. Only Keycloak port 18443 and
+Shiny port 18100 are published, on `127.0.0.1`. PostgreSQL stays internal.
+Connections verify a generated test CA; automated Chromium trusts it in its
+container profile.
 
-The server reuses Percona's `pg_oidc_validator` at commit
-`ba9c4cb2dc9bd2e9779c7a33f7a30c9bb8c97862`. Its existing signature, issuer,
-expiry and scope validation remains upstream code. The small checked-in
-[audience patch](patches/validator-audience.patch) adds a required expected
-audience for this fixture; an unset audience fails closed. Build provenance
-is recorded inside the images under `/opt/fixture-provenance`.
-
-RPostgres currently has no public method for injecting a pre-acquired native
-OAuth token. `pgBearerHook` supplies one fixed token only during a synchronous
-connection opening and returns an ordinary RPostgres connection. It checks
-that both libraries use the same libpq and restores the previous hook on
-unwind. The fixture libpq omits the optional built-in device-login module;
-the Keycloak clients also disable device and password grants. Broken
-connections must be discarded instead of resetting them with new credentials.
-
-This fixture exercises the configured local browser-to-database path when run.
-The helper is not installed as a production dependency. The generic
-`oauth_db_connect()` accepts its native connector; production PostgreSQL 18 support
-still needs a supported RPostgres token-hook interface, platform/build testing,
-and the deployment's own identity, TLS and authorization configuration.
-
-References: [PostgreSQL native OAuth](https://www.postgresql.org/docs/18/auth-oauth.html),
-[libpq auth hooks](https://www.postgresql.org/docs/18/libpq-oauth.html),
-[Percona validator](https://github.com/percona/pg_oidc_validator), and
-[the sibling Keycloak integration](../../../shinyOAuth/integration/keycloak/README.md).
+See [PostgreSQL OAuth](https://www.postgresql.org/docs/18/auth-oauth.html)
+and [Percona's validator](https://github.com/percona/pg_oidc_validator)
+for the underlying server interfaces.

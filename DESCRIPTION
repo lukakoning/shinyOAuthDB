@@ -1,12 +1,12 @@
 Package: shinyOAuthDB
-Title: Bridge Shiny User Authorizations to Database and Data Platform Clients
+Title: Use Database OAuth Access in Shiny Apps
 Version: 0.0.0.9000
 Authors@R: person("Luka", "Koning", email = "koningluka@gmail.com", role = c("aut", "cre", "cph"))
-Description: Thin Shiny bindings from 'shinyOAuth' user authorizations to
-    native database connections and token providers. Supplies reactive accessors
-    for existing client packages with per-session connection reuse and cleanup.
-    Login and token refresh stay in 'shinyOAuth'; queries and results stay in
-    the native database package and application.
+Description: Use a Shiny visitor's own database access with 'DBI', 'dbplyr',
+    'fabricQueryR', and 'brickster'. Connects 'shinyOAuth' sign-in to database
+    connections and platform API calls, with connection reuse and cleanup for
+    each visitor. Supports Azure SQL, Microsoft Fabric, Databricks, Snowflake,
+    and Azure PostgreSQL.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues

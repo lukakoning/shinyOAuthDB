@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__fabric.R
 \name{oauth_db_fabric}
 \alias{oauth_db_fabric}
-\title{Use the user's authorization with native Fabric functions}
+\title{Supply a token callback for one Fabric service}
 \usage{
 oauth_db_fabric(
   authorization,
@@ -14,49 +14,56 @@ oauth_db_fabric(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
-\item{service}{One Fabric service: \code{"fabric"}, \code{"sql"}, \code{"dax"}, \code{"kql"},
-\code{"onelake"} or \code{"graphql"}.}
+\item{service}{One of \code{"fabric"}, \code{"sql"}, \code{"dax"}, \code{"kql"}, \code{"onelake"},
+or \code{"graphql"}.}
 
-\item{target}{Declared shinyOAuth target, defaulting to the service's target.
-Set \code{NULL} to use the authorization's own default, including clients without
-named token targets.}
+\item{target}{Token target name. Defaults to the service's preset target.
+Use \code{NULL} for an authorization without named targets.}
 
-\item{required_scopes}{Delegated scopes; \code{NULL} uses the service's query/read defaults.}
+\item{required_scopes}{Extra permissions to check. \code{NULL} uses the service's
+read/query defaults.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A session-local reactive accessor for a native token provider.
+A reactive function. Calling \code{callback()} returns a token-provider
+function for fabricQueryR's \code{token} argument.
 }
 \description{
-Create a \code{callback} accessor, then pass \code{callback()} to fabricQueryR's \code{token}
-argument. That value is an ordinary credential callback for the native API.
-This package owns the OAuth adaptation; no Shiny helpers or provider
-extensions in fabricQueryR are required. Endpoints, item IDs and query options
-belong in the native call. Keep endpoints in trusted application configuration.
-The callback supplies only the configured service's audience and scopes.
+Use this when calling a fabricQueryR function directly and you need a token
+callback for one service. For an app using several Fabric services or
+resource objects, use \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
+}
+\details{
+Create the helper inside \code{server()}. Its callback renews tokens through
+shinyOAuth and remains tied to the authorization that created it.
 }
 \examples{
 \dontrun{
-# Inside server(); configure the Microsoft client with services = "kql".
+# Microsoft client configured with services = "kql":
 callback <- oauth_db_fabric(auth$connection, service = "kql")
 output$rows <- shiny::renderTable({
   fabricQueryR::fabric_kql_query(
     cluster = "https://example.kusto.fabric.microsoft.com",
-    database = "Events", query = "Events | take 10", token = callback())
+    database = "Events",
+    query = "Events | take 20",
+    token = callback()
+  )
 })
 }
 }
 \seealso{
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
+
+Other advanced connection helpers:
+\code{\link[=oauth_db_connect]{oauth_db_connect()}},
+\code{\link[=oauth_db_token]{oauth_db_token()}}
 }
+\concept{advanced connection helpers}

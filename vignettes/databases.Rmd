@@ -1,0 +1,166 @@
+---
+title: "Database connections"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{2. Database connections}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Use a database helper when you want to query with DBI or dbplyr. Each helper
+returns a function such as `con`; call `con()` to get the signed-in user's
+connection.
+
+The snippets below replace parts of the [getting-started app](getting-started.html).
+Create `client` outside `server()`, then create `auth` from that client
+with `oauth_module_server()`. Put the `con` definition inside `server()`.
+
+## Azure SQL
+
+Install `odbc` and Microsoft ODBC Driver 18 for SQL Server. Keep the
+getting-started app's Microsoft client with `services = "sql"`.
+
+```{r azure-sql}
+con <- oauth_db_azure_sql(
+  auth$connection,
+  server = "example.database.windows.net",
+  database = "Reporting"
+)
+```
+
+The same helper can use SQL Managed Instance or Synapse SQL connection
+settings. For SQL Server configured to accept Microsoft Entra tokens, use
+`oauth_db_sql_server()` with its server and database. Your database
+administrator must set up Entra access before the app can connect.
+
+## Fabric SQL
+
+Use this helper for a Warehouse, Lakehouse SQL analytics endpoint, or Fabric
+SQL Database. Install `fabricQueryR` and `odbc`, plus Microsoft ODBC Driver 18.
+Keep the Microsoft client with `services = "sql"`.
+
+Copy the server and database from the intended item's SQL connection settings:
+
+```{r fabric-sql}
+con <- oauth_db_fabric_sql(
+  auth$connection,
+  server = "example.datawarehouse.fabric.microsoft.com",
+  database = "Reporting"
+)
+```
+
+For ADBC, pass `backend = "adbc"` after installing fabricQueryR's ADBC
+dependencies and the MSSQL driver. Other connection options, such as `timeout`
+and `read_only`, go directly to `fabricQueryR::fabric_sql_connect()`.
+
+For OneLake files, DAX, or KQL, see [Platform APIs](platform-apis.html).
+
+## Databricks SQL
+
+Install `brickster`. Register a Databricks OAuth application and configure its
+client ID, secret if issued, and redirect URI. Create this client outside
+`server()`:
+
+```{r databricks-client}
+host <- "example.cloud.databricks.com"
+client <- oauth_db_databricks_client(
+  host = host,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+```
+
+Inside `server()`, supply your SQL warehouse ID:
+
+```{r databricks-dbi}
+con <- oauth_db_databricks(
+  auth$connection,
+  host = host,
+  warehouse_id = "warehouse-id",
+  catalog = "main",
+  schema = "reporting"
+)
+```
+
+You can supply `http_path = "/sql/1.0/warehouses/warehouse-id"` instead of
+`warehouse_id`. For Azure Databricks using Microsoft Entra authentication,
+configure the Microsoft client with `services = "databricks_entra"` and set
+`auth_mode = "entra"` on the connection helper.
+
+## Snowflake
+
+Install `odbc` and the Snowflake ODBC driver. Your account needs a Snowflake
+OAuth integration and users with access to the requested role.
+
+Create the sign-in client outside `server()`:
+
+```{r snowflake-client}
+client <- oauth_db_snowflake_client(
+  server = "organization-account.snowflakecomputing.com",
+  role = "REPORTING_READER",
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+```
+
+Then create the connection inside `server()`:
+
+```{r snowflake}
+con <- oauth_db_snowflake(
+  auth$connection,
+  server = "organization-account.snowflakecomputing.com",
+  role = "REPORTING_READER",
+  warehouse = "REPORTING_WH",
+  database = "ANALYTICS",
+  schema = "PUBLIC"
+)
+```
+
+You can omit `warehouse`, `database`, and `schema` to use the account's
+defaults. Keep `role` consistent with the sign-in client.
+
+For External OAuth through Entra, Okta, or another provider, keep that
+provider's shinyOAuth configuration and supply the integration's `target`
+and `required_scopes` to the connection helper. These settings depend on
+your Snowflake integration.
+
+## Azure PostgreSQL
+
+Install `RPostgres` and use the Microsoft client with `services = "postgres"`.
+Supply the database role provisioned for the user or their group:
+
+```{r azure-postgres}
+con <- oauth_db_azure_postgres(
+  auth$connection,
+  host = "example.postgres.database.azure.com",
+  dbname = "reporting",
+  user = "reporting-readers",
+  sslrootcert = "path/to/root-ca.pem"
+)
+```
+
+The server must accept Entra authentication. `sslrootcert` can be omitted if
+libpq already has the correct CA bundle configured.
+
+## Run a query
+
+Once you've chosen a connection, use your usual database functions inside
+a reactive expression:
+
+```{r sql-query}
+output$rows <- shiny::renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT * FROM products")
+})
+```
+
+Call `con()` for each operation. This lets the helper check the current
+sign-in and replace connections when needed. See each helper's help page for
+driver options and [Authentication and sessions](authorization.html) for
+permission settings, sign-out, and cached results.

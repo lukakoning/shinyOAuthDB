@@ -1,47 +1,58 @@
-test_that("vignette DBI examples wait for sign-in through real S4 dispatch", {
-  path <- test_path("..", "..", "vignettes", "simple-apps.Rmd")
+vignette_chunks <- function(name) {
+  path <- test_path("..", "..", "vignettes", paste0(name, ".Rmd"))
   skip_if_not(file.exists(path), "Vignette source is unavailable")
   chunks <- list()
   label <- NULL
   for (line in readLines(path)) {
-    if (grepl("^```\\{r ", line)) {
-      label <- sub("^```\\{r ([^,}]+).*$", "\\1", line)
+    if (grepl("^`{3}\\{r ", line)) {
+      label <- sub("^`{3}\\{r ([^,}]+).*$", "\\1", line)
       chunks[[label]] <- character()
     } else if (identical(line, "```")) label <- NULL
     else if (!is.null(label)) chunks[[label]] <- c(chunks[[label]], line)
   }
+  lapply(chunks, function(code) parse(text = code))
+}
 
+test_that("documented DBI queries wait quietly for sign-in", {
   withr::local_envvar(playground_env())
+  introduction <- vignette_chunks("getting-started")
+  recipes <- vignette_chunks("databases")
   app <- new.env(parent = globalenv())
-  eval(parse(text = chunks[["fabric-sql-app"]]), app)
-  app$host <- "workspace.example"
+  eval(introduction[["azure-sql-app"]], app)
+  app$host <- "example.cloud.databricks.com"
   app$oauth_module_server <- function(...) list(connection = function() NULL)
-  # Use the real bridge's missing-authorization signal. No driver is opened.
-  # Keep DBI::dbGetQuery unmocked: S4 dispatch must not wrap that signal.
-  for (name in c("oauth_db_fabric_sql", "oauth_db_azure_sql", "oauth_db_sql_server",
-                 "oauth_db_azure_postgres", "oauth_db_databricks", "oauth_db_snowflake",
-                 "oauth_db_connect")) {
-    app[[name]] <- function(authorization, ...) {
-      oauth_db_connect(authorization, connect = function(token) {
-        stop("A signed-out example must not open a database connection")
-      })
-    }
-  }
-  cases <- c("fabric-sql-app", "fabric-sql-adbc", "databricks-http-path", "azure-sql", "sql-server",
-             "azure-postgres", "databricks-dbi", "databricks-entra", "snowflake",
-             "generic-connection")
+
+  # Use the real helpers and DBI generic: resolving con() first must preserve
+  # Shiny's missing-authorization signal before S4 method dispatch begins.
+  shiny::testServer(app$server, {
+    session$flushReact()
+    expect_error(output$rows, class = "shiny.silent.error")
+  })
+
+  cases <- c("azure-sql", "fabric-sql", "azure-postgres", "databricks-dbi", "snowflake")
   for (label in cases) {
     server <- app$server
-    if (label != "fabric-sql-app") {
-      code <- as.list(parse(text = chunks[[label]]))
-      if (label %in% c("fabric-sql-adbc", "databricks-http-path", "sql-server", "generic-connection")) {
-        code <- c(code, tail(as.list(body(app$server)), 1L))
-      }
-      body(server) <- as.call(c(list(quote(`{`)), as.list(body(app$server))[2:4], code))
-    }
+    body(server) <- bquote({
+      auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+      .(recipes[[label]][[1L]])
+      .(recipes[["sql-query"]][[1L]])
+    })
     shiny::testServer(server, {
       session$flushReact()
       expect_error(output$rows, class = "shiny.silent.error", info = label)
     })
+  }
+})
+
+test_that("documented sign-in clients use the released shinyOAuth interface", {
+  withr::local_envvar(playground_env())
+  local_mocked_bindings(
+    oauth_db_databricks_provider = playground_databricks_provider
+  )
+  chunks <- vignette_chunks("databases")
+  app <- new.env(parent = globalenv())
+  for (label in c("databricks-client", "snowflake-client")) {
+    eval(chunks[[label]], app)
+    expect_s3_class(app$client, "shinyOAuth::OAuthClient")
   }
 })

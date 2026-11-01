@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__databricks.R
 \name{oauth_db_databricks}
 \alias{oauth_db_databricks}
-\title{Use the user's authorization with Databricks}
+\title{Query Databricks SQL as the signed-in user}
 \usage{
 oauth_db_databricks(
   authorization,
@@ -18,70 +18,69 @@ oauth_db_databricks(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
 \item{warehouse_id}{SQL warehouse ID. Supply this or \code{http_path}.}
 
-\item{...}{Native \code{DBI::dbConnect()} options, such as \code{catalog} and \code{schema}.}
+\item{...}{Connection options for brickster, such as \code{catalog} and \code{schema}.}
 
-\item{http_path}{Native SQL warehouse HTTP path, such as
-\verb{/sql/1.0/warehouses/warehouse-id}. Supply this or \code{warehouse_id}.}
+\item{http_path}{Warehouse HTTP path, such as
+\code{"/sql/1.0/warehouses/warehouse-id"}. Supply this or \code{warehouse_id}.}
 
-\item{auth_mode}{\code{"databricks_oauth"} or \code{"entra"} for Azure Databricks.}
+\item{auth_mode}{\code{"databricks_oauth"}, or \code{"entra"} for Azure Databricks
+using a Microsoft authorization.}
 
-\item{target}{Declared token target. Defaults to \code{"databricks"} for Entra;
-native Databricks OAuth uses the main authorization.}
+\item{target}{Token target name. Defaults to \code{"databricks"} for Entra;
+native Databricks OAuth uses the authorization's default token.}
 
-\item{required_scopes}{Additional delegated permissions, empty by default.
-shinyOAuth always enforces the client's and target's requirements. Set
-\code{"sql"} or \code{"all-apis"} for an additional native OAuth permission check.}
+\item{required_scopes}{Extra permissions to check before use. Configure
+consent and client requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A session-local reactive accessor for a native DBI connection.
+A reactive function returning a brickster DBI connection.
 }
 \description{
-Returns a native brickster DBI connection. Supply either \code{warehouse_id} or
-\code{http_path}, as with brickster's \code{DBI::dbConnect()} method. For REST functions,
-use \code{\link[=oauth_db_token]{oauth_db_token()}} to supply their \code{token} argument instead.
-Call the accessor for each operation. Its native DBI connection holds a fixed
-token, so the accessor replaces it when shinyOAuth refreshes the credential.
-A previously returned connection is a snapshot; do not retain it
-across operations or authorizations. Endpoints belong in app configuration.
-Logout blocks subsequent accessor use, but upstream brickster's stateless
-\code{dbDisconnect()} does not invalidate a previously returned handle or revoke
-its bearer token. Resolve the accessor again for each operation.
+Use this for SQL queries with DBI or dbplyr through brickster. Supply a SQL
+warehouse and the user's Databricks OAuth or Entra authorization.
+}
+\details{
+Install brickster. Create \code{con} in \code{server()} and call it for each operation;
+the helper replaces brickster's connection when its stored token changes.
+A saved handle keeps its own token, even after local sign-out.
+
+For workspace APIs and other brickster functions, use
+\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
 }
 \examples{
 \dontrun{
-# Inside server(), after creating auth with shinyOAuth:
-con <- oauth_db_databricks(auth$connection,
-  host = "example.cloud.databricks.com", warehouse_id = "warehouse-id")
+con <- oauth_db_databricks(
+  auth$connection,
+  host = "example.cloud.databricks.com",
+  warehouse_id = "warehouse-id"
+)
 output$rows <- shiny::renderTable({
   connection <- con()
-  DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
-})
-
-# Or use brickster's API directly with a current bearer string:
-bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
-output$result <- shiny::renderPrint({
-  brickster::db_sql_query(host = "example.cloud.databricks.com",
-    warehouse_id = "warehouse-id", statement = "SELECT current_user()",
-    token = bearer())
+  DBI::dbGetQuery(connection, "SELECT current_user()")
 })
 }
 }
 \seealso{
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}
+
+Other database connections:
+\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
+\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
+\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
+\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
 }
+\concept{database connections}

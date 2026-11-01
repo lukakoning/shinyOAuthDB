@@ -2,7 +2,7 @@
 % Please edit documentation in R/session.R
 \name{oauth_db_token}
 \alias{oauth_db_token}
-\title{Obtain the user's access token for another native client}
+\title{Get a user's access token for another R package}
 \usage{
 oauth_db_token(
   authorization,
@@ -13,30 +13,50 @@ oauth_db_token(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
-\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
-uses its default, including clients without named token targets.}
+\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
+default token, including clients without named targets.}
 
-\item{required_scopes}{Required granted permissions. Consent scopes belong in the
-shinyOAuth client configuration; setting this argument does not request
-additional consent.}
+\item{required_scopes}{Extra permissions to check before use. Configure
+consent and client requirements in shinyOAuth.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A reactive accessor returning a current bearer token string. For
-\code{bearer <- oauth_db_token(...)}, call \code{bearer()}
-when making a native request; do not save its value globally.
+A reactive function returning a bearer-token string. Call \code{bearer()}
+when making a request, inside the user's Shiny session.
 }
 \description{
-Obtain the user's access token for another native client
+Use this when an R function accepts an access token as an argument.
+shinyOAuth obtains or renews the token when you call the returned function.
+For Fabric and Databricks, the platform API helpers supply credentials for you.
 }
+\details{
+Copied token strings have their own lifetime. Obtain the token for each
+operation and keep it out of global variables.
+}
+\examples{
+\dontrun{
+bearer <- oauth_db_token(auth$connection, required_scopes = "all-apis")
+output$rows <- shiny::renderPrint({
+  brickster::db_sql_warehouse_list(
+    host = "example.cloud.databricks.com",
+    token = bearer()
+  )
+})
+}
+}
+\seealso{
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}
+
+Other advanced connection helpers:
+\code{\link[=oauth_db_connect]{oauth_db_connect()}},
+\code{\link[=oauth_db_fabric]{oauth_db_fabric()}}
+}
+\concept{advanced connection helpers}

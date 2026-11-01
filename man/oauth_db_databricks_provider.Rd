@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__databricks.R
 \name{oauth_db_databricks_provider}
 \alias{oauth_db_databricks_provider}
-\title{Configure a native Databricks shinyOAuth provider}
+\title{Set up a Databricks OAuth provider}
 \usage{
 oauth_db_databricks_provider(
   host,
@@ -13,16 +13,26 @@ oauth_db_databricks_provider(
 \arguments{
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
-\item{token_auth_style}{\code{"header"} for a confidential client, or \code{"public"}
-for an application registered without a secret.}
+\item{token_auth_style}{\code{"header"} for a client with a secret, or \code{"public"}
+for an app registered without one.}
 
-\item{...}{Named settings passed to \code{shinyOAuth::oauth_provider_oidc_discover()}.
-Explicit settings replace the preset defaults.}
+\item{...}{Settings for \code{shinyOAuth::oauth_provider_oidc_discover()},
+replacing preset values.}
 }
 \value{
-A native shinyOAuth provider. Discovery makes an HTTPS request.
+A shinyOAuth \code{OAuthProvider}. Construction makes an HTTPS
+discovery request.
 }
 \description{
-Discovers the workspace's OpenID Connect endpoints using shinyOAuth.
-Independent of brickster; pass the result to \code{shinyOAuth::oauth_client()}.
+Use this when constructing your own \code{shinyOAuth::oauth_client()}. It
+discovers sign-in endpoints from the workspace. For standard setup, use
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
 }
+\seealso{
+Other sign-in configuration:
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
+\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
+}
+\concept{sign-in configuration}

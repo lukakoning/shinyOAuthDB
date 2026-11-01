@@ -1,0 +1,128 @@
+---
+title: "Getting started"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{1. Getting started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+shinyOAuthDB lets visitors query a database using their own account. It is
+useful for reporting apps where different people have access to different
+tables or rows.
+
+Use shinyOAuth to sign people in, then give that sign-in to a shinyOAuthDB
+helper. You can query the resulting connection with DBI or dbplyr as usual.
+The database enforces each person's permissions.
+
+## Before you start
+
+Install shinyOAuthDB and the R client for this example:
+
+```{r installation}
+install.packages(c("remotes", "odbc"))
+remotes::install_github("lukakoning/shinyOAuthDB")
+```
+
+This example connects to Azure SQL. You'll need:
+
+- The **odbc** R package and **Microsoft ODBC Driver 18 for SQL Server**.
+- A Microsoft Entra Web app registration with delegated SQL access.
+- Access to the database for the people using the app.
+
+Register `http://localhost:8100` as the app's redirect URI, where the browser
+returns after sign-in. Put the registration's tenant ID, client ID, and client
+secret in `OAUTHDB_TENANT_ID`, `OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET`,
+for example in your local `.Renviron`. Restart R after editing that file.
+
+For other platforms, see [Database connections](databases.html).
+
+## A complete app
+
+Save this as `app.R` and replace the example server and database names.
+
+```{r azure-sql-app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "sql",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_azure_sql(
+    auth$connection,
+    server = "example.database.windows.net",
+    database = "Reporting"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` in that directory and open
+`http://localhost:8100`. After signing in, you'll see the tables your account
+can access. The output stays blank before sign-in and clears on sign-out.
+
+## What to reuse in your own app
+
+The `client` describes your app's sign-in settings. Create it outside
+`server()`. Inside `server()`, shinyOAuth creates `auth` for each visitor,
+and `oauth_db_azure_sql()` creates `con` for their database access.
+
+Both `auth$connection` and `con` are functions. Pass `auth$connection`
+without calling it, so the database helper can follow changes in sign-in.
+Later, call `con()` inside a render or reactive expression to obtain the DBI
+connection. Keep the separate `connection <- con()` line before your DBI call;
+this lets Shiny wait quietly when nobody is signed in.
+
+The helper opens the connection when first needed and reuses it for later
+queries. It closes the connection when the authorization ends or the Shiny
+session closes. You don't need to add `dbDisconnect()` to this app.
+
+## Query with dplyr
+
+You can replace the output expression with a dbplyr query. This example
+assumes your database has an `Orders` table:
+
+```{r dbplyr-query}
+output$rows <- renderTable({
+  connection <- con()
+
+  dplyr::tbl(connection, "Orders") |>
+    dplyr::filter(amount > 100) |>
+    dplyr::collect()
+})
+```
+
+Use your database package's parameter-binding functions when queries include
+values entered by a visitor.
+
+Choose a helper in [Database connections](databases.html), or use
+[Fabric and Databricks APIs](platform-apis.html) for platform-specific work.
+If you already have a login setup, [Authentication and sessions](authorization.html)
+shows how to keep it.

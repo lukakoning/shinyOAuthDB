@@ -2,7 +2,7 @@
 % Please edit documentation in R/backend__sql_server.R
 \name{oauth_db_azure_sql}
 \alias{oauth_db_azure_sql}
-\title{Use the user's authorization with Azure SQL}
+\title{Query Azure SQL as the signed-in user}
 \usage{
 oauth_db_azure_sql(
   authorization,
@@ -18,67 +18,71 @@ oauth_db_azure_sql(
 )
 }
 \arguments{
-\item{authorization}{Pass \code{auth$connection} without calling it, so the helper
-follows sign-in and sign-out. Also accepts a reactive selecting
-\code{auth$connection(id)} from a shinyOAuth connection-manager module, or a
-module-created connection pinned to one authorization. Select the database
-grant explicitly when several exist.}
+\item{authorization}{\code{auth$connection} from a shinyOAuth module, without
+parentheses. With a connection manager, use a function that selects
+\code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
 \item{database}{Database name.}
 
-\item{...}{Additional named options passed to the native connection function.}
+\item{...}{Additional named odbc connection options, such as \code{timeout}.
+The helper supplies authentication and verified TLS settings.}
 
-\item{target}{Named token target configured on the shinyOAuth client. \code{NULL}
-uses its default, including clients without named token targets.}
+\item{target}{Token target name from the shinyOAuth client. \code{NULL} uses its
+default token, including clients without named targets.}
 
-\item{required_scopes}{Required delegated scopes. Microsoft \verb{/.default} consent is
-configured on the shinyOAuth client, not checked as a literal permission.}
+\item{required_scopes}{Extra permissions to check before use. Configure
+consent and client requirements in shinyOAuth.}
 
 \item{driver}{Installed ODBC driver name.}
 
-\item{port}{Database port, an integer from 1 to 65535.}
+\item{port}{Database port.}
 
-\item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
-Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
+\item{min_valid_for}{Minimum remaining token lifetime in seconds when
+obtaining a token. Defaults to 60; use 0 to accept any unexpired token.}
 
-\item{session}{Owning Shiny session. Create the helper inside \code{server()};
-this argument is normally inferred automatically.}
+\item{session}{Shiny session. Usually inferred; create helpers in \code{server()}.}
 }
 \value{
-A session-local reactive accessor for a native DBI connection.
+A reactive function returning a DBI connection. Create \code{con} in
+\code{server()}, then call \code{connection <- con()} before each database operation.
 }
 \description{
-These helpers adapt the user's authorization to a native client. Call the
-accessor inside an ordinary Shiny reactive or render function to obtain the
-native connection or credential provider. Connections open on first use.
-Supply driver options directly in \code{...}; query arguments stay in your native
-database call. Authentication and certificate verification cannot be
-overridden through \code{...}.
+Create a DBI connection for queries with DBI or dbplyr. Use this for Azure
+SQL Database, SQL Managed Instance, or a compatible Synapse SQL endpoint.
+The database must be configured to accept Microsoft Entra authentication.
 }
 \details{
-With an existing client without named targets, use \code{target = NULL}.
-Configure consent and required permissions on the shinyOAuth client or
-target. The helper adds no scope requirement by default; use
-\code{required_scopes} for an additional check. SQL enforces database permissions.
-See the simple-apps vignette for explicit-scope and \verb{/.default} recipes.
+Install odbc and Microsoft ODBC Driver 18 for SQL Server. Configure the
+Microsoft sign-in client with \code{services = "sql"}, or use an existing client
+with the appropriate token target.
 
-For names containing ODBC delimiters, supply an \code{\link[odbc:quote_value]{odbc::quote_value()}}
-value, for example \code{database = odbc::quote_value("Sales;Archive")}.
-Quoted values pass through unchanged; control characters are rejected.
+Connections open on first use and close on sign-out or session end. For
+server or database names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
 }
 \examples{
 \dontrun{
-# Inside server(), after creating auth with shinyOAuth:
-con <- oauth_db_azure_sql(auth$connection,
-  server = "example.database.windows.net", database = "Sales")
+# Inside server():
+con <- oauth_db_azure_sql(
+  auth$connection,
+  server = "example.database.windows.net",
+  database = "Reporting"
+)
 output$rows <- shiny::renderTable({
   connection <- con()
-  DBI::dbGetQuery(connection, "SELECT TOP (10) name FROM sys.tables")
+  DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
 })
 }
 }
 \seealso{
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
+
+Other database connections:
+\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
+\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
+\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
+\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}
 }
+\concept{database connections}
