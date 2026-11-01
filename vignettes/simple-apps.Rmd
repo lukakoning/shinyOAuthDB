@@ -261,7 +261,95 @@ fully qualified table names, or context set through ordinary SQL. Keep `role`
 explicit because it determines the requested native OAuth permission.
 Custom and External OAuth settings are covered later.
 
-## Use Fabric functions directly
+## Use platform API clients
+
+`*_client()` helpers above create OAuth login configuration. The `*_api()`
+helpers below create small R6 objects inside `server()`. Their `$call(.fn, ...)`
+methods supply authentication to an upstream function and return its native
+value. They do not introduce another query or result interface.
+
+### Fabric discovery and native R6 objects
+
+Configure the Microsoft client with the services used by your app, for example
+`services = c("fabric", "sql", "onelake")`. Then replace the database block:
+
+```{r fabric-api-objects}
+fabric <- oauth_db_fabric_api(auth$connection)
+lakehouse <- reactive({
+  fabric$call(fabricQueryR::fabric_item,
+    workspace = "workspace-guid", item = "lakehouse-guid")
+})
+output$rows <- renderTable({
+  lakehouse()$read_table("Orders", limit = 100L)
+})
+```
+
+`lakehouse()` is fabricQueryR's own R6 resource object. Discovery uses a Fabric
+token; its OneLake read obtains a Storage token from the same authorization.
+For a Warehouse object, `$sql_query(sql)` similarly obtains the SQL token.
+Semantic models expose `$dax_query(dax)` using the Power BI target when the
+client includes `services = "dax"`. Enable `"kql"` or `"graphql"` for those
+workloads. A method cannot obtain credentials for another authorization.
+
+To use a native function directly, obtain the same audience-aware callback:
+
+```{r fabric-api-callback}
+fabric <- oauth_db_fabric_api(auth$connection)
+output$rows <- renderPrint({
+  fabricQueryR::fabric_workspaces(token = fabric$token_provider())
+})
+```
+
+Use a `verbatimTextOutput("rows")` for this discovery example. `$call()` passes
+native R6 objects and other return values through unchanged. Native DBI
+connections opened through `$call()` or `$sql_connect()` belong to your app;
+use `oauth_db_fabric_sql()` when you want session-managed connection reuse and
+cleanup.
+
+For custom target names, declare the mapping explicitly:
+
+```{r fabric-api-targets}
+fabric <- oauth_db_fabric_api(auth$connection,
+  targets = c(fabric = "discovery", sql = "reporting", onelake = "files"))
+```
+
+This complete mapping restricts the client to those services. Use
+`targets = list(kql = NULL)` for a single-resource authorization without named
+targets. DAX and GraphQL share one resource and must map to the same target.
+Different resources require different targets. Tokens are acquired lazily;
+unused targets need not have a token yet. Configure consent and required
+permissions on the shinyOAuth client or target. Additional local requirements
+can be supplied as a named list, such as
+`required_scopes = list(sql = "https://database.windows.net//user_impersonation")`.
+
+### Databricks REST functions
+
+Use the Databricks client definition above. The runtime API client supplies
+`host` and a current token before invoking a brickster function:
+
+```{r databricks-api}
+databricks <- oauth_db_databricks_api(auth$connection, host = host)
+output$rows <- renderPrint({
+  databricks$call(brickster::db_sql_query,
+    warehouse_id = "warehouse-id", statement = "SELECT current_user()",
+    disposition = "INLINE", show_progress = FALSE)
+})
+```
+
+Use `verbatimTextOutput("rows")` for this REST example. Native parameters and
+return values remain those of brickster. For Azure Databricks with Entra,
+configure the Microsoft preset with `services = "databricks_entra"` and use
+`oauth_db_databricks_api(auth$connection, host = host, auth_mode = "entra")`.
+A custom target name can be supplied with `target`.
+
+Neither API helper retries the function or manages cached results. Databricks
+operations retain their supplied string during polling and fetching; a refresh
+between separate calls is supported, but the bridge cannot renew that string
+inside an already-running native operation. Fabric callbacks can renew through
+shinyOAuth within their original authorization. Create a new native object
+after replacing the selected authorization.
+
+## Supply a single-service Fabric callback
 
 Fabric also exposes APIs for KQL, DAX, files, and item discovery. For these,
 `oauth_db_fabric()` supplies the credential callback expected by fabricQueryR.
@@ -598,15 +686,13 @@ con <- oauth_db_azure_sql(auth$connection,
 **Existing `.default` consent.** Some Microsoft clients instead request
 `https://database.windows.net//.default` alongside their OpenID scopes.
 `.default` requests the registration's configured permissions; it is not a
-permission returned in the access token. With an untargeted client, shinyOAuth
-cannot necessarily match the helper's explicit resource-qualified scope to
-that consent configuration. Keep the client and explicitly omit the helper's
-additional operation-scope check:
+permission returned in the access token. SQL helpers add no operation-scope
+requirement by default, so the same helper works with this client:
 
 ```{r microsoft-default-connection}
 con <- oauth_db_azure_sql(auth$connection,
   server = "example.database.windows.net", database = "Reporting",
-  target = NULL, required_scopes = character())
+  target = NULL)
 ```
 
 This does not request permissions or disable shinyOAuth's own client
@@ -642,12 +728,13 @@ back to another token.
 `all-apis`. A native client requesting `sql` can use both brickster DBI and
 Statement Execution REST calls. For a new SQL-only client, replace the preset's
 `scopes` with `c("openid", "profile", "email", "offline_access", "sql")`.
-For an existing equivalent client, keep it and match the helper requirements:
+For an existing equivalent client, keep it. Declare required permissions on
+that client; the DBI and API helpers add no extra requirement by default:
 
 ```{r databricks-sql-scopes}
 # Inside server(), after the existing Databricks auth module:
 con <- oauth_db_databricks(auth$connection, host = host,
-  warehouse_id = "warehouse-id", required_scopes = "sql")
+  warehouse_id = "warehouse-id")
 bearer <- oauth_db_token(auth$connection, required_scopes = "sql")
 output$rows <- renderTable({
   connection <- con()

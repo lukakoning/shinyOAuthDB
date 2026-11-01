@@ -1,4 +1,49 @@
-# Validation record — 4 October 2026
+# Validation record
+
+## 1 November 2026: released clients and native API interface
+
+Validated on Windows 11 with R 4.5.1 in an isolated library using CRAN
+shinyOAuth 0.7.0, fabricQueryR 1.0.1, and brickster 0.2.15. The user's normal R
+library was not updated. These checks use released dependencies, not sibling
+development checkouts or modified database packages.
+
+- Repository suite: **723 passing assertions**, no failures or skipped scenarios.
+- `R CMD build` and `R CMD check --no-manual`: **zero errors, warnings, or notes**.
+  The vignette builds and its outputs rebuild successfully during the check.
+- Documentation checker: **59 R blocks parse and 59 local links resolve**.
+- `git diff --check`: clean.
+
+The added integration tests exercise native fabricQueryR workspace and
+Lakehouse R6 objects through real discovery functions, with HTTP responses
+mocked. A discovered Lakehouse then opens a SQL connection through its retained
+callback, using a different target's credential; only DBI's transport is mocked.
+Native brickster warehouse discovery is also exercised with mocked HTTP and
+compared with its direct native call's result.
+
+Other new checks cover lazy acquisition, custom and untargeted configurations,
+scope requirements, forced refresh, ordinary token rotation without query
+reruns, permission loss, grant replacement, cross-session use, session closure,
+credential overrides including positional arguments, and rejection of mixed or
+undeclared audiences. Existing SQL, Snowflake, multiple-authorization, and
+playground checks continue to pass. The integrated Fabric app now uses one
+multi-resource API client; the Databricks app uses its native `$call()` path.
+
+No live cloud queries or browser sign-ins were performed in this run. Remote
+user mapping, deployment grants, native driver installation, and live refresh
+still require deployment-specific validation. Snowflake remains DBI + odbc;
+skiLift and skiPatrol are deferred as recorded in `snowflake-backends.md`.
+
+Reproduce with the released dependencies installed in a check library:
+
+```sh
+Rscript --vanilla tools/check-package.R path/to/check-library
+Rscript --vanilla tools/check-docs.R
+```
+
+## Earlier validation: 4 October 2026
+
+The record below concerns the earlier development snapshots and is retained
+for reference.
 
 This follow-up removes dependencies on fork-only brickster APIs and Fabric's
 Shiny integration. Tested on Windows 11 with R 4.5.1 using isolated libraries:

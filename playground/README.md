@@ -14,7 +14,7 @@ Install `RSQLite` and select simulated user A or B. The table follows the select
 ## Run a live app
 
 Follow the [package installation instructions](../README.md#installation-and-examples)
-for shinyOAuth >= 0.6.1.9000 and shinyOAuthDB. Fabric requires fabricQueryR >= 1.0.1;
+for shinyOAuth >= 0.7.0 and shinyOAuthDB. Fabric requires fabricQueryR >= 1.0.1;
 Databricks uses unmodified upstream brickster >= 0.2.14. Install the native driver
 for your backend.
 
@@ -49,7 +49,10 @@ Azure SQL and SQL Server use ODBC Driver 18 by default. The server must accept d
 
 The Snowflake example uses native Snowflake OAuth and its role scope, with a registered client secret. External OAuth can use another native shinyOAuth client with matching `scopes` and role settings.
 
-Fabric uses a regular audience-aware callback; configure trusted endpoints in the app or obtain them through native discovery. No private fabricQueryR endpoint-policy attributes are attached.
+Fabric uses `oauth_db_fabric_api()` and one audience-aware callback for discovery
+and workload requests. Databricks uses `oauth_db_databricks_api()$call()` to
+supply its configured host and a current token to brickster. Configure trusted
+endpoints in the app or obtain them through native discovery.
 
 All query endpoints and roles come from server configuration. Metadata and constant queries establish connectivity; replace them with queries against your own tables to verify user-specific grants and row policies. Use native bound parameters when incorporating browser input.
 

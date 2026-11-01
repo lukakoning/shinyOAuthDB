@@ -58,5 +58,5 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
 }

@@ -21,6 +21,7 @@ does not duplicate their resources or permissions. Fabric reuses SQL Server's
 OAuth recipe for SQL access.
 
 Shared files contain no backend names, service tables, or driver policies.
+`api.R` validates native call arguments and API-client session ownership.
 `session.R` owns session lifetime and native-value reuse; `authorization.R`
 consumes shinyOAuth's connection protocol; `auth.R` constructs native clients;
 `options.R` validates names against the calling backend's policy; `odbc.R`
@@ -62,6 +63,39 @@ integration or new credential hooks.
 The integrated Fabric app lives in `playground/fabric`. It uses fabricQueryR's
 native token callback API; no Shiny integration in that package is needed.
 
+## Native API clients
+
+`oauth_db_fabric_api()` returns an `OAuthFabricAPI` R6 object with `$call(.fn,
+...)` and `$token_provider()`. `oauth_db_databricks_api()` returns an
+`OAuthDatabricksAPI` with `$call(.fn, ...)`. Their constructors run inside
+`server()` and retain the selected-authorization accessor. Optional
+`*_client()` presets still return OAuth configuration, not a runtime API client.
+
+The Databricks client resolves the existing bearer accessor before each call,
+then injects only `host` and `token`. Fabric groups its explicit service/target
+mapping by OAuth resource and uses the shared binding for one grant-pinned
+credential callback per resource. Provider creation does not acquire every
+token. A missing optional target raises its original error when requested.
+Different resources cannot share a target; DAX and GraphQL share the Power BI
+resource and must use the same target.
+
+Fabric routes each native callback request to one declared resource. Resource
+identifiers are literal, including SQL's trailing slash. `/.default` selects
+the resource without pretending to be a granted permission; explicit requested
+scopes are checked through shinyOAuth's public accessor alongside any configured
+extra requirements. There is no function-to-scope registry. Discovery returns
+unmodified fabricQueryR R6 objects whose retained callback can serve SQL,
+Storage, Power BI, Kusto, and Fabric requests within the original authorization.
+
+Both clients preserve native argument matching and return values. `$call()`
+rejects credential overrides, invokes the supplied function once, and leaves
+native errors intact. It does not manage DBI connections returned by a native
+function, query results, or background workers. Saved native objects retain
+their upstream behavior. Fabric callback references cannot follow authorization
+replacement, even if the old selection is subsequently restored.
+
+## Credentials and lifetime
+
 Each accessor belongs to one Shiny session. Its native connection is reused for the selected authorization. Logout, replacement, observed required permission loss, or session end retires the cached value and attempts native cleanup. Native cleanup errors do not restore availability. Token callbacks stay pinned to their original grant and cannot follow another login. Previously returned native handles and strings retain their native lifetime; the accessor cannot revoke copied credentials or intercept methods called on saved handles.
 
 Scope checks cover the helper's requirements; public `summary()` or selected
@@ -73,6 +107,12 @@ bridge cannot detect a previously unreported client-policy denial hidden by
 expiry without acquiring another credential.
 
 The bridge asks shinyOAuth for the configured `target`, `required_scopes`, and minimum token validity. shinyOAuth remains responsible for login, consent, refresh, browser storage, and selecting retained authorizations. Native packages retain endpoint validation, query parameters, polling, pagination, and result conversion. Calls use the public connection methods directly; the supported shinyOAuth baseline accepts named targets.
+
+Azure SQL, Fabric SQL, and Databricks DBI helpers default to no additional scope
+requirements: the selected client's and target's requirements stay in
+shinyOAuth. Their `required_scopes` adds a local check when needed. Snowflake
+keeps its native role-scope default and supports explicit External OAuth scopes.
+The older single-service Fabric callback keeps its service-specific defaults.
 
 Microsoft backends keep `/.default` consent in the shinyOAuth client and target
 configuration. They check actual operation scopes when supplied, without
@@ -91,8 +131,9 @@ deadline. Before returning a credential or opening a connection, an accessor
 handles `refresh_pending` with a silent Shiny wait and depends on public status
 until acquisition succeeds. A normal reactive consumer then resumes; successful
 consumers do not depend on ordinary token rotation. Event-bound code still needs
-another event. Fabric checks credential availability before handing out its
-callback. Errors from that callback inside a native operation propagate without
+another event. The single-service Fabric helper checks credential availability
+before handing out its callback; the multi-resource API acquires the requested
+service's token lazily. Errors from a callback inside a native operation propagate without
 creating a refresh dependency or scheduling replay. Other acquisition errors
 remain available to the application. Accessors run in the owning Shiny session,
 not a worker.
@@ -113,9 +154,9 @@ Client helpers return ordinary shinyOAuth clients and are optional. They work wi
 
 Provider-only configuration uses `shinyOAuth::oauth_provider_microsoft()`, `oauth_db_databricks_provider()`, or `oauth_db_snowflake_provider()`, followed by ordinary `shinyOAuth::oauth_client()`. Databricks uses shinyOAuth's OIDC discovery directly. Both local presets accept native provider settings through `...`. No database accessor or login module is created by these configuration helpers.
 
-Connection presets avoid redundant configuration: SQL Server aliases the Azure SQL token transport, Databricks REST uses the generic bearer accessor without a host, and Snowflake derives the native OAuth scope from its explicit role. Snowflake database, schema, and warehouse can be omitted to use native defaults or set through SQL. Explicit Snowflake scopes and targets still support External OAuth.
+Connection presets avoid redundant configuration: SQL Server aliases the Azure SQL token transport, Databricks REST can use its API client or the generic bearer accessor, and Snowflake derives the native OAuth scope from its explicit role. Snowflake database, schema, and warehouse can be omitted to use native defaults or set through SQL. Explicit Snowflake scopes and targets still support External OAuth.
 
-The target-enabled development shinyOAuth API is required. The database packages use their existing interfaces. Offline tests verify native routing and connection lifecycle. The integrated Fabric app supports the persistent Shiny sandbox and visitor sign-in; its explicit shared-sandbox mode is an example-only AzureAuth path. Actual browser flows, database user mapping, and data permissions require deployment-specific verification.
+shinyOAuth >= 0.7.0 is required. The database packages use their existing interfaces. Offline tests verify native routing and connection lifecycle. The integrated Fabric app supports the persistent Shiny sandbox and visitor sign-in; its explicit shared-sandbox mode is an example-only AzureAuth path. Actual browser flows, database user mapping, and data permissions require deployment-specific verification.
 
 The [README](../README.md) and [playground](../playground/README.md) describe this API.
 [Migration notes](migration.md) describe earlier development APIs.

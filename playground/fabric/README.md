@@ -11,7 +11,7 @@ Set `FABRIC_SHINY_WORKSPACE` to select another compatible sandbox.
 
 ## Start
 
-Install shinyOAuthDB, the target-enabled shinyOAuth package, fabricQueryR 1.0.1
+Install shinyOAuthDB, shinyOAuth 0.7.0 or later, fabricQueryR 1.0.1
 or later, and the drivers needed for the sources you want to try. Neither
 fabricQueryR's Shiny helpers nor a modified token-provider API is required.
 SQL defaults to odbc and Microsoft ODBC Driver 18; ADBC needs the MSSQL driver.
@@ -58,7 +58,12 @@ appropriate workspace/item permissions, including Build on semantic models.
 Configure your own native shinyOAuth client in `app.R` when your consent setup
 differs, keeping the accessor's scopes and targets aligned.
 
-In delegated mode, discovery and queries both use the signed-in visitor.
+In delegated mode, `oauth_db_fabric_api()` supplies one audience-aware callback
+to discovery and queries. Native resource objects can reuse that callback for
+their workload methods, with the appropriate target for each resource. The
+callback stays bound to the selected visitor authorization.
+
+Discovery and queries both use the signed-in visitor.
 There is no fallback to the sandbox application if sign-in or a query fails.
 
 For the existing shared sandbox connection, use `FABRICQUERYR_TENANT_ID`,

@@ -9,11 +9,10 @@
 #'
 #' @inheritParams oauth_db_connect
 #' @details With an existing client without named targets, use `target = NULL`.
-#'   Its consent should include `https://database.windows.net//user_impersonation`.
-#'   For untargeted `https://database.windows.net//.default` consent instead, use
-#'   `required_scopes = character()` to omit the helper's additional explicit-scope
-#'   check. shinyOAuth still enforces the client's requirements; SQL enforces
-#'   database permissions. See the simple-apps vignette for both client recipes.
+#'   Configure consent and required permissions on the shinyOAuth client or
+#'   target. The helper adds no scope requirement by default; use
+#'   `required_scopes` for an additional check. SQL enforces database permissions.
+#'   See the simple-apps vignette for explicit-scope and `/.default` recipes.
 #'
 #'   For names containing ODBC delimiters, supply an [odbc::quote_value()]
 #'   value, for example `database = odbc::quote_value("Sales;Archive")`.
@@ -40,7 +39,7 @@
 #' @export
 oauth_db_azure_sql <- function(
   authorization, server, database, ...,
-  target = "sql", required_scopes = "https://database.windows.net//user_impersonation",
+  target = "sql", required_scopes = character(),
   driver = "ODBC Driver 18 for SQL Server", port = 1433L,
   min_valid_for = 60, session = shiny::getDefaultReactiveDomain()
 ) {

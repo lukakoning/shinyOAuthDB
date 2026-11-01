@@ -10,7 +10,7 @@ oauth_db_azure_sql(
   database,
   ...,
   target = "sql",
-  required_scopes = "https://database.windows.net//user_impersonation",
+  required_scopes = character(),
   driver = "ODBC Driver 18 for SQL Server",
   port = 1433L,
   min_valid_for = 60,
@@ -59,11 +59,10 @@ overridden through \code{...}.
 }
 \details{
 With an existing client without named targets, use \code{target = NULL}.
-Its consent should include \verb{https://database.windows.net//user_impersonation}.
-For untargeted \verb{https://database.windows.net//.default} consent instead, use
-\code{required_scopes = character()} to omit the helper's additional explicit-scope
-check. shinyOAuth still enforces the client's requirements; SQL enforces
-database permissions. See the simple-apps vignette for both client recipes.
+Configure consent and required permissions on the shinyOAuth client or
+target. The helper adds no scope requirement by default; use
+\code{required_scopes} for an additional check. SQL enforces database permissions.
+See the simple-apps vignette for explicit-scope and \verb{/.default} recipes.
 
 For names containing ODBC delimiters, supply an \code{\link[odbc:quote_value]{odbc::quote_value()}}
 value, for example \code{database = odbc::quote_value("Sales;Archive")}.

@@ -12,7 +12,7 @@ oauth_db_databricks(
   http_path = NULL,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
-  required_scopes = NULL,
+  required_scopes = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -38,9 +38,9 @@ grant explicitly when several exist.}
 \item{target}{Declared token target. Defaults to \code{"databricks"} for Entra;
 native Databricks OAuth uses the main authorization.}
 
-\item{required_scopes}{Delegated scopes, or \code{NULL} for the chosen authentication
-mode (\code{all-apis} for native OAuth, the Entra delegated permission otherwise).
-Set \code{"sql"} for a native client requesting Databricks SQL scopes only.}
+\item{required_scopes}{Additional delegated permissions, empty by default.
+shinyOAuth always enforces the client's and target's requirements. Set
+\code{"sql"} or \code{"all-apis"} for an additional native OAuth permission check.}
 
 \item{min_valid_for}{Minimum token lifetime requested at acquisition, in seconds.
 Defaults to 60; \code{0} accepts any unexpired token, as in shinyOAuth.}
@@ -83,5 +83,5 @@ output$result <- shiny::renderPrint({
 }
 }
 \seealso{
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}
+\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}
 }

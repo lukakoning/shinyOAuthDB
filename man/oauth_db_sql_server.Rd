@@ -10,7 +10,7 @@ oauth_db_sql_server(
   database,
   ...,
   target = "sql",
-  required_scopes = "https://database.windows.net//user_impersonation",
+  required_scopes = character(),
   driver = "ODBC Driver 18 for SQL Server",
   port = 1433L,
   min_valid_for = 60,

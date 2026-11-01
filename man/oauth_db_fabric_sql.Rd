@@ -10,7 +10,7 @@ oauth_db_fabric_sql(
   database = NULL,
   ...,
   target = "sql",
-  required_scopes = "https://database.windows.net//user_impersonation",
+  required_scopes = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -60,5 +60,5 @@ output$rows <- shiny::renderTable({
 }
 }
 \seealso{
-\code{\link[=oauth_db_fabric]{oauth_db_fabric()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_fabric]{oauth_db_fabric()}}, \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
 }

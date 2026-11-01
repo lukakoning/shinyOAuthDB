@@ -6,10 +6,6 @@ fabric_demo_sources <- c(
   "OneLake / Delta" = "delta", "Mirrored database / Delta" = "mirrored",
   "GraphQL / paginated" = "graphql", "Workspace / discovery" = "discovery"
 )
-fabric_demo_services <- c(warehouse = "sql", lakehouse = "sql", dax = "dax",
-  dax_arrow = "dax", kql = "kql", files = "onelake", delta = "onelake",
-  mirrored = "onelake", graphql = "graphql", discovery = "fabric")
-
 fabric_demo_discover <- function(token, workspace_name) {
   workspaces <- fabricQueryR::fabric_workspaces(token = token)
   matches <- Filter(function(x) identical(x[["displayName"]], workspace_name), workspaces)

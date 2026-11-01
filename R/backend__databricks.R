@@ -19,11 +19,11 @@
 #' @param auth_mode `"databricks_oauth"` or `"entra"` for Azure Databricks.
 #' @param target Declared token target. Defaults to `"databricks"` for Entra;
 #'   native Databricks OAuth uses the main authorization.
-#' @param required_scopes Delegated scopes, or `NULL` for the chosen authentication
-#'   mode (`all-apis` for native OAuth, the Entra delegated permission otherwise).
-#'   Set `"sql"` for a native client requesting Databricks SQL scopes only.
+#' @param required_scopes Additional delegated permissions, empty by default.
+#'   shinyOAuth always enforces the client's and target's requirements. Set
+#'   `"sql"` or `"all-apis"` for an additional native OAuth permission check.
 #' @returns A session-local reactive accessor for a native DBI connection.
-#' @seealso [oauth_db_databricks_client()], [oauth_db_databricks_provider()]
+#' @seealso [oauth_db_databricks_api()], [oauth_db_databricks_client()], [oauth_db_databricks_provider()]
 #' @examples
 #' \dontrun{
 #' # Inside server(), after creating auth with shinyOAuth:
@@ -47,13 +47,10 @@ oauth_db_databricks <- function(
   authorization, host, warehouse_id = NULL, ..., http_path = NULL,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
-  required_scopes = NULL, min_valid_for = 60,
+  required_scopes = character(), min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   auth_mode <- match.arg(auth_mode)
-  if (is.null(required_scopes)) {
-    required_scopes <- if (auth_mode == "entra") .odb_databricks_profiles()$databricks_entra$scopes else "all-apis"
-  }
   if (auth_mode == "entra") required_scopes <- .odb_microsoft_scopes(required_scopes)
   if (missing(host)) .odb_abort("Supply host for a Databricks DBI connection. Use oauth_db_token() for REST calls.")
   host <- .odb_databricks_host(host)
@@ -81,6 +78,78 @@ oauth_db_databricks <- function(
   do.call(DBI::dbConnect, c(list(drv = brickster::DatabricksSQL(), host = host,
     warehouse_id = warehouse_id, http_path = http_path, token = token()), options))
 }
+
+#' Call native brickster functions with the selected user's authorization
+#'
+#' Create this client once inside `server()`. Its `$call(.fn, ...)` method
+#' supplies the configured `host` and a current bearer string to a native
+#' brickster function. Other arguments, return values and errors stay native.
+#' @inheritParams oauth_db_databricks
+#' @param required_scopes Additional operation permissions, empty by default.
+#'   shinyOAuth always enforces the selected client's and target's requirements.
+#'   Set `"sql"` or `"all-apis"` when an additional local check is wanted.
+#' @return An R6 `OAuthDatabricksAPI` with `$call(.fn, ...)` and `$print()`.
+#' @details
+#' The client obtains a current token before each call and never retries the
+#' function. A native operation can retain that string for polling or fetching;
+#' the bridge cannot refresh it during the operation. Native values returned
+#' by a call retain their upstream lifetime. Application result caches and
+#' background execution remain the app's responsibility.
+#'
+#' Authentication arguments cannot be supplied through `$call()`. Configure
+#' `auth_mode`, `target` and `required_scopes` on this client. For DBI and dbplyr,
+#' use [oauth_db_databricks()] and resolve its connection accessor per operation.
+#' @examples
+#' \dontrun{
+#' # Inside server(), after creating auth with shinyOAuth:
+#' databricks <- oauth_db_databricks_api(auth$connection,
+#'   host = "example.cloud.databricks.com")
+#' output$warehouses <- shiny::renderPrint({
+#'   databricks$call(brickster::db_sql_warehouse_list)
+#' })
+#' output$rows <- shiny::renderTable({
+#'   databricks$call(brickster::db_sql_query,
+#'     warehouse_id = "warehouse-id", statement = "SELECT current_user()",
+#'     disposition = "INLINE", show_progress = FALSE)
+#' })
+#' }
+#' @export
+oauth_db_databricks_api <- function(
+  authorization, host, auth_mode = c("databricks_oauth", "entra"),
+  target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
+  required_scopes = character(), min_valid_for = 60,
+  session = shiny::getDefaultReactiveDomain()
+) {
+  auth_mode <- match.arg(auth_mode)
+  host <- .odb_databricks_host(host)
+  if (auth_mode == "entra") required_scopes <- .odb_microsoft_scopes(required_scopes)
+  .odb_require("brickster", version = "0.2.14")
+  bearer <- oauth_db_token(authorization, target = target,
+    required_scopes = required_scopes, min_valid_for = min_valid_for, session = session)
+  .odb_databricks_api$new(bearer, host)
+}
+
+.odb_databricks_api <- R6::R6Class("OAuthDatabricksAPI", cloneable = FALSE,
+  public = list(
+    initialize = function(bearer, host) {
+      private$bearer <- bearer
+      private$host <- host
+    },
+    call = function(.fn, ...) {
+      args <- .odb_api_arguments(.fn, list(...), blocked = c(
+        "host", "token", "access_token", "token_provider", "auth_args",
+        "authentication", "authenticator", "user", "password", "client_id", "client_secret"),
+        injected = c("host", "token"))
+      token <- private$bearer()
+      do.call(.fn, c(args, list(host = private$host, token = token)))
+    },
+    print = function(...) {
+      cat("<OAuthDatabricksAPI>\n")
+      invisible(self)
+    }
+  ),
+  private = list(bearer = NULL, host = NULL)
+)
 
 #' Configure a native Databricks shinyOAuth client
 #' @param host Databricks workspace hostname or HTTPS origin. Unused when

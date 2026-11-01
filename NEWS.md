@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add session-bound `oauth_db_fabric_api()` and `oauth_db_databricks_api()` R6 clients. Their `$call(.fn, ...)` methods supply native credentials while preserving upstream arguments, results, and errors. Fabric's `$token_provider()` routes declared audiences and stays pinned to the selected authorization, including when retained by native resource objects.
+* Default Azure SQL, Fabric SQL, and Databricks DBI helpers to the requirements already configured in shinyOAuth. Keep `required_scopes` available for additional checks; SQL-only and Microsoft `/.default` clients need no duplicate helper policy. Snowflake retains its native role-scope default.
+* Document why skiLift and skiPatrol are deferred; Snowflake continues to use DBI + odbc.
 * Require shinyOAuth >= 0.7.0 and use its released `token_target_default` and `min_valid_for_seconds` arguments. Update OAuth fixtures and examples to exercise the released interface.
 * Accept `min_valid_for = 0` consistently with shinyOAuth. Make Snowflake database, schema, and warehouse optional while keeping role explicit. Distinguish Fabric callback accessors from bearer-string accessors in examples without renaming public functions. Require odbc >= 1.4.2, which supplies the documented `quote_value()` interface.
 * Forward native connector `scopes` arguments unchanged. Accept ODBC values quoted with `odbc::quote_value()` while rejecting delimiter injection, including through option names or SQL Server ports. Preserve protected credentials and TLS options.

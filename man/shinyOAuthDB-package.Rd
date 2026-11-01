@@ -26,6 +26,8 @@ inside your normal Shiny render or reactive expression.
 \item \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}: Fabric SQL through fabricQueryR.
 \item \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}: brickster DBI with a warehouse ID or HTTP path.
 \item \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}: Snowflake through DBI/odbc.
+\item \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}: call fabricQueryR and reuse its native R6 resources.
+\item \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}: call brickster with a current user credential.
 \item \code{\link[=oauth_db_fabric]{oauth_db_fabric()}}: a token callback for fabricQueryR's native functions.
 \item \code{\link[=oauth_db_connect]{oauth_db_connect()}}: other native connections.
 \item \code{\link[=oauth_db_token]{oauth_db_token()}}: bearer strings for brickster REST and other native APIs.
@@ -38,6 +40,12 @@ inside your normal Shiny render or reactive expression.
 \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} are optional presets returning ordinary
 shinyOAuth clients. You retain control over providers, scopes, targets,
 and multiple authorizations through shinyOAuth.
+
+SQL helpers add no scope requirement by default: configure required
+permissions on the shinyOAuth client or target, with \code{required_scopes} for
+an extra local check. Snowflake's native OAuth helper also checks its role
+scope. API helpers return small R6 clients; \verb{$call(.fn, ...)} injects
+authentication into a native function without wrapping its results.
 }
 
 \seealso{

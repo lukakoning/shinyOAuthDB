@@ -61,53 +61,102 @@ con <- oauth_db_azure_sql(auth$connection,
 
 If your client names its SQL target `reporting`, use `target = "reporting"`
 instead. Its consent must already cover SQL; the helper does not request new
-permissions or change your provider. If an untargeted Microsoft client requests
-SQL `/.default` consent, also set `required_scopes = character()`; see the
+permissions or change your provider. Client and target requirements stay in
+shinyOAuth; SQL helpers add no scope requirement by default. See the
 [existing-client recipes](vignettes/simple-apps.Rmd#keep-an-existing-shinyoauth-setup)
-for the scope-checking distinction. Missing permissions display a message;
+for explicit-scope and `/.default` recipes. Missing required permissions display a message;
 target and authorization-selection errors remain available to the app.
 
 ## Fabric and Databricks
 
-Fabric accepts an ordinary token callback supplied by this package:
+Create a small API client inside `server()` and pass it an upstream function.
+Fabric's client supplies an audience-aware callback and returns native
+fabricQueryR values, including its R6 resource objects:
 
 ```r
-# Configure the OAuth client with services = "kql".
+# Configure the OAuth client with services = c("fabric", "sql", "onelake").
 # Inside server(), after creating auth:
-callback <- oauth_db_fabric(auth$connection, service = "kql")
-output$rows <- renderPrint({
-  fabricQueryR::fabric_kql_query(
-    cluster = "https://example.kusto.fabric.microsoft.com",
-    database = "Events", query = "Events | take 10", token = callback()
-  )
+fabric <- oauth_db_fabric_api(auth$connection)
+lakehouse <- reactive({
+  fabric$call(fabricQueryR::fabric_item,
+    workspace = "workspace-guid", item = "lakehouse-guid")
+})
+output$rows <- renderTable({
+  lakehouse()$read_table("Orders", limit = 100L)
 })
 ```
 
 The [integrated Fabric app](playground/fabric/README.md) discovers the persistent Shiny sandbox and demonstrates SQL, DAX, KQL, OneLake, GraphQL, and discovery in one app.
 
-The [Databricks app](playground/example-databricks.R) uses `oauth_db_token(auth$connection, required_scopes = "all-apis")` and passes its bearer string directly to upstream `brickster::db_sql_query()`. For DBI, use `oauth_db_databricks()` with `host` and either `warehouse_id` or the native `http_path`. Call the accessor for each operation: brickster stores a fixed token, so the accessor replaces that connection when the credential rotates.
+Discovery uses the Fabric token; a native resource method can subsequently
+request SQL, OneLake, Power BI, or Kusto credentials. The callback selects the
+matching configured target and stays pinned to its original authorization.
+To call an upstream function directly, pass `token = fabric$token_provider()`.
+The older `oauth_db_fabric(service = ...)` accessor remains available when only
+one service callback is wanted.
+
+The [Databricks app](playground/example-databricks.R) uses the same `$call()`
+shape. Its client supplies the workspace host and a current bearer string:
+
+```r
+databricks <- oauth_db_databricks_api(auth$connection,
+  host = "example.cloud.databricks.com")
+output$rows <- renderPrint({
+  databricks$call(brickster::db_sql_query,
+    warehouse_id = "warehouse-id", statement = "SELECT current_user()",
+    disposition = "INLINE", show_progress = FALSE)
+})
+```
+
+For DBI, use `oauth_db_databricks()` with `host` and either `warehouse_id` or
+the native `http_path`. Call its accessor for each operation: brickster stores
+a fixed token, so the accessor replaces that connection when credentials rotate.
 
 An existing native Databricks client can request `sql` instead of `all-apis` for
-Statement Execution access. Match it with `required_scopes = "sql"` on either
-the DBI helper or bearer accessor; no replacement login setup is needed.
+Statement Execution access. Declare required permissions on that client;
+an additional helper check is optional. No replacement login setup is needed.
 
-For Entra REST access, use `oauth_db_token(auth$connection, target = "databricks", required_scopes = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d/user_impersonation")`, matching the Microsoft client's configuration.
+For Entra REST access, configure the Microsoft client with
+`services = "databricks_entra"`, then use
+`oauth_db_databricks_api(auth$connection, host = host, auth_mode = "entra")`.
 
-Queries retain their native arguments, return values, and errors. There is no query callback API, query registry, or task system.
+`$call(.fn, ...)` supplies credentials and invokes the function once. Native
+arguments, results and errors stay with the upstream package. Authentication
+arguments cannot override the selected user's credentials. These API objects
+do not manage results, background tasks, or native connections returned by a
+call. Use the DBI helpers for session-managed connections.
 
 ## Available bindings
 
-| Helper | Native value returned by its accessor |
+| Helper | Returned interface |
 |---|---|
 | `oauth_db_azure_sql()`, `oauth_db_sql_server()` | DBI + odbc connection; SQL Server must support Entra |
 | `oauth_db_azure_postgres()` | DBI + RPostgres connection; Azure Entra token as password |
 | `oauth_db_fabric_sql()` | fabricQueryR SQL connection |
+| `oauth_db_fabric_api()` | R6 client with `$call()` and `$token_provider()`; native Fabric resource objects pass through unchanged |
 | `oauth_db_fabric(service = ...)` | Ordinary callback for fabricQueryR's existing `token` argument |
 | `oauth_db_databricks()` | DBI connection through brickster; accepts a warehouse ID or HTTP path |
+| `oauth_db_databricks_api()` | R6 client with `$call()` for brickster functions |
 | `oauth_db_token()` | Bearer string for brickster REST or another native API |
 | `oauth_db_snowflake()` | DBI + odbc connection with OAuth |
 
-Create accessors inside `server()`. Pass `auth$connection` directly, or an accessor selecting an explicit connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R) demonstrates selecting among retained grants.
+Create accessors and API clients inside `server()`. DBI helpers return an
+accessor such as `con()`; API helpers return an object such as `fabric`.
+Pass `auth$connection` directly, or an accessor selecting an explicit
+connection-manager ID. The [multiple authorization app](playground/example-multiple-connections.R)
+demonstrates selecting among retained grants.
+
+Azure SQL, SQL Managed Instance and Synapse SQL endpoints share the Entra/ODBC
+token transport. Supply the deployment's server, port, database and permissions.
+Use `oauth_db_fabric_sql()` for Fabric Warehouse, Lakehouse SQL analytics and
+SQL Database endpoints; fabricQueryR owns their connection details. Endpoint
+and database-user mapping still need validation in your deployment.
+
+For custom Fabric target names, pass a mapping such as
+`targets = c(fabric = "discovery", sql = "reporting")` to
+`oauth_db_fabric_api()`. Mappings restrict the supported services; optional
+missing targets are resolved only when requested. DAX and GraphQL share the
+Power BI resource and must select the same target.
 
 Snowflake's native OAuth scope follows the explicit `role`; database, schema, and warehouse are optional. Set `required_scopes` explicitly for External OAuth. SQL Server uses the same connection helper as Azure SQL and requires Entra support on the server.
 
@@ -229,13 +278,13 @@ use:
 
 ```r
 install.packages("remotes")
-remotes::install_github("lukakoning/shinyOAuth")
+install.packages("shinyOAuth")
 remotes::install_github("lukakoning/shinyOAuthDB", dependencies = NA)
 
 # Fabric only:
-remotes::install_github("kennispunttwente/fabricQueryR")
+install.packages("fabricQueryR")
 # Databricks only:
-remotes::install_github("databrickslabs/brickster")
+install.packages("brickster")
 ```
 
 For a local shinyOAuthDB checkout, use `R CMD INSTALL .` after installing its

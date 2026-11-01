@@ -14,6 +14,7 @@ Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     DBI (>= 1.2.0),
+    R6,
     rlang,
     shiny (>= 1.8.1),
     shinyOAuth (>= 0.7.0)
@@ -22,6 +23,8 @@ Suggests:
     dbplyr,
     dplyr,
     fabricQueryR (>= 1.0.1),
+    httr2,
+    jsonlite,
     knitr,
     odbc (>= 1.4.2),
     pkgload,
