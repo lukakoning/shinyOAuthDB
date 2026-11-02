@@ -132,6 +132,8 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
   available <- closed <- denied <- FALSE
   epoch <- 0L
   changed <- shiny::reactiveVal(0L)
+  scope_checks <- list()
+  checks_changed <- shiny::reactiveVal(0L)
 
   assert_owner <- function() {
     if (closed || isTRUE(owner$isClosed()) ||
@@ -144,6 +146,22 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     native <<- NULL
     native_key <<- NULL
     if (!is.null(value)) tryCatch(.odb_disconnect(value, disconnect), error = function(e) NULL)
+  }
+  scope_coverage <- function(scopes) {
+    if (!available) return(FALSE)
+    tryCatch(.odb_authorization_has_scopes(grant, scopes, target),
+      error = .odb_failure_key)
+  }
+  watch_scopes <- function(scopes) {
+    key <- paste(sort(scopes), collapse = "\r")
+    check <- scope_checks[[key]]
+    if (is.null(check)) {
+      check <- list(scopes = scopes, changed = shiny::reactiveVal(shiny::isolate(scope_coverage(scopes))))
+      scope_checks[[key]] <<- check
+      checks_changed(shiny::isolate(checks_changed()) + 1L)
+    }
+    check$changed()
+    invisible(NULL)
   }
   sync <- function() {
     assert_owner()
@@ -198,6 +216,8 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     denied <<- next_denied
     failure <<- next_failure
     failure_key <<- next_failure_key
+    checks_changed()
+    for (check in scope_checks) check$changed(scope_coverage(check$scopes))
     invisible(NULL)
   }
   current <- function(captured) {
@@ -221,6 +241,9 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
       operation_scopes <- union(required_scopes, .odb_scopes(scopes))
       current(captured)
       if (.check_only) return(invisible(NULL))
+      # Operation permissions notify only their consumers; token bytes and
+      # permissions used by other operations must not replay completed work.
+      if (length(setdiff(operation_scopes, required_scopes))) watch_scopes(operation_scopes)
       value <- shiny::isolate(pinned$access_token(
         required_scopes = operation_scopes, min_valid_for_seconds = min_valid_for,
         force_refresh = force_refresh, async = FALSE, target = target

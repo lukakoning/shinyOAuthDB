@@ -259,6 +259,57 @@ test_that("native brickster functions keep their result shape through the API cl
   })
 })
 
+test_that("Fabric optional operation permissions invalidate results and recover errors", {
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  resource <- "https://api.fabric.microsoft.com"
+  scopes <- paste0(resource, "/", c("Workspace.Read.All", "Item.Read.All", "Item.Execute.All"))
+  client <- oauth_db_microsoft_client(client_id = "test", redirect_uri = "http://localhost:8100",
+    provider = shinyOAuth::oauth_provider_microsoft(tenant = "organizations", userinfo_required = FALSE),
+    token_targets = list(fabric = list(resource = resource, scopes = scopes, required_scopes = scopes[[1L]])))
+  for (initially_allowed in c(TRUE, FALSE)) odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, target = "fabric", resource = resource,
+      scopes = c("Workspace.Read.All", "Item.Read.All", "Item.Execute.All"), client = client)
+    if (!initially_allowed) auth$token(auth$make_token("limited", scopes[[1L]]))
+    api <- oauth_db_fabric_api(auth$connection, targets = c(fabric = "fabric"))
+    item_calls <- workspace_calls <- 0L
+    item <- shiny::reactive(api$call(function(token) {
+      item_calls <<- item_calls + 1L
+      token(scopes[[2L]])
+    }))
+    workspace <- shiny::reactive(api$call(function(token) {
+      workspace_calls <<- workspace_calls + 1L
+      token(scopes[[1L]])
+    }))
+    session$flushReact()
+    if (initially_allowed) expect_identical(item(), "fixture-A")
+    else expect_error(item(), class = "shinyOAuth_access_error")
+    workspace()
+    auth$token(auth$make_token("rotated",
+      if (initially_allowed) scopes else scopes[[1L]]))
+    session$flushReact()
+    if (initially_allowed) expect_identical(item(), "fixture-A")
+    else expect_error(item(), class = "shinyOAuth_access_error")
+    expect_identical(item_calls, 1L)
+
+    if (initially_allowed) {
+      auth$token(auth$make_token("limited", scopes[[1L]]))
+      session$flushReact()
+      expect_error(item(), class = "shinyOAuth_access_error")
+      expect_identical(item_calls, 2L)
+    }
+    auth$token(auth$make_token("restored", scopes))
+    session$flushReact()
+    expect_identical(item(), "restored")
+    expect_identical(item_calls, if (initially_allowed) 3L else 2L)
+    auth$token(auth$make_token("unrelated-permission-change", scopes[1:2]))
+    session$flushReact()
+    expect_identical(item(), "restored")
+    workspace()
+    expect_identical(workspace_calls, 1L)
+    expect_identical(item_calls, if (initially_allowed) 3L else 2L)
+  })
+})
+
 test_that("Fabric operations subscribe only to targets they actually use", {
   skip_if_not_installed("fabricQueryR", "1.0.1")
   odb_test_domain(function(session) {
