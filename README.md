@@ -111,8 +111,9 @@ and connection options.
 ## Microsoft Fabric
 
 Query a Warehouse or Lakehouse SQL endpoint and list the user's Fabric
-workspaces. The Entra Web app registration needs delegated SQL and Fabric
-workspace-read permissions.
+workspaces. The Entra Web app registration needs delegated SQL access and
+the Fabric permissions `Workspace.Read.All` and `Item.Read.All`. The Fabric
+preset requires both permissions, including when only listing workspaces.
 
 ```r
 library(shiny)

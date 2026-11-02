@@ -87,8 +87,10 @@ you can also use it with dbplyr.
 ## List workspaces
 
 To list the workspaces a user can access, change the client's services to
-`services = c("sql", "fabric")`. The registration needs the delegated
-Fabric workspace-read permission too.
+`services = c("sql", "fabric")`. The Fabric preset requests and requires
+the delegated `Workspace.Read.All` and `Item.Read.All` permissions. Add both
+to the Entra registration alongside SQL access, even if this example only
+lists workspaces.
 
 Add `verbatimTextOutput("workspaces")` to the UI and put this inside
 `server()`:
