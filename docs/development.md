@@ -30,6 +30,11 @@ builds the vignettes, and runs `R CMD check --no-manual`. Supply an extra
 dependency library as a positional argument if needed. These checks use
 mocked cloud responses; they do not start browser sign-in or cloud resources.
 
+The [package-checks workflow](../.github/workflows/package-checks.yaml) runs
+both commands on Windows and Linux with the current R release. It runs for
+pull requests and pushes to `main` or `master`; you can also start it manually
+from GitHub Actions.
+
 After editing roxygen comments, regenerate help pages:
 
 ```r
