@@ -62,8 +62,10 @@ Create the sign-in `client` outside `server()`. Inside `server()`,
 
 A DBI helper returns a function such as `con`. In a render or reactive
 expression, call `connection <- con()` before using DBI or dbplyr.
-The helper reuses that visitor's connection and closes it when their
-authorization or Shiny session ends.
+The helper reuses that visitor's connection. When their authorization or
+Shiny session ends, it stops returning the connection and calls the driver's
+cleanup method. A saved Databricks connection can retain its token; call
+`con()` before each operation rather than keeping the native handle.
 
 API clients either offer query methods, such as BigQuery's `$query()`,
 or call functions from the platform's R package through `$call()`.

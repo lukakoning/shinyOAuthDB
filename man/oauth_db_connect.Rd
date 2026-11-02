@@ -54,9 +54,11 @@ the argument that receives the token.
 }
 \details{
 Create the helper inside \code{server()} and call \code{con()} before each query.
-The helper reuses the connection and closes it when the selected
-authorization changes, ends, or loses required permissions, or when the
-Shiny session ends.
+The helper reuses the connection and calls its cleanup function when the
+selected authorization changes, ends, or loses required permissions, or
+when the Shiny session ends.
+Cleanup depends on the driver; a retained native handle may still contain
+copied credentials. Call \code{con()} before each operation.
 
 A valid DBI connection stays open through token refresh. If the connection
 becomes invalid, the next call opens a new one.

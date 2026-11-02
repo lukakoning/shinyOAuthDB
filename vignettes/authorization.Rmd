@@ -22,7 +22,12 @@ For a complete app with sign-in setup, choose your source in
 
 Create connection helpers inside `server()` and call `con()` in each
 render or reactive expression that queries the database. The helper reuses
-the connection and closes it when the authorization or Shiny session ends.
+the connection. When the authorization or Shiny session ends, it stops
+returning the connection and calls the driver's cleanup method.
+
+Cleanup depends on the driver. In particular, a retained brickster connection
+can still submit requests with its copied token after sign-out. Call `con()`
+before each operation; see the [Databricks guide](databricks.html#connection-options).
 
 Put API client calls inside reactive expressions too. This lets Shiny
 update the output when the selected account changes.

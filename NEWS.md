@@ -3,8 +3,9 @@
 * Require shinyOAuth 0.7.0.
 * Add connection helpers for Azure SQL, Fabric SQL, Databricks SQL,
   Snowflake, Redshift, Trino, and Azure PostgreSQL. Query with DBI or dbplyr;
-  helpers reuse connections and close them when the authorization or session
-  ends.
+  helpers reuse connections and call the driver's cleanup method when the
+  authorization or session ends. Retained Databricks handles can keep their
+  copied tokens; call the helper before each operation.
 * Add `oauth_db_bigquery_client()` for Google sign-in and
   `oauth_db_bigquery_api()` for GoogleSQL queries. The query client returns
   data frames and supports named parameters.

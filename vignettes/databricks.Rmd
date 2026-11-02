@@ -126,9 +126,12 @@ Supply `http_path = "/sql/1.0/warehouses/warehouse-id"` instead of
 to choose SQL defaults; other connection options go to brickster.
 
 Call `con()` before each operation. When its token changes, the helper
-replaces the connection. It closes the connection on sign-out or session
-end. See [Authentication and sessions](authorization.html) for results
-saved in the app.
+replaces the connection. On sign-out or session end, `con()` stops returning
+the connection and calls the driver's cleanup method. The brickster driver
+doesn't invalidate retained native handles: a saved connection can still
+submit requests with its copied token. Keep using `con()` for each operation.
+See [Authentication and sessions](authorization.html) for results saved in
+the app.
 
 ## Azure Databricks with Entra sign-in
 

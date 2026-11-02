@@ -450,8 +450,10 @@ such as `oauth_db_azure_sql()` gives you a connection function.
 
 Pass `auth$connection` without parentheses. Call `connection <- con()`
 inside your render or reactive expression, then query with DBI or dbplyr.
-The helper opens the connection on first use, reuses it, and closes it on
-sign-out or session end. Outputs stay blank before sign-in.
+The helper opens the connection on first use and reuses it. On sign-out or
+session end, it stops returning the connection and calls the driver's
+cleanup method. A retained Databricks connection can still use its copied
+token, so call `con()` before each operation. Outputs stay blank before sign-in.
 
 Fabric and Databricks API clients pass credentials to the function supplied
 to `$call()`. Use the function's usual arguments and return value.
