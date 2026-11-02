@@ -330,6 +330,9 @@ oauth_db_bigquery_client <- function(
       .odb_abort("Each parameter must be a scalar or vector of supported R values.")
     }
     encode <- function(x) {
+      if (length(x) && is.nan(x) && type %in% c("FLOAT64", "FLOAT")) {
+        return(list(value = "NaN"))
+      }
       if (length(x) == 0L || is.na(x)) return(list(value = NULL))
       text <- if (inherits(x, "POSIXct")) format(x, "%Y-%m-%d %H:%M:%OS6+00:00", tz = "UTC")
       else if (is.logical(x)) if (x) "true" else "false"

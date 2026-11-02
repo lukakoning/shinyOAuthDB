@@ -165,6 +165,27 @@ test_that("BigQuery uses query parameters without interpolating SQL", {
   })
 })
 
+test_that("BigQuery preserves NaN separately from null in scalar and array parameters", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) {
+    body <<- req$body$data
+    bq_test_response(bq_test_result("done"))
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing")
+    api$query("SELECT IS_NAN(@nan), @missing IS NULL, @values",
+      parameters = list(nan = NaN, missing = NA_real_, values = c(NaN, NA_real_, 1.25)),
+      parameter_types = c(values = "ARRAY<FLOAT>"))
+    parameters <- body$queryParameters
+    expect_identical(parameters[[1L]]$parameterType$type, "FLOAT64")
+    expect_identical(parameters[[1L]]$parameterValue$value, "NaN")
+    expect_null(parameters[[2L]]$parameterValue$value)
+    expect_identical(parameters[[3L]]$parameterValue$arrayValues,
+      list(list(value = "NaN"), list(value = NULL), list(value = "1.25")))
+  })
+})
+
 test_that("BigQuery decodes exact numbers, nulls, nested values, dates, and arrays", {
   field <- function(name, type, ...) c(list(name = name, type = type), list(...))
   fields <- list(field("id", "INTEGER"), field("amount", "NUMERIC"), field("score", "FLOAT"),
