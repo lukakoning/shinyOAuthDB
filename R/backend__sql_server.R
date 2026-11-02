@@ -47,6 +47,9 @@ oauth_db_azure_sql <- function(
   min_valid_for = 60, session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("odbc", version = "1.4.2")
+  .odb_string(server, "server")
+  .odb_string(database, "database")
+  .odb_string(driver, "driver")
   if (length(port) != 1L || is.na(port) || !grepl("^[0-9]+$", port) ||
       as.numeric(port) < 1 || as.numeric(port) > 65535) {
     .odb_abort("port must be an integer from 1 to 65535.")

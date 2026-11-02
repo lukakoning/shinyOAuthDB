@@ -50,6 +50,11 @@ oauth_db_snowflake <- function(
   session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("odbc", version = "1.4.2")
+  .odb_string(server, "server")
+  .odb_string(driver, "driver")
+  .odb_string(database, "database", optional = TRUE)
+  .odb_string(schema, "schema", optional = TRUE)
+  .odb_string(warehouse, "warehouse", optional = TRUE)
   .odb_string(role, "role")
   .odb_odbc_values(list(server, database, schema, warehouse, role, driver))
   options <- .odb_options(list(...), blocked = c(

@@ -11,6 +11,21 @@ test_that("a native connector can use its own scopes argument", {
   })
 })
 
+test_that("ODBC helpers reject missing and nonscalar identifiers before binding", {
+  skip_if_not_installed("odbc")
+  local_mocked_bindings(.odb_bind = function(...) stop("Must not bind an invalid configuration"))
+  for (invalid in list(NULL, "", NA_character_, character(), c("first", "second"), 1433L)) {
+    expect_error(oauth_db_azure_sql(NULL, server = invalid, database = "reports"), "server must")
+    expect_error(oauth_db_snowflake(NULL, server = invalid, role = "READER"), "server must")
+  }
+  expect_error(oauth_db_sql_server(NULL, "server", database = character()), "database must")
+  expect_error(oauth_db_azure_sql(NULL, "server", "reports", driver = c("one", "two")), "driver must")
+  expect_error(oauth_db_snowflake(NULL, "account", role = "READER", driver = NULL), "driver must")
+  expect_error(oauth_db_snowflake(NULL, "account", database = "", role = "READER"), "database must")
+  expect_error(oauth_db_snowflake(NULL, "account", schema = character(), role = "READER"), "schema must")
+  expect_error(oauth_db_snowflake(NULL, "account", warehouse = NA_character_, role = "READER"), "warehouse must")
+})
+
 test_that("quoted ODBC values reach the native connector unchanged", {
   skip_if_not_installed("odbc")
   captured <- NULL
