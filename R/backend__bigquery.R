@@ -165,7 +165,7 @@ oauth_db_bigquery_client <- function(
       job <- result$jobReference
       .odb_bigquery_job(job, private$project)
       location <- if (!is.null(job$location)) job$location else private$location
-      rows <- list()
+      pages <- list()
       schema <- result$schema
       seen <- character()
       has_errors <- FALSE
@@ -175,7 +175,7 @@ oauth_db_bigquery_client <- function(
             is.na(result$jobComplete)) .odb_abort("BigQuery omitted jobComplete.", "invalid_response")
         if (isTRUE(result$jobComplete)) {
           if (!is.null(result$schema)) schema <- result$schema
-          rows <- c(rows, result$rows)
+          if (length(result$rows)) pages[[length(pages) + 1L]] <- result$rows
           page <- result$pageToken
           if (is.null(page) || identical(page, "")) break
           .odb_string(page, "BigQuery page token")
@@ -202,6 +202,7 @@ oauth_db_bigquery_client <- function(
             "query_failed", job = job)
         }
       }
+      rows <- if (length(pages)) unlist(pages, recursive = FALSE, use.names = FALSE) else list()
       result$rows <- rows
       result$schema <- schema
       result$jobReference <- job
@@ -228,14 +229,16 @@ oauth_db_bigquery_client <- function(
     list_items = function(path, field) {
       token <- private$provider()
       deadline <- .odb_bigquery_time() + private$timeout
-      values <- list()
+      pages <- list()
       seen <- character()
       query <- list(maxResults = private$page_size)
       repeat {
         result <- .odb_bigquery_request(token, "GET", path, deadline, query = query)
-        values <- c(values, result[[field]])
+        if (length(result[[field]])) pages[[length(pages) + 1L]] <- result[[field]]
         page <- result$nextPageToken
-        if (is.null(page) || identical(page, "")) return(values)
+        if (is.null(page) || identical(page, "")) {
+          return(if (length(pages)) unlist(pages, recursive = FALSE, use.names = FALSE) else list())
+        }
         .odb_string(page, "BigQuery page token")
         if (page %in% seen) .odb_abort("BigQuery repeated a page token.", "invalid_response")
         seen <- c(seen, page)

@@ -238,6 +238,33 @@ test_that("BigQuery metadata lists all pages and raw queries preserve the schema
   })
 })
 
+test_that("BigQuery combines result and metadata pages across empty pages", {
+  requests <- 0L
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    page <- (requests - 1L) %% 3L + 1L
+    if (grepl("/datasets", req$url, fixed = TRUE)) {
+      result <- list(datasets = if (page == 2L) list() else
+        list(list(datasetReference = list(datasetId = paste0("dataset", page)))))
+      if (page < 3L) result$nextPageToken <- paste0("page", page + 1L)
+    } else {
+      result <- bq_test_result(switch(page, "first", character(), c(NA_character_, "last")))
+      if (page < 3L) result$pageToken <- paste0("page", page + 1L)
+    }
+    bq_test_response(result)
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing", page_size = 2L)
+    expect_identical(api$query("SELECT value")$value, c("first", NA_character_, "last"))
+    raw <- api$query("SELECT value", raw = TRUE)
+    expect_identical(raw$rows, list(list(f = list(list(v = "first"))),
+      list(f = list(list(v = NULL))), list(f = list(list(v = "last")))))
+    expect_identical(api$datasets(), c("dataset1", "dataset3"))
+    expect_identical(requests, 9L)
+  })
+})
+
 test_that("BigQuery distinguishes warnings from failed jobs and bounds polling", {
   failure <- FALSE
   httr2::local_mocked_responses(function(req) {
