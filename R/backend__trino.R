@@ -67,8 +67,13 @@ oauth_db_trino <- function(
     "authorization", "token", "access_token", "token_provider", "password",
     "client_id", "client_secret", "ssl_options", "allow_http_auth", "verify", "insecure"
   ))
-  if (!is.null(options$extra.headers)) {
-    .odb_options(options$extra.headers, blocked = c(
+  header_options <- which(startsWith("extra.headers", as.character(names(options))))
+  if (length(header_options) > 1L) {
+    .odb_abort("Supply extra.headers only once, using its full name or one abbreviation.")
+  }
+  if (length(header_options)) names(options)[header_options] <- "extra.headers"
+  if (!is.null(options[["extra.headers"]])) {
+    .odb_options(options[["extra.headers"]], blocked = c(
       "Authorization", "Proxy-Authorization", "Cookie", "Host",
       "X-Trino-User", "X-Presto-User", "X-Trino-Original-User", "X-Presto-Original-User",
       "X-Trino-Session-User", "X-Trino-Principal"

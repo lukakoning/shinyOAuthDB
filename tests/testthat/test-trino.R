@@ -119,6 +119,35 @@ test_that("Trino rejects insecure origins and conflicting connection credentials
     class = "shinyOAuthDB_authorization_unavailable")
 })
 
+test_that("Trino validates abbreviated header options before native requests", {
+  skip_if_not_installed("RTrino", "0.1.0")
+  for (option in c("e", "extra", "extra.h", "extra.headers")) {
+    for (header in c("X-Trino-User", "Host", "Authorization", "Cookie")) {
+      args <- c(list(function() NULL, "trino.example.org", "lake", "reports", "reader"),
+        stats::setNames(list(stats::setNames(list("override"), header)), option))
+      expect_error(do.call(oauth_db_trino, args), "cannot be overridden",
+        class = "shinyOAuthDB_invalid_configuration")
+    }
+  }
+  expect_error(oauth_db_trino(function() NULL, "trino.example.org", "lake", "reports", "reader",
+    extra.h = list(), extra.headers = list()), "only once")
+
+  headers <- NULL
+  httr2::local_mocked_responses(function(req) {
+    headers <<- httr2::req_get_headers(req, redacted = "reveal")
+    trino_test_response(req)
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    con <- oauth_db_trino(auth$connection, "trino.example.org", "lake", "reports", "reader",
+      extra.h = list("X-Trino-Client-Info" = "reporting"))
+    con()
+    expect_identical(headers[["X-Trino-Client-Info"]], "reporting")
+    expect_identical(headers[["X-Trino-User"]], "reader")
+    expect_identical(headers$Authorization, "Bearer fixture-A")
+  })
+})
+
 test_that("Trino native errors do not trigger query replay by the bridge", {
   skip_if_not_installed("RTrino", "0.1.0")
   submissions <- 0L
