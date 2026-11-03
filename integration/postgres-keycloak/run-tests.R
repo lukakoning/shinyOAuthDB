@@ -186,6 +186,7 @@ local({
     app <- new.env(parent = globalenv())
     sys.source(file.path(fixture, "helper-browser.R"), envir = app)
     sys.source(file.path(fixture, "fixture-app.R"), envir = app)
+    sys.source(file.path(fixture, "playground-ui.R"), envir = app)
     config <- app$postgres_browser_config(Sys.getenv(
       "OAUTHDB_TEST_CLIENT_ID",
       "shiny-db"

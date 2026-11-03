@@ -15,7 +15,10 @@ are public test data.
 ## Run
 
 You need Docker Compose v2 with Linux containers and a shinyOAuth checkout
-beside this repository:
+beside this repository. Use a current Compose v2 release with support for
+the [reset tag](https://docs.docker.com/reference/compose-file/merge/#reset-value).
+The test override keeps services off host ports, so a playground can stay running
+while the tests execute. Arrange the checkouts as follows:
 
 ```text
 GitHub/

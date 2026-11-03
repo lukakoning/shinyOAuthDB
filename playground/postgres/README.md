@@ -28,16 +28,26 @@ local test certificate.
 | `alice` | `alice-fixture-password` | `alice-visible-1`, `alice-visible-2` |
 | `bob` | `bob-fixture-password` | `bob-visible-1`, `bob-visible-2` |
 
-Click **Authorize database user** and sign in. The table shows rows from
-PostgreSQL; **Load granted rows** repeats the query. Try signing out and
-switching accounts, refreshing the token, or probing the other role and
-table grants. PostgreSQL rejects the unauthorized reads.
+Click **Sign in** and choose either account. The table shows rows from
+PostgreSQL; **Reload rows** repeats the query. **Switch account** opens a
+new sign-in. Token refresh runs in background workers, with its progress
+and result shown above the table. Controls become available when the
+browser and the required authorization are ready.
 
-The app also exposes diagnostic controls used by the integration tests.
-**Terminate fixture backend** breaks its database connection, and **Retry
-held native connection** checks that the old handle cannot start another
-OAuth flow. The JSON below the table contains test metadata and query
-results, without access tokens.
+Each permission check has a short result beneath its button. **Try the
+other role** tests the database's identity mapping, **Check table access**
+tries both private tables, and **Check token scope** asks PostgreSQL to
+validate the current token. With the normal demo account, the scope check
+succeeds because that token includes `database.read`.
+
+The **Current session** fields show the account, granted scope and refresh
+count. Expand **Connection details** for the backend process, connection
+counts and authorization ID. Access tokens are never displayed.
+
+Expand **Test connection recovery** to use **Break connection**, then
+**Try the old connection** or **Reload rows**. The first failed read detects
+the lost connection; the next reload opens a fresh one. The browser tests
+use separate hidden metadata, so the full JSON does not fill the page.
 
 Click **Stop playground** to close the app and remove its containers and
 database volumes. Interrupting the launcher also attempts cleanup; if you

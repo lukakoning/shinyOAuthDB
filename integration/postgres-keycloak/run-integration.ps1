@@ -9,6 +9,9 @@ $fixturePath = [System.IO.Path]::GetFullPath($PSScriptRoot)
 $composePath = Join-Path $fixturePath 'compose.yml'
 $project = 'shinyoauthdb-postgres-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
 $composeArguments = @('compose', '--project-name', $project, '--file', $composePath)
+if (-not $Playground) {
+    $composeArguments += @('--file', (Join-Path $fixturePath 'compose.test.yml'))
+}
 $started = $false
 $result = 1
 

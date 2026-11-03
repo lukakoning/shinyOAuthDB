@@ -14,6 +14,9 @@ command -v docker >/dev/null
 docker info >/dev/null
 mkdir -p .generated
 compose=(docker compose --project-name "$project" --file compose.yml)
+if [[ "${OAUTHDB_PLAYGROUND:-0}" != 1 ]]; then
+  compose+=(--file compose.test.yml)
+fi
 
 cleanup() {
   local result=$?

@@ -47,24 +47,7 @@ postgres_browser_app <- function(config) {
     scopes = scopes,
     required_scopes = "openid"
   )
-  base <- shiny::fluidPage(
-    shiny::h3("Local PostgreSQL OAuth integration fixture"),
-    shiny::actionButton("login", "Authorize database user"),
-    shiny::actionButton("load", "Load granted rows"),
-    shiny::actionButton("refresh", "Refresh current credential"),
-    shiny::actionButton("request_other_role", "Probe the other fixture role"),
-    shiny::actionButton("probe_table_grants", "Probe fixture table grants"),
-    shiny::actionButton(
-      "probe_native_scope",
-      "Probe PostgreSQL scope validation"
-    ),
-    shiny::actionButton("logout", "Logout"),
-    shiny::actionButton("reset_backend", "Terminate fixture backend"),
-    shiny::actionButton("retry_native", "Retry held native connection"),
-    if (isTRUE(config$playground)) shiny::actionButton("stop_playground", "Stop playground"),
-    shiny::tableOutput("rows"),
-    shiny::verbatimTextOutput("snapshot")
-  )
+  base <- postgres_playground_ui(config)
   ui <- shinyOAuth::oauth_ui(base, id = "auth", client = client)
 
   server <- function(input, output, session) {
@@ -72,10 +55,17 @@ postgres_browser_app <- function(config) {
       "auth",
       client,
       auto_redirect = FALSE,
+      async = TRUE,
       refresh_proactively = FALSE
     )
 
     authorization <- shiny::reactive(auth$connection())
+    feedback <- shiny::reactiveVal(list(text = "Connecting to the browser. Sign-in will be available shortly.", kind = "info", sequence = 0L))
+    refreshing <- shiny::reactiveVal(FALSE)
+    refresh_job <- NULL
+    notice <- function(text, kind = "info") {
+      feedback(list(text = text, kind = kind, sequence = shiny::isolate(feedback())$sequence + 1L))
+    }
 
     connect_attempts <- shiny::reactiveVal(0L)
 
@@ -88,15 +78,20 @@ postgres_browser_app <- function(config) {
 
     native_error_detail <- shiny::reactiveVal(NULL)
 
+    role_cache <- NULL
     database_role <- function() {
       reference <- authorization()
-      subject <- reference$identity(claims = "sub")$id_token_claims$sub
+      shiny::req(reference)
+      if (!is.null(role_cache) && identical(role_cache$id, reference$id)) return(role_cache$role)
+      # Keep the verified mapping for this authorization while credentials rotate.
+      subject <- shiny::isolate(reference$identity(claims = "sub")$id_token_claims$sub)
       role <- switch(subject,
         "11111111-1111-4111-8111-111111111111" = "alice",
         "22222222-2222-4222-8222-222222222222" = "bob",
         NULL
       )
       if (is.null(role)) stop("The validated fixture identity has no database role.", call. = FALSE)
+      role_cache <<- list(id = reference$id, role = role)
       role
     }
     database <- shinyOAuthDB::oauth_db_postgres(
@@ -142,6 +137,7 @@ postgres_browser_app <- function(config) {
     credential_rotated <- shiny::reactiveVal(FALSE)
 
     reset_count <- shiny::reactiveVal(0L)
+    terminated_pid <- shiny::reactiveVal(NULL)
 
     role_probe_attempts <- shiny::reactiveVal(0L)
 
@@ -191,35 +187,70 @@ postgres_browser_app <- function(config) {
           native_scope_denied(NULL)
 
           native_error_detail(NULL)
+          refresh_job <<- NULL
+          refreshing(FALSE)
+          terminated_pid(NULL)
         }
       },
       ignoreNULL = FALSE,
       priority = 200
     )
+    shiny::observeEvent(auth$has_browser_token(), {
+      if (isTRUE(auth$has_browser_token()) && is.null(authorization()) &&
+          shiny::isolate(feedback())$sequence == 0L) {
+        notice("Sign in as Alice or Bob to query the database.")
+      }
+    })
 
-    shiny::observeEvent(input$login, auth$request_login())
+    shiny::observeEvent(input$login, {
+      refresh_job <<- NULL
+      refreshing(FALSE)
+      notice("Opening Keycloak sign-in...")
+      reference <- authorization()
+      if (is.null(reference)) auth$request_login() else auth$reauthorize()
+      invisible(NULL)
+    })
+    shiny::observeEvent(auth$error, {
+      if (!is.null(auth$error) && !identical(auth$error, "logged_out")) {
+        notice("Sign-in or token renewal failed. Try signing in again.", "danger")
+      }
+    })
     if (isTRUE(config$playground)) {
       shiny::observeEvent(input$stop_playground, shiny::stopApp())
     }
 
-    shiny::observeEvent(input$load, last_error(NULL))
+    shiny::observeEvent(input$load, {
+      last_error(NULL)
+      notice("Reading your rows from PostgreSQL...")
+    }, priority = 100)
 
     # Ordinary Shiny reactivity: login/replacement and the reload button read
     # through the native connection accessor. There is no separate result API.
     result <- shiny::reactive({
       input$load
-      native <- con()
+      native <- tryCatch(con(), error = function(e) {
+        if (!inherits(e, "shiny.silent.error")) {
+          notice("Could not connect to PostgreSQL. Expand Connection details for the database error.", "danger")
+        }
+        stop(e)
+      })
       query_attempts(shiny::isolate(query_attempts()) + 1L)
-      rows <- DBI::dbGetQuery(native, paste(
+      rows <- tryCatch(DBI::dbGetQuery(native, paste(
         "SELECT current_user::text AS database_user, row_id, owner_name, marker",
         "FROM public.visible_rows ORDER BY row_id"
-      ))
+      )), error = function(e) {
+        notice("The database read failed. If the connection was broken, reload rows to reconnect.", "danger")
+        stop(e)
+      })
       pid <- DBI::dbGetQuery(native,
         "SELECT pg_backend_pid()::integer AS backend_pid")$backend_pid[[1L]]
       held_connection <<- native
       held_owner <<- shiny::isolate(owner())
       held_connection_valid(TRUE)
       held_provider_usable(TRUE)
+      native_error_detail(NULL)
+      notice(paste0("Loaded ", nrow(rows), " rows as ", unique(rows$database_user),
+        ". Read ", shiny::isolate(query_attempts()), " completed."), "success")
       list(database_user = unique(rows$database_user),
         owner_names = unique(rows$owner_name), markers = rows$marker, backend_pid = pid)
     })
@@ -229,20 +260,32 @@ postgres_browser_app <- function(config) {
       shiny::req(reference)
       last_error(NULL)
 
-      tryCatch(
-        {
-          before <- reference$access_token(min_valid_for = 1)
-          after <- reference$access_token(
-            force_refresh = TRUE,
-            min_valid_for = 1
-          )
+      shiny::req(!refreshing())
+      before <- reference$access_token(min_valid_for = 0)
+      job <- new.env(parent = emptyenv())
+      refresh_job <<- job
+      refreshing(TRUE)
+      notice("Refreshing your token in the background. Your existing database connection stays open.")
+      failed <- function(e) {
+        if (session$isClosed() || !identical(refresh_job, job)) return(NULL)
+        refreshing(FALSE)
+        last_error("credential_refresh_failed")
+        notice("Token refresh failed. Try again or sign in again.", "danger")
+        NULL
+      }
+      pending <- tryCatch(reference$access_token(force_refresh = TRUE,
+        min_valid_for = 1, async = TRUE), error = function(e) { failed(e); NULL })
+      if (!is.null(pending)) promises::then(pending,
+        onFulfilled = function(after) {
+          if (session$isClosed() || !identical(refresh_job, job)) return(NULL)
           credential_rotated(!identical(before, after))
-
           refreshes(shiny::isolate(refreshes()) + 1L)
-        },
-
-        error = function(e) last_error("credential_refresh_failed")
-      )
+          refreshing(FALSE)
+          notice("Token refreshed. Your database connection was reused.", "success")
+          NULL
+        }, onRejected = failed)
+      # Let this session process other inputs while the refresh is pending.
+      invisible(NULL)
     })
 
     shiny::observeEvent(input$request_other_role, {
@@ -288,6 +331,9 @@ postgres_browser_app <- function(config) {
       )
 
       other_role_denied(denied)
+      notice(if (denied) "PostgreSQL rejected the other database role, as expected." else
+        "The other database role was accepted. Review the server's identity mapping.",
+        if (denied) "success" else "danger")
     })
 
     shiny::observeEvent(input$probe_table_grants, {
@@ -335,6 +381,9 @@ postgres_browser_app <- function(config) {
       own_table_allowed(allowed)
 
       other_table_denied(denied)
+      notice(if (allowed && denied) "Table access checked: your table is readable; the other account's table is denied." else
+        "The table grants did not match the expected account permissions.",
+        if (allowed && denied) "success" else "warning")
     })
 
     shiny::observeEvent(input$probe_native_scope, {
@@ -379,9 +428,13 @@ postgres_browser_app <- function(config) {
       )
 
       native_scope_denied(denied)
+      notice(if (denied) "PostgreSQL rejected this token for database.read." else
+        "PostgreSQL accepted this token for database.read.", if (denied) "warning" else "success")
     })
 
     shiny::observeEvent(input$logout, {
+      refresh_job <<- NULL
+      refreshing(FALSE)
       auth$logout()
       # Observe retirement before inspecting the intentionally retained fixture
       # connection. Production output simply calls con() in its render code.
@@ -415,6 +468,7 @@ postgres_browser_app <- function(config) {
       )
 
       last_error(NULL)
+      notice("Signed out. Your database connection is closed.", "success")
     })
 
     shiny::observeEvent(input$reset_backend, {
@@ -446,9 +500,14 @@ postgres_browser_app <- function(config) {
           }
 
           reset_count(shiny::isolate(reset_count()) + 1L)
+          terminated_pid(saved$backend_pid)
+          notice("Database connection terminated. Reload rows to detect the failure, then reload again to reconnect.", "warning")
         },
 
-        error = function(e) last_error("fixture_backend_reset_failed")
+        error = function(e) {
+          last_error("fixture_backend_reset_failed")
+          notice("Could not terminate the database connection. Reload rows and try again.", "danger")
+        }
       )
     })
 
@@ -485,23 +544,25 @@ postgres_browser_app <- function(config) {
           "unexpected_native_recovery"
         }
       )
+      notice(if (failures == 2L) "The old connection failed both reads, as expected. Reload rows to open a fresh connection." else
+        "The old connection still accepts queries. Break it first to test recovery.",
+        if (failures == 2L) "success" else "info")
     })
 
     output$rows <- shiny::renderTable({
-      saved <- result()
+      saved <- tryCatch(result(), error = function(e) NULL)
       shiny::req(saved)
-      data.frame(database_user = saved$database_user, owner = saved$owner_names,
-        marker = saved$markers)
+      data.frame("Database role" = saved$database_user, Owner = saved$owner_names,
+        "Row value" = saved$markers, check.names = FALSE)
     })
 
-    output$snapshot <- shiny::renderText({
+    state <- shiny::reactive({
       current_owner <- owner()
       query_error <- NULL
       saved <- tryCatch(result(), shiny.silent.error = function(e) NULL,
         error = function(e) { query_error <<- "database_operation_failed"; NULL })
 
-      jsonlite::toJSON(
-        list(
+      list(
           ready = isTRUE(auth$has_browser_token()),
           authorized = !is.null(current_owner),
           authorization_id = if (is.null(current_owner)) {
@@ -529,6 +590,10 @@ postgres_browser_app <- function(config) {
           held_provider_usable = held_provider_usable(),
           held_connection_valid = held_connection_valid(),
           reset_count = reset_count(),
+          terminated_pid = terminated_pid(),
+          refreshing = refreshing(),
+          action_message = feedback()$text,
+          signed_in_as = if (is.null(current_owner)) NULL else tryCatch(database_role(), error = function(e) NULL),
           held_query_failures = held_query_failures(),
           role_probe_attempts = role_probe_attempts(),
           other_role_denied = other_role_denied(),
@@ -541,17 +606,107 @@ postgres_browser_app <- function(config) {
             getFromNamespace(".odb_postgres_runtime", "shinyOAuthDB")(),
             !isTRUE(active) && isTRUE(default_hook) && isTRUE(same_libpq)
           )
-        ),
-        auto_unbox = TRUE,
-        null = "null"
       )
     })
+
+    output$snapshot <- shiny::renderText(jsonlite::toJSON(state(), auto_unbox = TRUE, null = "null"))
+    shiny::outputOptions(output, "snapshot", suspendWhenHidden = FALSE)
+
+    output$action_status <- shiny::renderUI({
+      value <- feedback()
+      shiny::div(class = paste("alert", paste0("alert-", value$kind)),
+        `data-action-sequence` = value$sequence, value$text)
+    })
+    fields <- function(...) {
+      entries <- list(...)
+      shiny::tags$dl(lapply(names(entries), function(label) shiny::tagList(
+        shiny::tags$dt(label), shiny::tags$dd(entries[[label]])
+      )))
+    }
+    output$session_status <- shiny::renderUI({
+      value <- state()
+      fields(
+        "Signed in as" = if (is.null(value$signed_in_as)) "Not signed in" else value$signed_in_as,
+        "Database permission" = if (!value$authorized) "Sign-in required" else
+          if (value$database_status == "authorized") "database.read granted" else "database.read missing",
+        "Token refresh" = if (value$refreshing) "In progress" else "Ready",
+        "Completed refreshes" = value$refreshes
+      )
+    })
+    output$data_status <- shiny::renderUI({
+      value <- state()
+      if (!value$authorized) return(shiny::p("Sign in to see the rows available to your database role."))
+      if (value$database_status == "insufficient_scope") return(shiny::p("This sign-in is missing database.read. Authorize an account with database access."))
+      if (!is.null(value$error) && is.null(value$result)) return(shiny::div(
+        class = "alert alert-warning", "No rows loaded. Reload rows to retry using the current sign-in."))
+      if (is.null(value$result)) return(shiny::p("Loading your database rows..."))
+      shiny::p(paste0("Showing ", length(value$result$markers), " rows for ", value$result$database_user,
+        ". Row-level security runs inside PostgreSQL."))
+    })
+    output$connection_status <- shiny::renderUI({
+      value <- state()
+      fields(
+        "Database" = config$pg_dbname,
+        "Backend process" = if (is.null(value$result)) "No successful read" else value$result$backend_pid,
+        "Read attempts" = value$query_attempts,
+        "Connections opened" = value$successful_connections,
+        "Connections closed" = value$disconnects,
+        "Token hook" = if (value$hook_restored) "Restored after connection opening" else "Not restored",
+        "Authorization ID" = if (is.null(value$authorization_id)) "None" else shiny::tags$code(value$authorization_id),
+        "Last database error" = if (is.null(value$native_error_detail)) "None" else value$native_error_detail
+      )
+    })
+    output$role_status <- shiny::renderText({
+      value <- state()$other_role_denied
+      if (is.null(value)) "Not checked yet." else if (value)
+        "The other role was rejected. Your token can only authenticate your mapped role." else
+        "The other role was accepted. Review the database identity mapping."
+    })
+    output$grants_status <- shiny::renderText({
+      value <- state()
+      if (is.null(value$own_table_allowed)) "Not checked yet." else paste0(
+        "Your private table: ", if (value$own_table_allowed) "readable" else "denied",
+        ". Other account's table: ", if (value$other_table_denied) "denied" else "readable", ".")
+    })
+    output$scope_status <- shiny::renderText({
+      value <- state()$native_scope_denied
+      if (is.null(value)) "Not checked yet." else if (value)
+        "PostgreSQL rejected this token for database.read." else
+        "PostgreSQL accepted this token for database.read."
+    })
+    output$recovery_status <- shiny::renderText({
+      value <- state()
+      if (is.null(value$terminated_pid)) "The current connection has not been deliberately broken."
+      else if (!is.null(value$result) && value$result$backend_pid != value$terminated_pid)
+        "Reconnected successfully with a fresh database connection."
+      else if (value$held_query_failures >= 2L) "Both reads on the old connection failed. Reload rows to reconnect."
+      else "The connection was terminated. Reload rows to detect the failure."
+    })
+    shiny::observe({
+      value <- state()
+      feedback()
+      usable <- value$authorized && value$database_status == "authorized" && !value$refreshing
+      session$sendCustomMessage("postgres.controls", list(signed_in = value$authorized,
+        enabled = list(
+          login = value$ready && !value$refreshing, logout = value$authorized,
+          load = usable, refresh = value$authorized && !value$refreshing,
+          request_other_role = usable, probe_table_grants = usable,
+          probe_native_scope = value$authorized && !value$refreshing,
+          reset_backend = usable && !is.null(value$result),
+          retry_native = usable && !is.null(held_connection) && identical(held_owner, owner()) &&
+            !is.null(value$terminated_pid) && (is.null(value$result) ||
+              identical(value$result$backend_pid, value$terminated_pid)),
+          stop_playground = isTRUE(config$playground)
+        )))
+    }, priority = -100)
   }
 
   shiny::shinyApp(ui, server, uiPattern = ".*")
 }
 
 postgres_browser_run_app <- function(config) {
+  mirai::daemons(2L)
+  on.exit(mirai::daemons(0L), add = TRUE)
   shiny::runApp(
     postgres_browser_app(config),
     host = "0.0.0.0",

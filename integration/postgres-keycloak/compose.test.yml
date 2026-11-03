@@ -1,0 +1,4 @@
+# Browser tests run inside Docker and do not need host ports.
+services:
+  keycloak:
+    ports: !reset []

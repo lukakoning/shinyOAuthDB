@@ -77,6 +77,7 @@ postgres_browser_setup <- function(
     function(script, config) {
       Sys.setenv(CURL_SSL_BACKEND = "openssl", CURL_CA_BUNDLE = config$ca_file)
       source(script, local = TRUE)
+      source(file.path(dirname(script), "playground-ui.R"), local = TRUE)
 
       postgres_browser_run_app(config)
     },
@@ -168,8 +169,10 @@ postgres_browser_setup <- function(
       browserContextId = context
     )$targetId
     browser <- chromote::ChromoteSession$new(parent = chrome, targetId = target)
+    browser$Page$enable()
     browser$go_to(config$origin)
-    postgres_browser_wait(browser, function(snapshot) isTRUE(snapshot$ready))
+    postgres_browser_wait(browser, function(snapshot) isTRUE(snapshot$ready) &&
+      isTRUE(postgres_browser_value(browser, "!document.querySelector('#login').disabled")))
 
     browser
   }
@@ -239,12 +242,17 @@ postgres_browser_wait <- function(browser, predicate, timeout = 25) {
 
 postgres_browser_click <- function(browser, id) {
   selector <- jsonlite::toJSON(paste0("#", id), auto_unbox = TRUE)
-  postgres_browser_value(
+  postgres_browser_wait(browser, function(value) isTRUE(postgres_browser_value(
+    browser, paste0("Boolean(document.querySelector(", selector,
+      ") && !document.querySelector(", selector, ").disabled)"))))
+  clicked <- postgres_browser_value(
     browser,
-    paste0("document.querySelector(", selector, ").click()")
+    paste0("(() => { const button=document.querySelector(", selector,
+      "); button.click(); return {message:document.querySelector('#action_status')?.textContent,",
+      "disabled:button.disabled}; })()")
   )
 
-  invisible(NULL)
+  invisible(clicked)
 }
 
 postgres_browser_login <- function(
@@ -276,8 +284,20 @@ postgres_browser_login <- function(
     if (isTRUE(form)) {
       break
     }
+    restart <- tryCatch(postgres_browser_value(browser,
+      "Boolean(document.querySelector('#reset-login') && !document.querySelector('#username'))"),
+      error = function(e) FALSE)
+    if (isTRUE(restart)) postgres_browser_value(browser, "document.querySelector('#reset-login').click()")
     if (Sys.time() > deadline) {
-      stop("Browser did not reach the fixture login form.", call. = FALSE)
+      page <- postgres_browser_value(browser, paste0(
+        "({origin:location.origin,path:location.pathname,",
+        "message:document.querySelector('#action_status')?.textContent,",
+        "loginDisabled:document.querySelector('#login')?.disabled,",
+        "pageText:document.body.innerText.slice(0,600)})"
+      ))
+      stop("Browser did not reach the fixture login form. Safe state: ",
+        jsonlite::toJSON(postgres_browser_snapshot(browser), auto_unbox = TRUE, null = "null"),
+        "; page: ", jsonlite::toJSON(page, auto_unbox = TRUE), call. = FALSE)
     }
 
     Sys.sleep(0.1)

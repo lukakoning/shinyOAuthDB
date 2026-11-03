@@ -6,6 +6,20 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
   on.exit(fixture$close(), add = TRUE)
   browser_a <- fixture$new_browser()
   browser_b <- fixture$new_browser()
+  testthat::expect_true(postgres_browser_value(browser_a, "document.querySelector('#load').disabled"))
+  testthat::expect_true(postgres_browser_value(browser_a, "document.querySelector('#refresh').disabled"))
+  testthat::expect_identical(postgres_browser_value(browser_a,
+    "document.querySelector('#snapshot').getBoundingClientRect().height"), 0L)
+  browser_a$Page$bringToFront()
+  postgres_browser_value(browser_a, "document.querySelector('summary').focus()")
+  testthat::expect_identical(postgres_browser_value(browser_a, "document.activeElement.tagName"), "SUMMARY")
+  browser_a$Input$dispatchKeyEvent(type = "keyDown", key = " ", code = "Space", windowsVirtualKeyCode = 32L)
+  browser_a$Input$dispatchKeyEvent(type = "keyUp", key = " ", code = "Space", windowsVirtualKeyCode = 32L)
+  testthat::expect_true(postgres_browser_value(browser_a, "document.querySelector('details').open"))
+  browser_a$Input$dispatchKeyEvent(type = "keyDown", key = " ", code = "Space", windowsVirtualKeyCode = 32L)
+  browser_a$Input$dispatchKeyEvent(type = "keyUp", key = " ", code = "Space", windowsVirtualKeyCode = 32L)
+  testthat::expect_false(postgres_browser_value(browser_a, "document.querySelector('details').open"))
+  testthat::expect_identical(postgres_browser_value(browser_a, "document.documentElement.lang"), "en")
   login_a <- postgres_browser_login(browser_a, "alice", fixture$config)
   login_b <- postgres_browser_login(browser_b, "bob", fixture$config)
   for (login in list(login_a, login_b)) {
@@ -47,6 +61,10 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
   testthat::expect_false(grepl("bob-visible", alice_table, fixed = TRUE))
   testthat::expect_match(bob_table, "bob-visible-1", fixed = TRUE)
   testthat::expect_false(grepl("alice-visible", bob_table, fixed = TRUE))
+  testthat::expect_match(postgres_browser_value(browser_a,
+    "document.querySelector('#session_status').textContent"), "alice", fixed = TRUE)
+  testthat::expect_match(postgres_browser_value(browser_a,
+    "document.querySelector('#action_status').textContent"), "Loaded 2 rows", fixed = TRUE)
 
   for (entry in list(
     list(browser = browser_a, before = a),
@@ -72,6 +90,8 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
       entry$before$connect_attempts
     )
     testthat::expect_true(denied$hook_restored)
+    testthat::expect_match(postgres_browser_value(entry$browser,
+      "document.querySelector('#role_status').textContent"), "other role was rejected", fixed = TRUE)
 
     postgres_browser_click(entry$browser, "probe_table_grants")
     grants <- postgres_browser_wait(entry$browser, function(value) {
@@ -87,6 +107,17 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     )
   }
 
+  postgres_browser_click(browser_a, "probe_table_grants")
+  postgres_browser_wait(browser_a, function(value) value$grant_probe_attempts >= 2L)
+  testthat::expect_match(postgres_browser_value(browser_a,
+    "document.querySelector('#action_status').textContent"), "Table access checked", fixed = TRUE)
+  postgres_browser_click(browser_a, "probe_native_scope")
+  postgres_browser_wait(browser_a, function(value) value$native_scope_probe_attempts >= 1L)
+  testthat::expect_match(postgres_browser_value(browser_a,
+    "document.querySelector('#scope_status').textContent"), "accepted", fixed = TRUE)
+  writeBin(jsonlite::base64_dec(browser_a$Page$captureScreenshot(captureBeyondViewport = TRUE)$data),
+    "/results/playground-desktop.png")
+
   postgres_browser_click(browser_a, "load")
   reused <- postgres_browser_wait(browser_a, function(value) {
     isTRUE(value$query_attempts > a$query_attempts)
@@ -95,13 +126,18 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
   testthat::expect_identical(reused$result$backend_pid, a$result$backend_pid)
   testthat::expect_identical(reused$successful_connections, 1L)
 
-  postgres_browser_click(browser_a, "refresh")
+  refresh_click <- postgres_browser_click(browser_a, "refresh")
+  testthat::expect_match(refresh_click$message, "Refreshing your token", fixed = TRUE)
+  testthat::expect_true(refresh_click$disabled)
   refreshed <- postgres_browser_wait(browser_a, function(value) {
     value$refreshes >= 1 || !is.null(value$error)
   })
 
   testthat::expect_null(refreshed$error)
   testthat::expect_true(refreshed$credential_rotated)
+  testthat::expect_false(refreshed$refreshing)
+  testthat::expect_match(postgres_browser_value(browser_a,
+    "document.querySelector('#action_status').textContent"), "Token refreshed", fixed = TRUE)
   testthat::expect_identical(
     refreshed$authorization_id,
     reused$authorization_id
@@ -127,6 +163,7 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
   })
 
   testthat::expect_null(logged_out$result)
+  testthat::expect_true(postgres_browser_value(browser_a, "document.querySelector('#load').disabled"))
   testthat::expect_false(logged_out$held_provider_usable)
   testthat::expect_false(logged_out$held_connection_valid)
   testthat::expect_true(postgres_browser_snapshot(browser_b)$authorized)
@@ -199,6 +236,40 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
   testthat::expect_false(identical(recovered$result$backend_pid, reset$result$backend_pid))
   testthat::expect_identical(recovered$successful_connections, 2L)
   testthat::expect_true(recovered$hook_restored)
+  browser_b$Emulation$setDeviceMetricsOverride(width = 375L, height = 812L,
+    deviceScaleFactor = 1, mobile = TRUE)
+  testthat::expect_true(postgres_browser_value(browser_b,
+    "document.documentElement.scrollWidth <= window.innerWidth"))
+  writeBin(jsonlite::base64_dec(browser_b$Page$captureScreenshot(captureBeyondViewport = TRUE)$data),
+    "/results/playground-mobile.png")
+  testthat::expect_identical(postgres_browser_value(browser_a, "window.pgErrors.length"), 0L)
+  testthat::expect_identical(postgres_browser_value(browser_b, "window.pgErrors.length"), 0L)
+})
+
+testthat::test_that("the playground switches accounts, cancels refresh and stops cleanly", {
+  config <- postgres_browser_config()
+  config$playground <- TRUE
+  fixture <- postgres_browser_setup(config)
+  on.exit(fixture$close(), add = TRUE)
+  browser <- fixture$new_browser()
+  first <- postgres_browser_login(browser, "alice", config)
+  switched <- postgres_browser_login(browser, "bob", config)
+  testthat::expect_identical(switched$snapshot$result$database_user, "bob")
+  testthat::expect_false(identical(first$snapshot$authorization_id, switched$snapshot$authorization_id))
+  postgres_browser_value(browser, paste0(
+    "document.querySelector('#refresh').click();",
+    "document.querySelector('#logout').click();"
+  ))
+  signed_out <- postgres_browser_wait(browser, function(value) !isTRUE(value$authorized))
+  testthat::expect_null(signed_out$result)
+  testthat::expect_false(signed_out$refreshing)
+  testthat::expect_match(postgres_browser_value(browser,
+    "document.querySelector('#action_status').textContent"), "Signed out", fixed = TRUE)
+  testthat::expect_identical(postgres_browser_value(browser, "window.pgErrors.length"), 0L)
+  postgres_browser_click(browser, "stop_playground")
+  fixture$process$wait(timeout = 10000)
+  testthat::expect_false(fixture$process$is_alive())
+  testthat::expect_identical(fixture$process$get_exit_status(), 0L)
 })
 
 testthat::test_that("browser-issued wrong audience is denied by PostgreSQL OAuth", {
@@ -234,7 +305,7 @@ testthat::test_that("browser-issued missing scope never reaches PostgreSQL conne
   testthat::expect_true(login$snapshot$authorized)
   testthat::expect_identical(login$metadata$client_id, "shiny-missing-scope")
 
-  postgres_browser_click(browser, "load")
+  testthat::expect_true(postgres_browser_value(browser, "document.querySelector('#load').disabled"))
   denied <- postgres_browser_wait(browser, function(value) {
     identical(value$database_status, "insufficient_scope")
   })
