@@ -126,6 +126,7 @@ and a complete app.
 
 Other platform API clients:
 \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
+\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}}
 }
 \concept{platform API clients}

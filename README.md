@@ -19,7 +19,7 @@ access is enforced by the platform's own permissions.
 [Snowflake](#snowflake) · [BigQuery](#google-bigquery) ·
 [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [PostgreSQL](#self-hosted-postgresql) · [Azure PostgreSQL](#azure-postgresql) ·
-[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise)
+[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) · [PostgREST](#postgrest)
 
 ## Microsoft Fabric
 
@@ -460,6 +460,15 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Install `RTrino` and set `OAUTHDB_TRINO_ISSUER` to the provider's issuer URL.
 Use the scopes allowed by the registration. See the
 [Trino guide](vignettes/trino.Rmd) for setup and connection options.
+
+## PostgREST
+
+Read PostgreSQL tables and views through PostgREST with each visitor's JWT.
+The API validates the token and PostgreSQL applies grants and row-level
+security. Create `oauth_db_postgrest_api(auth$connection, url = ...)`
+inside `server()`, then call `$select()` or `$rpc()` in reactive code.
+The [PostgREST guide](vignettes/postgrest.Rmd) has server setup, a complete
+Shiny app, filters, and pagination examples.
 
 ## Run an example
 

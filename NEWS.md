@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_postgrest_api()` for tables, views, functions, and native
+  PostgREST requests with each visitor's current token. Reads support filters,
+  schema selection, pagination, and a single 401 refresh retry. Writes and
+  POST function calls are not replayed automatically.
 * Require shinyOAuth 0.7.0.
 * Add `oauth_db_postgres()` for self-hosted PostgreSQL 18 with native OAuth
   on Linux/libpq 18, a Docker/Keycloak playground, and a separate browser

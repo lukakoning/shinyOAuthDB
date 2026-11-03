@@ -8,7 +8,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     Uses 'shinyOAuth' for sign-in and token renewal, and manages connections
     within each Shiny session. Supports Azure SQL, Microsoft Fabric, BigQuery,
     Redshift, Databricks, Snowflake, Trino, and PostgreSQL, including self-hosted
-    PostgreSQL with native OAuth and Azure PostgreSQL.
+    PostgreSQL with native OAuth and Azure PostgreSQL. Reads PostgreSQL tables
+    and calls exposed database functions through PostgREST.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues

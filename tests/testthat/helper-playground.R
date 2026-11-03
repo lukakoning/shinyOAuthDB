@@ -36,6 +36,8 @@ playground_env <- function() {
     OAUTHDB_TRINO_HOST = "https://trino.example.org",
     OAUTHDB_TRINO_CATALOG = "lakehouse",
     OAUTHDB_TRINO_SCHEMA = "reporting",
+    OAUTHDB_POSTGREST_ISSUER = "https://issuer.example.org",
+    OAUTHDB_POSTGREST_URL = "https://data.example.org",
     OAUTHDB_POSTGRES_HOST = "fixture.postgres.database.azure.com",
     OAUTHDB_POSTGRES_ISSUER = "https://login.example.org/realms/reporting",
     OAUTHDB_POSTGRES_USER = "fixture-role",
