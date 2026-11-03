@@ -1,0 +1,55 @@
+services:
+  tls:
+    image: shinyoauthdb-local-tls:1
+    build:
+      context: .
+      target: tls
+    volumes:
+      - fixture_tls:/fixtures/tls
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.1@sha256:dea26401d06341095cc4ea9d66896200b55de5ca1daa1d2fcbe58493afa6e0ad
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: fixture-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: fixture-admin-password
+      KC_HOSTNAME: https://localhost:18443
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_MANAGEMENT_SCHEME: http
+      KC_HTTPS_PORT: "18443"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "18080"
+      KC_HTTPS_CERTIFICATE_FILE: /fixtures/tls/server-cert.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /fixtures/tls/server-key.pem
+    command: ["start-dev", "--import-realm"]
+    volumes:
+      - ./realm.json:/opt/keycloak/data/import/realm.json:ro
+      - fixture_tls:/fixtures/tls:ro
+    depends_on:
+      tls:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3; IFS= read -r response <&3; [[ $$response == *' 200 '* ]]"]
+      interval: 3s
+      timeout: 3s
+      start_period: 30s
+      retries: 60
+  test-runner:
+    image: shinyoauthdb-local-runner:1
+    build:
+      context: .
+      target: runner
+    network_mode: service:keycloak
+    shm_size: 512mb
+    environment:
+      OAUTHDB_LOCAL_INTEGRATION: "1"
+      OAUTHDB_FIXTURE: ${OAUTHDB_FIXTURE:?Choose a local fixture}
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    volumes:
+      - ../..:/workspace/shinyOAuthDB:ro
+      - ../../../shinyOAuth:/workspace/shinyOAuth:ro
+      - fixture_tls:/fixtures/tls:ro
+      - ../${OAUTHDB_FIXTURE}-keycloak/.generated:/results
+    depends_on:
+      keycloak:
+        condition: service_healthy
+volumes:
+  fixture_tls:

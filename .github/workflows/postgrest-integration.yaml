@@ -1,0 +1,47 @@
+name: PostgREST OAuth integration
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: postgrest-oauth-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  postgrest-keycloak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: shinyOAuthDB
+      - uses: actions/checkout@v6
+        with:
+          repository: lukakoning/shinyOAuth
+          ref: 42176847f6ab82c2b49095f81a829cdd8ce60260
+          path: shinyOAuth
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Cache the R and browser test runner
+        uses: docker/build-push-action@v6
+        with:
+          context: shinyOAuthDB/integration/local
+          target: runner
+          tags: shinyoauthdb-local-runner:1
+          load: true
+          cache-from: type=gha,scope=postgrest-runner
+          cache-to: type=gha,mode=max,scope=postgrest-runner
+      - name: Run PostgREST and Keycloak browser tests
+        working-directory: shinyOAuthDB
+        env:
+          OAUTHDB_SKIP_BASE_BUILD: "1"
+        run: bash integration/local/run-integration.sh postgrest
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postgrest-oauth-results
+          path: shinyOAuthDB/integration/postgrest-keycloak/.generated/results.json
+          include-hidden-files: true
+          if-no-files-found: warn

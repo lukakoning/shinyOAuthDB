@@ -10,6 +10,19 @@ runs in Docker. It checks real OAuth sign-in, database-enforced user permissions
 refresh, and sign-out. Its native PostgreSQL token helper is for this fixture
 only. For Azure PostgreSQL, use the package's Entra connection helper.
 
+## Local PostgREST and Keycloak
+
+The [PostgREST fixture](../../integration/postgrest-keycloak/README.md) runs real
+browser sign-in, HTTPS API calls, PostgreSQL row-level security and table grants.
+Its [separate workflow](../../.github/workflows/postgrest-integration.yaml) runs
+independently of PostgreSQL integration. From the repository root:
+
+```sh
+bash integration/local/run-integration.sh postgrest
+```
+
+On Windows, use `powershell -NoProfile -File integration/local/run-integration.ps1 -Backend postgrest`.
+
 ## Fabric sandbox
 
 Follow the [Fabric app instructions](../../playground/fabric/README.md) to
