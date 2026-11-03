@@ -19,7 +19,7 @@ access is enforced by the platform's own permissions.
 [Snowflake](#snowflake) · [BigQuery](#google-bigquery) ·
 [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [PostgreSQL](#self-hosted-postgresql) · [Azure PostgreSQL](#azure-postgresql) ·
-[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) · [PostgREST](#postgrest)
+[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) · [StarRocks](#starrocks) · [PostgREST](#postgrest)
 
 ## Microsoft Fabric
 
@@ -469,6 +469,14 @@ security. Create `oauth_db_postgrest_api(auth$connection, url = ...)`
 inside `server()`, then call `$select()` or `$rpc()` in reactive code.
 The [PostgREST guide](vignettes/postgrest.Rmd) has server setup, a complete
 Shiny app, filters, and pagination examples.
+
+## StarRocks
+
+Query StarRocks 3.5 or later through its JWT authentication plugin and
+MySQL Connector/ODBC. Create `oauth_db_starrocks(auth$connection, ...)`
+inside `server()` and query the returned connection with DBI or dbplyr.
+The [StarRocks guide](vignettes/starrocks.Rmd) covers the driver, trusted
+issuer and audience, TLS, database roles, and a complete Shiny app.
 
 ## Run an example
 

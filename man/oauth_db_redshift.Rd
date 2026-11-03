@@ -106,6 +106,7 @@ Other database connections:
 \code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
 \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
 \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
+\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
 \code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
 \concept{database connections}

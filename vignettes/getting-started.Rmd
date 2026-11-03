@@ -22,6 +22,7 @@ Each source guide includes a complete app with sign-in and a first query.
 | Source | What you can do |
 | --- | --- |
 | [PostgREST](postgrest.html) | Read PostgreSQL tables and call functions over HTTP |
+| [StarRocks](starrocks.html) | Query with JWT authentication and MySQL Connector/ODBC |
 | [Azure SQL and SQL Server](azure-sql.html) | Query with DBI or dbplyr |
 | [Microsoft Fabric](fabric.html) | Query SQL endpoints, read OneLake tables, and call fabricQueryR functions |
 | [Databricks](databricks.html) | Query SQL warehouses and call brickster functions |

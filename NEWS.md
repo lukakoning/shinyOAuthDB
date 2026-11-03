@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_starrocks()` for DBI queries through StarRocks JWT
+  authentication and MySQL Connector/ODBC. Temporary token files are removed
+  after connection opening; account and username changes replace connections.
 * Add `oauth_db_postgrest_api()` for tables, views, functions, and native
   PostgREST requests with each visitor's current token. Reads support filters,
   schema selection, pagination, and a single 401 refresh retry. Writes and

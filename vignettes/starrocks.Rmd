@@ -1,0 +1,125 @@
+---
+title: "StarRocks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{StarRocks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Query StarRocks with DBI or dbplyr using each visitor's JWT access token.
+The connection uses StarRocks's MySQL protocol and MySQL Connector/ODBC's
+OpenID Connect client plugin.
+
+## Server and driver requirements
+
+Use StarRocks 3.5 or later with JWT authentication. Configure a trusted
+JWKS, the exact issuer and audience, and a principal claim that maps to
+the StarRocks username. Grant the user or group its database privileges.
+See [JWT authentication](https://docs.starrocks.io/docs/administration/user_privs/authentication/jwt_authentication/)
+and [security integrations](https://docs.starrocks.io/docs/administration/user_privs/authentication/security_integration/).
+
+Install the R package `odbc` and MySQL Connector/ODBC 9.2 or later, including
+its `authentication_openid_connect_client` plugin. A MariaDB driver or an
+older MySQL driver is not sufficient. List installed driver names with
+`odbc::odbcListDrivers()` and pass the registered name as `driver`.
+On Unix, a driver library path may also be accepted by the driver manager.
+Windows requires the driver to be installed and registered.
+Set `plugin_dir` if the driver cannot find its installed authentication
+plugins. See MySQL's [authentication options](https://dev.mysql.com/doc/connector-odbc/en/connector-odbc-configuration-authentication.html).
+
+Enable TLS for the StarRocks MySQL endpoint. The helper requires server
+identity verification; supply `ssl_ca` for a private CA. Use the hostname
+in the server certificate. The default query port is 9030.
+
+The helper uses the visitor's **access token** from shinyOAuth. Configure
+the provider and StarRocks to accept that JWT with its issuer, audience,
+and principal claim. A provider that issues only opaque access tokens,
+or an integration that accepts only that provider's ID tokens, needs a
+different provider configuration before using this helper.
+
+## Complete Shiny app
+
+Register your app with the trusted identity provider and configure its
+audience and scopes for StarRocks. Use `http://localhost:8100` as the local
+redirect URI. Set `OAUTHDB_STARROCKS_ISSUER`, `OAUTHDB_STARROCKS_SERVER`,
+`OAUTHDB_STARROCKS_DRIVER`, `OAUTHDB_STARROCKS_SSL_CA`, `OAUTHDB_CLIENT_ID`,
+and `OAUTHDB_CLIENT_SECRET` in your environment. The example uses the
+profile's preferred username; select the claim your server maps.
+
+```{r app, eval=FALSE}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_STARROCKS_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+  con <- oauth_db_starrocks(
+    auth$connection,
+    server = Sys.getenv("OAUTHDB_STARROCKS_SERVER"),
+    database = "reporting",
+    user = function() req(auth$token@userinfo$preferred_username),
+    driver = Sys.getenv("OAUTHDB_STARROCKS_DRIVER"),
+    ssl_ca = Sys.getenv("OAUTHDB_STARROCKS_SSL_CA")
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT CURRENT_USER() AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Save this as `app.R`, replace the database and claim mapping, and run
+`shiny::runApp(port = 8100)`. Use `target` when your shinyOAuth client
+contains named token targets. No separate browser authentication is
+performed by the database driver.
+
+## Connection lifetime and queries
+
+Call `con()` before every operation. The helper keeps a valid SQL connection
+through normal token refresh, replaces it when the account or resolved
+username changes, and disconnects it on sign-out or session end.
+
+```{r queries, eval=FALSE}
+connection <- con()
+DBI::dbGetQuery(connection, "SELECT id, total FROM orders LIMIT 20")
+dplyr::tbl(connection, "orders") |>
+  dplyr::filter(total >= 100) |>
+  dplyr::collect()
+```
+
+MySQL Connector/ODBC accepts its JWT through the `openid-token-file`
+connection option. The helper writes it into a private temporary directory
+only while opening the connection, then removes the file on success,
+error, or interrupt. On Windows the directory inherits access rules from
+R's temporary directory, which must be private to the app user.
+
+An open SQL session may remain usable after its login token expires,
+depending on the server. Reopen a broken connection through `con()`; do
+not reconnect, clone, or pool a saved handle using its former token file.
+Queries and mutations are never replayed by this package.
+
+The HTTP SQL API documents Basic authentication. This backend deliberately
+uses the documented JWT plugin through the MySQL protocol; it does not
+assume that a bearer header authenticates the HTTP SQL endpoint.
