@@ -12,6 +12,14 @@ account. PostgREST validates the visitor's JWT and PostgreSQL applies the
 role's grants and row-level security policies. The R client uses HTTP and
 does not need RPostgres or PostgreSQL 18's native OAuth support.
 
+The app passes the signed-in visitor's access token on every request. There
+is no separate username argument: PostgREST extracts the database role from
+the verified JWT's configured role claim. A deployment can use one role per
+person, or a shared role with row policies that use the token's user ID
+(usually `sub`). The role claim and the user ID are configured in the
+identity provider and database, so the same app query can return different
+rows for different logins.
+
 ## Set up the server and sign-in
 
 Configure PostgREST to trust your identity provider's signing keys and the
@@ -71,8 +79,7 @@ server <- function(input, output, session) {
     schema = "reporting"
   )
   output$rows <- renderTable({
-    postgrest$select("orders", filters = list(country = "eq.NL"),
-      order = "id.asc", limit = 20L)
+    postgrest$select("orders", order = "id.asc", limit = 20L)
   })
 }
 

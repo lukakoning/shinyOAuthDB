@@ -47,6 +47,6 @@ test_that("the self-hosted PostgreSQL example queries through the public helper"
   expect_identical(lapply(calls, `[[`, "token"), list("fixture-A", "fixture-B"))
   expect_identical(calls[[1L]]$issuer, playground_env()[["OAUTHDB_POSTGRES_ISSUER"]])
   expect_identical(calls[[1L]]$scope, "database.read")
-  expect_identical(calls[[1L]]$user, playground_env()[["OAUTHDB_POSTGRES_USER"]])
+  expect_identical(lapply(calls, `[[`, "user"), list("A", "B"))
   expect_true(all(vapply(handles, function(native) !DBI::dbIsValid(native), logical(1))))
 })

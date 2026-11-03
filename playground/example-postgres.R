@@ -11,7 +11,7 @@ client <- oauth_client(
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = Sys.getenv("OAUTHDB_REDIRECT_URI", "http://localhost:8100"),
-  scopes = c("openid", strsplit(database_scope, " ", fixed = TRUE)[[1L]])
+  scopes = c("openid", "profile", strsplit(database_scope, " ", fixed = TRUE)[[1L]])
 )
 
 ui <- oauth_ui(fluidPage(
@@ -29,12 +29,17 @@ server <- function(input, output, session) {
     auth$connection,
     host = Sys.getenv("OAUTHDB_POSTGRES_HOST"),
     dbname = Sys.getenv("OAUTHDB_DATABASE"),
-    user = Sys.getenv("OAUTHDB_POSTGRES_USER"),
+    user = function() {
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
+    },
     issuer = issuer, scope = database_scope,
     sslrootcert = Sys.getenv("OAUTHDB_POSTGRES_SSLROOTCERT")
   )
   output$rows <- renderTable({
-    DBI::dbGetQuery(con(), paste(
+    connection <- con()
+    DBI::dbGetQuery(connection, paste(
       "SELECT current_user::text AS database_user, table_schema, table_name",
       "FROM information_schema.tables ORDER BY table_schema, table_name LIMIT 20"
     ))

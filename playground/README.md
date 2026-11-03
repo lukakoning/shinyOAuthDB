@@ -46,10 +46,15 @@ Add the settings for your chosen example:
 | [Azure SQL](example-azure-sql.R) | `OAUTHDB_SERVER`, `OAUTHDB_DATABASE` |
 | [SQL Server with Entra](example-sql-server.R) | Same as Azure SQL |
 | [Azure PostgreSQL](example-azure-postgres.R) | `OAUTHDB_POSTGRES_HOST`, `OAUTHDB_DATABASE`, `OAUTHDB_POSTGRES_USER`, `OAUTHDB_POSTGRES_SSLROOTCERT` |
-| [Self-hosted PostgreSQL](example-postgres.R) | Same database settings, plus `OAUTHDB_POSTGRES_ISSUER`; optional `OAUTHDB_POSTGRES_SCOPE` (default `database.read`). Requires the Linux/libpq 18 native adapter. |
+| [Self-hosted PostgreSQL](example-postgres.R) | `OAUTHDB_POSTGRES_HOST`, `OAUTHDB_DATABASE`, `OAUTHDB_POSTGRES_SSLROOTCERT`, `OAUTHDB_POSTGRES_ISSUER`; optional `OAUTHDB_POSTGRES_SCOPE` (default `database.read`). Requires the Linux/libpq 18 native adapter. |
 | [Databricks API](example-databricks.R) | `OAUTHDB_DATABRICKS_HOST`, `OAUTHDB_DATABRICKS_WAREHOUSE` |
 | [Snowflake](example-snowflake.R) | `OAUTHDB_SNOWFLAKE_SERVER`, `OAUTHDB_SNOWFLAKE_ROLE`; optionally `OAUTHDB_DATABASE`, `OAUTHDB_SNOWFLAKE_SCHEMA`, `OAUTHDB_SNOWFLAKE_WAREHOUSE` |
 | [Fabric services](fabric/README.md) | See the app's separate setup |
+
+The self-hosted PostgreSQL example derives the requested database role from
+the signed-in account's validated `preferred_username` claim. Configure the
+provider's profile claim and the matching PostgreSQL identity-to-role
+mapping as described in the [PostgreSQL guide](../vignettes/postgres.Rmd).
 
 For example:
 

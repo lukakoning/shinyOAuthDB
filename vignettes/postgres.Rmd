@@ -104,21 +104,26 @@ and row policies. The checkout includes complete files under
 
 ## Shiny app
 
-Create a normal shinyOAuth client for your own issuer:
+Create a shinyOAuth client for your own issuer. Request `profile` and
+configure the provider to include `preferred_username` in the validated ID
+token. This example assumes that username matches the PostgreSQL role
+provisioned for that person, as in the Docker fixture. Set
+`OAUTHDB_POSTGRES_ISSUER`, `OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET`
+before running the app.
 
-```r
+```{r app, eval=FALSE}
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-issuer <- "https://login.example.org/realms/reporting"
+issuer <- Sys.getenv("OAUTHDB_POSTGRES_ISSUER")
 provider <- oauth_provider_oidc_discover(issuer, id_token_validation = TRUE)
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = "http://localhost:8100",
-  scopes = c("openid", "database.read")
+  scopes = c("openid", "profile", "database.read")
 )
 
 ui <- oauth_ui(fluidPage(
@@ -136,36 +141,37 @@ server <- function(input, output, session) {
     auth$connection,
     host = "postgres.example.org", dbname = "reporting",
     user = function() {
-      reference <- auth$connection()
-      shiny::req(reference)
-      subject <- reference$identity(claims = "sub")$id_token_claims$sub
-      role <- switch(subject,
-        "11111111-1111-4111-8111-111111111111" = "alice",
-        "22222222-2222-4222-8222-222222222222" = "bob",
-        NULL
-      )
-      shiny::validate(shiny::need(!is.null(role), "No database role is configured for this account."))
-      role
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
     },
     issuer = issuer, scope = "database.read",
     sslrootcert = "path/to/ca.pem"
   )
   output$rows <- renderTable({
-    DBI::dbGetQuery(con(), "SELECT current_user")
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
   })
 }
 
 shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
-The app's role selection must agree with PostgreSQL's identity mapping.
-PostgreSQL checks whether the token may authenticate that role. Never derive
-the role from an unverified browser input. The helper replaces the connection
-when its selected role changes.
+`user` is the database role requested when opening a PostgreSQL
+connection. The callback derives it from the currently signed-in account's
+validated identity, so signing in as a different person changes the
+requested role. PostgreSQL checks that the access token is allowed to use
+that role and applies its grants and row policies.
 
-For a single provisioned role, pass `user = "alice"` instead. The checkout's
-`playground/example-postgres.R` reads connection settings from environment
-variables and lists tables available to that role.
+If your database roles differ from the provider's usernames, adapt the
+callback to your server's identity-to-role mapping. The subjects mapped
+to `alice` and `bob` above are Docker fixture configuration, not a list of
+visitors to hardcode into a deployed app. A fixed `user` is appropriate only
+when the deployment intentionally maps the permitted identities to one
+shared database role.
+
+The checkout's `playground/example-postgres.R` uses the same dynamic
+identity selection with connection settings from environment variables.
 
 ## Connection lifetime and tests
 

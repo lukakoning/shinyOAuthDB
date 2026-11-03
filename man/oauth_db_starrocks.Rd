@@ -89,7 +89,12 @@ the original token file no longer exists after connection opening.
 \examples{
 \dontrun{
 con <- oauth_db_starrocks(auth$connection,
-  server = "starrocks.example.org", database = "reporting", user = "alice",
+  server = "starrocks.example.org", database = "reporting",
+  user = function() {
+    reference <- shiny::req(auth$connection())
+    identity <- reference$identity(claims = "preferred_username")
+    shiny::req(identity$id_token_claims$preferred_username)
+  },
   driver = "MySQL ODBC 9.2 Unicode Driver", ssl_ca = "path/to/ca.pem")
 output$rows <- shiny::renderTable({
   connection <- con()

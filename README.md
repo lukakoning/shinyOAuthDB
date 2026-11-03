@@ -282,17 +282,61 @@ Query your own PostgreSQL 18 server with an OAuth provider such as Keycloak.
 PostgreSQL validates each visitor's token and database role, then applies
 table grants and row-level security.
 
+`user` is the requested database role. This app derives it from the
+signed-in account's validated `preferred_username` claim, so the login
+determines the role for each visitor. Configure that claim and the matching
+PostgreSQL identity-to-role mapping; the server checks the token and
+enforces the role's permissions. Use your deployment's mapping if its role
+names differ from provider usernames.
+
+Set `OAUTHDB_POSTGRES_ISSUER`, `OAUTHDB_CLIENT_ID`, and
+`OAUTHDB_CLIENT_SECRET` for your OAuth registration. Request `profile` and
+configure the provider to include the username claim in its ID token.
+
 ```r
-# Inside server(), using a shinyOAuth client for your identity provider:
-con <- oauth_db_postgres(
-  auth$connection,
-  host = "postgres.example.org", dbname = "reporting", user = "alice",
-  issuer = "https://login.example.org/realms/reporting",
-  scope = "database.read", sslrootcert = "path/to/ca.pem"
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+issuer <- Sys.getenv("OAUTHDB_POSTGRES_ISSUER")
+provider <- oauth_provider_oidc_discover(issuer, id_token_validation = TRUE)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "database.read")
 )
-output$rows <- shiny::renderTable({
-  DBI::dbGetQuery(con(), "SELECT current_user")
-})
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_postgres(
+    auth$connection,
+    host = "postgres.example.org", dbname = "reporting",
+    user = function() {
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
+    },
+    issuer = issuer, scope = "database.read",
+    sslrootcert = "path/to/ca.pem"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 ```
 
 Native OAuth currently needs Linux with a shared libpq 18 build. On Windows
@@ -464,28 +508,162 @@ Use the scopes allowed by the registration. See the
 ## PostgREST
 
 Read PostgreSQL tables and views through PostgREST with each visitor's JWT.
-The API validates the token and PostgreSQL applies grants and row-level
-security. Create `oauth_db_postgrest_api(auth$connection, url = ...)`
-inside `server()`, then call `$select()` or `$rpc()` in reactive code.
-The [PostgREST guide](vignettes/postgrest.Rmd) has server setup, a complete
-Shiny app, filters, and pagination examples.
+PostgREST gets the database role from the verified token; the app does not
+pass a username. PostgreSQL applies grants and row-level security for that
+identity. Register the app with the provider trusted by your API and set
+`OAUTHDB_POSTGREST_ISSUER`, `OAUTHDB_POSTGREST_URL`, `OAUTHDB_CLIENT_ID`,
+and `OAUTHDB_CLIENT_SECRET`.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_POSTGREST_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  postgrest <- oauth_db_postgrest_api(
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_POSTGREST_URL"),
+    schema = "reporting"
+  )
+  output$rows <- renderTable({
+    postgrest$select("orders", order = "id.asc", limit = 20L)
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+The [PostgREST guide](vignettes/postgrest.Rmd) covers token role claims,
+server setup, filters, functions, and pagination.
 
 ## StarRocks
 
-Query StarRocks 3.5 or later through its JWT authentication plugin and
-MySQL Connector/ODBC. Create `oauth_db_starrocks(auth$connection, ...)`
-inside `server()` and query the returned connection with DBI or dbplyr.
-The [StarRocks guide](vignettes/starrocks.Rmd) covers the driver, trusted
-issuer and audience, TLS, database roles, and a complete Shiny app.
+Query StarRocks 3.5 or later using the signed-in visitor's JWT.
+Install MySQL Connector/ODBC 9.2 or later with its OpenID Connect plugin.
+Set `OAUTHDB_STARROCKS_ISSUER`, `OAUTHDB_STARROCKS_SERVER`,
+`OAUTHDB_STARROCKS_DRIVER`, `OAUTHDB_STARROCKS_SSL_CA`, `OAUTHDB_CLIENT_ID`,
+and `OAUTHDB_CLIENT_SECRET`. The username is derived from the login's
+validated identity and must match the cluster's principal mapping.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_STARROCKS_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+  con <- oauth_db_starrocks(
+    auth$connection,
+    server = Sys.getenv("OAUTHDB_STARROCKS_SERVER"),
+    database = "reporting",
+    user = function() {
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
+    },
+    driver = Sys.getenv("OAUTHDB_STARROCKS_DRIVER"),
+    ssl_ca = Sys.getenv("OAUTHDB_STARROCKS_SSL_CA")
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT CURRENT_USER() AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+The [StarRocks guide](vignettes/starrocks.Rmd) covers driver installation,
+issuer and audience configuration, TLS, database roles, and query options.
 
 ## ClickHouse
 
-Query a JWT-enabled ClickHouse endpoint through its HTTPS interface.
-Create `oauth_db_clickhouse_api(auth$connection, url = ...)` inside
-`server()` and call `$query()` for a data frame with named SQL parameters.
-Custom identity providers currently require ClickHouse Cloud Enterprise.
-The [ClickHouse guide](vignettes/clickhouse.Rmd) covers sign-in, endpoint
-configuration, result types, and a complete Shiny app.
+Query a JWT-enabled ClickHouse endpoint through its HTTPS interface with
+the signed-in visitor's token. Custom identity providers currently require
+ClickHouse Cloud Enterprise. Set `OAUTHDB_CLICKHOUSE_ISSUER`,
+`OAUTHDB_CLICKHOUSE_URL`, `OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET`
+for the provider trusted by your service.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_CLICKHOUSE_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+  clickhouse <- oauth_db_clickhouse_api(
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_CLICKHOUSE_URL")
+  )
+  output$rows <- renderTable({
+    clickhouse$query("SELECT currentUser() AS database_user, version() AS server_version")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+The [ClickHouse guide](vignettes/clickhouse.Rmd) covers JWT configuration,
+named SQL parameters, exact numeric results, and statements.
 
 ## Run an example
 

@@ -17,7 +17,7 @@ vignette_sources <- c(
   "azure-sql" = "odbc", fabric = "fabricQueryR", databricks = "brickster",
   snowflake = "odbc", bigquery = NA_character_, redshift = "odbc",
   trino = "RTrino", "azure-postgres" = "RPostgres", postgrest = NA_character_,
-  starrocks = "odbc", clickhouse = NA_character_
+  starrocks = "odbc", clickhouse = NA_character_, postgres = "RPostgres"
 )
 
 for (source in names(vignette_sources)) local({
@@ -27,7 +27,8 @@ for (source in names(vignette_sources)) local({
     if (!is.na(native_package)) skip_if_not_installed(native_package)
     withr::local_envvar(playground_env())
     local_mocked_bindings(
-      oauth_db_databricks_provider = playground_databricks_provider
+      oauth_db_databricks_provider = playground_databricks_provider,
+      .odb_postgres_runtime = function() TRUE
     )
     local_mocked_bindings(oauth_provider_oidc_discover = function(issuer, ...) {
       shinyOAuth::oauth_provider(

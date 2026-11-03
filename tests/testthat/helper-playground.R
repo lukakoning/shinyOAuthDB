@@ -114,7 +114,13 @@ playground_module <- function(calls) {
           stopifnot(identical(selected()$id, grant_id))
           paste0("fixture-", user)
         },
-        has_scopes = function(...) identical(selected()$id, grant_id)
+        has_scopes = function(...) identical(selected()$id, grant_id),
+        identity = function(claims = c("iss", "sub"), userinfo = character()) {
+          stopifnot(identical(selected()$id, grant_id))
+          values <- list(iss = "https://issuer.example.org", sub = paste0("subject-", user),
+            preferred_username = user)
+          list(id_token_claims = values[intersect(claims, names(values))], userinfo = list())
+        }
       ))
     }
     calls$select("A")

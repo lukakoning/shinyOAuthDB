@@ -30,8 +30,9 @@ that calls \code{auth$connection(id)}.}
 
 \item{dbname}{Database name.}
 
-\item{user}{Database role, or a reactive function returning the role for
-the selected authorization. PostgreSQL checks the identity mapping.}
+\item{user}{Requested database role, or a function deriving it from the
+selected sign-in's validated identity. PostgreSQL checks that the token
+may use that role according to the server's identity mapping.}
 
 \item{issuer}{Exact HTTPS issuer identifier configured on PostgreSQL.}
 
@@ -87,15 +88,21 @@ a retained native handle is unsupported. Use separate R processes for workers.
 }
 \examples{
 \dontrun{
-# Inside server(), with a shinyOAuth client for your own identity provider:
+# Inside server(), with an OIDC client requesting openid, profile and database.read:
 con <- oauth_db_postgres(
   auth$connection,
-  host = "postgres.example.org", dbname = "reporting", user = "alice",
+  host = "postgres.example.org", dbname = "reporting",
+  user = function() {
+    reference <- shiny::req(auth$connection())
+    identity <- reference$identity(claims = "preferred_username")
+    shiny::req(identity$id_token_claims$preferred_username)
+  },
   issuer = "https://login.example.org/realms/reporting",
   scope = "database.read", sslrootcert = "path/to/ca.pem"
 )
 output$rows <- shiny::renderTable({
-  DBI::dbGetQuery(con(), "SELECT current_user")
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT current_user")
 })
 }
 }

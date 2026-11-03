@@ -45,7 +45,7 @@ audience and scopes for StarRocks. Use `http://localhost:8100` as the local
 redirect URI. Set `OAUTHDB_STARROCKS_ISSUER`, `OAUTHDB_STARROCKS_SERVER`,
 `OAUTHDB_STARROCKS_DRIVER`, `OAUTHDB_STARROCKS_SSL_CA`, `OAUTHDB_CLIENT_ID`,
 and `OAUTHDB_CLIENT_SECRET` in your environment. The example uses the
-profile's preferred username; select the claim your server maps.
+validated ID token's preferred username; select the claim your server maps.
 
 ```{r app, eval=FALSE}
 library(shiny)
@@ -77,7 +77,11 @@ server <- function(input, output, session) {
     auth$connection,
     server = Sys.getenv("OAUTHDB_STARROCKS_SERVER"),
     database = "reporting",
-    user = function() req(auth$token@userinfo$preferred_username),
+    user = function() {
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
+    },
     driver = Sys.getenv("OAUTHDB_STARROCKS_DRIVER"),
     ssl_ca = Sys.getenv("OAUTHDB_STARROCKS_SSL_CA")
   )
