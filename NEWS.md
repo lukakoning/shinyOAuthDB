@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_clickhouse_api()` for JWT-authenticated HTTPS queries and
+  statements. Supports native typed parameters, exact integers and decimals,
+  metadata, and list columns. SQL submissions are never replayed automatically.
 * Add `oauth_db_starrocks()` for DBI queries through StarRocks JWT
   authentication and MySQL Connector/ODBC. Temporary token files are removed
   after connection opening; account and username changes replace connections.

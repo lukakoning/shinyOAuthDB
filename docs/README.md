@@ -15,6 +15,7 @@ source guide below for setup and further examples.
 | Azure PostgreSQL | [RPostgres connections](../vignettes/azure-postgres.Rmd) |
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
 | StarRocks | [JWT authentication and DBI queries](../vignettes/starrocks.Rmd) |
+| ClickHouse | [HTTPS SQL queries with JWT](../vignettes/clickhouse.Rmd) |
 
 [Getting started](../vignettes/getting-started.Rmd) covers installation and
 the Shiny pattern. [Authentication and sessions](../vignettes/authorization.Rmd)

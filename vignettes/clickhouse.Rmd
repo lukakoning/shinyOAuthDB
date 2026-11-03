@@ -1,0 +1,135 @@
+---
+title: "ClickHouse"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ClickHouse}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Run SQL against a JWT-enabled ClickHouse service using each visitor's
+account. The client uses ClickHouse's HTTPS interface and returns data
+frames without an ODBC or native ClickHouse driver.
+
+## Enable database JWT authentication
+
+Custom identity providers currently require **ClickHouse Cloud Enterprise**
+and service version 26.4 or later, or 26.8 for EC signing keys. Configure
+the trusted issuer, audience, and public HTTPS JWKS endpoint in the
+service's JWT authentication settings. Map the provider's roles claim to
+roles that exist in ClickHouse, and grant those roles the required database
+permissions. See [JWT authentication and availability](https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud).
+
+Use the database's HTTPS query endpoint, commonly port 8443. A Cloud
+management API key, database password, or the fact that a server speaks
+ClickHouse SQL does not establish JWT database authentication. This helper
+requires a deployment that accepts the visitor's bearer access token.
+
+Register your Shiny app with the trusted identity provider, using
+`http://localhost:8100` for the local redirect URI. Configure the audience,
+scopes, and role claims that ClickHouse expects. The example assumes the
+provider issues the intended JWT access token through its normal
+authorization-code flow; it does not invoke `clickhouse-client --login`.
+
+Set `OAUTHDB_CLICKHOUSE_ISSUER`, `OAUTHDB_CLICKHOUSE_URL`,
+`OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET` in your environment.
+
+## Complete Shiny app
+
+```{r app, eval=FALSE}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_CLICKHOUSE_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+  clickhouse <- oauth_db_clickhouse_api(
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_CLICKHOUSE_URL")
+  )
+  output$rows <- renderTable({
+    clickhouse$query("SELECT currentUser() AS database_user, version() AS server_version")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Save the example as `app.R` and run `shiny::runApp(port = 8100)`.
+Set `database` when creating the API client to choose a default database.
+Use `target` for a named shinyOAuth token target, and `ca_bundle` for a
+private certificate authority supported by your curl TLS backend.
+
+## Native typed parameters
+
+SQL goes in the POST body. Parameter values are supplied separately through
+ClickHouse's `param_` mechanism and are never interpolated into SQL.
+
+```{r parameters, eval=FALSE}
+rows <- clickhouse$query(
+  "SELECT id, total FROM reporting.orders WHERE country = {country:String} AND id > {after:UInt64} LIMIT 20",
+  parameters = list(country = "NL", after = "9007199254740993")
+)
+day <- clickhouse$query("SELECT {day:Date} AS day",
+  parameters = list(day = as.Date("2026-11-03")))
+```
+
+Supply one R scalar per parameter. Missing values use the native nullable
+representation; declare a compatible `Nullable(...)` type in SQL. Supply
+large integers and exact decimals as strings. `POSIXct` values are formatted
+in UTC; use a corresponding UTC DateTime/DateTime64 type in SQL. Array and
+tuple parameters use native ClickHouse literal strings wrapped in `I()`,
+such as `parameters = list(ids = I("[1,2,3]"))`. `I()` preserves a value
+already encoded in ClickHouse's escaped format; it remains a bound HTTP
+parameter and is never interpolated into SQL.
+
+## Results and statements
+
+The client requests JSONCompact, which retains column order and duplicate
+column names. Omit FORMAT clauses and output-format overrides from your
+SQL. Integers of 64 bits or more and decimals remain strings; smaller
+integers and floats become R numbers. Dates become `Date`, timestamps keep
+their server string representation, and complex values become list
+columns. Empty queries preserve their column metadata.
+
+```{r statements, eval=FALSE}
+result <- clickhouse$query("SELECT count() AS rows FROM reporting.orders", raw = TRUE)
+result$meta
+result$statistics
+
+clickhouse$execute(
+  "INSERT INTO reporting.reviewed_orders (id) VALUES ({id:UInt64})",
+  parameters = list(id = "9007199254740993")
+)
+```
+
+`execute()` invisibly returns the httr2 response for successful statements.
+All requests obtain a current token for the authorization that started
+them. Authorization changes discard late responses. SQL requests never
+retry automatically, including after HTTP 401, because a statement may
+already have executed. Redirects are rejected.
+
+Response buffering and complete JSON parsing prevent returning partial
+rows after a server exception. Operations collect results in R memory.
+A timeout or sign-out does not guarantee cancellation of a submitted
+query. Configure query limits in ClickHouse for long-running work. See
+the [HTTP interface](https://clickhouse.com/docs/interfaces/http).

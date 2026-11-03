@@ -42,6 +42,8 @@ playground_env <- function() {
     OAUTHDB_STARROCKS_SERVER = "starrocks.example.org",
     OAUTHDB_STARROCKS_DRIVER = "MySQL ODBC 9.2 Unicode Driver",
     OAUTHDB_STARROCKS_SSL_CA = "fixture-ca.pem",
+    OAUTHDB_CLICKHOUSE_ISSUER = "https://issuer.example.org",
+    OAUTHDB_CLICKHOUSE_URL = "https://clickhouse.example.org:8443",
     OAUTHDB_POSTGRES_HOST = "fixture.postgres.database.azure.com",
     OAUTHDB_POSTGRES_ISSUER = "https://login.example.org/realms/reporting",
     OAUTHDB_POSTGRES_USER = "fixture-role",

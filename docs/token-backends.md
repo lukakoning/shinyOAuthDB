@@ -59,3 +59,41 @@ fallback to a password account were rejected. The token files were removed
 immediately after opening connections. DBI/session integration was tested
 separately with mocked connections: the Windows driver manager required a
 system-registered driver, so a full live R/DBI connection was not tested.
+
+## ClickHouse
+
+`oauth_db_clickhouse_api()` sends each visitor's bearer token to the
+[HTTPS query interface](https://clickhouse.com/docs/interfaces/http).
+The [JWT availability guide](https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud)
+requires Cloud Enterprise and service 26.4 or later for custom identity
+providers, or 26.8 for EC keys. A Cloud management API key or an ordinary
+self-hosted server is not interchangeable with that authentication path.
+
+The helper uses the same session-bound HTTP provider as PostgREST. SQL
+goes in the POST body and typed parameters use `param_` URL fields.
+Scalars are escaped separately; `I()` preserves native encoded values
+such as array literals. JSONCompact keeps column order and duplicate
+names, with quoted large integers and decimals. Full JSON parsing and
+metadata checks reject incomplete result streams. Statements are never
+replayed automatically, including after HTTP 401.
+
+Tests cover request serialization, precise and nested result types,
+empty results, token renewal between operations, account isolation,
+sign-out, HTTP failures, and incomplete/error responses. Live HTTP SQL
+checks used ClickHouse 26.1.2.11 behind a disposable HTTPS fixture proxy
+that mapped test bearer strings to separate database users. Escaped
+strings, nullable values, exact integers and decimals, dates, encoded
+arrays, DDL, inserts, empty selections, denied table access, and account
+switching passed. The proxy was only a transport fixture: native
+ClickHouse Cloud JWT verification and interactive provider login were
+not tested because no configured Cloud service was supplied.
+
+## Package validation
+
+On Windows 11 with R 4.5.1, the full source test suite passed 1,496
+assertions with no skipped scenarios. `tools/check-package.R` installed
+the package in a temporary library, built its vignettes, and completed
+`R CMD check --no-manual` with zero errors, warnings, or notes.
+`tools/check-docs.R` parsed 60 R documentation blocks and verified 123
+local links. The dependency library was temporary; it included shinyOAuth
+0.7.0, httr2 1.3.0, and the optional packages needed by existing backends.
