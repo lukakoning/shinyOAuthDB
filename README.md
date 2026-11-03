@@ -1,15 +1,22 @@
 # shinyOAuthDB
 
-Build Shiny apps that query data with each visitor's own account. Connect
-to Azure SQL, Microsoft Fabric, BigQuery, Redshift, Databricks, Snowflake,
-Trino, or Azure PostgreSQL using DBI or the platform's R package.
-Each person's data permissions still apply.
+'shinyOAuthDB' is an R package which helps you build Shiny apps that query data with each visitor's own account.
+It is a bridge between Shiny and the database or platform's OAuth sign-in, 
+with functions to easily retrieve a database connection or API client for the signed-in user.
 
-Choose your source below. Each example is a complete `app.R` with sign-in
-and a first query.
+The app user signs in with their own account, 
+and your app can query the database or platform on their behalf.
+
+For instance, if you have given someone permission to access a table in a data platform, 
+like Databricks, Snowflake, or Microsoft Fabric, they can sign in with that same account.
+Your Shiny app then has access to just the data they are already allowed to see in the data platform.
+The advantage is that you don't need to manage a separate permission system for your app;
+access is enforced by the platform's own permissions.
+
+'shinyOAuthDB' supports multiple data platforms and databases, including:
 
 [BigQuery](#google-bigquery) · [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
-[Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
+[Microsoft Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
 [Redshift](#amazon-redshift) · [Snowflake](#snowflake) · [Trino](#trino-and-starburst-enterprise) ·
 [Azure PostgreSQL](#azure-postgresql)
 
