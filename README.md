@@ -15,105 +15,10 @@ access is enforced by the platform's own permissions.
 
 'shinyOAuthDB' supports multiple data platforms and databases, including:
 
-[BigQuery](#google-bigquery) · [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Microsoft Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
-[Redshift](#amazon-redshift) · [Snowflake](#snowflake) · [Trino](#trino-and-starburst-enterprise) ·
-[Azure PostgreSQL](#azure-postgresql)
-
-## Google BigQuery
-
-Query BigQuery with a user's Google account and display the result as a data
-frame. Create a Google Cloud Web OAuth registration; users need permission
-to run query jobs in the billing project and read the data.
-
-```r
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-client <- oauth_db_bigquery_client(
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100"
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  bigquery <- oauth_db_bigquery_api(
-    auth$connection,
-    project = "billing-project",
-    location = "EU"
-  )
-  output$rows <- renderTable({
-    bigquery$query("SELECT * FROM reporting.Orders LIMIT 20")
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-`bigquery$query()` returns a data frame. Pass named values in `parameters`
-for queries that use parameters such as `@country`. See the
-[BigQuery guide](vignettes/bigquery.Rmd) for examples.
-
-## Azure SQL and SQL Server
-
-List the database tables a user can access after Microsoft sign-in.
-Use an Entra Web app registration with permission to access SQL on the
-user's behalf.
-
-```r
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-client <- oauth_db_microsoft_client(
-  services = "sql",
-  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100"
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  con <- oauth_db_azure_sql(
-    auth$connection,
-    server = "example.database.windows.net",
-    database = "Reporting"
-  )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-For SQL Server configured for Entra authentication, use
-`oauth_db_sql_server()` with your server and database. The rest of the app
-stays the same. See the [Azure SQL guide](vignettes/azure-sql.Rmd) for dbplyr
-and connection options.
+[Snowflake](#snowflake) · [BigQuery](#google-bigquery) ·
+[Azure SQL and SQL Server](#azure-sql-and-sql-server) · [Azure PostgreSQL](#azure-postgresql) ·
+[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise)
 
 ## Microsoft Fabric
 
@@ -275,6 +180,151 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 For External OAuth through Entra, Okta, or another provider, see the
 [Snowflake guide](vignettes/snowflake.Rmd).
 
+## Google BigQuery
+
+Query BigQuery with a user's Google account and display the result as a data
+frame. Create a Google Cloud Web OAuth registration; users need permission
+to run query jobs in the billing project and read the data.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_bigquery_client(
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  bigquery <- oauth_db_bigquery_api(
+    auth$connection,
+    project = "billing-project",
+    location = "EU"
+  )
+  output$rows <- renderTable({
+    bigquery$query("SELECT * FROM reporting.Orders LIMIT 20")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+`bigquery$query()` returns a data frame. Pass named values in `parameters`
+for queries that use parameters such as `@country`. See the
+[BigQuery guide](vignettes/bigquery.Rmd) for examples.
+
+## Azure SQL and SQL Server
+
+List the database tables a user can access after Microsoft sign-in.
+Use an Entra Web app registration with permission to access SQL on the
+user's behalf.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "sql",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_azure_sql(
+    auth$connection,
+    server = "example.database.windows.net",
+    database = "Reporting"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+For SQL Server configured for Entra authentication, use
+`oauth_db_sql_server()` with your server and database. The rest of the app
+stays the same. See the [Azure SQL guide](vignettes/azure-sql.Rmd) for dbplyr
+and connection options.
+
+## Azure PostgreSQL
+
+Query Azure PostgreSQL through RPostgres using a Microsoft account.
+Use an Entra registration for PostgreSQL access and a database role
+created for the user or their group.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "postgres",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_azure_postgres(
+    auth$connection,
+    host = "example.postgres.database.azure.com",
+    dbname = "reporting",
+    user = "reporting-readers",
+    sslrootcert = "path/to/root-ca.pem"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+The [Azure PostgreSQL guide](vignettes/azure-postgres.Rmd) covers database
+roles and connection settings.
+
 ## Amazon Redshift
 
 Query Redshift through an IAM Identity Center deployment using Microsoft
@@ -382,56 +432,6 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Install `RTrino` and set `OAUTHDB_TRINO_ISSUER` to the provider's issuer URL.
 Use the scopes allowed by the registration. See the
 [Trino guide](vignettes/trino.Rmd) for setup and connection options.
-
-## Azure PostgreSQL
-
-Query Azure PostgreSQL through RPostgres using a Microsoft account.
-Use an Entra registration for PostgreSQL access and a database role
-created for the user or their group.
-
-```r
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-client <- oauth_db_microsoft_client(
-  services = "postgres",
-  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100"
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  con <- oauth_db_azure_postgres(
-    auth$connection,
-    host = "example.postgres.database.azure.com",
-    dbname = "reporting",
-    user = "reporting-readers",
-    sslrootcert = "path/to/root-ca.pem"
-  )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT current_user")
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-The [Azure PostgreSQL guide](vignettes/azure-postgres.Rmd) covers database
-roles and connection settings.
 
 ## Run an example
 
