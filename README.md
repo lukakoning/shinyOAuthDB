@@ -17,7 +17,8 @@ access is enforced by the platform's own permissions.
 
 [Microsoft Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
 [Snowflake](#snowflake) · [BigQuery](#google-bigquery) ·
-[Azure SQL and SQL Server](#azure-sql-and-sql-server) · [Azure PostgreSQL](#azure-postgresql) ·
+[Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
+[PostgreSQL](#self-hosted-postgresql) · [Azure PostgreSQL](#azure-postgresql) ·
 [Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise)
 
 ## Microsoft Fabric
@@ -274,6 +275,33 @@ For SQL Server configured for Entra authentication, use
 `oauth_db_sql_server()` with your server and database. The rest of the app
 stays the same. See the [Azure SQL guide](vignettes/azure-sql.Rmd) for dbplyr
 and connection options.
+
+## Self-hosted PostgreSQL
+
+Query your own PostgreSQL 18 server with an OAuth provider such as Keycloak.
+PostgreSQL validates each visitor's token and database role, then applies
+table grants and row-level security.
+
+```r
+# Inside server(), using a shinyOAuth client for your identity provider:
+con <- oauth_db_postgres(
+  auth$connection,
+  host = "postgres.example.org", dbname = "reporting", user = "alice",
+  issuer = "https://login.example.org/realms/reporting",
+  scope = "database.read", sslrootcert = "path/to/ca.pem"
+)
+output$rows <- shiny::renderTable({
+  DBI::dbGetQuery(con(), "SELECT current_user")
+})
+```
+
+Native OAuth currently needs Linux with a shared libpq 18 build. On Windows
+or macOS, try the [Docker playground](playground/postgres/README.md): run
+`source("playground/postgres/run.R")` from the checkout root to launch
+PostgreSQL, Keycloak and a Shiny app with sample data. The
+[PostgreSQL guide](vignettes/postgres.Rmd) covers server configuration,
+browser sign-in and role mapping. A separate GitHub Actions workflow runs
+the real browser and database tests.
 
 ## Azure PostgreSQL
 

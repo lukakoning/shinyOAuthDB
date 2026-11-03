@@ -37,7 +37,6 @@ postgres_browser_setup <- function(
     "shinyOAuthDB",
     "RPostgres",
     "DBI",
-    "pgBearerHook",
     "chromote",
     "callr",
     "curl",

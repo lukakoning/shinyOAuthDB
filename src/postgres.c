@@ -3,17 +3,15 @@
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>
 #include <R_ext/Visibility.h>
+#ifdef SHINYOAUTHDB_LIBPQ18
 #include <libpq-fe.h>
 #include <dlfcn.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef __linux__
-#error "pgBearerHook is a Linux-only integration fixture"
-#endif
 #ifndef LIBPQ_HAS_PROMPT_OAUTH_DEVICE
-#error "pgBearerHook requires PostgreSQL 18 libpq headers"
+#error "PostgreSQL OAuth requires libpq 18 headers"
 #endif
 
 enum expected_field { ISSUER, SCOPE, HOST, PORT, DBNAME, USER, CLIENT_ID, FIELD_COUNT };
@@ -33,7 +31,7 @@ typedef struct {
     int provided;
 } bearer_scope;
 
-/* libpq's public hook is process-wide. The fixture allows one synchronous
+/* libpq's public hook is process-wide. Allow one synchronous
  * opening on its owning R thread, never an ambient reusable token provider. */
 static bearer_scope *active_scope = NULL;
 
@@ -149,7 +147,7 @@ static SEXP run_callback(void *data) {
     scope->token_length = strlen(CHAR(STRING_ELT(scope->token_sexp, 0)));
     scope->token = malloc(scope->token_length + 1);
     if (!scope->discovery_oidc || !scope->discovery_oauth || !scope->token)
-        Rf_error("Unable to allocate the integration bearer-hook state.");
+        Rf_error("Unable to allocate the PostgreSQL bearer-hook state.");
 
     memcpy(scope->token, CHAR(STRING_ELT(scope->token_sexp, 0)), scope->token_length + 1);
 
@@ -159,8 +157,16 @@ static SEXP run_callback(void *data) {
     scope->installed = 1;
 
     SEXP call = PROTECT(Rf_lang1(scope->callback));
-    SEXP result = Rf_eval(call, R_GlobalEnv);
-    UNPROTECT(1);
+    SEXP result = PROTECT(Rf_eval(call, R_GlobalEnv));
+    if (scope->provided && scope->claimed_connection && Rf_inherits(result, "PqConnection")) {
+        /* Borrow the connection supplied to our public libpq hook, without
+         * inspecting RPostgres's C++ object layout. Its R owner keeps it alive. */
+        SEXP pointer = PROTECT(R_MakeExternalPtr(scope->claimed_connection,
+            Rf_install("shinyOAuthDB_postgres_connection"), result));
+        Rf_setAttrib(result, Rf_install("shinyOAuthDB_pgconn"), pointer);
+        UNPROTECT(1);
+    }
+    UNPROTECT(2);
 
     return result;
 }
@@ -185,7 +191,7 @@ static void finish_scope(void *data, Rboolean jump) {
 static void require_libpq18(void) {
     int version = PQlibVersion();
     if (version < 180000 || version >= 190000)
-        Rf_error("This integration fixture requires libpq major version 18.");
+        Rf_error("Native PostgreSQL OAuth currently requires libpq major version 18.");
 }
 
 static SEXP checked_string(SEXP value, const char *label) {
@@ -236,7 +242,7 @@ static SEXP C_pg_bearer_runtime(SEXP dll_path) {
     int same_libpq = their_hook && their_hook == (void *) PQgetAuthDataHook;
     dlclose(handle);
     if (!same_libpq)
-        Rf_error("RPostgres and pgBearerHook must resolve the same shared libpq hook.");
+        Rf_error("RPostgres and shinyOAuthDB must resolve the same shared libpq hook; rebuild both against libpq 18.");
 
     SEXP result = PROTECT(Rf_allocVector(VECSXP, 4));
     SEXP names = PROTECT(Rf_allocVector(STRSXP, 4));
@@ -250,6 +256,18 @@ static SEXP C_pg_bearer_runtime(SEXP dll_path) {
     UNPROTECT(2);
 
     return result;
+}
+
+static SEXP C_pg_connection_valid(SEXP connection) {
+    SEXP pointer = Rf_getAttrib(connection, Rf_install("shinyOAuthDB_pgconn"));
+    if (TYPEOF(pointer) != EXTPTRSXP ||
+        R_ExternalPtrTag(pointer) != Rf_install("shinyOAuthDB_postgres_connection") ||
+        R_ExternalPtrProtected(pointer) != connection || !R_ExternalPtrAddr(pointer))
+        return Rf_ScalarLogical(0);
+
+    /* The R caller checks DBI validity first: dbDisconnect() frees PGconn.
+     * PQstatus also detects a failed reset while RPostgres's wrapper is alive. */
+    return Rf_ScalarLogical(PQstatus((PGconn *) R_ExternalPtrAddr(pointer)) == CONNECTION_OK);
 }
 
 /* Internal regression probe. It exposes only a success/denial result, never
@@ -269,7 +287,7 @@ static SEXP C_pg_bearer_probe(SEXP expected, SEXP discovery, SEXP request_scope,
     values[7] = "verify-full";
     values[8] = "oauth";
     values[9] = "disable";
-    values[10] = "pgBearerHook-password-disabled";
+    values[10] = "shinyOAuthDB-password-disabled";
     values[11] = "/dev/null";
     values[12] = NULL;
 
@@ -300,6 +318,43 @@ static SEXP C_pg_bearer_probe(SEXP expected, SEXP discovery, SEXP request_scope,
     return Rf_ScalarInteger(result);
 }
 
+#else
+
+static SEXP unavailable(void) {
+    Rf_error("Native PostgreSQL OAuth needs shinyOAuthDB and RPostgres built on Linux against the same shared libpq 18. See vignette('postgres', package = 'shinyOAuthDB') or use the Docker playground.");
+    return R_NilValue;
+}
+
+static SEXP C_pg_with_bearer(SEXP token, SEXP expected, SEXP callback) {
+    (void) token; (void) expected; (void) callback;
+    return unavailable();
+}
+
+static SEXP C_pg_bearer_runtime(SEXP dll_path) {
+    (void) dll_path;
+    return unavailable();
+}
+
+static SEXP C_pg_bearer_probe(SEXP expected, SEXP discovery, SEXP scope, SEXP second) {
+    (void) expected; (void) discovery; (void) scope; (void) second;
+    return unavailable();
+}
+
+static SEXP C_pg_connection_valid(SEXP connection) {
+    (void) connection;
+    return unavailable();
+}
+
+#endif
+
+static SEXP C_pg_bearer_available(void) {
+#ifdef SHINYOAUTHDB_LIBPQ18
+    return Rf_ScalarLogical(1);
+#else
+    return Rf_ScalarLogical(0);
+#endif
+}
+
 /* R's registered .Call ABI deliberately erases each routine's signature to
  * DL_FUNC. Keep -Wextra elsewhere while silencing only these required casts. */
 #pragma GCC diagnostic push
@@ -308,11 +363,13 @@ static const R_CallMethodDef call_methods[] = {
     {"C_pg_with_bearer", (DL_FUNC) &C_pg_with_bearer, 3},
     {"C_pg_bearer_runtime", (DL_FUNC) &C_pg_bearer_runtime, 1},
     {"C_pg_bearer_probe", (DL_FUNC) &C_pg_bearer_probe, 4},
+    {"C_pg_bearer_available", (DL_FUNC) &C_pg_bearer_available, 0},
+    {"C_pg_connection_valid", (DL_FUNC) &C_pg_connection_valid, 1},
     {NULL, NULL, 0}
 };
 #pragma GCC diagnostic pop
 
-void attribute_visible R_init_pgBearerHook(DllInfo *dll) {
+void attribute_visible R_init_shinyOAuthDB(DllInfo *dll) {
     R_registerRoutines(dll, NULL, call_methods, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
     R_forceSymbols(dll, TRUE);

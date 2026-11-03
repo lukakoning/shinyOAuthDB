@@ -1,6 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
 * Require shinyOAuth 0.7.0.
+* Add `oauth_db_postgres()` for self-hosted PostgreSQL 18 with native OAuth
+  on Linux/libpq 18, a Docker/Keycloak playground, and a separate browser
+  integration workflow that exercises database grants and row policies.
 * Add connection helpers for Azure SQL, Fabric SQL, Databricks SQL,
   Snowflake, Redshift, Trino, and Azure PostgreSQL. Query with DBI or dbplyr;
   helpers reuse connections and call the driver's cleanup method when the

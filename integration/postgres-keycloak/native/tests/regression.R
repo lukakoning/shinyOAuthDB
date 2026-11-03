@@ -1,6 +1,5 @@
-# Run by R CMD check, or Rscript /fixtures/native/tests/regression.R in the
-# isolated integration image after R CMD INSTALL /fixtures/native.
-library(pgBearerHook)
+# Run in the integration image against the freshly installed shinyOAuthDB.
+library(shinyOAuthDB)
 
 fail <- function(expr, pattern = NULL) {
   condition <- tryCatch(
@@ -19,7 +18,9 @@ fail <- function(expr, pattern = NULL) {
   invisible(condition)
 }
 
-ns <- asNamespace("pgBearerHook")
+ns <- asNamespace("shinyOAuthDB")
+pg_bearer_runtime <- get(".odb_postgres_runtime", ns)
+pg_connect_bearer <- get(".odb_postgres_connect_bearer", ns)
 
 with_hook <- function(callback, expected = metadata) {
   .Call(
@@ -46,7 +47,7 @@ metadata <- c(
   "1",
   "fixture",
   "alice",
-  "pgBearerHook-external-bearer-only"
+  "shinyOAuthDB-external-bearer-only"
 )
 discovery_url <- paste0(metadata[[1L]], "/.well-known/openid-configuration")
 
@@ -71,6 +72,13 @@ fail(
 )
 restored()
 fail(with_hook(function() with_hook(function() NULL)), "Nested bearer-hook")
+restored()
+interrupted <- tryCatch(
+  with_hook(function() stop(structure(list(message = "test interrupt", call = NULL),
+    class = c("interrupt", "condition")))),
+  interrupt = identity
+)
+stopifnot(inherits(interrupted, "interrupt"))
 restored()
 
 # A supplied token is usable only by the configured connection, issuer and
@@ -98,6 +106,10 @@ stopifnot(
 )
 restored()
 stopifnot(with_hook(function() probe(scope = "other-scope")) < 0L)
+restored()
+stopifnot(with_hook(function() probe(
+  discovery = "https://localhost:18443/.well-known/oauth-authorization-server/realms/shinyoauthdb"
+)) == 1L)
 restored()
 other_user <- metadata
 other_user[[6L]] <- "bob"
@@ -130,8 +142,8 @@ bad$scope <- "postgresql  another"
 fail(do.call(pg_connect_bearer, bad), "single spaces")
 restored()
 bad <- args
-bad$sslmode <- "require"
-fail(do.call(pg_connect_bearer, bad), "verify-full")
+bad$options <- list(sslmode = "require")
+fail(do.call(pg_connect_bearer, bad), "cannot be overridden")
 restored()
 
 # Exercise RPostgres's real error/unwind path against an unavailable TCP port.
@@ -139,5 +151,5 @@ restored()
 fail(do.call(pg_connect_bearer, args))
 restored()
 cat(
-  "pgBearerHook: native restoration, connection isolation and validation checks passed.\n"
+  "shinyOAuthDB: native restoration, connection isolation and validation checks passed.\n"
 )

@@ -31,4 +31,5 @@
 #'
 #' @keywords package
 #' @importFrom R6 R6Class
+#' @useDynLib shinyOAuthDB, .registration = TRUE
 "_PACKAGE"

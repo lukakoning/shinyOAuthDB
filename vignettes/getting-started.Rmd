@@ -29,6 +29,7 @@ Each source guide includes a complete app with sign-in and a first query.
 | [Amazon Redshift](redshift.html) | Query Redshift with DBI |
 | [Trino and Starburst Enterprise](trino.html) | Query with RTrino and DBI |
 | [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
+| [Self-hosted PostgreSQL](postgres.html) | Query PostgreSQL 18 with your own OAuth provider, including Keycloak |
 
 ## Install shinyOAuthDB
 

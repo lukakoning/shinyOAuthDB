@@ -115,9 +115,10 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
 # Cache connections and providers; the caller runs queries.
 .odb_bind <- function(authorization, connect, ..., target = NULL, required_scopes = character(),
                       disconnect = NULL, cache_key = NULL, identity_key = NULL, min_valid_for = 60,
-                      session = shiny::getDefaultReactiveDomain()) {
-  if (!is.function(connect) || (!is.null(disconnect) && !is.function(disconnect))) {
-    .odb_abort("connect and disconnect must be functions (disconnect may be NULL).")
+                      session = shiny::getDefaultReactiveDomain(), is_valid = NULL) {
+  if (!is.function(connect) || (!is.null(disconnect) && !is.function(disconnect)) ||
+      (!is.null(is_valid) && !is.function(is_valid))) {
+    .odb_abort("connect, disconnect and is_valid must be functions (the last two may be NULL).")
   }
   .odb_string(target, "target", optional = TRUE)
   required_scopes <- .odb_scopes(required_scopes)
@@ -260,9 +261,12 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
       # The backend can check credentials on access and choose its reuse key.
       key <- if (is.function(cache_key)) cache_key(token) else NULL
       if (!is.null(native)) {
-        valid <- identical(key, native_key) &&
-          (!inherits(native, "DBIConnection") ||
-            tryCatch(isTRUE(DBI::dbIsValid(native)), error = function(e) FALSE))
+        valid <- identical(key, native_key) && if (is.function(is_valid)) {
+          tryCatch(isTRUE(is_valid(native)), error = function(e) FALSE)
+        } else {
+          !inherits(native, "DBIConnection") ||
+            tryCatch(isTRUE(DBI::dbIsValid(native)), error = function(e) FALSE)
+        }
         if (valid) return(native)
         close_native()
       }

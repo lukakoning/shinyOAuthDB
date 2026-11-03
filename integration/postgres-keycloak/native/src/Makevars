@@ -1,3 +1,0 @@
-PKG_CPPFLAGS = $(shell pkg-config --cflags libpq)
-PKG_CFLAGS = -std=c99 -Wall -Wextra -pthread
-PKG_LIBS = $(shell pkg-config --libs libpq) -ldl -pthread

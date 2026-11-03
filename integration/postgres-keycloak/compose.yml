@@ -68,6 +68,7 @@ services:
     shm_size: 512mb
     environment:
       OAUTHDB_POSTGRES_INTEGRATION: "1"
+      SHINYOAUTHDB_POSTGRES_OAUTH: required
       OAUTHDB_SHINYOAUTH_SOURCE: /workspace/shinyOAuth
       OAUTHDB_TEST_ISSUER: https://localhost:18443/realms/shinyoauthdb
       OAUTHDB_TEST_APP_ORIGIN: http://localhost:18100
@@ -86,7 +87,6 @@ services:
     volumes:
       - ../..:/workspace/shinyOAuthDB:ro
       - ../../../shinyOAuth:/workspace/shinyOAuth:ro
-      - ./native:/fixtures/native:ro
       - fixture_tls:/fixtures/tls:ro
       - ./.generated:/results
     depends_on:

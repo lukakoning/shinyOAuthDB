@@ -41,6 +41,12 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     c("bob-visible-1", "bob-visible-2")
   )
   testthat::expect_false(identical(a$result$backend_pid, b$result$backend_pid))
+  alice_table <- postgres_browser_value(browser_a, "document.querySelector('#rows').textContent")
+  bob_table <- postgres_browser_value(browser_b, "document.querySelector('#rows').textContent")
+  testthat::expect_match(alice_table, "alice-visible-1", fixed = TRUE)
+  testthat::expect_false(grepl("bob-visible", alice_table, fixed = TRUE))
+  testthat::expect_match(bob_table, "bob-visible-1", fixed = TRUE)
+  testthat::expect_false(grepl("alice-visible", bob_table, fixed = TRUE))
 
   for (entry in list(
     list(browser = browser_a, before = a),
@@ -180,6 +186,19 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     reset$connect_attempts
   )
   testthat::expect_true(native_failed$hook_restored)
+
+  # The public helper can replace a broken handle with the current user's token.
+  postgres_browser_click(browser_b, "load")
+  recovered <- postgres_browser_wait(browser_b, function(value) {
+    is.null(value$error) && !is.null(value$result) &&
+      value$query_attempts > native_failed$query_attempts
+  })
+  testthat::expect_identical(recovered$result$database_user, "bob")
+  testthat::expect_identical(unlist(recovered$result$markers),
+    c("bob-visible-1", "bob-visible-2"))
+  testthat::expect_false(identical(recovered$result$backend_pid, reset$result$backend_pid))
+  testthat::expect_identical(recovered$successful_connections, 2L)
+  testthat::expect_true(recovered$hook_restored)
 })
 
 testthat::test_that("browser-issued wrong audience is denied by PostgreSQL OAuth", {

@@ -1,0 +1,10 @@
+#!/bin/sh
+case "${SHINYOAUTHDB_POSTGRES_OAUTH:-auto}" in
+  auto|required|disabled) ;;
+  *) echo 'SHINYOAUTHDB_POSTGRES_OAUTH must be auto, required or disabled.' >&2; exit 1 ;;
+esac
+if test "${SHINYOAUTHDB_POSTGRES_OAUTH:-auto}" = required; then
+  echo 'Native PostgreSQL OAuth currently requires Linux/libpq 18; use the Docker playground on Windows.' >&2
+  exit 1
+fi
+echo 'Native PostgreSQL OAuth: no (use the Linux Docker playground)'

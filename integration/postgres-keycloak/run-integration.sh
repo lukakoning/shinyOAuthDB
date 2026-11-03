@@ -37,7 +37,9 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 "${compose[@]}" config --quiet
-"${compose[@]}" build postgres test-runner
+if [[ "${OAUTHDB_SKIP_BUILD:-0}" != 1 ]]; then
+  "${compose[@]}" build postgres test-runner
+fi
 "${compose[@]}" up --detach --wait --wait-timeout 240 postgres
 
 if [[ "${OAUTHDB_PLAYGROUND:-0}" == 1 ]]; then

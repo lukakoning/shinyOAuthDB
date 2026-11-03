@@ -7,7 +7,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     supplies user credentials to 'fabricQueryR' and 'brickster' functions.
     Uses 'shinyOAuth' for sign-in and token renewal, and manages connections
     within each Shiny session. Supports Azure SQL, Microsoft Fabric, BigQuery,
-    Redshift, Databricks, Snowflake, Trino, and Azure PostgreSQL.
+    Redshift, Databricks, Snowflake, Trino, and PostgreSQL, including self-hosted
+    PostgreSQL with native OAuth and Azure PostgreSQL.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
@@ -40,3 +41,6 @@ VignetteBuilder: knitr
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0
+NeedsCompilation: yes
+SystemRequirements: Optional native PostgreSQL OAuth: Linux, shared libpq 18
+    and development headers, pkg-config

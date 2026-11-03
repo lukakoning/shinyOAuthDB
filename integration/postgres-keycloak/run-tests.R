@@ -14,7 +14,7 @@ local({
     "OAUTHDB_SHINYOAUTH_SOURCE",
     "/workspace/shinyOAuth"
   )
-  sources <- c(authentication, repository, file.path(fixture, "native"))
+  sources <- c(authentication, repository)
   for (path in sources) {
     if (!file.exists(file.path(path, "DESCRIPTION"))) {
       stop(
@@ -51,16 +51,20 @@ local({
   dir.create(integration_library)
   on.exit(unlink(integration_library, recursive = TRUE), add = TRUE)
 
-  # Native compilation writes src/*.o and src/*.so. Keep the bind-mounted
-  # checkout read-only and compile an independent writable copy.
+  # Compile package code in a writable staging directory, keeping the mounted
+  # checkout read-only and excluding local libraries and generated artifacts.
   native_stage <- tempfile("shinyOAuthDB-postgres-native-")
   dir.create(native_stage)
   on.exit(unlink(native_stage, recursive = TRUE), add = TRUE)
-  if (!file.copy(sources[[3L]], native_stage, recursive = TRUE)) {
-    stop("Staging the native fixture for compilation failed.", call. = FALSE)
+  package_files <- c("DESCRIPTION", "NAMESPACE", "LICENSE", "LICENSE.md",
+    "R", "man", "src", "configure", "cleanup", "inst", "vignettes")
+  package_files <- file.path(repository, package_files)
+  package_files <- package_files[file.exists(package_files)]
+  if (!all(file.copy(package_files, native_stage, recursive = TRUE))) {
+    stop("Staging the package for native compilation failed.", call. = FALSE)
   }
 
-  sources[[3L]] <- file.path(native_stage, "native")
+  sources[[2L]] <- native_stage
   .libPaths(c(integration_library, dependency_libraries))
   library_path <- paste(.libPaths(), collapse = .Platform$path.sep)
   Sys.setenv(R_LIBS = library_path, R_LIBS_USER = library_path)
@@ -71,6 +75,7 @@ local({
       c(
         "CMD",
         "INSTALL",
+        "--preclean",
         "--no-byte-compile",
         paste0("--library=", integration_library),
         path
@@ -83,7 +88,7 @@ local({
       stop("Installing an integration source package failed.", call. = FALSE)
     }
   }
-  for (package in c("shinyOAuth", "shinyOAuthDB", "pgBearerHook")) {
+  for (package in c("shinyOAuth", "shinyOAuthDB")) {
     resolved <- normalizePath(
       find.package(package),
       winslash = "/",
@@ -185,6 +190,7 @@ local({
       "OAUTHDB_TEST_CLIENT_ID",
       "shiny-db"
     ))
+    config$playground <- TRUE
     message(
       "PostgreSQL OAuth playground: ",
       config$origin,
@@ -206,10 +212,17 @@ local({
     browser_results <- testthat::test_dir(
       fixture,
       reporter = "summary",
-      stop_on_failure = TRUE,
+      stop_on_failure = FALSE,
       load_helpers = TRUE
     )
     counts <- as.data.frame(browser_results)
+    jsonlite::write_json(list(
+      package_version = as.character(utils::packageVersion("shinyOAuthDB")),
+      runtime = getFromNamespace(".odb_postgres_runtime", "shinyOAuthDB")(),
+      passed = sum(counts$passed), failed = sum(counts$failed),
+      errors = sum(counts$error), warnings = sum(counts$warning),
+      skipped = sum(counts$skipped)
+    ), "/results/results.json", auto_unbox = TRUE, pretty = TRUE)
     message(
       "PostgreSQL/Keycloak integration: ",
       sum(counts$passed),

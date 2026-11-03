@@ -5,6 +5,10 @@ Alice and Bob run the same SQL query and receive different rows through
 PostgreSQL row-level security. Docker runs the app, Keycloak, PostgreSQL 18,
 and Chromium.
 
+The app uses the public `oauth_db_postgres()` helper. The same Docker setup
+can be launched through `source("playground/postgres/run.R")`; see the
+[playground instructions](../../playground/postgres/README.md).
+
 The fixture creates its own database and volumes. Its accounts and secrets
 are public test data.
 
@@ -64,10 +68,17 @@ PostgreSQL checks the token and role; the query does not filter by user in R.
 ## Runtime details
 
 PostgreSQL/libpq 18.3 and Keycloak 26.6.1 are pinned in the build.
-RPostgres 1.4.10 and the [native token helper](native/README.md) link the same
-shared libpq. The helper is Linux-only and installed only in the test image.
-Production PostgreSQL native OAuth still needs a supported RPostgres token
-interface; use `oauth_db_azure_postgres()` for Azure's Entra authentication.
+RPostgres 1.4.10 and shinyOAuthDB's native adapter link the same shared
+libpq 18. The package is installed with native OAuth required, so a missing
+adapter fails the lane. The adapter currently supports Linux; Windows and
+macOS can run the Linux containers. See the [PostgreSQL guide](../../vignettes/postgres.Rmd)
+for the supported build and connection lifetime.
+
+The [native regression checks](native/tests/regression.R) exercise cleanup
+and connection isolation against the installed package. The independent
+[GitHub Actions lane](../../.github/workflows/postgres-integration.yaml)
+runs the native and browser suites and records sanitized assertion counts
+under `.generated/results.json`; any warning or skipped test fails the lane.
 
 The server uses Percona's `pg_oidc_validator` at commit
 `ba9c4cb2dc9bd2e9779c7a33f7a30c9bb8c97862` with a fixture-specific

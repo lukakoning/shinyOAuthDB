@@ -1,0 +1,32 @@
+#!/bin/sh
+# OAuth is optional: the other backends do not depend on libpq.
+set -eu
+mode=${SHINYOAUTHDB_POSTGRES_OAUTH:-auto}
+case "$mode" in
+  auto|required|disabled) ;;
+  *) echo 'SHINYOAUTHDB_POSTGRES_OAUTH must be auto, required or disabled.' >&2; exit 1 ;;
+esac
+
+enabled=no
+if test "$mode" != disabled && test "$(uname -s)" = Linux && command -v pkg-config >/dev/null 2>&1; then
+  version=$(pkg-config --modversion libpq 2>/dev/null || true)
+  case "$version" in
+    18.*)
+      cppflags=$(pkg-config --cflags libpq)
+      libs=$(pkg-config --libs libpq)
+      printf '%s\n' "PKG_CPPFLAGS = -DSHINYOAUTHDB_LIBPQ18 $cppflags" \
+        'PKG_CFLAGS = -std=c99 -Wall -Wextra -pthread' \
+        "PKG_LIBS = $libs -ldl -pthread" > src/Makevars
+      enabled=yes
+      ;;
+  esac
+fi
+
+if test "$enabled" = no; then
+  if test "$mode" = required; then
+    echo 'PostgreSQL OAuth requires Linux and libpq 18 development files discoverable through pkg-config.' >&2
+    exit 1
+  fi
+  printf '%s\n' '# Native PostgreSQL OAuth unavailable in this build.' > src/Makevars
+fi
+echo "Native PostgreSQL OAuth: $enabled"

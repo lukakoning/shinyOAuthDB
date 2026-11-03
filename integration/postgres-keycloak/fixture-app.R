@@ -1,5 +1,4 @@
-# Integration-only Shiny app: genuine OAuth code flow and PostgreSQL OAUTHBEARER.
-# pgBearerHook is a test fixture for libpq's native OAuth hook, not package code.
+# Genuine browser sign-in and PostgreSQL OAuth through the public package helper.
 
 postgres_fixture_error_detail <- function(condition) {
   detail <- conditionMessage(condition)
@@ -62,6 +61,8 @@ postgres_browser_app <- function(config) {
     shiny::actionButton("logout", "Logout"),
     shiny::actionButton("reset_backend", "Terminate fixture backend"),
     shiny::actionButton("retry_native", "Retry held native connection"),
+    if (isTRUE(config$playground)) shiny::actionButton("stop_playground", "Stop playground"),
+    shiny::tableOutput("rows"),
     shiny::verbatimTextOutput("snapshot")
   )
   ui <- shinyOAuth::oauth_ui(base, id = "auth", client = client)
@@ -80,72 +81,57 @@ postgres_browser_app <- function(config) {
 
     successful_connections <- shiny::reactiveVal(0L)
 
-    disconnects <- shiny::reactiveVal(0L)
+    connections <- shiny::reactiveVal(list())
+    disconnects <- function() {
+      sum(vapply(connections(), function(native) !DBI::dbIsValid(native), logical(1)))
+    }
 
     native_error_detail <- shiny::reactiveVal(NULL)
 
-    con <- shinyOAuthDB::oauth_db_connect(
+    database_role <- function() {
+      reference <- authorization()
+      subject <- reference$identity(claims = "sub")$id_token_claims$sub
+      role <- switch(subject,
+        "11111111-1111-4111-8111-111111111111" = "alice",
+        "22222222-2222-4222-8222-222222222222" = "bob",
+        NULL
+      )
+      if (is.null(role)) stop("The validated fixture identity has no database role.", call. = FALSE)
+      role
+    }
+    database <- shinyOAuthDB::oauth_db_postgres(
       authorization,
-      connect = function(token, issuer, host, port, dbname, sslrootcert) {
-        tryCatch(
-          {
-            reference <- shiny::isolate(authorization())
-            held_provider <<- reference$access_token
-            identity <- reference$identity(claims = "sub")
-            subject <- identity$id_token_claims$sub
-            role <- c(
-              "11111111-1111-4111-8111-111111111111" = "alice",
-              "22222222-2222-4222-8222-222222222222" = "bob"
-            )[[subject]]
-            if (is.null(role)) {
-              stop(
-                "The validated fixture identity has no database role.",
-                call. = FALSE
-              )
-            }
-
-            connect_attempts(shiny::isolate(connect_attempts()) + 1L)
-            native <- pgBearerHook::pg_connect_bearer(
-              token = token,
-              issuer = issuer,
-              scope = "database.read",
-              host = host,
-              port = port,
-              dbname = dbname,
-              user = role,
-              sslmode = "verify-full",
-              sslrootcert = sslrootcert,
-              connect_timeout = 5L
-            )
-
-            successful_connections(
-              shiny::isolate(successful_connections()) + 1L
-            )
-
-            native
-          },
-
-          error = function(e) {
-            native_error_detail(postgres_fixture_error_detail(e))
-
-            stop(e)
-          }
-        )
-      },
-
+      user = database_role,
       issuer = config$issuer,
+      scope = "database.read",
       host = config$pg_host,
       port = config$pg_port,
       dbname = config$pg_dbname,
       sslrootcert = config$ca_file,
       required_scopes = "database.read",
-      min_valid_for = 1,
-      disconnect = function(native) {
-        disconnects(shiny::isolate(disconnects()) + 1L)
-
-        DBI::dbDisconnect(native)
-      }
+      min_valid_for = 1
     )
+    previous <- NULL
+    con <- function() {
+      reference <- authorization()
+      if (!is.null(reference)) held_provider <<- reference$access_token
+      opening <- is.null(previous) || !getFromNamespace(
+        ".odb_postgres_connection_valid", "shinyOAuthDB"
+      )(previous)
+      if (opening && !is.null(reference) && reference$has_scopes("database.read")) {
+        connect_attempts(shiny::isolate(connect_attempts()) + 1L)
+      }
+      native <- tryCatch(database(), error = function(e) {
+        if (!inherits(e, "shiny.silent.error")) native_error_detail(postgres_fixture_error_detail(e))
+        stop(e)
+      })
+      if (!identical(native, previous)) {
+        successful_connections(shiny::isolate(successful_connections()) + 1L)
+        connections(c(shiny::isolate(connections()), list(native)))
+        previous <<- native
+      }
+      native
+    }
 
     last_error <- shiny::reactiveVal(NULL)
 
@@ -212,6 +198,9 @@ postgres_browser_app <- function(config) {
     )
 
     shiny::observeEvent(input$login, auth$request_login())
+    if (isTRUE(config$playground)) {
+      shiny::observeEvent(input$stop_playground, shiny::stopApp())
+    }
 
     shiny::observeEvent(input$load, last_error(NULL))
 
@@ -278,7 +267,7 @@ postgres_browser_app <- function(config) {
 
       denied <- tryCatch(
         {
-          native <- pgBearerHook::pg_connect_bearer(
+          native <- getFromNamespace(".odb_postgres_connect_bearer", "shinyOAuthDB")(
             token = credential,
             issuer = config$issuer,
             scope = "database.read",
@@ -286,7 +275,6 @@ postgres_browser_app <- function(config) {
             port = config$pg_port,
             dbname = config$pg_dbname,
             user = other_role,
-            sslmode = "verify-full",
             sslrootcert = config$ca_file,
             connect_timeout = 5L
           )
@@ -370,7 +358,7 @@ postgres_browser_app <- function(config) {
 
       denied <- tryCatch(
         {
-          native <- pgBearerHook::pg_connect_bearer(
+          native <- getFromNamespace(".odb_postgres_connect_bearer", "shinyOAuthDB")(
             token = credential,
             issuer = config$issuer,
             scope = "database.read",
@@ -378,7 +366,6 @@ postgres_browser_app <- function(config) {
             port = config$pg_port,
             dbname = config$pg_dbname,
             user = role,
-            sslmode = "verify-full",
             sslrootcert = config$ca_file,
             connect_timeout = 5L
           )
@@ -500,6 +487,13 @@ postgres_browser_app <- function(config) {
       )
     })
 
+    output$rows <- shiny::renderTable({
+      saved <- result()
+      shiny::req(saved)
+      data.frame(database_user = saved$database_user, owner = saved$owner_names,
+        marker = saved$markers)
+    })
+
     output$snapshot <- shiny::renderText({
       current_owner <- owner()
       query_error <- NULL
@@ -544,7 +538,7 @@ postgres_browser_app <- function(config) {
           native_scope_probe_attempts = native_scope_probe_attempts(),
           native_scope_denied = native_scope_denied(),
           hook_restored = with(
-            pgBearerHook::pg_bearer_runtime(),
+            getFromNamespace(".odb_postgres_runtime", "shinyOAuthDB")(),
             !isTRUE(active) && isTRUE(default_hook) && isTRUE(same_libpq)
           )
         ),

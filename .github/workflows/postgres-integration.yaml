@@ -1,0 +1,47 @@
+name: PostgreSQL OAuth integration
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postgres-oauth-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres-keycloak:
+    name: PostgreSQL 18 / Keycloak / real browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out shinyOAuthDB
+        uses: actions/checkout@v6
+        with:
+          path: shinyOAuthDB
+
+      - name: Check out shinyOAuth
+        uses: actions/checkout@v6
+        with:
+          repository: lukakoning/shinyOAuth
+          ref: master
+          path: shinyOAuth
+          persist-credentials: false
+
+      - name: Run native and browser integration tests
+        working-directory: shinyOAuthDB
+        shell: bash
+        run: bash integration/postgres-keycloak/run-integration.sh
+
+      - name: Upload sanitized test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-oauth-results
+          path: shinyOAuthDB/integration/postgres-keycloak/.generated/results.json
+          include-hidden-files: true
+          if-no-files-found: ignore
