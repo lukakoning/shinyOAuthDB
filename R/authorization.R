@@ -51,7 +51,9 @@
 }
 
 .odb_authorization_reader <- function(authorization) {
-  force(authorization)
+  # Module fields live in reactiveValues; capture the accessor during server
+  # setup without subscribing to its field outside a reactive consumer.
+  shiny::isolate(force(authorization))
   if (is.function(authorization)) return(authorization)
   if (!is.null(authorization)) .odb_authorization_validate(authorization)
   function() authorization
