@@ -297,7 +297,7 @@ oauth_db_bigquery_client <- function(
       "). Check the Google permissions, project, location, and job in Google Cloud."),
       "request_failed", status = status)
   }
-  result <- httr2::resp_body_json(resp, simplifyVector = FALSE)
+  result <- .odb_http_json(resp, "BigQuery")
   if (!is.list(result)) .odb_abort("BigQuery returned an invalid JSON response.", "invalid_response")
   result
 }
@@ -353,6 +353,15 @@ oauth_db_bigquery_client <- function(
 }
 
 .odb_bigquery_frame <- function(rows, schema) {
+  force(rows)
+  force(schema)
+  tryCatch(.odb_bigquery_decode_frame(rows, schema), error = function(e) {
+    if (inherits(e, "shinyOAuthDB_invalid_response")) stop(e)
+    .odb_abort("BigQuery returned invalid rows or schema.", "invalid_response")
+  })
+}
+
+.odb_bigquery_decode_frame <- function(rows, schema) {
   fields <- schema$fields
   if (is.null(fields)) {
     if (length(rows)) .odb_abort("BigQuery returned rows without a schema.", "invalid_response")
