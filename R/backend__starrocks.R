@@ -33,6 +33,8 @@
 #' inherit from R's temporary directory; use a private user temporary location.
 #' TLS verifies the server identity. DSNs, option files, and competing
 #' credentials cannot be supplied through `...`.
+#' Parameter binding uses the driver's client-side prepared statements
+#' (`NO_SSPS=1`) for compatibility with StarRocks' MySQL protocol.
 #'
 #' Create the helper inside `server()` and call `con()` before each operation.
 #' Valid SQL sessions survive ordinary token renewal; account or username
@@ -114,7 +116,7 @@ oauth_db_starrocks <- function(
   fallback <- paste0("shinyOAuthDB-disabled-", paste(format(openssl::rand_bytes(24)), collapse = ""))
   args <- list(drv = odbc::odbc(), driver = driver, SERVER = server, DATABASE = database,
     UID = user(), PWD = fallback, PORT = port, SSLMODE = "VERIFY_IDENTITY",
-    USE_MYCNF = 0L, NO_PROMPT = 1L, MULTI_HOST = 0L, ENABLE_DNS_SRV = 0L)
+    USE_MYCNF = 0L, NO_PROMPT = 1L, MULTI_HOST = 0L, ENABLE_DNS_SRV = 0L, NO_SSPS = 1L)
   args[["openid-token-file"]] <- if (grepl("[;{}]", path)) odbc::quote_value(path) else path
   if (!is.null(ssl_ca)) args$SSLCA <- ssl_ca
   if (!is.null(plugin_dir)) args$PLUGIN_DIR <- plugin_dir

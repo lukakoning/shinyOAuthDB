@@ -26,6 +26,7 @@ test_that("StarRocks supplies a temporary JWT file to the ODBC plugin and always
     expect_identical(native$PLUGIN_DIR, "plugins")
     expect_identical(native$PORT, 9030L)
     expect_identical(native$USE_MYCNF, 0L)
+    expect_identical(native$NO_SSPS, 1L)
     expect_false(grepl("header|payload|signature", native$PWD))
     fail <<- TRUE
     other <- oauth_db_starrocks(auth$connection, "starrocks.example", "reporting", "alice", "MySQL driver")
@@ -74,7 +75,7 @@ test_that("StarRocks follows accounts and usernames while preserving valid SQL s
 test_that("StarRocks rejects credential overrides and non-JWT credentials", {
   skip_if_not_installed("odbc")
   for (name in c("DSN", ".connection_string", "PWD", "USER", "OPTION", "USE_MYCNF", "SSLMODE",
-                 "openid-token-file", "MULTI_HOST", "ENABLE_DNS_SRV", "attributes", "INITSTMT", "PASSWORD2")) {
+                 "openid-token-file", "MULTI_HOST", "ENABLE_DNS_SRV", "attributes", "INITSTMT", "PASSWORD2", "NO_SSPS")) {
     args <- c(list(function() NULL, "server", "reporting", "alice", "MySQL driver"),
       stats::setNames(list("private-fixture"), name))
     expect_error(do.call(oauth_db_starrocks, args), class = "shinyOAuthDB_invalid_configuration")

@@ -80,6 +80,8 @@ and removed on success, error, or interrupt. On Windows its access rules
 inherit from R's temporary directory; use a private user temporary location.
 TLS verifies the server identity. DSNs, option files, and competing
 credentials cannot be supplied through \code{...}.
+Parameter binding uses the driver's client-side prepared statements
+(\code{NO_SSPS=1}) for compatibility with StarRocks' MySQL protocol.
 
 Create the helper inside \code{server()} and call \code{con()} before each operation.
 Valid SQL sessions survive ordinary token renewal; account or username
