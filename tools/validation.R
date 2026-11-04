@@ -21,7 +21,7 @@ validation_check_dependencies <- function(packages = validation_dependencies()) 
   invisible(TRUE)
 }
 
-validation_check_results <- function(counts, output) {
+validation_check_results <- function(counts, output, packages = validation_dependencies()) {
   dir.create(output, recursive = TRUE, showWarnings = FALSE)
   details <- counts[!vapply(counts, is.list, logical(1))]
   utils::write.csv(details, file.path(output, "test-results.csv"), row.names = FALSE)
@@ -30,7 +30,7 @@ validation_check_results <- function(counts, output) {
     scenarios = nrow(counts), passed = sum(counts$passed), failed = sum(counts$failed),
     errors = sum(counts$error), warnings = sum(counts$warning), skipped = sum(counts$skipped))
   jsonlite::write_json(summary, file.path(output, "test-summary.json"), auto_unbox = TRUE, pretty = TRUE)
-  versions <- vapply(names(validation_dependencies()), function(package)
+  versions <- vapply(names(packages), function(package)
     as.character(utils::packageVersion(package)), "")
   jsonlite::write_json(as.list(versions), file.path(output, "dependency-versions.json"),
     auto_unbox = TRUE, pretty = TRUE)

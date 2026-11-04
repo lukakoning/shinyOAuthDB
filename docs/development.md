@@ -70,3 +70,21 @@ The independent [mutation workflow](../.github/workflows/mutation-checks.yaml)
 runs weekly and on manual dispatch. Results are retained under
 `.validation/mutations/`. This checks four specific protections; it is not a
 package-wide mutation score. Your checkout is never modified by the runner.
+
+## Compatibility lanes
+
+The [minimum workflow](../.github/workflows/minimum-compatibility.yaml) runs
+the core authorization, lifecycle, SQLite and HTTP API tests on R 4.1.0 and
+the current R release. It requires exactly DBI 1.2.0, httr2 1.2.0, Shiny 1.8.1
+and testthat 3.2.0, with httr2's curl 6.4.0 dependency floor. It fails if those
+versions drift, if tests are skipped, or if any assertion, error or warning
+fails validation. Versions and counts are retained in `.validation/minimum/`.
+Optional platform SDKs run in the full package and Docker lanes; their current
+versions can require newer dependencies than this core configuration.
+
+Routine package and Docker workflows use the same pinned shinyOAuth revision.
+The independent [upstream workflow](../.github/workflows/upstream-compatibility.yaml)
+runs the full tests and R CMD check weekly against shinyOAuth's current master
+and updated CRAN packages. Its failures identify upstream changes separately
+from the reproducible pull-request lanes. All of these workflows can run in
+parallel, and none provisions cloud resources.
