@@ -98,3 +98,38 @@ test_that("an authorization change during opening closes the new handle before r
     })
   }
 })
+
+test_that("failed native validation closes the old handle and reconnects with the current token", {
+  skip_if_not_installed("RSQLite")
+  for (invalid in c("error", "missing", "empty", "false", "vector")) local({
+    replacement <- NULL
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      mode <- "valid"
+      opened <- 0L
+      con <- .odb_bind(auth$connection, connect = function(token) {
+        value <- token()
+        opened <<- opened + 1L
+        mode <<- "valid"
+        native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+        DBI::dbWriteTable(native, "identity", data.frame(token = value))
+        native
+      }, is_valid = function(value) switch(mode,
+        valid = DBI::dbIsValid(value), error = stop("Fixture driver validation failed"),
+        missing = NA, empty = NULL, false = FALSE, vector = c(TRUE, FALSE)))
+      first <- con()
+      expect_identical(con(), first)
+      auth$token(auth$make_token("current-token"))
+      session$flushReact()
+      expect_identical(con(), first)
+      mode <- invalid
+      replacement <<- con()
+      expect_false(DBI::dbIsValid(first))
+      expect_s4_class(replacement, "DBIConnection")
+      expect_identical(DBI::dbReadTable(replacement, "identity")$token, "current-token")
+      expect_identical(con(), replacement)
+      expect_identical(opened, 2L)
+    })
+    expect_false(DBI::dbIsValid(replacement))
+  })
+})
