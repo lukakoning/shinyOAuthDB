@@ -10,7 +10,6 @@ test_that("PostgreSQL rejects ambiguous identities and authentication overrides 
     list(host = "host,other"), list(host = "/tmp"), list(host = "@socket"),
     list(host = "host\nother"), list(issuer = "http://login.example.org"),
     list(issuer = "https://user@login.example.org"),
-    list(issuer = "https://login.example.org/"),
     list(issuer = "https://login.example.org/.well-known/openid-configuration"),
     list(scope = "database.read  other"), list(scope = "database.read "),
     list(scope = " database.read"), list(scope = "database.read database.read"),
@@ -28,6 +27,25 @@ test_that("PostgreSQL rejects ambiguous identities and authentication overrides 
       class = "shinyOAuthDB_invalid_configuration")
     expect_false(grepl("secret", conditionMessage(error), fixed = TRUE))
   }
+})
+
+test_that("PostgreSQL preserves trailing slashes in trusted issuer identifiers", {
+  captured <- NULL
+  local_mocked_bindings(.odb_postgres_runtime = function() TRUE,
+    .odb_postgres_connect_bearer = function(token, user, ...) {
+      captured <<- list(...)
+      "native"
+    })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, scopes = "database.read")
+    for (issuer in c("https://login.example.org/", "https://login.example.org/realms/reporting/")) {
+      args <- postgres_test_settings()
+      args$issuer <- issuer
+      con <- do.call(oauth_db_postgres, c(list(auth$connection), args))
+      expect_identical(con(), "native")
+      expect_identical(captured$issuer, issuer)
+    }
+  })
 })
 
 test_that("PostgreSQL connections follow roles, permissions and the owning session", {

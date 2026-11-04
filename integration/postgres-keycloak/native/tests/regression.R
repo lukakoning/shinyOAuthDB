@@ -118,6 +118,19 @@ restored()
 stopifnot(with_hook(function() probe(second = TRUE)) == 1L)
 restored()
 
+for (issuer in c("https://localhost:18443/", "https://localhost:18443/realms/shinyoauthdb/")) {
+  expected <- metadata
+  expected[[1L]] <- issuer
+  discovery <- paste0(issuer, "/.well-known/openid-configuration")
+  stopifnot(with_hook(function() probe(expected, discovery), expected) == 1L)
+  restored()
+
+  different <- expected
+  different[[1L]] <- sub("/$", "", issuer)
+  stopifnot(with_hook(function() probe(different, discovery), expected) < 0L)
+  restored()
+}
+
 # Validation must not mutate/install the native hook on malformed arguments.
 args <- list(
   token = "synthetic-test-bearer",

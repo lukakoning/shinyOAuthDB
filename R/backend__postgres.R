@@ -118,8 +118,8 @@ oauth_db_postgres <- function(
   .odb_postgres_string(dbname, "dbname")
   .odb_postgres_string(issuer, "issuer")
   if (!grepl("^https://[^/?#@[:space:]]+(/[^?#[:space:]]*)?$", issuer) ||
-      endsWith(issuer, "/") || grepl("/\\.well-known/", issuer)) {
-    .odb_abort("issuer must be an HTTPS issuer identifier without a trailing slash or discovery suffix.")
+      grepl("/\\.well-known/", issuer)) {
+    .odb_abort("issuer must be an HTTPS issuer identifier without a discovery suffix.")
   }
   .odb_postgres_string(scope, "scope")
   scopes <- strsplit(scope, " ", fixed = TRUE)[[1L]]
