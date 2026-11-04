@@ -1,5 +1,42 @@
 # Validation record
 
+## 4 November 2026: lifecycle and adapter follow-up
+
+Added 291 assertions covering malformed authorization identities and methods,
+session ownership, operation-specific permissions, denial recovery, unknown
+expiry, ODBC option and port contracts, Trino configuration, and Databricks
+provider settings. Production R code is unchanged in this follow-up.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 2,595 assertions across 205 scenarios; zero failures, errors, warnings or skips |
+| R 4.1.0 minimum core Docker suite | 1,293 assertions across 102 scenarios; zero failures, errors, warnings or skips |
+| `R CMD check --no-manual` on Windows / R 4.5.1 | Zero errors, warnings or notes |
+| R line coverage | 1,319 / 1,377 lines: 95.79% |
+| Initial mutator samples | 30 Trino, 30 ODBC and 40 lifecycle edits; successful processes; zero timeouts |
+| Selected mutation replays after the additions | 27 detected: 19 by assertions only, 2 by assertions and errors, 6 by errors only |
+| Existing coverage investigated separately | 8 of those edits also detected by pre-existing tests outside the initial profiles |
+| Final mutation-runner smoke checks | Strict 621-assertion lifecycle and 767-assertion ODBC baselines; sampled campaigns complete successfully with retained artifacts |
+| Documentation checker | 63 R blocks parse; 142 local links resolve |
+| Five-job mutation workflow syntax | actionlint 1.7.12 passes |
+
+Most new scenarios exercise different inputs and state transitions on already
+covered lines. The [mutation audit](mutation-testing.md) records which edits
+the focused tests detect, distinguishes profile-selection gaps from missing
+tests, and lists remaining investigations. The initial samples precede these
+regressions and do not establish a current package-wide mutation score.
+
+The lifecycle and ODBC profiles now include existing API/provider and adapter
+tests alongside the new cases. CI samples 20 lifecycle edits, 40 ODBC edits,
+and 60 each for transport, BigQuery and Trino, in independent weekly/manual
+jobs with a 60-minute cap per job.
+
+All checks ran locally. Platform requests and native Trino/ODBC connection
+boundaries were mocked; SQLite connections and the minimum R Docker runtime
+were real. Existing server/Keycloak fixtures were not rerun, and no cloud
+resources were used. The new Actions configuration has not run remotely.
+Machine-readable results remain under ignored `.validation/` directories.
+
 ## 4 November 2026: mutation-driven regressions
 
 Checked on Windows 11 with R 4.5.1 and, for the minimum core configuration,

@@ -66,16 +66,86 @@ and preserve provider errors. BigQuery tests cover malformed completion
 flags and repeated metadata page tokens. These additions check public
 behavior even where no sampled mutant demonstrated the gap.
 
+## Second local pass: authorization, Trino and ODBC
+
+The next pass added identity/protocol validation through both direct and
+reactively selected authorizations, including recovery of a real SQLite
+connection after a malformed selection. It also tests foreign-session
+rejection at helper creation and accepts module scopes of the owning
+session.
+
+Core operation-scope tests now check independent consumers, cached errors,
+equivalent scope sets, unrelated permission changes and recovery after a
+required permission is restored. These run in the minimum-dependency lane
+and the lifecycle mutation profile, without needing a platform SDK.
+Lifecycle tests also preserve a confirmed denial during refresh uncertainty,
+recover to both active and limited status, and recheck permissions after
+token validation with an unknown expiry.
+
+New campaigns used the unchanged R source, seed `20261104`, two workers and
+a 240-second timeout. These processes completed successfully.
+
+| Campaign before the new regressions | Generated | Tested | KILLED | HANG | SURVIVED |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Trino and shared native-option validation | 332 | 30 | 20 | 0 | 10 |
+| ODBC adapters, Databricks and shared native-option validation | 981 | 30 | 15 | 0 | 15 |
+| Lifecycle and authorization | 548 | 40 | 22 | 0 | 18 |
+
+Trino additions cover malformed CA path arguments, protected credential
+aliases, unnamed native options, explicit CA forwarding, verified TLS and
+the native driver's HTTP-authentication policy. The HTTPS-origin callback
+already rejects HTTP; the driver flag is an additional policy check, not
+evidence that the sampled edit alone leaked a token.
+
+ODBC additions cover alternate spellings of owned connection settings,
+port shape and boundary validation, and forwarding of StarRocks result
+timezones while retaining JWT authentication. Databricks discovery tests
+also check nonce/user-info defaults and reject invalid override lists
+before discovery.
+
+The first ODBC profile omitted the existing provider, Redshift and StarRocks
+test files. The original lifecycle profile also omitted the Fabric API tests.
+The expanded profiles include these suites. Sampling and test-profile changes
+must be taken into account when comparing reports.
+
+Selected survivors were replayed in disposable copies after a strict passing
+control. Each original R file's MD5 had to match the current source before
+its generated mutant was applied. The focused replay results were:
+
+| Focused regression tests | Edits detected | Assertion failures only | Assertions and errors | Errors only |
+| --- | ---: | ---: | ---: | ---: |
+| Authorization, ownership, lifecycle and operation scopes | 8 | 4 | 2 | 2 |
+| Trino contracts | 6 | 6 | 0 | 0 |
+| ODBC contracts and provider configuration | 13 | 9 | 0 | 4 |
+
+The 27 replays had no skipped tests or warnings. Eight of these edits also
+fail pre-existing tests outside the original profiles: four Redshift guards,
+one StarRocks port guard, Snowflake provider overrides and the two Fabric
+scope-subscription changes. Replays against those suites confirm this
+existing coverage. The counts describe focused detection, including profile
+selection improvements; they do not measure newly discovered package bugs.
+The larger samples were not all rerun after the additions.
+
+Raw reports are under `.validation/mutator-round2-before/`,
+`.validation/mutator-round2-existing-coverage/` and
+`.validation/mutator-lifecycle/lifecycle/round2-replay-verified.json`.
+
+Trino and ODBC now have independent CI matrix jobs, alongside transport,
+lifecycle and BigQuery. Campaigns remain diagnostic; individual survivors
+need review, and the original four named security regressions remain gates.
+
 ## Remaining priorities
 
-1. Re-run the larger campaigns with the 240-second timeout. Triage surviving
-   edits and inspect mutant test logs before interpreting any aggregate score.
-2. Add authorization identity-shape and operation-scope observer regressions.
-   Lifecycle sampling still found surviving changes in those guards and
-   subscriptions; their behavioral effect needs focused investigation.
-3. Expand generated campaigns to the Trino and ODBC adapters. Keep the Linux
-   native PostgreSQL hook in its existing instrumented Docker lane: mutator
-   edits R source, not C.
+1. Re-run the larger transport and BigQuery campaigns with the 240-second
+   timeout. Triage surviving edits and inspect mutant test logs before
+   interpreting any aggregate score.
+2. Investigate sampled changes to DBI validity-check exception handling
+   (`session.R_363.R`) and malformed authorization-container field access
+   (`authorization.R_002.R`). Check the full existing suite before adding
+   regressions, and distinguish redundant guards from observable changes.
+3. Extend generated campaigns to PostgreSQL and Fabric target routing. Keep
+   the Linux native PostgreSQL hook in its existing instrumented Docker lane:
+   mutator edits R source, not C.
 
 Two replayed BigQuery type-validation edits still survived because later
 validation rejected the same invalid input. Other survivors change error
@@ -84,8 +154,8 @@ assert implementation details just to kill an equivalent edit. Not every
 remaining survivor has been classified.
 
 See [development checks](development.md) for commands and settings. The
-committed workflow runs transport, lifecycle and BigQuery campaigns as three
-independent jobs, retaining baseline counts, source hashes, configuration,
+committed workflow runs transport, lifecycle, BigQuery, Trino and ODBC campaigns
+as five independent jobs, retaining baseline counts, source hashes, configuration,
 summaries, individual outcomes, original sources and sampled mutant files.
 Local audit data and verified replay reports are under ignored
 `.validation/mutator*/` directories; Actions uploads its campaign artifacts.
