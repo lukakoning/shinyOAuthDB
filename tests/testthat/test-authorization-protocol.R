@@ -62,3 +62,76 @@ test_that("unexpected expiry validation failures remain errors rather than permi
     expect_identical(opened, 0L)
   })
 })
+
+test_that("authorization identities and protocol methods are validated before use", {
+  invalid_ids <- list(NULL, character(), "", NA_character_, NA, 1L, TRUE, c("A", "B"))
+  invalid_grants <- lapply(invalid_ids, function(id) list(id = id,
+    has_scopes = function(...) stop("Must not check permissions"),
+    access_token = function(...) stop("Must not acquire a token")))
+  for (method in c("has_scopes", "access_token")) {
+    for (invalid in list(NULL, "method", TRUE)) {
+      grant <- list(id = "valid-id", has_scopes = function(...) TRUE,
+        access_token = function(...) "fixture-token")
+      grant[method] <- list(invalid)
+      invalid_grants[[length(invalid_grants) + 1L]] <- grant
+    }
+  }
+  for (grant in invalid_grants) odb_test_domain(function(session) {
+    opened <- 0L
+    factories <- list(function(auth) oauth_db_token(auth), function(auth) {
+      oauth_db_connect(auth, connect = function(token) {
+        opened <<- opened + 1L
+        token
+      })
+    })
+    for (factory in factories) {
+      static_error <- tryCatch(factory(grant), error = identity)
+      expect_s3_class(static_error, "shinyOAuthDB_invalid_authorization")
+      selected <- shiny::reactiveVal(grant)
+      accessor <- factory(selected)
+      reactive_error <- tryCatch(accessor(), error = identity)
+      expect_s3_class(reactive_error, "shinyOAuthDB_invalid_authorization")
+      session$flushReact()
+      expect_error(accessor(), class = "shinyOAuthDB_invalid_authorization")
+    }
+    expect_identical(opened, 0L)
+  })
+  odb_test_domain(function(session) {
+    for (id in c("0", "valid-id")) {
+      grant <- list(id = id, has_scopes = function(...) TRUE,
+        access_token = function(...) "fixture-token")
+      expect_identical(oauth_db_token(grant)(), "fixture-token")
+      expect_identical(oauth_db_connect(grant, connect = function(token) token)(), "fixture-token")
+    }
+  })
+})
+
+test_that("an invalid selected authorization closes SQL access and recovers after correction", {
+  skip_if_not_installed("RSQLite")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    selected <- shiny::reactiveVal(auth$connection)
+    opened <- 0L
+    con <- oauth_db_connect(selected, connect = function(token) {
+      opened <<- opened + 1L
+      native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+      DBI::dbWriteTable(native, "identity", data.frame(token = token))
+      native
+    })
+    first <- con()
+    selected(list(id = "", has_scopes = function(...) TRUE,
+      access_token = function(...) "invalid-grant-token"))
+    session$flushReact()
+    expect_false(DBI::dbIsValid(first))
+    expect_error(con(), class = "shinyOAuthDB_invalid_authorization")
+    expect_identical(opened, 1L)
+    auth$token(auth$make_token("corrected-token"))
+    selected(auth$connection)
+    session$flushReact()
+    replacement <- con()
+    expect_identical(DBI::dbReadTable(replacement, "identity")$token, "corrected-token")
+    expect_false(identical(first, replacement))
+    expect_identical(con(), replacement)
+    expect_identical(opened, 2L)
+  })
+})
