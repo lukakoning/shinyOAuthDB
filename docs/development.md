@@ -82,6 +82,9 @@ Rscript --vanilla tools/check-mutator.R bigquery
 Rscript --vanilla tools/check-mutator.R all
 ```
 
+The [November audit](mutation-testing.md) records sampled outcomes, verified
+test improvements and remaining priorities.
+
 Additional arguments are dependency-library paths. The runner copies source
 files and repository fixtures into a temporary directory, checks a strict
 baseline, and lets mutator generate the edits. It uses coverage-guided test
