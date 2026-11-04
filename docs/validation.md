@@ -1,5 +1,39 @@
 # Validation record
 
+## 4 November 2026: mutation-driven regressions
+
+Checked on Windows 11 with R 4.5.1 and, for the minimum core configuration,
+Docker Linux with R 4.1.0. Test additions cover authorization protocol errors,
+native connection recovery, HTTP deadlines and request validation, minimum
+SDK checks, and BigQuery job identities, redirects, retries and data types.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 2,304 assertions across 194 scenarios; zero failures, errors, warnings or skips |
+| R 4.1.0 minimum core suite | 1,115 assertions across 96 scenarios; zero failures, errors, warnings or skips |
+| `R CMD check --no-manual` | Zero errors, warnings or notes |
+| R line coverage | 1,318 / 1,377 lines: 95.72% |
+| Validation harness self-tests | 15 assertions |
+| Documentation checker | 63 R blocks parse; 141 local links resolve |
+| Mutation workflow syntax | actionlint 1.7.12 passes |
+| Mutator runner smoke check | Strict baseline passes; two sampled edits killed; complete artifacts; process exits successfully |
+| Previously surviving edits replayed against new tests | 20 detected, with failures and execution errors distinguished |
+
+The minimum lane uses exactly DBI 1.2.0, httr2 1.2.0, curl 6.4.0, Shiny 1.8.1
+and testthat 3.2.0. Optional SDK version boundary tests simulate reported
+versions; this run does not install each historical SDK release.
+
+The [mutation audit](mutation-testing.md) records initial samples of 230
+generated edits, timeout limitations, verified improvements and unclassified
+survivors. These samples are not a package-wide mutation score. The committed
+runner uses mutator 0.3.0, a fixed seed, isolated copies and no external
+equivalence service. Three independent Actions jobs retain the reports.
+
+These additions use SQLite and mocked service responses. Existing database
+and Keycloak integration fixtures were not rerun for this test-only update.
+No cloud resources were provisioned or queried, and the new Actions jobs
+have not run remotely. Results are retained in ignored `.validation/`.
+
 ## 4 November 2026: expanded local coverage
 
 Checked on Windows 11 with R 4.5.1 and Docker Desktop Linux containers. The
