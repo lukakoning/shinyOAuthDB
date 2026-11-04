@@ -60,3 +60,71 @@ test_that("BigQuery preserves authorization loss before decoding malformed respo
     class = c("shinyOAuthDB_authorization_unavailable", "error", "condition"))), NULL),
     class = "shinyOAuthDB_authorization_unavailable")
 })
+
+test_that("BigQuery metadata rejects malformed pages without exposing response details", {
+  canary <- "PRIVATE_METADATA_CANARY"
+  for (field in c("datasets", "tables")) local({
+    resource <- if (field == "datasets") "dataset" else "table"
+    valid <- list(kind = paste0("bigquery#", resource, "List"))
+    reference <- list(projectId = "billing", datasetId = "reports")
+    if (field == "tables") reference$tableId <- "orders"
+    valid[[field]] <- list(stats::setNames(list(reference), paste0(resource, "Reference")))
+    collection <- function(value) {
+      result <- valid
+      result[field] <- list(value)
+      result
+    }
+    invalid <- list(list(), list(valid), list(error = list(message = canary)),
+      utils::modifyList(valid, list(kind = canary)),
+      utils::modifyList(valid, list(error = list(message = canary))),
+      collection(canary), collection(list(canary)), collection(list(private = canary)),
+      collection(NULL), collection(list(list())),
+      utils::modifyList(valid, list(nextPageToken = list(canary))))
+    for (name in names(reference)) {
+      bad <- valid
+      bad[[field]][[1L]][[paste0(resource, "Reference")]][[name]] <- canary
+      if (name %in% c("datasetId", "tableId")) {
+        bad[[field]][[1L]][[paste0(resource, "Reference")]][[name]] <- c(canary, canary)
+      }
+      invalid[[length(invalid) + 1L]] <- bad
+    }
+    body <- NULL
+    requests <- 0L
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      bq_test_response(body)
+    })
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      api <- oauth_db_bigquery_api(auth$connection, "billing", dataset = "reports")
+      for (value in invalid) {
+        body <<- value
+        error <- tryCatch(if (field == "datasets") api$datasets() else api$tables(), error = identity)
+        expect_s3_class(error, "shinyOAuthDB_invalid_response")
+        expect_false(grepl(paste(canary, "fixture-A", sep = "|"), conditionMessage(error)))
+        expect_null(error$parent)
+      }
+      expect_identical(requests, length(invalid))
+    })
+  })
+})
+
+test_that("BigQuery metadata accepts empty collections and empty intermediate pages", {
+  for (field in c("datasets", "tables")) for (omitted in c(TRUE, FALSE)) local({
+    resource <- if (field == "datasets") "dataset" else "table"
+    requests <- 0L
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      result <- list(kind = paste0("bigquery#", resource, "List"))
+      if (!omitted) result[[field]] <- list()
+      if (requests == 1L) result$nextPageToken <- "next"
+      bq_test_response(result)
+    })
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      api <- oauth_db_bigquery_api(auth$connection, "billing", dataset = "reports")
+      expect_identical(if (field == "datasets") api$datasets() else api$tables(), character())
+      expect_identical(requests, 2L)
+    })
+  })
+})

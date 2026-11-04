@@ -52,9 +52,11 @@ test_that("BigQuery metadata pagination rejects repeated cursors without an extr
     httr2::local_mocked_responses(function(req) {
       requests[[length(requests) + 1L]] <<- req
       if (length(requests) > 2L) stop("Unexpected third metadata request")
-      item <- if (operation == "datasets") list(datasetReference = list(datasetId = "one")) else
-        list(tableReference = list(tableId = "one"))
-      payload <- list(nextPageToken = "repeated-cursor")
+      item <- if (operation == "datasets") {
+        list(datasetReference = list(projectId = "billing", datasetId = "one"))
+      } else list(tableReference = list(projectId = "billing", datasetId = "reports", tableId = "one"))
+      payload <- list(kind = if (operation == "datasets") "bigquery#datasetList" else "bigquery#tableList",
+        nextPageToken = "repeated-cursor")
       payload[[operation]] <- list(item)
       bq_test_response(payload)
     })

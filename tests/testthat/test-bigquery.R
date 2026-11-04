@@ -218,9 +218,11 @@ test_that("BigQuery metadata lists all pages and raw queries preserve the schema
     count <<- count + 1L
     if (grepl("/datasets", req$url)) {
       if (grepl("/tables", req$url)) {
-        return(bq_test_response(list(tables = list(list(tableReference = list(tableId = "orders"))))))
+        return(bq_test_response(list(kind = "bigquery#tableList", tables = list(list(
+          tableReference = list(projectId = "billing", datasetId = "reports", tableId = "orders"))))))
       }
-      result <- list(datasets = list(list(datasetReference = list(datasetId = paste0("dataset", count)))))
+      result <- list(kind = "bigquery#datasetList", datasets = list(list(
+        datasetReference = list(projectId = "billing", datasetId = paste0("dataset", count)))))
       if (count == 1L) result$nextPageToken <- "next"
       return(bq_test_response(result))
     }
@@ -244,8 +246,8 @@ test_that("BigQuery combines result and metadata pages across empty pages", {
     requests <<- requests + 1L
     page <- (requests - 1L) %% 3L + 1L
     if (grepl("/datasets", req$url, fixed = TRUE)) {
-      result <- list(datasets = if (page == 2L) list() else
-        list(list(datasetReference = list(datasetId = paste0("dataset", page)))))
+      result <- list(kind = "bigquery#datasetList", datasets = if (page == 2L) list() else
+        list(list(datasetReference = list(projectId = "billing", datasetId = paste0("dataset", page)))))
       if (page < 3L) result$nextPageToken <- paste0("page", page + 1L)
     } else {
       result <- bq_test_result(switch(page, "first", character(), c(NA_character_, "last")))

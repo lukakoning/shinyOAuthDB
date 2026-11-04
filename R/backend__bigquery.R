@@ -237,6 +237,8 @@ oauth_db_bigquery_client <- function(
       query <- list(maxResults = private$page_size)
       repeat {
         result <- .odb_bigquery_request(token, "GET", path, deadline, query = query)
+        .odb_bigquery_list_page(result, field, private$project,
+          dataset = if (field == "tables") path[[4L]] else NULL)
         if (length(result[[field]])) pages[[length(pages) + 1L]] <- result[[field]]
         page <- result$nextPageToken
         if (is.null(page) || identical(page, "")) {
@@ -254,6 +256,27 @@ oauth_db_bigquery_client <- function(
 .odb_bigquery_time <- function() unname(proc.time()[["elapsed"]])
 
 .odb_bigquery_request_id <- function() paste(format(openssl::rand_bytes(16)), collapse = "")
+
+.odb_bigquery_list_page <- function(result, field, project, dataset = NULL) {
+  fail <- function() .odb_abort("BigQuery returned invalid dataset or table metadata.", "invalid_response")
+  string <- function(x) is.character(x) && length(x) == 1L && !is.na(x) && nzchar(x)
+  resource <- if (field == "datasets") "dataset" else "table"
+  if (!is.list(result) || !identical(result$kind, paste0("bigquery#", resource, "List")) ||
+      "error" %in% names(result)) fail()
+  items <- result[[field]]
+  if (field %in% names(result) && (!is.list(items) || !is.null(names(items)))) fail()
+  page <- result$nextPageToken
+  if (!is.null(page) && (!is.character(page) || length(page) != 1L || is.na(page))) fail()
+  for (item in items) {
+    if (!is.list(item)) fail()
+    reference <- item[[paste0(resource, "Reference")]]
+    if (!is.list(reference) || !identical(reference$projectId, project) ||
+        !string(reference$datasetId)) fail()
+    if (field == "tables" && (!identical(reference$datasetId, dataset) ||
+        !string(reference$tableId))) fail()
+  }
+  invisible(NULL)
+}
 
 .odb_bigquery_job <- function(job, project) {
   if (!is.list(job) || !identical(job$projectId, project) ||
