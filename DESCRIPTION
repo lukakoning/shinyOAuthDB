@@ -19,7 +19,7 @@ Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     DBI (>= 1.2.0),
-    httr2 (>= 1.0.0),
+    httr2 (>= 1.2.0),
     openssl,
     R6,
     rlang,
