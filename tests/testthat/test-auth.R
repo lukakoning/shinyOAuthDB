@@ -82,7 +82,9 @@ test_that("Databricks default provider uses native public-client secret conventi
 
 test_that("Databricks discovery belongs here and uses only shinyOAuth's public API", {
   captured <- new.env(parent = emptyenv())
+  captured$calls <- 0L
   local_mocked_bindings(oauth_provider_oidc_discover = function(issuer, ...) {
+    captured$calls <- captured$calls + 1L
     captured$args <- c(list(issuer = issuer), list(...))
     playground_databricks_provider("https://workspace.example", token_auth_style = "public")
   }, .package = "shinyOAuth")
@@ -92,9 +94,16 @@ test_that("Databricks discovery belongs here and uses only shinyOAuth's public A
   expect_identical(captured$args$name, "analytics")
   expect_identical(captured$args$token_auth_style, "public")
   expect_true(captured$args$use_pkce)
+  expect_true(captured$args$use_nonce)
   expect_true(captured$args$id_token_validation)
+  expect_false(captured$args$userinfo_required)
   expect_error(oauth_db_databricks_provider("http://workspace.example"), "HTTPS origin")
   expect_error(oauth_db_databricks_provider("https://workspace.example/path"), "without a path")
+  expect_error(oauth_db_databricks_provider("workspace.example", "public", "unnamed"),
+    class = "shinyOAuthDB_invalid_configuration")
+  expect_error(oauth_db_databricks_provider("workspace.example", "public", name = "one", name = "two"),
+    class = "shinyOAuthDB_invalid_configuration")
+  expect_identical(captured$calls, 1L)
 })
 
 test_that("Snowflake provider presets compose directly with native clients", {
