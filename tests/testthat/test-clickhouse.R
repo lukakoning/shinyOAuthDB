@@ -51,13 +51,22 @@ test_that("ClickHouse serializes native scalar parameters without SQL interpolat
   expect_identical(values$param_decimal, "1.25")
   expect_identical(values$param_yes, "1")
   expect_identical(values$param_day, "2026-11-03")
-  expect_match(values$param_at, "^2026-11-03 12:00:00")
+  expect_identical(values$param_at, "2026-11-03 12:00:00")
   expect_identical(.odb_clickhouse_parameters(list()), list())
   expect_identical(.odb_clickhouse_parameters(list(values = I("['a\\\\b']")))$param_values, "['a\\\\b']")
   expect_error(.odb_clickhouse_parameters(list(values = I(c("a", "b")))), "one non-missing")
   expect_error(.odb_clickhouse_parameters(list(x = c(1L, 2L))), "scalar")
   expect_error(.odb_clickhouse_parameters(list(1L)), "nonempty")
   expect_error(.odb_clickhouse_parameters(list("x&user" = "bad")), "parameter name")
+})
+
+test_that("ClickHouse timestamp parameters preserve fractions without adding them to whole seconds", {
+  at <- as.POSIXct("2026-11-04 12:00:00", tz = "UTC")
+  values <- .odb_clickhouse_parameters(list(whole = at, fractional = at + 0.125,
+    missing = as.POSIXct(NA_real_, origin = "1970-01-01", tz = "UTC")))
+  expect_identical(values$param_whole, "2026-11-04 12:00:00")
+  expect_identical(values$param_fractional, "2026-11-04 12:00:00.125")
+  expect_identical(values$param_missing, "\\N")
 })
 
 test_that("ClickHouse preserves exact and nested types and typed empty results", {

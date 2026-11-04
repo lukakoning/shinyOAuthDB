@@ -147,7 +147,11 @@ oauth_db_clickhouse_api <- function(
       .odb_abort("Each parameter must be a scalar; wrap encoded array or tuple strings in I().")
     }
     if (is.na(value) && !is.nan(value)) return("\\N")
-    text <- if (inherits(value, "POSIXct")) format(value, "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
+    text <- if (inherits(value, "POSIXct")) {
+      timestamp <- format(value, "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
+      # DateTime rejects fractional seconds, even when the fraction is zero.
+      sub("\\.$", "", sub("0+$", "", timestamp))
+    }
     else if (inherits(value, "Date")) as.character(value)
     else if (is.logical(value)) if (value) "1" else "0"
     else if (is.numeric(value)) format(value, scientific = FALSE, trim = TRUE, digits = 17, decimal.mark = ".")
