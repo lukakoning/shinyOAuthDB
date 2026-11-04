@@ -4,7 +4,12 @@
 It is a bridge between Shiny and the database or platform's OAuth sign-in, 
 with functions to easily retrieve a database connection or API client for the signed-in user.
 
-The app user signs in with their own account, 
+It supports commercial and cloud-hosted data platforms, such as Microsoft
+Fabric, Databricks, Snowflake and BigQuery, as well as open-source systems
+you host yourself, including [PostgreSQL](#self-hosted-postgresql) and
+[Trino](#trino-and-starburst-enterprise) configured for OAuth.
+
+The app user signs in with their own account for the database or data platform,
 and your app can query the database or platform on their behalf.
 
 For instance, if you have given someone permission to access a table in a data platform, 
