@@ -21,7 +21,7 @@ if [[ ${OAUTHDB_SKIP_BUILD:-0} != 1 ]]; then
     docker build --builder "$builder" --target runner --tag "shinyoauthdb-${backend}-runner:1" "$root/integration/${backend}-keycloak"
   fi
 fi
-services=(database)
+services=(database tls-probe)
 if [[ "$backend" == postgrest ]]; then services+=(https); fi
 if ! "${compose[@]}" up --detach --wait --wait-timeout 240 "${services[@]}"; then
   # Startup precedes browser login; authentication/query logs are never exported.

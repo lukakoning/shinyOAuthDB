@@ -30,12 +30,20 @@ logout, session end, missing scopes, wrong audiences, modified and expired token
 and rejection of another username with the current user's valid token. An
 empty-password account must not become a fallback when JWT authentication is
 unavailable. Temporary JWT directories must be gone after the native probes.
+The native driver also round-trips quoted Unicode parameters, typed nulls,
+bigints, timestamps and empty column schemas. Closing the native connection
+must make the helper open a new connection under the current account.
+The helper sets `NO_SSPS=1` to use the driver's client-side prepared statements.
+The server-side prepared path could stall on these typed queries with this
+pinned server/driver combination; the round-trip checks cover the replacement.
 
 ODBC verifies the generated CA and server identity. StarRocks requires secure
 transport. Keycloak's internal HTTP endpoint serves its public JWKS only inside
 the isolated network; browser login and token exchange use verified HTTPS.
 The admin passwordless root account only provisions this disposable local server.
 Acceptance queries use the two JWT-authenticated users.
+The same StarRocks server must reject connections with an untrusted CA or a
+hostname that does not match its certificate.
 
 The server uses a 1 GiB FE heap and a 1 GiB BE memory limit. Each run has a unique
 Compose project, publishes no host ports, and removes its own containers and
@@ -44,6 +52,6 @@ Unix to reuse images. The independent GitHub Actions workflow caches the R/brows
 build and uploads `.generated/results.json`; test failures, warnings and skips
 fail the job.
 
-Validated locally on 2026-11-03: 49 passing browser assertions, with zero
+Validated locally on 2026-11-04: 67 passing browser assertions, with zero
 failures, errors, warnings or skips. The Bash runner completed successfully
 against Docker Desktop's Linux engine.

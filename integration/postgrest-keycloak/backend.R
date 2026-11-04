@@ -14,11 +14,24 @@ fixture_backend <- list(
   version = function() "PostgREST 16.5 / PostgreSQL 18.3",
   bind = function(authorization, username, config) {
     api <- shinyOAuthDB::oauth_db_postgrest_api(authorization,
-      "https://localhost:18444", schema = "reporting", required_scopes = "database.read",
+      paste0("https://", config$server, ":", config$port), schema = "reporting", required_scopes = "database.read",
       min_valid_for = 1, ca_bundle = config$ca)
     function() api
   },
   read = function(api) api$rpc("own_rows"),
+  data_checks = function(api, username, config) {
+    payload <- "quoted ' text; -- café 雪"
+    value <- api$rpc("roundtrip", list(value = payload))
+    empty <- api$select("visible_rows", filters = list(id = "eq.-1"))
+    written <- api$rpc("record_once", list(operation_id = "successful-write"))
+    failure <- tryCatch(api$rpc("record_then_fail", list(operation_id = "failed-response")), error = identity)
+    list(parameter = identical(value$text_value, payload), null = is.null(value$null_value),
+      bigint = identical(value$integer_value, "9223372036854775807"),
+      timestamp = identical(value$time_value, "2020-02-29T12:34:56.123456+00:00"), empty = nrow(empty) == 0L,
+      successful_write_once = written == 1L && api$rpc("write_count", list(operation_id = "successful-write")) == 1L,
+      failed_response_once = inherits(failure, "shinyOAuthDB_request_failed") && identical(failure$status, 503L) &&
+        api$rpc("write_count", list(operation_id = "failed-response")) == 1L)
+  },
   denied = function(api, username, config) {
     other <- if (username == "alice") "bob_only" else "alice_only"
     error <- tryCatch(api$select(other), error = identity)

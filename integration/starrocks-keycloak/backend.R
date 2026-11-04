@@ -49,12 +49,34 @@ fixture_backend <- list(
   version = function() list(server = "StarRocks 3.5.0", driver = "MySQL Connector/ODBC 9.5.0",
     odbc = as.character(packageVersion("odbc"))),
   bind = function(authorization, username, config) {
-    shinyOAuthDB::oauth_db_starrocks(authorization, "localhost", "reporting", user = username,
+    shinyOAuthDB::oauth_db_starrocks(authorization, config$server, "reporting", user = username,
       driver = starrocks_fixture_driver, ssl_ca = config$ca, plugin_dir = starrocks_fixture_plugins,
       required_scopes = "database.read", min_valid_for = 1)
   },
   read = function(con) DBI::dbGetQuery(con,
     "SELECT database_user, marker FROM reporting.visible_rows ORDER BY id"),
+  data_checks = function(con, username, config) {
+    payload <- "quoted ' text; -- café 雪"
+    rows <- DBI::dbGetQuery(con, paste("SELECT CAST(? AS VARCHAR(100)) AS text_value,",
+      "CAST(NULL AS VARCHAR(20)) AS null_value, CAST('9223372036854775807' AS BIGINT) AS integer_value,",
+      "CAST('2020-02-29 12:34:56' AS DATETIME) AS time_value"), params = list(payload))
+    empty <- DBI::dbGetQuery(con, "SELECT CAST(NULL AS VARCHAR(20)) AS value WHERE FALSE")
+    list(parameter = identical(rows$text_value, payload), null = is.na(rows$null_value),
+      bigint = identical(as.character(rows$integer_value), "9223372036854775807"),
+      timestamp = inherits(rows$time_value, "POSIXct") &&
+        identical(format(rows$time_value, tz = "UTC"), "2020-02-29 12:34:56"),
+      empty = nrow(empty) == 0L && identical(names(empty), "value"))
+  },
+  tls_checks = function(authorization, username, config) {
+    checks <- list()
+    for (name in c("untrusted_ca", "wrong_hostname")) {
+      bad <- config
+      if (name == "untrusted_ca") bad$ca <- "/fixtures/tls/untrusted-ca.pem" else bad$server <- "fixture-mismatch"
+      error <- tryCatch(fixture_backend$read(fixture_backend$bind(authorization, username, bad)()), error = identity)
+      checks[[name]] <- inherits(error, "error") && grepl("SSL|TLS|certificate", conditionMessage(error), ignore.case = TRUE)
+    }
+    checks
+  },
   denied = function(con, username, config) {
     other <- if (username == "alice") "bob" else "alice"
     error <- tryCatch(DBI::dbGetQuery(con, paste0("SELECT * FROM reporting.", other, "_only")), error = identity)

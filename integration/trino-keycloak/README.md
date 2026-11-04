@@ -24,6 +24,9 @@ both users. Another-user impersonation must fail even with a valid token.
 The suite also exercises native DBI fetching, refresh without replaying queries,
 connection reuse, account replacement, logout, session end, and rejection of
 modified, expired and wrong-audience credentials. Missing scopes block queries.
+Value checks cover Unicode, typed nulls, exact bigint values, timestamps and
+empty column schemas. Explicitly closing a native connection must cause the
+public helper to reopen it under the same current account on the next read.
 
 Only the fixture's provisioning client uses client credentials. It creates the
 memory tables before tests. Browser acceptance queries always use Alice or Bob.
@@ -33,6 +36,9 @@ also uses HTTPS and a fixture-only shared secret.
 The Shiny app uses HTTP on its internal localhost callback. The fixture sets
 `http-server.authentication.oauth2.max-clock-skew=0s` because the containers share
 a clock, so the expiry probe can check rejection immediately after expiration.
+Negative TLS listeners present untrusted and wrong-hostname certificates. The
+public helper must reject both before sending HTTP, verified by request counts
+on those listeners.
 
 The coordinator is limited to a 1 GiB Java heap and uses a tiny in-memory catalog.
 Every run gets a unique Compose project and publishes no host ports. Containers
@@ -41,6 +47,6 @@ and volumes are removed on success or failure. Use `-SkipBuild` on Windows or
 driver versions are written to `.generated/results.json`. Warnings and skips fail
 the test job. This fixture validates Trino, not Starburst-specific features.
 
-Validated locally on 2026-11-04: 47 passing browser assertions, with zero
+Validated locally on 2026-11-04: 65 passing browser assertions, with zero
 failures, errors, warnings or skips. The complete Bash build-and-test runner
 completed successfully against Docker Desktop's Linux engine.

@@ -27,12 +27,22 @@ fixture_backend <- list(
   },
   version = function() list(server = "Trino 484", RTrino = as.character(packageVersion("RTrino"))),
   bind = function(authorization, username, config) {
-    shinyOAuthDB::oauth_db_trino(authorization, "https://localhost:18444",
+    shinyOAuthDB::oauth_db_trino(authorization, paste0("https://", config$server, ":", config$port),
       "memory", "reporting", user = username, ca_bundle = config$ca,
       required_scopes = "database.read", min_valid_for = 1, timeout = 20)
   },
   read = function(con) DBI::dbGetQuery(con,
     "SELECT current_user AS database_user, marker FROM memory.reporting.visible_rows ORDER BY id"),
+  data_checks = function(con, username, config) {
+    rows <- DBI::dbGetQuery(con, paste("SELECT 'café 雪' AS text_value, CAST(NULL AS VARCHAR) AS null_value,",
+      "CAST(9223372036854775807 AS BIGINT) AS integer_value, TIMESTAMP '2020-02-29 12:34:56.123' AS time_value"))
+    empty <- DBI::dbGetQuery(con, "SELECT CAST(NULL AS VARCHAR) AS value WHERE FALSE")
+    list(unicode = identical(rows$text_value, "café 雪"), null = is.na(rows$null_value),
+      bigint = identical(as.character(rows$integer_value), "9223372036854775807"),
+      timestamp = inherits(rows$time_value, "POSIXct") &&
+        abs(as.numeric(rows$time_value) - as.numeric(as.POSIXct("2020-02-29 12:34:56", tz = "UTC")) - .123) < .0001,
+      empty = nrow(empty) == 0L && identical(names(empty), "value"))
+  },
   denied = function(con, username, config) {
     other <- if (username == "alice") "bob" else "alice"
     error <- tryCatch(DBI::dbGetQuery(con, paste0("SELECT * FROM memory.reporting.", other, "_only")), error = identity)

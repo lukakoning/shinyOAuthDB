@@ -17,6 +17,9 @@ fixture_run_app <- function(config) {
     shiny::actionButton("probe", "Check denied access"),
     shiny::actionButton("tamper", "Check modified token"),
     shiny::actionButton("expired", "Check expired token"),
+    shiny::actionButton("tls", "Check TLS rejection"),
+    shiny::actionButton("data", "Check values"),
+    shiny::actionButton("break_connection", "Close native connection"),
     shiny::actionButton("end", "End session"),
     shiny::tableOutput("rows"), shiny::verbatimTextOutput("snapshot")
   ), id = "auth", client = client)
@@ -34,6 +37,9 @@ fixture_run_app <- function(config) {
     denied <- shiny::reactiveVal(NULL)
     tampered <- shiny::reactiveVal(NULL)
     expired_denied <- shiny::reactiveVal(NULL)
+    tls_checks <- shiny::reactiveVal(NULL)
+    data_checks <- shiny::reactiveVal(NULL)
+    broken <- shiny::reactiveVal(FALSE)
     held <- NULL
     previous <- NULL
     openings <- shiny::reactiveVal(0L)
@@ -93,11 +99,40 @@ fixture_run_app <- function(config) {
       shiny::req(!is.null(old_expiry), as.numeric(Sys.time()) > old_expiry + 2)
       expired_denied(spec$token_denied(old_bearer, old_username, config))
     })
+    shiny::observeEvent(input$tls, {
+      if (is.function(spec$tls_checks)) {
+        checks <- spec$tls_checks(auth$connection, username, config)
+      } else {
+        control <- function() httr2::resp_body_json(httr2::req_perform(httr2::request("https://localhost:18447")))
+        before <- control()
+        checks <- list()
+        for (name in c("untrusted_ca", "wrong_hostname")) {
+          bad <- config
+          bad$port <- if (name == "untrusted_ca") 18445L else 18446L
+          error <- tryCatch(spec$read(spec$bind(auth$connection, username, bad)()), error = identity)
+          after <- control()
+          expected <- if (config$backend == "postgrest") inherits(error, "shinyOAuthDB_request_failed") else
+            inherits(error, "error") && grepl("SSL|TLS|certificate", conditionMessage(error), ignore.case = TRUE)
+          checks[[name]] <- expected && identical(before[[name]], after[[name]])
+        }
+      }
+      tls_checks(checks)
+    })
+    shiny::observeEvent(input$data, {
+      checks <- tryCatch(spec$data_checks(native(), username(), config),
+        error = function(e) list(operation_succeeded = FALSE))
+      data_checks(checks)
+    })
+    shiny::observeEvent(input$break_connection, {
+      shiny::req(spec$dbi)
+      DBI::dbDisconnect(native())
+      broken(TRUE)
+    })
     shiny::observeEvent(input$end, session$close())
     session$onSessionEnded(function() {
       usable <- shiny::withReactiveDomain(session,
         shiny::isolate(tryCatch({ spec$read(native()); TRUE }, error = function(e) FALSE)))
-      jsonlite::write_json(list(accessor_usable = usable,
+      jsonlite::write_json(list(authorization_id = owner_id, accessor_usable = usable,
         native_valid = if (inherits(held, "DBIConnection")) DBI::dbIsValid(held) else NULL),
         config$ended, auto_unbox = TRUE)
     })
@@ -115,6 +150,7 @@ fixture_run_app <- function(config) {
         result = rows, error = failure, calls = calls(), openings = openings(),
         refreshes = refreshes(), rotated = rotated(), denied = denied(), tampered_denied = tampered(),
         expired_denied = expired_denied(), original_expiry = old_expiry,
+        tls_checks = tls_checks(), data_checks = data_checks(), broken = broken(),
         held_valid = if (inherits(held, "DBIConnection")) DBI::dbIsValid(held) else NULL),
         auto_unbox = TRUE, null = "null", dataframe = "rows")
     })

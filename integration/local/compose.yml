@@ -8,6 +8,8 @@ services:
       - fixture_tls:/fixtures/tls
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.1@sha256:dea26401d06341095cc4ea9d66896200b55de5ca1daa1d2fcbe58493afa6e0ad
+    extra_hosts:
+      - fixture-mismatch:127.0.0.1
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: fixture-admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: fixture-admin-password
@@ -32,6 +34,16 @@ services:
       timeout: 3s
       start_period: 30s
       retries: 60
+  tls-probe:
+    image: python:3.12.12-slim
+    network_mode: service:keycloak
+    entrypoint: ["python", "/fixture/tls-probe.py"]
+    volumes:
+      - ./tls-probe.py:/fixture/tls-probe.py:ro
+      - fixture_tls:/fixtures/tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
   test-runner:
     image: shinyoauthdb-local-runner:1
     build:

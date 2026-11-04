@@ -23,15 +23,24 @@ modified/expired/wrong-audience tokens, account replacement, logout and session 
 Missing operation scopes must prevent queries. These fixture accounts and
 passwords are public test data; password grants are disabled.
 
+Round trips cover quoted Unicode arguments, JSON nulls, PostgreSQL's largest
+signed bigint, timestamps and empty results. Two disposable RPCs record writes
+under row-level security. The HTTPS proxy deliberately returns HTTP 503 after
+one RPC commits; the API must report failure and the SQL counter must show one
+write, proving that the client did not replay the mutation.
+
 HTTPS terminates at a local proxy using a generated CA trusted by the test runner
 and Chromium. PostgREST itself validates the JWT using Keycloak's public JWKS.
 Keycloak's internal HTTP port serves public keys within the isolated fixture;
 browser login, token exchange and package API requests use verified HTTPS.
+Separate listeners present an untrusted certificate and a trusted certificate
+for the wrong hostname. Both must be rejected before any HTTP request reaches
+those listeners; a trusted listener provides the readiness control.
 
 No host ports are published. Every run uses a unique Compose project, and removes
 its own containers and volumes even on failure. This suite and the PostgreSQL
 workflow can run independently. Sanitized counts are written
 to `.generated/results.json`; failures, warnings and skips fail the job.
 
-Validated locally on 3 November 2026: 51 passing assertions, zero failures,
+Validated locally on 4 November 2026: 70 passing assertions, zero failures,
 errors, warnings or skips, using the pinned server images and current checkouts.

@@ -14,7 +14,12 @@ class Proxy(http.server.BaseHTTPRequestHandler):
             upstream.request(self.command, self.path, body=body, headers=headers)
             response = upstream.getresponse()
             payload = response.read()
-            self.send_response(response.status)
+            status = response.status
+            # The real database has committed before this deliberately failed response.
+            if self.command == "POST" and self.path == "/rpc/record_then_fail" and 200 <= status < 300:
+                status = 503
+                payload = b'{"message":"fixture response failure after commit"}'
+            self.send_response(status)
             for key, value in response.getheaders():
                 if key.lower() not in {"connection", "transfer-encoding", "content-length"}:
                     self.send_header(key, value)

@@ -24,6 +24,13 @@ local({
   source("integration/local/browser.R", local = FALSE)
   source(file.path("integration", paste0(backend, "-keycloak"), "backend.R"), local = FALSE)
   fixture_backend$prepare()
+  deadline <- Sys.time() + 20
+  repeat {
+    ready <- tryCatch(httr2::req_perform(httr2::request("https://localhost:18447")), error = function(e) NULL)
+    if (!is.null(ready) && httr2::resp_status(ready) == 200L) break
+    if (Sys.time() > deadline) stop("TLS probe readiness failed.", call. = FALSE)
+    Sys.sleep(0.1)
+  }
   results <- testthat::test_file("integration/local/test-browser.R", reporter = "summary")
   counts <- as.data.frame(results)
   jsonlite::write_json(list(backend = backend,

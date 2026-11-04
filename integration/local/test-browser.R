@@ -24,6 +24,12 @@ testthat::test_that("real browser users receive only their server-enforced rows"
     fixture_click(entry$browser, "tamper")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$tampered_denied))
     testthat::expect_true(check$tampered_denied)
+    fixture_click(entry$browser, "tls")
+    check <- fixture_wait(entry$browser, function(x) !is.null(x$tls_checks))
+    for (name in names(check$tls_checks)) testthat::expect_true(check$tls_checks[[name]], info = name)
+    fixture_click(entry$browser, "data")
+    check <- fixture_wait(entry$browser, function(x) !is.null(x$data_checks))
+    for (name in names(check$data_checks)) testthat::expect_true(check$data_checks[[name]], info = name)
   }
   initial <- fixture_snapshot(a)
   testthat::expect_false(identical(initial$authorization_id, fixture_snapshot(b)$authorization_id))
@@ -39,6 +45,15 @@ testthat::test_that("real browser users receive only their server-enforced rows"
   testthat::expect_null(refreshed_read$error)
   testthat::expect_identical(refreshed_read$openings, reused$openings)
   testthat::expect_identical(refreshed_read$result, reused$result)
+  if (fixture_backend$dbi) {
+    fixture_click(a, "break_connection")
+    fixture_wait(a, function(x) isTRUE(x$broken))
+    fixture_click(a, "load")
+    recovered <- fixture_wait(a, function(x) x$calls > refreshed_read$calls)
+    testthat::expect_null(recovered$error)
+    testthat::expect_identical(recovered$openings, refreshed_read$openings + 1L)
+    testthat::expect_identical(recovered$result, refreshed_read$result)
+  }
 
   fixture_click(a, "logout")
   logged_out <- fixture_wait(a, function(x) !isTRUE(x$authorized))
@@ -50,11 +65,20 @@ testthat::test_that("real browser users receive only their server-enforced rows"
   testthat::expect_false(identical(switched$authorization_id, initial$authorization_id))
   testthat::expect_identical(vapply(switched$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
 
+  ending_id <- fixture_snapshot(b)$authorization_id
+  unlink(fixture$config$ended)
   fixture_click(b, "end")
   deadline <- Sys.time() + 15
-  while (!file.exists(fixture$config$ended) && Sys.time() < deadline) Sys.sleep(0.1)
+  ended <- NULL
+  repeat {
+    ended <- if (file.exists(fixture$config$ended)) {
+      tryCatch(jsonlite::read_json(fixture$config$ended, simplifyVector = TRUE), error = function(e) NULL)
+    } else NULL
+    if (identical(ended$authorization_id, ending_id) || Sys.time() > deadline) break
+    Sys.sleep(0.1)
+  }
   testthat::expect_true(file.exists(fixture$config$ended))
-  ended <- jsonlite::read_json(fixture$config$ended, simplifyVector = TRUE)
+  testthat::expect_identical(ended$authorization_id, ending_id)
   testthat::expect_false(ended$accessor_usable)
   if (fixture_backend$dbi) testthat::expect_false(ended$native_valid)
 })

@@ -31,7 +31,7 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Building the backend test runner failed.' }
         }
     }
-    $services = @('database')
+    $services = @('database', 'tls-probe')
     if ($Backend -eq 'postgrest') { $services += 'https' }
     try {
         Invoke-Fixture -Arguments (@('up', '--detach', '--wait', '--wait-timeout', '240') + $services)

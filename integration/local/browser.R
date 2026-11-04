@@ -3,7 +3,7 @@ fixture_repository <- normalizePath(".", mustWork = TRUE)
 fixture_config <- function(client_id = "shiny-db") {
   list(backend = Sys.getenv("OAUTHDB_FIXTURE"), client_id = client_id,
     issuer = "https://localhost:18443/realms/shinyoauthdb",
-    origin = "http://localhost:18100", ca = "/fixtures/tls/ca-cert.pem",
+    origin = "http://localhost:18100", ca = "/fixtures/tls/ca-cert.pem", server = "localhost", port = 18444L,
     ended = tempfile("oauthdb-session-ended-"))
 }
 
@@ -35,7 +35,18 @@ fixture_wait <- function(browser, predicate, timeout = 30) {
 }
 
 fixture_click <- function(browser, id) {
-  fixture_value(browser, paste0("document.getElementById(", jsonlite::toJSON(id, auto_unbox = TRUE), ").click(); true"))
+  encoded <- jsonlite::toJSON(id, auto_unbox = TRUE)
+  # A snapshot can arrive before the previous reactive flush reports idle.
+  fixture_wait(browser, function(x) isTRUE(fixture_value(browser, paste0(
+    "(() => { const button=document.getElementById(", encoded, ");",
+    "return Boolean(button && !button.disabled && window.Shiny?.shinyapp?.isConnected() && ",
+    "window.jQuery && jQuery(button).hasClass('shiny-bound-input') && ",
+    "!document.documentElement.classList.contains('shiny-busy')); })()"))))
+  clicked <- fixture_value(browser, paste0("(() => { const button=document.getElementById(", encoded, ");",
+    "const before=jQuery(button).data('val') || 0; button.click();",
+    "return (jQuery(button).data('val') || 0) === before + 1; })()"))
+  if (!isTRUE(clicked)) stop("The fixture button did not dispatch its input event.", call. = FALSE)
+  invisible(TRUE)
 }
 
 fixture_login <- function(browser, username, config) {

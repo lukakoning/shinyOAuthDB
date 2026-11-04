@@ -26,3 +26,17 @@ chmod 644 "$directory/ca-cert.pem" "$directory/server-cert.pem"
 chown 1000:0 "$directory/server-key.pem" "$directory/server.pem" "$directory/server.p12"
 chmod 640 "$directory/server-key.pem" "$directory/server.pem" "$directory/server.p12"
 openssl verify -CAfile "$directory/ca-cert.pem" "$directory/server-cert.pem"
+openssl req -new -x509 -nodes -newkey rsa:2048 -sha256 -days 2 \
+  -subj '/CN=untrusted fixture CA' -keyout "$directory/untrusted-key.pem" \
+  -out "$directory/untrusted-ca.pem" -addext 'basicConstraints=critical,CA:TRUE'
+openssl x509 -req -sha256 -days 2 -in "$directory/server.csr" \
+  -CA "$directory/untrusted-ca.pem" -CAkey "$directory/untrusted-key.pem" -CAcreateserial \
+  -extfile "$directory/extensions.cnf" -out "$directory/untrusted-server.pem"
+openssl req -new -nodes -newkey rsa:2048 -sha256 -subj '/CN=wrong-hostname.invalid' \
+  -keyout "$directory/wrong-hostname-key.pem" -out "$directory/wrong-hostname.csr"
+sed 's/^subjectAltName=.*/subjectAltName=DNS:wrong-hostname.invalid/' "$directory/extensions.cnf" \
+  > "$directory/wrong-hostname.cnf"
+openssl x509 -req -sha256 -days 2 -in "$directory/wrong-hostname.csr" \
+  -CA "$directory/ca-cert.pem" -CAkey "$directory/ca-key.pem" -CAcreateserial \
+  -extfile "$directory/wrong-hostname.cnf" -out "$directory/wrong-hostname-cert.pem"
+chmod 644 "$directory/untrusted-ca.pem"

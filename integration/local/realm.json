@@ -8,7 +8,7 @@
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
   "loginWithEmailAllowed": false,
-  "accessTokenLifespan": 120,
+  "accessTokenLifespan": 300,
   "ssoSessionIdleTimeout": 600,
   "ssoSessionMaxLifespan": 1800,
   "revokeRefreshToken": true,
