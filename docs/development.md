@@ -55,3 +55,18 @@ and the local PostgreSQL/Keycloak browser test. The
 with its own start and pause workflow.
 
 Record versions, results, and limits in [validation.md](validation.md).
+
+## Selected mutation checks
+
+Run `Rscript --vanilla tools/check-mutations.R` with the full test dependencies
+installed. It first requires a passing baseline, then changes one guard at a
+time in a temporary copy: provider retirement, Trino TLS verification, Trino
+pagination origins, and PostgREST mutation retries. Each change must produce
+failed assertions in its named regression test. An error, skipped scenario,
+invalid patch or passing mutant fails validation. Warnings caused by a mutant
+are recorded; they cannot substitute for a failed assertion.
+
+The independent [mutation workflow](../.github/workflows/mutation-checks.yaml)
+runs weekly and on manual dispatch. Results are retained under
+`.validation/mutations/`. This checks four specific protections; it is not a
+package-wide mutation score. Your checkout is never modified by the runner.
