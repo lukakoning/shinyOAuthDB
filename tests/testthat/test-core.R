@@ -208,6 +208,35 @@ test_that("accessors enforce ownership on every call, including cached native va
   expect_error(closed_con(), class = "shinyOAuthDB_authorization_unavailable")
 })
 
+test_that("helpers reject another session at creation and accept module scopes of their owner", {
+  odb_test_domain(function(session) {
+    other <- shiny::MockShinySession$new()
+    on.exit(other$close(), add = TRUE)
+    token_reads <- opened <- 0L
+    grant <- list(id = "session-owner", has_scopes = function(...) TRUE,
+      access_token = function(...) { token_reads <<- token_reads + 1L; "fixture-token" })
+    factories <- list(function(owner) oauth_db_token(grant, session = owner), function(owner) {
+      oauth_db_connect(grant, session = owner, connect = function(token) {
+        opened <<- opened + 1L
+        token
+      })
+    })
+    for (factory in factories) {
+      wrong_owner <- tryCatch(factory(other), error = identity)
+      expect_s3_class(wrong_owner, "shinyOAuthDB_authorization_unavailable")
+      outside_session <- shiny::withReactiveDomain(NULL, tryCatch(factory(session), error = identity))
+      expect_s3_class(outside_session, "shinyOAuthDB_authorization_unavailable")
+    }
+    expect_identical(c(token_reads, opened), c(0L, 0L))
+    module <- session$makeScope("database")
+    shiny::withReactiveDomain(module, {
+      for (factory in factories) expect_identical(factory(module)(), "fixture-token")
+    })
+    expect_gte(token_reads, 2L)
+    expect_identical(opened, 1L)
+  })
+})
+
 test_that("native arguments and errors stay native, tokens are clean and explicit", {
   odb_test_domain(function(session) {
     raw <- shiny::reactiveVal(structure("valid-token", secret = new.env()))
