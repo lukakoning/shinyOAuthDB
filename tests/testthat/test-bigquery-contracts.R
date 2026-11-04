@@ -9,6 +9,7 @@ test_that("BigQuery rejects invalid job identities before polling another job", 
     requests <- list()
     httr2::local_mocked_responses(function(req) {
       requests[[length(requests) + 1L]] <<- req
+      if (length(requests) > 1L) stop("An invalid job reference must not cause polling")
       value <- bq_test_result()
       value$jobReference <- job
       value$jobComplete <- FALSE
