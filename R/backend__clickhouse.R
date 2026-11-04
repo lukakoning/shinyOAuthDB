@@ -36,6 +36,14 @@
 #' Values are sent separately through the HTTP `param_` mechanism. Character,
 #' logical, integer, numeric, `Date`, `POSIXct`, and missing values are
 #' supported. Use character values for exact large integers and decimals.
+#'
+#' `POSIXct` values are formatted as UTC wall-clock strings, regardless of
+#' their R display timezone. Use \code{DateTime('UTC')} for whole seconds or
+#' \code{DateTime64(6, 'UTC')} for fractional seconds. Always specify UTC in
+#' the placeholder: an unqualified type uses the server or session timezone,
+#' and another timezone annotation changes the instant represented by the
+#' formatted string. Timestamp encoding retains up to six fractional digits.
+#'
 #' For arrays, tuples, or already encoded values, wrap native ClickHouse
 #' escaped-format strings in `I()` to preserve their encoding.
 #' @section Result types:

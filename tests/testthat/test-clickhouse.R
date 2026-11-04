@@ -69,6 +69,15 @@ test_that("ClickHouse timestamp parameters preserve fractions without adding the
   expect_identical(values$param_missing, "\\N")
 })
 
+test_that("ClickHouse converts the R display timezone to the documented UTC representation", {
+  amsterdam <- as.POSIXct("2026-11-04 13:00:00", tz = "Europe/Amsterdam")
+  utc <- as.POSIXct("2026-11-04 12:00:00", tz = "UTC")
+  expect_identical(.odb_clickhouse_parameters(list(at = amsterdam)),
+    .odb_clickhouse_parameters(list(at = utc)))
+  expect_identical(.odb_clickhouse_parameters(list(at = amsterdam))$param_at,
+    "2026-11-04 12:00:00")
+})
+
 test_that("ClickHouse preserves exact and nested types and typed empty results", {
   names <- c("id", "amount", "small", "float", "flag", "day", "time", "array", "tuple")
   types <- c("Nullable(UInt64)", "Decimal(38, 9)", "Int32", "Float64", "Bool", "Date32",

@@ -91,13 +91,26 @@ rows <- clickhouse$query(
 )
 day <- clickhouse$query("SELECT {day:Date} AS day",
   parameters = list(day = as.Date("2026-11-03")))
+at <- as.POSIXct("2026-11-03 12:00:00", tz = "Europe/Amsterdam")
+times <- clickhouse$query(
+  "SELECT {at:DateTime('UTC')} AS at, {precise:DateTime64(6, 'UTC')} AS precise",
+  parameters = list(at = at, precise = at + 0.125)
+)
 ```
 
 Supply one R scalar per parameter. Missing values use the native nullable
 representation; declare a compatible `Nullable(...)` type in SQL. Supply
-large integers and exact decimals as strings. `POSIXct` values are formatted
-in UTC; use a corresponding UTC DateTime/DateTime64 type in SQL. Array and
-tuple parameters use native ClickHouse literal strings wrapped in `I()`,
+large integers and exact decimals as strings.
+
+`POSIXct` values are formatted as UTC wall-clock strings, regardless of their
+R display timezone. Use `DateTime('UTC')` for whole seconds and
+`DateTime64(6, 'UTC')` for fractional seconds; encoding retains up to six
+fractional digits. Always specify `'UTC'` in the SQL placeholder. An
+unqualified type uses the server or session timezone, and a different
+timezone annotation changes the instant represented by the formatted string.
+In the example, noon in Amsterdam becomes `11:00:00` UTC.
+
+Array and tuple parameters use native ClickHouse literal strings wrapped in `I()`,
 such as `parameters = list(ids = I("[1,2,3]"))`. `I()` preserves a value
 already encoded in ClickHouse's escaped format; it remains a bound HTTP
 parameter and is never interpolated into SQL.

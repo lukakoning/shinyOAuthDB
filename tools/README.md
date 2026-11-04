@@ -6,6 +6,11 @@ Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-coverage.R
 ```
 
+With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
+DateTime, DateTime64, nullable timestamps, and timezone conversion against a
+real ClickHouse engine. It runs local SQL without a Cloud account or JWT
+configuration. Set `OAUTHDB_CLICKHOUSE_TEST_IMAGE` to use another Docker image.
+
 Each script accepts additional R library directories as trailing arguments.
 The scripts use an isolated temporary package installation; they do not install
 dependencies into your normal library. Install the package's Imports and
