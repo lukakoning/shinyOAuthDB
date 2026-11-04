@@ -6,9 +6,9 @@ The ordinary package tests use local data and mocked services.
 ## Local browser sign-in and PostgreSQL
 
 The [PostgreSQL/Keycloak fixture](../../integration/postgres-keycloak/README.md)
-runs in Docker. It checks real OAuth sign-in, database-enforced user permissions,
-refresh, and sign-out. Its native PostgreSQL token helper is for this fixture
-only. For Azure PostgreSQL, use the package's Entra connection helper.
+runs in Docker. It exercises `oauth_db_postgres()` with real OAuth sign-in,
+database-enforced user permissions, refresh, and sign-out. For Azure PostgreSQL,
+use `oauth_db_azure_postgres()` for Entra authentication.
 
 ## Local PostgREST and Keycloak
 
