@@ -86,3 +86,52 @@ test_that("HTTP operation timeouts reject zero before authorization or network w
     })
   }
 })
+
+test_that("completed HTTP responses do not renew newly short-lived tokens", {
+  for (backend in c("postgrest", "clickhouse")) local({
+    auth <- NULL
+    requests <- 0L
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      auth$token(auth$make_token("still-live", lifetime = 30))
+      body <- if (backend == "postgrest") '[{"value":"ok"}]' else
+        '{"meta":[{"name":"value","type":"String"}],"data":[["ok"]],"rows":1}'
+      odb_http_response(body)
+    })
+    odb_test_domain(function(session) {
+      auth <<- odb_test_authorization(session, refresh_token = "fixture-refresh")
+      auth$token(auth$make_token("initial", lifetime = 120))
+      if (backend == "postgrest") {
+        api <- oauth_db_postgrest_api(auth$connection, "https://data.example", min_valid_for = 60)
+        result <- api$select("rows")
+      } else {
+        api <- oauth_db_clickhouse_api(auth$connection, "https://data.example", min_valid_for = 60)
+        result <- api$query("SELECT 'ok' AS value")
+      }
+      expect_identical(result$value, "ok")
+      expect_identical(requests, 1L)
+      expect_identical(auth$calls$acquire, 0L)
+    })
+  })
+})
+
+test_that("PostgREST rejects reserved and malformed query options before HTTP", {
+  invalid <- list(NULL, c(id = "eq.1"), list(id = c("eq.1", "eq.2")),
+    list(id = NA_character_), list(.req = "another-request"),
+    list(.multi = "explode"), list(.space = "%20"))
+  for (query in invalid) local({
+    requests <- 0L
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      odb_http_response('[{"id":1}]')
+    })
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      api <- oauth_db_postgrest_api(auth$connection, "https://data.example")
+      failure <- tryCatch(api$request("rows", query = query), error = identity)
+      expect_s3_class(failure, "shinyOAuthDB_invalid_configuration")
+      expect_identical(requests, 0L)
+      expect_identical(auth$calls$acquire, 0L)
+    })
+  })
+})
