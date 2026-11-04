@@ -1,7 +1,7 @@
 local({
   stopifnot(identical(Sys.getenv("OAUTHDB_LOCAL_INTEGRATION"), "1"))
   backend <- Sys.getenv("OAUTHDB_FIXTURE")
-  stopifnot(backend %in% c("postgrest", "trino", "starrocks"))
+  stopifnot(backend %in% c("postgrest", "trino", "starrocks", "minilake"))
   repository <- normalizePath(".", mustWork = TRUE)
   library <- tempfile("oauthdb-local-library-")
   stage <- tempfile("oauthdb-local-source-")
@@ -31,7 +31,8 @@ local({
     if (Sys.time() > deadline) stop("TLS probe readiness failed.", call. = FALSE)
     Sys.sleep(0.1)
   }
-  results <- testthat::test_file("integration/local/test-browser.R", reporter = "summary")
+  test_file <- if (is.null(fixture_backend$test_file)) "integration/local/test-browser.R" else fixture_backend$test_file
+  results <- testthat::test_file(test_file, reporter = "summary")
   counts <- as.data.frame(results)
   jsonlite::write_json(list(backend = backend,
     package_version = as.character(packageVersion("shinyOAuthDB")),

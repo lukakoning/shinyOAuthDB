@@ -1,0 +1,27 @@
+services:
+  database:
+    image: ghcr.io/dmux/minilake:latest@sha256:cad09d7bff0ddc5f67e2d80e025efd281639e8196a09545463b79e0d0d074113
+    network_mode: service:keycloak
+    environment:
+      MINILAKE_TLS: '1'
+      MINILAKE_HTTPS_PORT: '443'
+      MINILAKE_SSL_CERTFILE: /fixtures/tls/server-cert.pem
+      MINILAKE_SSL_KEYFILE: /fixtures/tls/server-key.pem
+      MINILAKE_NOTEBOOK: '0'
+      MINILAKE_SERVICES: sql_statements,sql_warehouses,unity_catalog
+      MINILAKE_DUCKDB_MEMORY_LIMIT: 512MB
+    volumes:
+      - fixture_tls:/fixtures/tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', '--cacert', '/fixtures/tls/ca-cert.pem', 'https://localhost/_minilake/health']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  test-runner:
+    image: shinyoauthdb-minilake-runner:1
+    build:
+      context: ../minilake-keycloak
+      target: runner

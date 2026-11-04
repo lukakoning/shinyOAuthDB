@@ -51,6 +51,23 @@ bash integration/local/run-integration.sh starrocks
 
 On Windows, use `powershell -NoProfile -File integration/local/run-integration.ps1 -Backend starrocks`.
 
+## Local Databricks client compatibility with MiniLake
+
+The [MiniLake fixture](../../integration/minilake-keycloak/README.md) exercises
+the public Databricks DBI and API helpers through real brickster calls and
+DuckDB SQL, with Keycloak browser PKCE and trusted HTTPS:
+
+```sh
+bash integration/local/run-integration.sh minilake
+```
+
+On Windows, use `integration/local/run-integration.ps1 -Backend minilake`.
+Its [independent workflow](../../.github/workflows/minilake-integration.yaml)
+runs alongside the other local suites. MiniLake accepts all tokens, does not
+enforce grants, uses DuckDB's dialect, and its pinned image ignores named SQL
+parameters. This lane tests client compatibility and bridge lifecycle behavior;
+it does not establish production Databricks security or parameter support.
+
 ## Fabric sandbox
 
 Follow the [Fabric app instructions](../../playground/fabric/README.md) to

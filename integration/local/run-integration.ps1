@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('postgrest', 'trino', 'starrocks')]
+    [ValidateSet('postgrest', 'trino', 'starrocks', 'minilake')]
     [string]$Backend,
     [switch]$SkipBuild
 )

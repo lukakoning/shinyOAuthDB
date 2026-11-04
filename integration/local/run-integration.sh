@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-backend=${1:?Usage: run-integration.sh postgrest|trino|starrocks}
-case "$backend" in postgrest|trino|starrocks) ;; *) exit 2 ;; esac
+backend=${1:?Usage: run-integration.sh postgrest|trino|starrocks|minilake}
+case "$backend" in postgrest|trino|starrocks|minilake) ;; *) exit 2 ;; esac
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 export OAUTHDB_FIXTURE="$backend"
 project="oauthdb-${backend}-$(date +%s)-$$"
