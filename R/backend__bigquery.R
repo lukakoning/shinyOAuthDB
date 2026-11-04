@@ -158,8 +158,8 @@ oauth_db_bigquery_client <- function(
         }
         body$maximumBytesBilled <- value
       }
-      token <- private$provider()
       deadline <- .odb_bigquery_time() + private$timeout
+      token <- private$provider()
       path <- c("projects", private$project, "queries")
       result <- .odb_bigquery_request(token, "POST", path, deadline, body = body)
       job <- result$jobReference
@@ -227,8 +227,8 @@ oauth_db_bigquery_client <- function(
     provider = NULL, project = NULL, dataset = NULL, location = NULL,
     timeout = NULL, page_size = NULL,
     list_items = function(path, field) {
-      token <- private$provider()
       deadline <- .odb_bigquery_time() + private$timeout
+      token <- private$provider()
       pages <- list()
       seen <- character()
       query <- list(maxResults = private$page_size)

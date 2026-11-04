@@ -396,3 +396,29 @@ test_that("BigQuery rechecks the deadline after obtaining credentials for each a
     class = "shinyOAuthDB_timeout")
   expect_length(requests, 1L)
 })
+
+test_that("BigQuery public operations include initial token acquisition in their timeout", {
+  for (operation in c("query", "datasets", "tables")) local({
+    now <- 0
+    requests <- acquisitions <- 0L
+    local_mocked_bindings(.odb_bigquery_time = function() now)
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      bq_test_response(bq_test_result())
+    })
+    odb_test_domain(function(session) {
+      grant <- list(id = "slow-authorization", has_scopes = function(...) TRUE,
+        access_token = function(...) {
+          acquisitions <<- acquisitions + 1L
+          now <<- now + 20
+          "fixture-token"
+        })
+      api <- oauth_db_bigquery_api(grant, "billing", dataset = "reports", timeout = 10)
+      expect_error(switch(operation,
+        query = api$query("SELECT value"), datasets = api$datasets(), tables = api$tables()),
+        class = "shinyOAuthDB_timeout")
+      expect_identical(acquisitions, 1L)
+      expect_identical(requests, 0L)
+    })
+  })
+})
