@@ -15,7 +15,7 @@ fixture_backend <- list(
   bind = function(authorization, username, config) {
     api <- shinyOAuthDB::oauth_db_postgrest_api(authorization,
       paste0("https://", config$server, ":", config$port), schema = "reporting", required_scopes = "database.read",
-      min_valid_for = 1, ca_bundle = config$ca)
+      min_valid_for = 1, timeout = 2, ca_bundle = config$ca)
     function() api
   },
   read = function(api) api$rpc("own_rows"),
@@ -25,12 +25,19 @@ fixture_backend <- list(
     empty <- api$select("visible_rows", filters = list(id = "eq.-1"))
     written <- api$rpc("record_once", list(operation_id = "successful-write"))
     failure <- tryCatch(api$rpc("record_then_fail", list(operation_id = "failed-response")), error = identity)
+    dropped <- tryCatch(api$rpc("record_then_drop", list(operation_id = "dropped-response")), error = identity)
+    timedout <- tryCatch(api$rpc("record_then_timeout", list(operation_id = "timeout-response")), error = identity)
     list(parameter = identical(value$text_value, payload), null = is.null(value$null_value),
       bigint = identical(value$integer_value, "9223372036854775807"),
       timestamp = identical(value$time_value, "2020-02-29T12:34:56.123456+00:00"), empty = nrow(empty) == 0L,
       successful_write_once = written == 1L && api$rpc("write_count", list(operation_id = "successful-write")) == 1L,
       failed_response_once = inherits(failure, "shinyOAuthDB_request_failed") && identical(failure$status, 503L) &&
-        api$rpc("write_count", list(operation_id = "failed-response")) == 1L)
+        api$rpc("write_count", list(operation_id = "failed-response")) == 1L,
+      dropped_response_once = inherits(dropped, "shinyOAuthDB_request_failed") &&
+        !is.null(dropped$transport_error) && api$rpc("write_count", list(operation_id = "dropped-response")) == 1L,
+      timeout_response_once = inherits(timedout, "shinyOAuthDB_timeout") &&
+        identical(timedout$transport_error, "curl_error_operation_timedout") &&
+        api$rpc("write_count", list(operation_id = "timeout-response")) == 1L)
   },
   denied = function(api, username, config) {
     other <- if (username == "alice") "bob_only" else "alice_only"

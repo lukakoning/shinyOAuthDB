@@ -32,6 +32,8 @@ fixture_run_app <- function(config) {
     }
     native <- spec$bind(auth$connection, username, config)
     calls <- shiny::reactiveVal(0L)
+    refresh_failed <- shiny::reactiveVal(NULL)
+    held_usable <- shiny::reactiveVal(NULL)
     refreshes <- shiny::reactiveVal(0L)
     rotated <- shiny::reactiveVal(FALSE)
     denied <- shiny::reactiveVal(NULL)
@@ -39,6 +41,7 @@ fixture_run_app <- function(config) {
     expired_denied <- shiny::reactiveVal(NULL)
     tls_checks <- shiny::reactiveVal(NULL)
     data_checks <- shiny::reactiveVal(NULL)
+    data_error <- shiny::reactiveVal(NULL)
     broken <- shiny::reactiveVal(FALSE)
     held <- NULL
     previous <- NULL
@@ -80,6 +83,21 @@ fixture_run_app <- function(config) {
       rotated(!identical(before, after))
       refreshes(shiny::isolate(refreshes()) + 1L)
     })
+    shiny::observeEvent(input$fail_refresh, {
+      reference <- shiny::req(auth$connection())
+      subject <- reference$identity(claims = "sub")$id_token_claims$sub
+      # Administrative control is confined to this disposable Keycloak realm.
+      admin <- httr2::request("https://localhost:18443/realms/master/protocol/openid-connect/token") |>
+        httr2::req_body_form(grant_type = "password", client_id = "admin-cli",
+          username = "fixture-admin", password = "fixture-admin-password") |>
+        httr2::req_perform() |> httr2::resp_body_json()
+      httr2::request(paste0("https://localhost:18443/admin/realms/shinyoauthdb/users/", subject, "/logout")) |>
+        httr2::req_auth_bearer_token(admin$access_token) |>
+        httr2::req_method("POST") |> httr2::req_perform()
+      failed <- tryCatch({ reference$access_token(force_refresh = TRUE); FALSE }, error = function(e) TRUE)
+      refresh_failed(failed)
+      held_usable(tryCatch({ spec$read(held); TRUE }, error = function(e) FALSE))
+    })
     shiny::observeEvent(input$probe, {
       checks <- spec$denied(native(), username(), config)
       if (is.function(spec$credential_checks)) {
@@ -119,8 +137,15 @@ fixture_run_app <- function(config) {
       tls_checks(checks)
     })
     shiny::observeEvent(input$data, {
+      data_error(NULL)
       checks <- tryCatch(spec$data_checks(native(), username(), config),
-        error = function(e) list(operation_succeeded = FALSE))
+        error = function(e) {
+          detail <- gsub("eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+",
+            "[redacted credential]", conditionMessage(e))
+          detail <- gsub("https?://[^[:space:]]+", "[configured endpoint]", detail)
+          data_error(substr(detail, 1L, 1000L))
+          list(operation_succeeded = FALSE)
+        })
       data_checks(checks)
     })
     shiny::observeEvent(input$break_connection, {
@@ -148,9 +173,10 @@ fixture_run_app <- function(config) {
         authorization_id = if (!is.null(reference)) reference$id else NULL,
         auth_error = if (is.null(auth$error)) NULL else "authorization_failed",
         result = rows, error = failure, calls = calls(), openings = openings(),
+        refresh_failed = refresh_failed(), held_usable = held_usable(),
         refreshes = refreshes(), rotated = rotated(), denied = denied(), tampered_denied = tampered(),
         expired_denied = expired_denied(), original_expiry = old_expiry,
-        tls_checks = tls_checks(), data_checks = data_checks(), broken = broken(),
+        tls_checks = tls_checks(), data_checks = data_checks(), data_error = data_error(), broken = broken(),
         held_valid = if (inherits(held, "DBIConnection")) DBI::dbIsValid(held) else NULL),
         auto_unbox = TRUE, null = "null", dataframe = "rows")
     })

@@ -2,6 +2,8 @@
 import http.client
 import http.server
 import ssl
+import socket
+import time
 
 
 class Proxy(http.server.BaseHTTPRequestHandler):
@@ -15,6 +17,17 @@ class Proxy(http.server.BaseHTTPRequestHandler):
             response = upstream.getresponse()
             payload = response.read()
             status = response.status
+            # The upstream response has been completely received: its SQL
+            # transaction committed before either transport fault is injected.
+            if self.command == "POST" and 200 <= status < 300:
+                if self.path == "/rpc/record_then_drop":
+                    self.close_connection = True
+                    self.connection.shutdown(socket.SHUT_RDWR)
+                    return
+                if self.path == "/rpc/record_then_timeout":
+                    time.sleep(4)
+                    self.close_connection = True
+                    return
             # The real database has committed before this deliberately failed response.
             if self.command == "POST" and self.path == "/rpc/record_then_fail" and 200 <= status < 300:
                 status = 503

@@ -61,11 +61,26 @@ fixture_backend <- list(
       "CAST(NULL AS VARCHAR(20)) AS null_value, CAST('9223372036854775807' AS BIGINT) AS integer_value,",
       "CAST('2020-02-29 12:34:56' AS DATETIME) AS time_value"), params = list(payload))
     empty <- DBI::dbGetQuery(con, "SELECT CAST(NULL AS VARCHAR(20)) AS value WHERE FALSE")
+    stopifnot(username %in% c("alice", "bob"))
+    admin <- starrocks_fixture_admin()
+    on.exit(DBI::dbDisconnect(admin), add = TRUE)
+    grant <- paste0("GRANT SELECT ON VIEW reporting.visible_rows TO USER ", username)
+    # Revoke privileges on an already authenticated user connection. This
+    # tests a server policy change rather than changing the local OAuth scope.
+    DBI::dbExecute(admin, paste0("REVOKE SELECT ON VIEW reporting.visible_rows FROM USER ", username))
+    on.exit(DBI::dbExecute(admin, grant), add = TRUE, after = FALSE)
+    denied <- tryCatch(fixture_backend$read(con), error = identity)
+    DBI::dbExecute(admin, grant)
+    restored <- fixture_backend$read(con)
     list(parameter = identical(rows$text_value, payload), null = is.na(rows$null_value),
       bigint = identical(as.character(rows$integer_value), "9223372036854775807"),
       timestamp = inherits(rows$time_value, "POSIXct") &&
         identical(format(rows$time_value, tz = "UTC"), "2020-02-29 12:34:56"),
-      empty = nrow(empty) == 0L && identical(names(empty), "value"))
+      empty = nrow(empty) == 0L && identical(names(empty), "value"),
+      revoked_grant = inherits(denied, "error") && grepl("denied|privilege|permission",
+        conditionMessage(denied), ignore.case = TRUE),
+      restored_grant = identical(restored$database_user, rep(username, 2L)) &&
+        identical(restored$marker, paste0(username, "-visible-", 1:2)))
   },
   tls_checks = function(authorization, username, config) {
     checks <- list()

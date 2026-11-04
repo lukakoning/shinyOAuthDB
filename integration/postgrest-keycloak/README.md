@@ -24,10 +24,18 @@ Missing operation scopes must prevent queries. These fixture accounts and
 passwords are public test data; password grants are disabled.
 
 Round trips cover quoted Unicode arguments, JSON nulls, PostgreSQL's largest
-signed bigint, timestamps and empty results. Two disposable RPCs record writes
-under row-level security. The HTTPS proxy deliberately returns HTTP 503 after
-one RPC commits; the API must report failure and the SQL counter must show one
-write, proving that the client did not replay the mutation.
+signed bigint, timestamps and empty results. Disposable RPCs record writes
+under row-level security. After PostgreSQL commits, the HTTPS proxy injects
+HTTP 503, a dropped connection or a response delay longer than the client's
+timeout. Each API call must report the expected HTTP/transport failure, and
+the SQL counter must show exactly one write.
+
+A separate test uses the fixture administrator to revoke Alice's Keycloak
+session, then forces a real refresh. Keycloak returns `invalid_grant`; under
+the module's default finite-session policy, local authorization and the retained
+API client become unusable without replaying the query. Signing in as Bob must
+recover with a new authorization and Bob's rows. The administrator's password
+grant is confined to fixture control; browser clients use PKCE.
 
 HTTPS terminates at a local proxy using a generated CA trusted by the test runner
 and Chromium. PostgREST itself validates the JWT using Keycloak's public JWKS.
@@ -42,5 +50,5 @@ its own containers and volumes even on failure. This suite and the PostgreSQL
 workflow can run independently. Sanitized counts are written
 to `.generated/results.json`; failures, warnings and skips fail the job.
 
-Validated locally on 4 November 2026: 70 passing assertions, zero failures,
+Validated locally on 4 November 2026: 81 passing assertions, zero failures,
 errors, warnings or skips, using the pinned server images and current checkouts.

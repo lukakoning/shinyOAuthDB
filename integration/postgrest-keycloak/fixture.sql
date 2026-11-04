@@ -39,3 +39,9 @@ $$;
 CREATE FUNCTION reporting.write_count(operation_id text) RETURNS bigint LANGUAGE sql STABLE SECURITY INVOKER AS $$
   SELECT count(*) FROM reporting.write_log WHERE operation_id = $1;
 $$;
+CREATE FUNCTION reporting.record_then_drop(operation_id text) RETURNS integer LANGUAGE sql VOLATILE SECURITY INVOKER AS $$
+  SELECT reporting.record_once($1);
+$$;
+CREATE FUNCTION reporting.record_then_timeout(operation_id text) RETURNS integer LANGUAGE sql VOLATILE SECURITY INVOKER AS $$
+  SELECT reporting.record_once($1);
+$$;

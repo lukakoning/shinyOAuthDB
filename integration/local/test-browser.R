@@ -120,3 +120,26 @@ testthat::test_that("the service rejects an expired browser-issued token indepen
   value <- fixture_wait(browser, function(x) !is.null(x$expired_denied))
   testthat::expect_true(value$expired_denied)
 })
+
+if (identical(Sys.getenv("OAUTHDB_FIXTURE"), "postgrest")) {
+  testthat::test_that("a real invalid_grant retires local API access without replaying SQL", {
+    fixture <- fixture_setup()
+    on.exit(fixture$close(), add = TRUE)
+    browser <- fixture$new_browser()
+    fixture_login(browser, "alice", fixture$config)
+    before <- fixture_wait(browser, function(x) !is.null(x$result))
+    fixture_wait(browser, function(x) isTRUE(fixture_value(browser,
+      "!document.documentElement.classList.contains('shiny-busy')")))
+    fixture_value(browser, "Shiny.setInputValue('fail_refresh', 1, {priority:'event'}); true")
+    failed <- fixture_wait(browser, function(x) !is.null(x$refresh_failed))
+    testthat::expect_true(failed$refresh_failed)
+    testthat::expect_false(failed$authorized)
+    testthat::expect_false(failed$held_usable)
+    testthat::expect_null(failed$result)
+    testthat::expect_identical(failed$calls, before$calls)
+    fixture_login(browser, "bob", fixture$config)
+    recovered <- fixture_wait(browser, function(x) !is.null(x$result))
+    testthat::expect_false(identical(recovered$authorization_id, before$authorization_id))
+    testthat::expect_identical(vapply(recovered$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
+  })
+}

@@ -37,6 +37,11 @@ The helper sets `NO_SSPS=1` to use the driver's client-side prepared statements.
 The server-side prepared path could stall on these typed queries with this
 pinned server/driver combination; the round-trip checks cover the replacement.
 
+During a live user connection, the fixture administrator revokes its SELECT
+grant. The same connection must receive a permission error, then return the
+same user's rows after the administrator restores the grant. Cleanup restores
+the grant before disconnecting the control connection, including on failure.
+
 ODBC verifies the generated CA and server identity. StarRocks requires secure
 transport. Keycloak's internal HTTP endpoint serves its public JWKS only inside
 the isolated network; browser login and token exchange use verified HTTPS.
@@ -52,6 +57,6 @@ Unix to reuse images. The independent GitHub Actions workflow caches the R/brows
 build and uploads `.generated/results.json`; test failures, warnings and skips
 fail the job.
 
-Validated locally on 2026-11-04: 67 passing browser assertions, with zero
+Validated locally on 2026-11-04: 71 passing browser assertions, with zero
 failures, errors, warnings or skips. The Bash runner completed successfully
 against Docker Desktop's Linux engine.
