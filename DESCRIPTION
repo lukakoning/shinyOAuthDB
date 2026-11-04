@@ -38,6 +38,7 @@ Suggests:
     RTrino (>= 0.1.0),
     rmarkdown,
     RSQLite,
+    S7 (>= 0.2.0),
     testthat (>= 3.2.0),
     withr
 VignetteBuilder: knitr
