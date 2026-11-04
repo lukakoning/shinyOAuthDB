@@ -23,6 +23,20 @@ bash integration/local/run-integration.sh postgrest
 
 On Windows, use `powershell -NoProfile -File integration/local/run-integration.ps1 -Backend postgrest`.
 
+## Local Trino and Keycloak
+
+The [Trino fixture](../../integration/trino-keycloak/README.md) runs real OAuth2
+authentication, RTrino DBI queries and fetching, server-enforced row filters,
+denied impersonation, refresh and cleanup. Its
+[separate workflow](../../.github/workflows/trino-integration.yaml) runs
+independently of the other integrations:
+
+```sh
+bash integration/local/run-integration.sh trino
+```
+
+On Windows, use `powershell -NoProfile -File integration/local/run-integration.ps1 -Backend trino`.
+
 ## Local StarRocks and Keycloak
 
 The [StarRocks fixture](../../integration/starrocks-keycloak/README.md) exercises
