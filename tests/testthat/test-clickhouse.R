@@ -144,3 +144,29 @@ test_that("ClickHouse clients isolate accounts and discard late responses", {
     expect_error(retained$query("SELECT 1"), class = "shinyOAuthDB_authorization_unavailable")
   })
 })
+
+test_that("ClickHouse raw queries and statements validate without constructing data frames", {
+  payload <- clickhouse_test_result()
+  local_mocked_bindings(.odb_clickhouse_frame = function(...) stop("Unexpected data frame construction"))
+  httr2::local_mocked_responses(function(req) {
+    odb_http_response(as.character(jsonlite::toJSON(payload, auto_unbox = TRUE)))
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_clickhouse_api(auth$connection, "https://clickhouse.example")
+    expect_identical(api$query("SELECT user, id", raw = TRUE),
+      .odb_http_json(clickhouse_test_response(), "ClickHouse"))
+    expect_s3_class(api$execute("SELECT user, id"), "httr2_response")
+    invalid <- list(
+      list(meta = list(list(name = "n", type = "Int32")), data = list(list("invalid")), rows = 1L),
+      list(meta = list(list(name = "b", type = "Bool")), data = list(list("invalid")), rows = 1L),
+      list(meta = list(list(name = "d", type = "Date")), data = list(list("invalid")), rows = 1L),
+      list(meta = payload$meta, data = list(list("wrong width")), rows = 1L),
+      list(meta = payload$meta, data = list(), rows = 1L))
+    for (value in invalid) {
+      payload <<- value
+      expect_error(api$query("SELECT value", raw = TRUE), class = "shinyOAuthDB_invalid_response")
+      expect_error(api$execute("SELECT value"), class = "shinyOAuthDB_invalid_response")
+    }
+  })
+})

@@ -88,15 +88,18 @@ oauth_db_clickhouse_api <- function(
       if (!is.list(result) || !is.null(result$exception)) {
         .odb_abort("The ClickHouse query failed. Inspect it in the server query log.", "query_failed")
       }
-      frame <- .odb_clickhouse_frame(result)
-      if (raw) result else frame
+      if (raw) {
+        .odb_clickhouse_validate(result)
+        return(result)
+      }
+      .odb_clickhouse_frame(result)
     },
     execute = function(sql, parameters = list()) {
       resp <- private$submit(sql, parameters)
       if (httr2::resp_has_body(resp)) {
         result <- .odb_http_json(resp, "ClickHouse")
         if (!is.list(result) || !is.null(result$exception)) .odb_abort("The ClickHouse statement failed.", "query_failed")
-        .odb_clickhouse_frame(result)
+        .odb_clickhouse_validate(result)
       }
       invisible(resp)
     },
@@ -157,7 +160,7 @@ oauth_db_clickhouse_api <- function(
   stats::setNames(values, paste0("param_", names(parameters)))
 }
 
-.odb_clickhouse_frame <- function(result) {
+.odb_clickhouse_validate <- function(result, validate_values = TRUE) {
   meta <- result$meta
   rows <- result$data
   if (!is.list(meta) || !is.list(rows) ||
@@ -168,6 +171,16 @@ oauth_db_clickhouse_api <- function(
   }
   if (!is.null(result$rows) && (!is.numeric(result$rows) || length(result$rows) != 1L ||
       is.na(result$rows) || result$rows != length(rows))) .odb_abort("ClickHouse returned an inconsistent row count.", "invalid_response")
+  if (validate_values) for (i in seq_along(meta)) {
+    .odb_clickhouse_column(lapply(rows, function(row) row[[i]]), meta[[i]]$type)
+  }
+  invisible(NULL)
+}
+
+.odb_clickhouse_frame <- function(result) {
+  .odb_clickhouse_validate(result, validate_values = FALSE)
+  meta <- result$meta
+  rows <- result$data
   columns <- lapply(seq_along(meta), function(i) {
     .odb_clickhouse_column(lapply(rows, function(row) row[[i]]), meta[[i]]$type)
   })
