@@ -280,7 +280,7 @@ oauth_db_bigquery_client <- function(
     remaining <- deadline - .odb_bigquery_time()
     if (remaining <= 0) .odb_abort("BigQuery operation timed out; the remote job may still be running.", "timeout")
     request <- httr2::req_timeout(req, min(remaining, 30))
-    httr2::req_perform(httr2::req_auth_bearer_token(request, value))
+    .odb_http_perform(httr2::req_auth_bearer_token(request, value), "BigQuery")
   }
   resp <- perform(token())
   if (httr2::resp_status(resp) == 401L) {

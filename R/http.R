@@ -49,6 +49,28 @@
 
 .odb_http_time <- function() unname(proc.time()[["elapsed"]])
 
+.odb_http_perform <- function(req, service) {
+  tryCatch(httr2::req_perform(req), error = function(error) {
+    cause <- error
+    transport_error <- NULL
+    while (inherits(cause, "condition")) {
+      classes <- class(cause)
+      curl_classes <- classes[startsWith(classes, "curl_error_")]
+      if (length(curl_classes)) {
+        transport_error <- curl_classes[[1L]]
+        break
+      }
+      cause <- cause$parent
+    }
+    timeout <- identical(transport_error, "curl_error_operation_timedout")
+    message <- if (timeout) paste0(service, " operation timed out.") else {
+      paste0(service, " transport failed. Check the endpoint, TLS, and network connection.")
+    }
+    .odb_abort(message, if (timeout) "timeout" else "request_failed",
+      transport_error = transport_error)
+  })
+}
+
 .odb_http_request <- function(token, req, service, timeout, ca_bundle = NULL, retry_401 = FALSE) {
   deadline <- .odb_http_time() + timeout
   req <- httr2::req_options(req, followlocation = FALSE)
@@ -60,10 +82,7 @@
     if (remaining <= 0) .odb_abort(paste0(service, " operation timed out."), "timeout")
     request <- httr2::req_timeout(req, remaining)
     request <- httr2::req_auth_bearer_token(request, value)
-    tryCatch(httr2::req_perform(request), error = function(e) {
-      .odb_abort(paste0(service, " transport failed. Check the endpoint, TLS, and network connection."),
-        "request_failed")
-    })
+    .odb_http_perform(request, service)
   }
   resp <- perform(token())
   token(.check_only = TRUE)
