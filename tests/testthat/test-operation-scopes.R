@@ -1,0 +1,86 @@
+test_that("operation permission changes notify only consumers of those permissions", {
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, scopes = c("base", "read", "write", "admin"))
+    auth$token(auth$make_token("initial", c("base", "read")))
+    reads <- writes <- opened <- 0L
+    client <- .odb_bind(auth$connection, function(token) {
+      opened <<- opened + 1L
+      list(read = function() { reads <<- reads + 1L; token(scopes = "read") },
+        write = function() { writes <<- writes + 1L; token(scopes = "write") })
+    }, required_scopes = "base")
+    session$flushReact()
+    read <- shiny::reactive(client()$read())
+    write <- shiny::reactive(client()$write())
+    expect_identical(read(), "initial")
+    expect_error(write(), class = "shinyOAuth_access_error")
+    auth$token(auth$make_token("rotation", c("base", "read")))
+    session$flushReact()
+    expect_identical(read(), "initial")
+    expect_error(write(), class = "shinyOAuth_access_error")
+    expect_identical(c(reads, writes, opened), c(1L, 1L, 1L))
+
+    auth$token(auth$make_token("write-granted", c("base", "read", "write")))
+    session$flushReact()
+    expect_identical(write(), "write-granted")
+    expect_identical(read(), "initial")
+    expect_identical(c(reads, writes, opened), c(1L, 2L, 1L))
+    auth$token(auth$make_token("read-revoked", c("base", "write")))
+    session$flushReact()
+    expect_error(read(), class = "shinyOAuth_access_error")
+    expect_identical(write(), "write-granted")
+    expect_identical(c(reads, writes, opened), c(2L, 2L, 1L))
+
+    auth$token(auth$make_token("read-restored", c("base", "read", "write")))
+    session$flushReact()
+    expect_identical(read(), "read-restored")
+    expect_identical(write(), "write-granted")
+    auth$token(auth$make_token("unrelated-grant", c("base", "read", "write", "admin")))
+    session$flushReact()
+    expect_identical(read(), "read-restored")
+    expect_identical(write(), "write-granted")
+    expect_identical(c(reads, writes, opened), c(3L, 2L, 1L))
+
+    auth$token(auth$make_token("base-revoked", c("read", "write")))
+    session$flushReact()
+    expect_error(read(), class = "shiny.silent.error")
+    expect_error(write(), class = "shiny.silent.error")
+    expect_identical(c(reads, writes, opened), c(3L, 2L, 1L))
+    auth$token(auth$make_token("base-restored", c("base", "read", "write")))
+    session$flushReact()
+    expect_identical(read(), "base-restored")
+    expect_identical(write(), "base-restored")
+    expect_identical(c(reads, writes, opened), c(4L, 3L, 2L))
+  })
+})
+
+test_that("equivalent operation scope sets notify every consumer and preserve cached work", {
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, scopes = c("base", "read", "write"))
+    provider <- .odb_bind(auth$connection, identity, required_scopes = "base")
+    calls <- c(0L, 0L)
+    first <- shiny::reactive({
+      calls[[1L]] <<- calls[[1L]] + 1L
+      provider()(scopes = c("write", "read", "read"))
+    })
+    second <- shiny::reactive({
+      calls[[2L]] <<- calls[[2L]] + 1L
+      provider()(scopes = c("read", "write"))
+    })
+    expect_identical(first(), "fixture-A")
+    expect_identical(second(), "fixture-A")
+    session$flushReact()
+    expect_identical(first(), "fixture-A")
+    expect_identical(second(), "fixture-A")
+    expect_identical(calls, c(1L, 1L))
+    auth$token(auth$make_token("denied", c("base", "read")))
+    session$flushReact()
+    expect_error(first(), class = "shinyOAuth_access_error")
+    expect_error(second(), class = "shinyOAuth_access_error")
+    expect_identical(calls, c(2L, 2L))
+    auth$token(auth$make_token("restored"))
+    session$flushReact()
+    expect_identical(first(), "restored")
+    expect_identical(second(), "restored")
+    expect_identical(calls, c(3L, 3L))
+  })
+})
