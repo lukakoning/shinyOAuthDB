@@ -1,4 +1,4 @@
-name: Selected mutation checks
+name: Mutation testing
 on:
   schedule:
     - cron: '37 4 * * 1'
@@ -9,7 +9,8 @@ concurrency:
   group: mutations-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  mutations:
+  selected-guards:
+    name: Named guard regressions
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -33,5 +34,47 @@ jobs:
         with:
           name: selected-mutations
           path: .validation/mutations/
+          include-hidden-files: true
+          if-no-files-found: error
+  mutator:
+    name: mutator / ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [transport, lifecycle, bigquery]
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+      OAUTHDB_MUTATOR_LIMIT: '60'
+      OAUTHDB_MUTATOR_CORES: '2'
+      OAUTHDB_MUTATOR_SEED: '20261104'
+      OAUTHDB_MUTATOR_TIMEOUT: '240'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            mutator@0.3.0
+            any::callr
+            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+      - name: Generate and test sampled AST mutations
+        run: Rscript --vanilla tools/check-mutator.R ${{ matrix.profile }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutator-${{ matrix.profile }}
+          path: |
+            .validation/mutator/${{ matrix.profile }}/baseline/
+            .validation/mutator/${{ matrix.profile }}/*.json
+            .validation/mutator/${{ matrix.profile }}/*.csv
+            .validation/mutator/${{ matrix.profile }}/*.rds
+            .validation/mutator/${{ matrix.profile }}/mutants/
+            .validation/mutator/${{ matrix.profile }}/original/
           include-hidden-files: true
           if-no-files-found: error

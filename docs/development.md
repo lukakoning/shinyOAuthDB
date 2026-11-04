@@ -71,6 +71,45 @@ runs weekly and on manual dispatch. Results are retained under
 `.validation/mutations/`. This checks four specific protections; it is not a
 package-wide mutation score. Your checkout is never modified by the runner.
 
+The same workflow also runs generated AST mutations using
+[`mutator`](https://prl-prg.github.io/mutator/) 0.3.0. Install it in your
+development library, then choose a campaign:
+
+```sh
+Rscript --vanilla tools/check-mutator.R transport
+Rscript --vanilla tools/check-mutator.R lifecycle
+Rscript --vanilla tools/check-mutator.R bigquery
+Rscript --vanilla tools/check-mutator.R all
+```
+
+Additional arguments are dependency-library paths. The runner copies source
+files and repository fixtures into a temporary directory, checks a strict
+baseline, and lets mutator generate the edits. It uses coverage-guided test
+selection, a fixed seed and isolated mutant copies. Each report records the
+source hashes, tool version, selected tests and sampling settings.
+
+| Environment variable | Default | Purpose |
+| --- | --- | --- |
+| `OAUTHDB_MUTATOR_LIMIT` | `100` | Maximum sampled mutants |
+| `OAUTHDB_MUTATOR_CORES` | `2` | Concurrent test processes |
+| `OAUTHDB_MUTATOR_SEED` | `20261104` | Reproducible sampling |
+| `OAUTHDB_MUTATOR_TIMEOUT` | `240` | Seconds allowed per mutant |
+| `OAUTHDB_MUTATOR_OUTPUT` | `.validation/mutator` | Report parent directory |
+
+The three focused CI campaigns run independently, sampling 60 mutants each.
+Artifacts include baseline assertion counts, mutation summaries, individual
+outcomes, original R files and the sampled mutant sources. A missing baseline,
+failed/skipped baseline test or incomplete campaign fails the job. Survivors
+remain in the report for review; there is no perfect-score gate or blanket
+exclusion of surviving lines. The four named guard checks remain mandatory.
+
+Mutator's `KILLED` category includes execution errors as well as test failures;
+`HANG` is reported separately. Inspect a survivor's edit and add a behavioral
+regression when it changes the package contract. A harmless equivalent change
+does not justify an implementation-specific assertion. External/LLM equivalence
+detection is disabled. These campaigns mutate R source; the native C OAuth hook
+has its separate PostgreSQL Docker coverage run.
+
 ## Compatibility lanes
 
 The [minimum workflow](../.github/workflows/minimum-compatibility.yaml) runs
