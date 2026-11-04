@@ -69,3 +69,20 @@ test_that("a refresh finishing at the deadline cannot send another HTTP request"
   expect_identical(requests, 1L)
   expect_identical(forced, 1L)
 })
+
+test_that("HTTP operation timeouts reject zero before authorization or network work", {
+  for (factory in list(oauth_db_postgrest_api, oauth_db_clickhouse_api)) {
+    failure <- tryCatch(factory(stop("Authorization must stay lazy"), "https://data.example", timeout = 0), error = identity)
+    expect_s3_class(failure, "shinyOAuthDB_invalid_configuration")
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      failure <- tryCatch(factory(auth$connection, "https://data.example", timeout = 0), error = identity)
+      expect_s3_class(failure, "shinyOAuthDB_invalid_configuration")
+      # A small positive request budget and a zero token-lifetime requirement
+      # are both valid, and constructing the client must not request a token.
+      client <- factory(auth$connection, "https://data.example", timeout = 0.001, min_valid_for = 0)
+      expect_s3_class(client, "R6")
+      expect_identical(auth$calls$acquire, 0L)
+    })
+  }
+})
