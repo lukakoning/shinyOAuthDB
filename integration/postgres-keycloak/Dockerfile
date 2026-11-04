@@ -80,6 +80,8 @@ RUN curl --fail --location --retry 3 \
     && R CMD INSTALL /tmp/RPostgres.tar.gz \
     && rm /tmp/RPostgres.tar.gz \
     && Rscript -e 'stopifnot(packageVersion("RPostgres") == "1.4.10"); stopifnot(grepl("PostgreSQL 18.3", system2("pg_config", "--version", stdout=TRUE)))'
+# Keep coverage dependencies in a separate layer from libpq/RPostgres.
+RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("covr", Ncpus=2L); stopifnot(requireNamespace("covr", quietly=TRUE))'
 COPY runner-entrypoint.sh fixture-chromium /usr/local/bin/
 RUN chmod 755 /usr/local/bin/runner-entrypoint.sh /usr/local/bin/fixture-chromium
 WORKDIR /workspace/shinyOAuthDB

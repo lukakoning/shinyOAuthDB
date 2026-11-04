@@ -106,6 +106,51 @@ postgres_browser_app <- function(config) {
       required_scopes = "database.read",
       min_valid_for = 1
     )
+    negative_results <- shiny::reactiveVal(NULL)
+    expired_denied <- shiny::reactiveVal(NULL)
+    original_token <- NULL
+    original_expiry <- NULL
+    original_role <- NULL
+    negative_connection <- function(token, host = config$pg_host, ca = config$ca_file, user = database_role()) {
+      getFromNamespace(".odb_postgres_connect_bearer", "shinyOAuthDB")(
+        token = token, issuer = config$issuer, scope = "database.read",
+        host = host, port = config$pg_port, dbname = config$pg_dbname,
+        user = user, sslrootcert = ca, connect_timeout = 3L)
+    }
+    rejects <- function(token, ..., pattern = "OAuth") {
+      tryCatch({
+        value <- negative_connection(token, ...)
+        DBI::dbDisconnect(value)
+        FALSE
+      }, error = function(e) grepl(pattern, conditionMessage(e), ignore.case = TRUE))
+    }
+    shiny::observeEvent(input$native_credentials, {
+      tryCatch({
+      token <- authorization()$access_token(min_valid_for_seconds = 1)
+      original_token <<- token
+      original_role <<- database_role()
+      segment <- chartr("-_", "+/", strsplit(token, ".", fixed = TRUE)[[1L]][2L])
+      segment <- paste0(segment, strrep("=", (4L - nchar(segment) %% 4L) %% 4L))
+      claims <- jsonlite::fromJSON(rawToChar(openssl::base64_decode(segment)))
+      original_expiry <<- claims$exp
+      pieces <- strsplit(token, ".", fixed = TRUE)[[1L]]
+      signature <- pieces[[3L]]
+      substr(signature, 1L, 1L) <- if (startsWith(signature, "a")) "b" else "a"
+      pieces[[3L]] <- signature
+      checks <- list(tampered = rejects(paste(pieces, collapse = ".")),
+        wrong_ca = rejects(token, ca = "/fixtures/tls/untrusted-ca.pem", pattern = "certificate"),
+        wrong_hostname = rejects(token, host = "fixture-mismatch", pattern = "certificate"))
+      control <- negative_connection(token)
+      checks$valid_control <- identical(DBI::dbGetQuery(control,
+        "SELECT current_user::text AS name")$name, database_role())
+      DBI::dbDisconnect(control)
+      negative_results(checks)
+      }, error = function(e) negative_results(list(fixture_error = postgres_fixture_error_detail(e))))
+    })
+    shiny::observeEvent(input$expired_credential, {
+      shiny::req(original_token, original_expiry, as.numeric(Sys.time()) > original_expiry + 1)
+      expired_denied(rejects(original_token, user = original_role))
+    })
     previous <- NULL
     con <- function() {
       reference <- authorization()
@@ -581,6 +626,9 @@ postgres_browser_app <- function(config) {
           error = if (is.null(last_error())) query_error else last_error(),
           result = saved,
           native_error_detail = native_error_detail(),
+          native_checks = negative_results(),
+          original_expired = !is.null(original_expiry) && as.numeric(Sys.time()) > original_expiry + 1,
+          expired_denied = expired_denied(),
           query_attempts = query_attempts(),
           connect_attempts = connect_attempts(),
           successful_connections = successful_connections(),

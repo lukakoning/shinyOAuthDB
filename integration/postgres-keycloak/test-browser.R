@@ -327,3 +327,27 @@ testthat::test_that("browser-issued missing scope never reaches PostgreSQL conne
   testthat::expect_null(server_denied$result)
   testthat::expect_true(server_denied$hook_restored)
 })
+
+testthat::test_that("PostgreSQL independently rejects tampered, expired and TLS-invalid credentials", {
+  config <- postgres_browser_config("shiny-short-lived")
+  fixture <- postgres_browser_setup(config)
+  on.exit(fixture$close(), add = TRUE)
+  browser <- fixture$new_browser()
+  login <- postgres_browser_login(browser, "alice", config)
+  testthat::expect_true(login$snapshot$authorized)
+  postgres_browser_wait(browser, function(x) !is.null(x$result) &&
+    isTRUE(postgres_browser_value(browser, "!document.documentElement.classList.contains('shiny-busy')")))
+  postgres_browser_value(browser, "Shiny.setInputValue('native_credentials', 1, {priority:'event'}); true")
+  checked <- postgres_browser_wait(browser, function(x) !is.null(x$native_checks))
+  for (name in c("tampered", "wrong_ca", "wrong_hostname", "valid_control")) {
+    testthat::expect_true(checked$native_checks[[name]], info = paste(name, checked$native_checks$fixture_error))
+  }
+  testthat::expect_true(checked$hook_restored)
+  # Hold the original browser-issued token privately in R. Do not ask the
+  # authorization to validate it: this is the server's expiry check.
+  Sys.sleep(17)
+  postgres_browser_value(browser, "Shiny.setInputValue('expired_credential', 1, {priority:'event'}); true")
+  expired <- postgres_browser_wait(browser, function(x) !is.null(x$expired_denied))
+  testthat::expect_true(expired$expired_denied)
+  testthat::expect_true(expired$hook_restored)
+})

@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: lukakoning/shinyOAuth
-          ref: master
+          ref: 42176847f6ab82c2b49095f81a829cdd8ce60260
           path: shinyOAuth
           persist-credentials: false
 
@@ -42,6 +42,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: postgres-oauth-results
-          path: shinyOAuthDB/integration/postgres-keycloak/.generated/results.json
+          path: |
+            shinyOAuthDB/integration/postgres-keycloak/.generated/results.json
+            shinyOAuthDB/integration/postgres-keycloak/.generated/*coverage*
           include-hidden-files: true
           if-no-files-found: ignore

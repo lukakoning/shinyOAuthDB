@@ -200,53 +200,22 @@ local({
 
     app$postgres_browser_run_app(config)
   } else {
-    withCallingHandlers(
-      sys.source(
-        file.path(fixture, "native", "tests", "regression.R"),
-        envir = new.env(parent = globalenv())
-      ),
-      warning = function(w) {
-        stop("The native regression emitted a warning.", call. = FALSE)
-      }
-    )
-
-    browser_results <- testthat::test_dir(
-      fixture,
-      reporter = "summary",
-      stop_on_failure = FALSE,
-      load_helpers = TRUE
-    )
-    counts <- as.data.frame(browser_results)
-    jsonlite::write_json(list(
-      package_version = as.character(utils::packageVersion("shinyOAuthDB")),
-      runtime = getFromNamespace(".odb_postgres_runtime", "shinyOAuthDB")(),
-      passed = sum(counts$passed), failed = sum(counts$failed),
-      errors = sum(counts$error), warnings = sum(counts$warning),
-      skipped = sum(counts$skipped)
-    ), "/results/results.json", auto_unbox = TRUE, pretty = TRUE)
-    message(
-      "PostgreSQL/Keycloak integration: ",
-      sum(counts$passed),
-      " passing assertions; ",
-      sum(counts$failed),
-      " failures; ",
-      sum(counts$error),
-      " errors; ",
-      sum(counts$warning),
-      " warnings; ",
-      sum(counts$skipped),
-      " skips."
-    )
-
-    if (
-      any(
-        counts$failed > 0 | counts$error | counts$warning > 0 | counts$skipped
-      )
-    ) {
-      stop(
-        "Integration requires zero failures, errors, warnings and skips.",
-        call. = FALSE
-      )
+    # covr installs an instrumented build in its own library, then starts a
+    # fresh R process. Browser children inherit that library and exit normally
+    # so libgcov can flush the real libpq-hook counters.
+    coverage <- covr::package_coverage(path = native_stage, type = "none",
+      code = sprintf("setwd(%s); source('integration/postgres-keycloak/acceptance.R')",
+        deparse(repository)), quiet = FALSE)
+    lines <- covr::tally_coverage(coverage)
+    native <- lines[grepl("(^|/)src/postgres.c$", lines$filename), , drop = FALSE]
+    hits <- aggregate(native$value, native[c("filename", "line")], sum)
+    if (nrow(hits) < 100L || sum(hits$x > 0) < 100L) {
+      stop("Native coverage did not execute the Linux libpq OAuth implementation.", call. = FALSE)
     }
+    saveRDS(coverage, "/results/native-coverage.rds")
+    utils::write.csv(lines, "/results/coverage-lines.csv", row.names = FALSE)
+    jsonlite::write_json(list(native_postgres = TRUE,
+      covered = sum(hits$x > 0), total = nrow(hits), percent = 100 * mean(hits$x > 0)),
+      "/results/native-coverage-summary.json", auto_unbox = TRUE, pretty = TRUE)
   }
 })

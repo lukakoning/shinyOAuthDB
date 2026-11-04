@@ -12,6 +12,10 @@ if [[ -f "$tls_dir/ca-cert.pem" && -f "$tls_dir/server-cert.pem" && -f "$tls_dir
 fi
 
 umask 077
+openssl req -new -x509 -nodes -newkey rsa:2048 -sha256 -days 30 \
+  -subj '/CN=untrusted fixture CA' -keyout "$tls_dir/untrusted-key.pem" \
+  -out "$tls_dir/untrusted-ca.pem"
+chmod 644 "$tls_dir/untrusted-ca.pem"
 openssl req -new -x509 -nodes -newkey rsa:3072 -sha256 -days 30 \
   -subj '/CN=shinyOAuthDB isolated fixture CA' \
   -keyout "$tls_dir/ca-key.pem" -out "$tls_dir/ca-cert.pem" \

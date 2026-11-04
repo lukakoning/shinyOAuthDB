@@ -1,7 +1,9 @@
 {
   "realm": "shinyoauthdb",
   "enabled": true,
-  "attributes": {"CreateDefaultClientScopes": "true"},
+  "attributes": {
+    "CreateDefaultClientScopes": "true"
+  },
   "sslRequired": "all",
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
@@ -28,14 +30,23 @@
       "name": "Shiny PostgreSQL browser fixture",
       "protocol": "openid-connect",
       "publicClient": true,
-      "redirectUris": ["http://localhost:18100/callback"],
-      "webOrigins": ["http://localhost:18100"],
+      "redirectUris": [
+        "http://localhost:18100/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:18100"
+      ],
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "defaultClientScopes": ["basic", "profile"],
-      "optionalClientScopes": ["database.read"],
+      "defaultClientScopes": [
+        "basic",
+        "profile"
+      ],
+      "optionalClientScopes": [
+        "database.read"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "oauth2.device.authorization.grant.enabled": "false",
@@ -62,14 +73,23 @@
       "name": "Wrong-resource browser fixture",
       "protocol": "openid-connect",
       "publicClient": true,
-      "redirectUris": ["http://localhost:18100/callback"],
-      "webOrigins": ["http://localhost:18100"],
+      "redirectUris": [
+        "http://localhost:18100/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:18100"
+      ],
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "defaultClientScopes": ["basic", "profile"],
-      "optionalClientScopes": ["database.read"],
+      "defaultClientScopes": [
+        "basic",
+        "profile"
+      ],
+      "optionalClientScopes": [
+        "database.read"
+      ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "oauth2.device.authorization.grant.enabled": "false",
@@ -96,13 +116,20 @@
       "name": "Missing-database-scope browser fixture",
       "protocol": "openid-connect",
       "publicClient": true,
-      "redirectUris": ["http://localhost:18100/callback"],
-      "webOrigins": ["http://localhost:18100"],
+      "redirectUris": [
+        "http://localhost:18100/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:18100"
+      ],
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
-      "defaultClientScopes": ["basic", "profile"],
+      "defaultClientScopes": [
+        "basic",
+        "profile"
+      ],
       "optionalClientScopes": [],
       "attributes": {
         "pkce.code.challenge.method": "S256",
@@ -113,6 +140,50 @@
       "protocolMappers": [
         {
           "name": "PostgreSQL audience without permission",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "postgres-fixture",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "shiny-short-lived",
+      "name": "Short-lived PostgreSQL test",
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:18100/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:18100"
+      ],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "defaultClientScopes": [
+        "basic",
+        "profile"
+      ],
+      "optionalClientScopes": [
+        "database.read"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "use.refresh.tokens": "true",
+        "access.token.lifespan": "15"
+      },
+      "protocolMappers": [
+        {
+          "name": "PostgreSQL resource audience",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-audience-mapper",
           "consentRequired": false,
@@ -136,7 +207,13 @@
       "enabled": true,
       "emailVerified": true,
       "requiredActions": [],
-      "credentials": [{"type": "password", "value": "alice-fixture-password", "temporary": false}]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice-fixture-password",
+          "temporary": false
+        }
+      ]
     },
     {
       "id": "22222222-2222-4222-8222-222222222222",
@@ -147,7 +224,13 @@
       "enabled": true,
       "emailVerified": true,
       "requiredActions": [],
-      "credentials": [{"type": "password", "value": "bob-fixture-password", "temporary": false}]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob-fixture-password",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

@@ -12,6 +12,8 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.1@sha256:dea26401d06341095cc4ea9d66896200b55de5ca1daa1d2fcbe58493afa6e0ad
+    extra_hosts:
+      - fixture-mismatch:127.0.0.1
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: fixture-admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: fixture-admin-password

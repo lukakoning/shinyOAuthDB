@@ -83,6 +83,19 @@ and connection isolation against the installed package. The independent
 runs the native and browser suites and records sanitized assertion counts
 under `.generated/results.json`; any warning or skipped test fails the lane.
 
+The runner compiles with `covr`/gcov against the real libpq 18 library and
+retains `native-coverage-summary.json`, `coverage-lines.csv`, and
+`native-coverage.rds` beside the test results. Browser app processes shut down
+normally so their native counters are flushed. A stub build or a run that
+executes fewer than 100 native source lines fails validation. This coverage
+belongs to the Linux implementation; the Windows package-check stub is
+reported separately.
+
+Negative connections use real browser-issued credentials: modified signatures,
+expired tokens, an untrusted CA and a hostname absent from the certificate.
+A valid-token control must still connect as Alice, and the native hook must
+be restored after every failed opening. No token bytes enter the result files.
+
 The server uses Percona's `pg_oidc_validator` at commit
 `ba9c4cb2dc9bd2e9779c7a33f7a30c9bb8c97862` with a fixture-specific
 [audience check](patches/validator-audience.patch). Build provenance is in

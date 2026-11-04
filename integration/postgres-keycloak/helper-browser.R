@@ -73,12 +73,18 @@ postgres_browser_setup <- function(
     stop("Browser fixture port is already occupied.", call. = FALSE)
   }
 
+  config$stop_file <- tempfile("postgres-browser-stop-")
   process <- callr::r_bg(
     function(script, config) {
       Sys.setenv(CURL_SSL_BACKEND = "openssl", CURL_CA_BUNDLE = config$ca_file)
       source(script, local = TRUE)
       source(file.path(dirname(script), "playground-ui.R"), local = TRUE)
 
+      stop_when_requested <- function() {
+        if (file.exists(config$stop_file)) shiny::stopApp()
+        else later::later(stop_when_requested, 0.1)
+      }
+      later::later(stop_when_requested, 0.1)
       postgres_browser_run_app(config)
     },
     args = list(script, config),
@@ -100,10 +106,17 @@ postgres_browser_setup <- function(
       try(chrome$close(), silent = TRUE)
     }
     if (process$is_alive()) {
-      process$kill()
+      file.create(config$stop_file)
+      process$wait(timeout = 10000)
+      if (process$is_alive()) {
+        process$kill()
+        stop("Browser app did not exit normally; native coverage would be incomplete.", call. = FALSE)
+      }
+      if (!identical(process$get_exit_status(), 0L)) {
+        stop("Browser app exited unsuccessfully.", call. = FALSE)
+      }
     }
-
-    try(process$wait(timeout = 5000), silent = TRUE)
+    unlink(config$stop_file)
 
     invisible(NULL)
   }
