@@ -15,12 +15,19 @@ With shinyOAuthDB, people sign in to your app and query a database with their
 own permissions. You can use DBI, dbplyr, or the platform's R package to read
 the data.
 
+The package supports commercial and cloud-hosted platforms as well as
+self-hosted open-source systems, including PostgreSQL and Trino configured
+for OAuth. To try it on your own machine, the [PostgreSQL Docker playground](postgres.html#try-the-docker-playground)
+provides a database, Keycloak sign-in and sample data. Its guide includes
+download links and launch commands.
+
 Each source guide includes a complete app with sign-in and a first query.
 
 ## Choose your source
 
 | Source | What you can do |
 | --- | --- |
+| [Self-hosted PostgreSQL](postgres.html) | Try the Docker/Keycloak demo or connect your own PostgreSQL 18 server |
 | [PostgREST](postgrest.html) | Read PostgreSQL tables and call functions over HTTP |
 | [StarRocks](starrocks.html) | Query with JWT authentication and MySQL Connector/ODBC |
 | [ClickHouse](clickhouse.html) | Run SQL over HTTPS with a visitor token |
@@ -30,9 +37,8 @@ Each source guide includes a complete app with sign-in and a first query.
 | [Snowflake](snowflake.html) | Query with a user's Snowflake account and role |
 | [Google BigQuery](bigquery.html) | Run GoogleSQL and get data frames |
 | [Amazon Redshift](redshift.html) | Query Redshift with DBI |
-| [Trino and Starburst Enterprise](trino.html) | Query with RTrino and DBI |
+| [Trino and Starburst Enterprise](trino.html) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
 | [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
-| [Self-hosted PostgreSQL](postgres.html) | Query PostgreSQL 18 with your own OAuth provider, including Keycloak |
 
 ## Install shinyOAuthDB
 
@@ -43,6 +49,11 @@ remotes::install_github("lukakoning/shinyOAuthDB")
 
 This also installs shinyOAuth. Your source may need another R package or a
 database driver; its guide lists those requirements.
+
+For locally browsable guides, add `build_vignettes = TRUE` to the GitHub
+installation call. The Docker playground runs its own R environment, so
+you can also follow its download-and-run instructions before installing
+the package locally.
 
 ## Run your first app
 

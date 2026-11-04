@@ -16,11 +16,51 @@ visitor's OAuth access token. PostgreSQL validates the token and maps its
 identity to a database role; normal grants and row-level security determine
 which data the visitor can read.
 
+This setup uses open-source software on infrastructure you control.
+shinyOAuthDB also supports hosted data platforms; the connection helper
+uses the same per-user authorization pattern in either case. For a
+self-hosted query engine, see the [Trino guide](trino.html).
+
 ## Try the Docker playground
 
-Check out `lukakoning/shinyOAuth` and `lukakoning/shinyOAuthDB` into sibling
-directories, then start Docker with Linux containers. From the shinyOAuthDB
-repository root, run:
+The demo runs PostgreSQL 18, Keycloak and Shiny in Docker, with accounts,
+OAuth registrations and sample data already configured. You can try the
+package without a cloud account, an existing database or a local libpq
+installation. Docker's Linux containers work on Windows, macOS and Linux.
+
+### Get the configuration
+
+The [complete Docker configuration](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak)
+and [playground launcher](https://github.com/lukakoning/shinyOAuthDB/blob/main/playground/postgres/run.R)
+live in the source repository. They are available whether or not you have
+already installed shinyOAuthDB in your local R library.
+
+Start Docker with Linux containers, then clone both repositories into the
+same parent directory:
+
+```sh
+git clone https://github.com/lukakoning/shinyOAuth.git
+git clone https://github.com/lukakoning/shinyOAuthDB.git
+cd shinyOAuthDB
+```
+
+You can also download the [shinyOAuth ZIP](https://github.com/lukakoning/shinyOAuth/archive/refs/heads/master.zip)
+and [shinyOAuthDB ZIP](https://github.com/lukakoning/shinyOAuthDB/archive/refs/heads/main.zip).
+Extract and rename the directories to `shinyOAuth` and `shinyOAuthDB`,
+keeping them side by side:
+
+```text
+your-projects/
+  shinyOAuth/
+  shinyOAuthDB/
+```
+
+Keep the full checkouts together: Compose builds from the Dockerfile and
+mounts the source packages, configuration files and sample app from them.
+
+### Launch the app
+
+With `shinyOAuthDB` as the working directory in R, run:
 
 ```r
 source("playground/postgres/run.R")
@@ -32,17 +72,56 @@ installs the R dependencies. Open `http://localhost:18100` once Shiny starts;
 your browser may ask you to trust the local test certificate at
 `https://localhost:18443`.
 
-Sign in as `alice` with `alice-fixture-password`, or `bob` with
-`bob-fixture-password`. Each account sees two rows belonging to that role,
-although the app runs the same SQL for both. PostgreSQL applies the row
-policy. The controls also let you refresh the token, check table grants,
-attempt the other role, and sign out. Click **Stop playground** to remove
-its containers and test data. If you force the launcher to exit, use the
+You can launch without a local R installation, too. From the shinyOAuthDB
+directory, use PowerShell on Windows:
+
+```powershell
+powershell -NoProfile -File integration/postgres-keycloak/run-integration.ps1 -Playground
+```
+
+Or use Bash on Linux or macOS:
+
+```sh
+OAUTHDB_PLAYGROUND=1 bash integration/postgres-keycloak/run-integration.sh
+```
+
+### Try the accounts and database permissions
+
+| Username | Password | Visible rows |
+| --- | --- | --- |
+| `alice` | `alice-fixture-password` | `alice-visible-1`, `alice-visible-2` |
+| `bob` | `bob-fixture-password` | `bob-visible-1`, `bob-visible-2` |
+
+Click **Sign in**, then use either demo account. Each sees two rows
+belonging to its role, although the app runs the same SQL for both. PostgreSQL applies the row
+policy. **Switch account** opens a new sign-in; the session fields show
+which account is active. The permission checks try the other database role,
+both private tables and the token's `database.read` scope. You can also
+refresh the token or break the connection to try recovery.
+
+Click **Stop playground** to remove its containers and test data.
+If you force the launcher to exit, use the
 cleanup command it printed at startup.
 
 All accounts and credentials in this fixture are public test data. PostgreSQL
 stays inside Docker; the browser ports bind only to the host's loopback
 interface. Use your own credentials, certificates and hostnames in a deployment.
+
+### Inspect or adapt the Docker files
+
+| File | What it configures |
+| --- | --- |
+| [compose.yml](https://github.com/lukakoning/shinyOAuthDB/blob/main/integration/postgres-keycloak/compose.yml) | Services, mounts, health checks and local browser ports |
+| [Dockerfile](https://github.com/lukakoning/shinyOAuthDB/blob/main/integration/postgres-keycloak/Dockerfile) | PostgreSQL/libpq 18, token validator, R packages and browser-test runtime |
+| [realm-shinyoauthdb.json](https://github.com/lukakoning/shinyOAuthDB/blob/main/integration/postgres-keycloak/realm-shinyoauthdb.json) | Keycloak demo accounts, OAuth clients, audience and scope |
+| [config/](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak/config) | PostgreSQL OAuth rules, validator settings and identity-to-role mapping |
+| [sql/01-fixture.sql](https://github.com/lukakoning/shinyOAuthDB/blob/main/integration/postgres-keycloak/sql/01-fixture.sql) | Database roles, sample tables, table grants and row-level security |
+| [fixture-app.R](https://github.com/lukakoning/shinyOAuthDB/blob/main/integration/postgres-keycloak/fixture-app.R) | Shiny sign-in, queries and permission checks using `oauth_db_postgres()` |
+
+The [playground instructions](https://github.com/lukakoning/shinyOAuthDB/blob/main/playground/postgres/README.md)
+describe each control. To configure your own deployment, follow the native
+runtime and server setup below, replacing the demo's issuer, credentials,
+certificates and identity mappings with your own.
 
 ## Native runtime
 

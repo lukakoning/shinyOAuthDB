@@ -10,6 +10,24 @@ Build Shiny apps that query databases using each visitor's own permissions.
 Use DBI or dbplyr for SQL, or call fabricQueryR and brickster functions with
 the user's sign-in.
 }
+\details{
+Supports commercial and cloud-hosted data platforms, as well as self-hosted
+PostgreSQL and Trino configured for OAuth. Users sign in through a provider
+the database or query engine trusts; that server enforces their permissions.
+}
+\section{Try a self-hosted database locally}{
+
+The \href{https://github.com/lukakoning/shinyOAuthDB/blob/main/playground/postgres/README.md}{PostgreSQL Docker playground}
+runs PostgreSQL 18, Keycloak and a Shiny app with demo accounts and data.
+Docker provides the R packages and native libraries. The
+\href{https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak}{configuration files}
+are available in the source repository.
+See \code{vignette("postgres", package = "shinyOAuthDB")} for downloads,
+launch commands and your own server setup, or \code{\link[=oauth_db_postgres]{oauth_db_postgres()}} for
+the connection helper. \code{vignette("trino", package = "shinyOAuthDB")}
+covers self-hosted Trino and Starburst Enterprise.
+}
+
 \section{Start with your source}{
 
 \code{vignette("getting-started", package = "shinyOAuthDB")} links to a guide

@@ -29,7 +29,7 @@ GitHub/
 From the shinyOAuthDB root on Windows:
 
 ```powershell
-rtk proxy powershell -NoProfile -File integration/postgres-keycloak/run-integration.ps1
+powershell -NoProfile -File integration/postgres-keycloak/run-integration.ps1
 ```
 
 On Linux, macOS, or Git Bash:

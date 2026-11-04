@@ -86,6 +86,26 @@ refresh; account or role changes and sign-out close it. Discard a broken
 native connection and obtain a new one through \code{con()}; resetting or cloning
 a retained native handle is unsupported. Use separate R processes for workers.
 }
+\section{Try the Docker playground}{
+
+The source repository includes a complete PostgreSQL 18, Keycloak and
+Shiny configuration with sample data and two demo accounts. Docker supplies
+R and the native libraries, so you can try it on Windows, macOS or Linux
+without configuring a cloud account or an existing database.
+
+Clone \code{lukakoning/shinyOAuth} and \code{lukakoning/shinyOAuthDB} into sibling
+directories. From the shinyOAuthDB checkout, run
+\code{source("playground/postgres/run.R")}, then open \verb{http://localhost:18100}.
+The configuration lives in the source checkout; use the
+\href{https://github.com/lukakoning/shinyOAuthDB/blob/main/playground/postgres/README.md}{playground instructions}
+and \href{https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak}{Docker files}
+to download or inspect it.
+
+\code{vignette("postgres", package = "shinyOAuthDB")} has the full setup,
+demo credentials, cleanup instructions and options for running without
+a local R installation.
+}
+
 \examples{
 \dontrun{
 # Inside server(), with an OIDC client requesting openid, profile and database.read:

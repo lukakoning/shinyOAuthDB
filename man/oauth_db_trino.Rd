@@ -54,8 +54,9 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 A reactive function returning an RTrino DBI connection.
 }
 \description{
-Query a Trino or Starburst Enterprise cluster using DBI or dbplyr through
-RTrino. Users sign in with an identity provider accepted by the cluster.
+Query a self-hosted Trino cluster or Starburst Enterprise using DBI or
+dbplyr through RTrino. Users sign in with an identity provider accepted
+by the cluster.
 }
 \details{
 Install RTrino 0.1.0 or later. Create \code{con} inside \code{server()} and get

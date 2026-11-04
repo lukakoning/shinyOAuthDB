@@ -11,9 +11,13 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use a Trino or Starburst Enterprise cluster as a data source for Shiny.
+Use a self-hosted Trino cluster or Starburst Enterprise as a data source for Shiny.
 People sign in with the cluster's identity provider and query using their
 own database permissions.
+
+You can run Trino and its trusted OAuth identity provider on your own
+infrastructure. For a ready-made local Docker example with PostgreSQL and
+Keycloak, see the [self-hosted PostgreSQL guide](postgres.html#try-the-docker-playground).
 
 The connection uses RTrino, so you can write queries with DBI or dbplyr.
 

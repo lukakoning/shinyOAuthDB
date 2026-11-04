@@ -20,11 +20,165 @@ access is enforced by the platform's own permissions.
 
 'shinyOAuthDB' supports multiple data platforms and databases, including:
 
+[Self-hosted PostgreSQL](#self-hosted-postgresql) · [PostgREST](#postgrest) ·
 [Microsoft Fabric](#microsoft-fabric) · [Databricks](#databricks) ·
 [Snowflake](#snowflake) · [BigQuery](#google-bigquery) ·
 [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
-[PostgreSQL](#self-hosted-postgresql) · [PostgREST](#postgrest) · [Azure PostgreSQL](#azure-postgresql) ·
+[Azure PostgreSQL](#azure-postgresql) ·
 [Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) · [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
+
+## Self-hosted PostgreSQL
+
+Try the package locally with PostgreSQL 18, Keycloak and a Shiny app in
+Docker. The example includes two accounts and sample data: Alice and Bob
+run the same SQL but see different rows because PostgreSQL enforces their
+permissions. You can use this setup without a cloud account or an existing
+database, including on Windows and macOS with Docker's Linux containers.
+
+Start Docker, then clone the two repositories side by side:
+
+```sh
+git clone https://github.com/lukakoning/shinyOAuth.git
+git clone https://github.com/lukakoning/shinyOAuthDB.git
+cd shinyOAuthDB
+```
+
+With `shinyOAuthDB` as your working directory in R, run:
+
+```r
+source("playground/postgres/run.R")
+```
+
+Docker supplies R, the packages and database drivers. The first build
+compiles PostgreSQL and installs dependencies; open
+`http://localhost:18100` once Shiny starts. Sign in with
+`alice` / `alice-fixture-password` or `bob` / `bob-fixture-password`.
+Click **Stop playground** to close the app and remove its containers and
+test data.
+
+The [Docker configuration](integration/postgres-keycloak/compose.yml),
+[server and identity-provider setup](integration/postgres-keycloak/) and
+[playground instructions](playground/postgres/README.md) are available in
+the source repository. The dedicated [PostgreSQL guide](vignettes/postgres.Rmd)
+also covers ZIP downloads, launch options without a local R installation,
+and adapting the configuration to your own server. From R, open it with
+`vignette("postgres", package = "shinyOAuthDB")`.
+
+For your own PostgreSQL server, create a shinyOAuth client for your identity
+provider and use the connection helper inside `server()`:
+
+`user` is the requested database role. This app derives it from the
+signed-in account's validated `preferred_username` claim, so the login
+determines the role for each visitor. Configure that claim and the matching
+PostgreSQL identity-to-role mapping; the server checks the token and
+enforces the role's permissions. Use your deployment's mapping if its role
+names differ from provider usernames.
+
+Set `OAUTHDB_POSTGRES_ISSUER`, `OAUTHDB_CLIENT_ID`, and
+`OAUTHDB_CLIENT_SECRET` for your OAuth registration. Request `profile` and
+configure the provider to include the username claim in its ID token.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+issuer <- Sys.getenv("OAUTHDB_POSTGRES_ISSUER")
+provider <- oauth_provider_oidc_discover(issuer, id_token_validation = TRUE)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "database.read")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_postgres(
+    auth$connection,
+    host = "postgres.example.org", dbname = "reporting",
+    user = function() {
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
+    },
+    issuer = issuer, scope = "database.read",
+    sslrootcert = "path/to/ca.pem"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Native OAuth currently needs Linux with a shared libpq 18 build. The Docker
+example supplies that runtime, and its browser and database checks run in
+a separate [GitHub Actions workflow](.github/workflows/postgres-integration.yaml).
+
+## PostgREST
+
+Read PostgreSQL tables and views through PostgREST with each visitor's JWT.
+PostgREST gets the database role from the verified token; the app does not
+pass a username. PostgreSQL applies grants and row-level security for that
+identity. Register the app with the provider trusted by your API and set
+`OAUTHDB_POSTGREST_ISSUER`, `OAUTHDB_POSTGREST_URL`, `OAUTHDB_CLIENT_ID`,
+and `OAUTHDB_CLIENT_SECRET`.
+
+```r
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_POSTGREST_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  postgrest <- oauth_db_postgrest_api(
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_POSTGREST_URL"),
+    schema = "reporting"
+  )
+  output$rows <- renderTable({
+    postgrest$select("orders", order = "id.asc", limit = 20L)
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+The [PostgREST guide](vignettes/postgrest.Rmd) covers token role claims,
+server setup, filters, functions, and pagination.
 
 ## Microsoft Fabric
 
@@ -281,129 +435,6 @@ For SQL Server configured for Entra authentication, use
 stays the same. See the [Azure SQL guide](vignettes/azure-sql.Rmd) for dbplyr
 and connection options.
 
-## Self-hosted PostgreSQL
-
-Query your own PostgreSQL 18 server with an OAuth provider such as Keycloak.
-PostgreSQL validates each visitor's token and database role, then applies
-table grants and row-level security.
-
-`user` is the requested database role. This app derives it from the
-signed-in account's validated `preferred_username` claim, so the login
-determines the role for each visitor. Configure that claim and the matching
-PostgreSQL identity-to-role mapping; the server checks the token and
-enforces the role's permissions. Use your deployment's mapping if its role
-names differ from provider usernames.
-
-Set `OAUTHDB_POSTGRES_ISSUER`, `OAUTHDB_CLIENT_ID`, and
-`OAUTHDB_CLIENT_SECRET` for your OAuth registration. Request `profile` and
-configure the provider to include the username claim in its ID token.
-
-```r
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-issuer <- Sys.getenv("OAUTHDB_POSTGRES_ISSUER")
-provider <- oauth_provider_oidc_discover(issuer, id_token_validation = TRUE)
-client <- oauth_client(
-  provider,
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100",
-  scopes = c("openid", "profile", "database.read")
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  con <- oauth_db_postgres(
-    auth$connection,
-    host = "postgres.example.org", dbname = "reporting",
-    user = function() {
-      reference <- req(auth$connection())
-      identity <- reference$identity(claims = "preferred_username")
-      req(identity$id_token_claims$preferred_username)
-    },
-    issuer = issuer, scope = "database.read",
-    sslrootcert = "path/to/ca.pem"
-  )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-Native OAuth currently needs Linux with a shared libpq 18 build. On Windows
-or macOS, try the [Docker playground](playground/postgres/README.md): run
-`source("playground/postgres/run.R")` from the checkout root to launch
-PostgreSQL, Keycloak and a Shiny app with sample data. The
-[PostgreSQL guide](vignettes/postgres.Rmd) covers server configuration,
-browser sign-in and role mapping. A separate GitHub Actions workflow runs
-the real browser and database tests.
-
-## PostgREST
-
-Read PostgreSQL tables and views through PostgREST with each visitor's JWT.
-PostgREST gets the database role from the verified token; the app does not
-pass a username. PostgreSQL applies grants and row-level security for that
-identity. Register the app with the provider trusted by your API and set
-`OAUTHDB_POSTGREST_ISSUER`, `OAUTHDB_POSTGREST_URL`, `OAUTHDB_CLIENT_ID`,
-and `OAUTHDB_CLIENT_SECRET`.
-
-```r
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-provider <- oauth_provider_oidc_discover(
-  issuer = Sys.getenv("OAUTHDB_POSTGREST_ISSUER")
-)
-client <- oauth_client(
-  provider,
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100",
-  scopes = c("openid", "profile", "email", "offline_access")
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  postgrest <- oauth_db_postgrest_api(
-    auth$connection,
-    url = Sys.getenv("OAUTHDB_POSTGREST_URL"),
-    schema = "reporting"
-  )
-  output$rows <- renderTable({
-    postgrest$select("orders", order = "id.asc", limit = 20L)
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-The [PostgREST guide](vignettes/postgrest.Rmd) covers token role claims,
-server setup, filters, functions, and pagination.
-
 ## Azure PostgreSQL
 
 Query Azure PostgreSQL through RPostgres using a Microsoft account.
@@ -510,8 +541,9 @@ and token types.
 
 ## Trino and Starburst Enterprise
 
-Query Trino with DBI after signing in through the cluster's identity
-provider. The cluster must accept your app's tokens. This example uses
+Query a self-hosted Trino cluster or Starburst Enterprise with DBI after
+signing in through the cluster's identity provider. The cluster must accept
+your app's tokens. This example uses
 the profile's email as the Trino username; use the field your cluster
 expects.
 

@@ -1,7 +1,8 @@
 #' Query Trino as the signed-in user
 #'
-#' Query a Trino or Starburst Enterprise cluster using DBI or dbplyr through
-#' RTrino. Users sign in with an identity provider accepted by the cluster.
+#' Query a self-hosted Trino cluster or Starburst Enterprise using DBI or
+#' dbplyr through RTrino. Users sign in with an identity provider accepted
+#' by the cluster.
 #'
 #' @inheritParams oauth_db_connect
 #' @param host Cluster hostname or HTTPS origin.

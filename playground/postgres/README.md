@@ -3,14 +3,28 @@
 Run a Shiny app against a local PostgreSQL 18 server with real OAuth sign-in.
 The database enforces different rows and table permissions for Alice and Bob.
 
-Install and start Docker with Linux containers, and check out
-`lukakoning/shinyOAuth` next to this repository:
+Install and start Docker with Linux containers. From the directory where
+you keep your projects, clone the two repositories:
+
+```sh
+git clone https://github.com/lukakoning/shinyOAuth.git
+git clone https://github.com/lukakoning/shinyOAuthDB.git
+cd shinyOAuthDB
+```
+
+Keep them side by side:
 
 ```text
 GitHub/
   shinyOAuth/
   shinyOAuthDB/
 ```
+
+The [Docker configuration](../../integration/postgres-keycloak/compose.yml)
+and its [supporting files](../../integration/postgres-keycloak/) are part
+of the source checkout. You can use them even if the R package is already
+installed. The [PostgreSQL guide](../../vignettes/postgres.Rmd) also has ZIP
+download links and PowerShell/Bash commands that run without a local R installation.
 
 From the shinyOAuthDB root:
 
