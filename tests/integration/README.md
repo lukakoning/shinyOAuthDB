@@ -23,6 +23,20 @@ bash integration/local/run-integration.sh postgrest
 
 On Windows, use `powershell -NoProfile -File integration/local/run-integration.ps1 -Backend postgrest`.
 
+## Local StarRocks and Keycloak
+
+The [StarRocks fixture](../../integration/starrocks-keycloak/README.md) exercises
+native JWT authentication through MySQL Connector/ODBC, verified TLS, per-user
+database grants and protected views, refresh, and connection cleanup. Its
+[separate workflow](../../.github/workflows/starrocks-integration.yaml) runs
+independently of the other integrations:
+
+```sh
+bash integration/local/run-integration.sh starrocks
+```
+
+On Windows, use `powershell -NoProfile -File integration/local/run-integration.ps1 -Backend starrocks`.
+
 ## Fabric sandbox
 
 Follow the [Fabric app instructions](../../playground/fabric/README.md) to

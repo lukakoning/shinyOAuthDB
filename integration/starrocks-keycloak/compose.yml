@@ -1,0 +1,25 @@
+services:
+  database:
+    image: starrocks/allin1-ubuntu:3.5.0@sha256:b14d66bc27e494531f843f698bd6b25b86b90593a847f9d10ce2af8d8ac9ca83
+    network_mode: service:keycloak
+    mem_limit: 3g
+    entrypoint: ["bash", "/fixture/start.sh"]
+    volumes:
+      - ../starrocks-keycloak/start.sh:/fixture/start.sh:ro
+      - fixture_tls:/fixtures/tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "mysql --connect-timeout=3 -h127.0.0.1 -P9030 -uroot -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      start_period: 45s
+      retries: 60
+  test-runner:
+    image: shinyoauthdb-starrocks-runner:1
+    build:
+      context: ../starrocks-keycloak
+    depends_on:
+      database:
+        condition: service_healthy

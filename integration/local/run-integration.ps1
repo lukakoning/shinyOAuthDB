@@ -19,9 +19,17 @@ function Invoke-Fixture {
 try {
     Invoke-Fixture -Arguments @('config', '--quiet')
     if (-not $SkipBuild) {
-        & docker build --target runner --tag shinyoauthdb-local-runner:1 $PSScriptRoot
+        $builder = & docker context show
+        if ($LASTEXITCODE -ne 0) { throw 'Reading the Docker context failed.' }
+        & docker build --builder $builder --target runner --tag shinyoauthdb-local-runner:1 $PSScriptRoot
         if ($LASTEXITCODE -ne 0) { throw 'Building the shared test runner failed.' }
-        Invoke-Fixture -Arguments @('build')
+        # Use the context's built-in builder to consume the base image from CI.
+        & docker build --builder $builder --target tls --tag shinyoauthdb-local-tls:1 $PSScriptRoot
+        if ($LASTEXITCODE -ne 0) { throw 'Building the TLS initializer failed.' }
+        if ($Backend -ne 'postgrest') {
+            & docker build --builder $builder --target runner --tag "shinyoauthdb-${Backend}-runner:1" (Join-Path $root "integration/$Backend-keycloak")
+            if ($LASTEXITCODE -ne 0) { throw 'Building the backend test runner failed.' }
+        }
     }
     $services = @('database')
     if ($Backend -eq 'postgrest') { $services += 'https' }

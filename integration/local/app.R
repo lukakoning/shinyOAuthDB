@@ -75,7 +75,12 @@ fixture_run_app <- function(config) {
       refreshes(shiny::isolate(refreshes()) + 1L)
     })
     shiny::observeEvent(input$probe, {
-      denied(spec$denied(native(), username(), config))
+      checks <- spec$denied(native(), username(), config)
+      if (is.function(spec$credential_checks)) {
+        bearer <- auth$connection()$access_token(min_valid_for_seconds = 1)
+        checks <- c(list(table_access = checks), spec$credential_checks(bearer, username(), config))
+      }
+      denied(checks)
     })
     shiny::observeEvent(input$tamper, {
       bearer <- shiny::req(auth$connection())$access_token(min_valid_for_seconds = 1)

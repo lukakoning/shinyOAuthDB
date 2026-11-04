@@ -11,10 +11,15 @@ cleanup() { "${compose[@]}" down --volumes --remove-orphans; }
 trap cleanup EXIT
 "${compose[@]}" config --quiet
 if [[ ${OAUTHDB_SKIP_BUILD:-0} != 1 ]]; then
+  builder=$(docker context show)
   if [[ ${OAUTHDB_SKIP_BASE_BUILD:-0} != 1 ]]; then
-    docker build --target runner --tag shinyoauthdb-local-runner:1 "$root/integration/local"
+    docker build --builder "$builder" --target runner --tag shinyoauthdb-local-runner:1 "$root/integration/local"
   fi
-  "${compose[@]}" build
+  # The context's built-in builder can use CI's base image from the local image store.
+  docker build --builder "$builder" --target tls --tag shinyoauthdb-local-tls:1 "$root/integration/local"
+  if [[ "$backend" != postgrest ]]; then
+    docker build --builder "$builder" --target runner --tag "shinyoauthdb-${backend}-runner:1" "$root/integration/${backend}-keycloak"
+  fi
 fi
 services=(database)
 if [[ "$backend" == postgrest ]]; then services+=(https); fi
