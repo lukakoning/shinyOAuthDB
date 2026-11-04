@@ -265,6 +265,51 @@ test_that("BigQuery combines result and metadata pages across empty pages", {
   })
 })
 
+test_that("BigQuery retains submission metadata through polling and result pages", {
+  for (polling in c(FALSE, TRUE)) local({
+    requests <- 0L
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      page <- requests - as.integer(polling)
+      result <- bq_test_result(if (page <= 1L) "first" else "second")
+      result$totalRows <- "2"
+      result$pageRowCount <- "1"
+      if (requests == 1L) {
+        result$queryId <- "query-1"
+        result$creationTime <- "1000"
+      }
+      if (page == 0L) {
+        result$jobComplete <- FALSE
+        result$schema <- result$rows <- result$totalRows <- result$pageRowCount <- NULL
+        result$totalSlotMs <- "1"
+      } else if (page == 1L) {
+        result$pageToken <- "next"
+        result$totalBytesBilled <- "10000000"
+        result$totalSlotMs <- "25"
+        result$cacheHit <- FALSE
+      } else {
+        result$endTime <- "2000"
+      }
+      bq_test_response(result)
+    })
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      result <- oauth_db_bigquery_api(auth$connection, "billing")$query("SELECT value", raw = TRUE)
+      expect_identical(result$queryId, "query-1")
+      expect_identical(result$creationTime, "1000")
+      expect_identical(result$endTime, "2000")
+      expect_identical(result$totalBytesBilled, "10000000")
+      expect_identical(result$totalSlotMs, "25")
+      expect_false(result$cacheHit)
+      expect_true(result$jobComplete)
+      expect_identical(result$pageRowCount, "2")
+      expect_null(result$pageToken)
+      expect_identical(.odb_bigquery_frame(result$rows, result$schema)$value, c("first", "second"))
+    })
+    expect_identical(requests, 2L + as.integer(polling))
+  })
+})
+
 test_that("BigQuery distinguishes warnings from failed jobs and bounds polling", {
   failure <- FALSE
   httr2::local_mocked_responses(function(req) {

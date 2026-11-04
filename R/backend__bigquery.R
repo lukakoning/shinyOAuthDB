@@ -162,6 +162,7 @@ oauth_db_bigquery_client <- function(
       token <- private$provider()
       path <- c("projects", private$project, "queries")
       result <- .odb_bigquery_request(token, "POST", path, deadline, body = body)
+      combined <- result
       job <- result$jobReference
       .odb_bigquery_job(job, private$project)
       location <- if (!is.null(job$location)) job$location else private$location
@@ -190,6 +191,7 @@ oauth_db_bigquery_client <- function(
         if (!is.null(location)) query$location <- location
         if (!is.null(page)) query$pageToken <- page
         result <- .odb_bigquery_request(token, "GET", c(path, job$jobId), deadline, query = query)
+        combined[names(result)] <- result
       }
       # The API's errors array also contains warnings; only errorResult is fatal.
       if (has_errors) {
@@ -203,11 +205,12 @@ oauth_db_bigquery_client <- function(
         }
       }
       rows <- if (length(pages)) unlist(pages, recursive = FALSE, use.names = FALSE) else list()
-      result$rows <- rows
-      result$schema <- schema
-      result$jobReference <- job
-      result$pageToken <- NULL
-      if (raw) result else .odb_bigquery_frame(rows, schema)
+      combined$rows <- rows
+      combined$schema <- schema
+      combined$jobReference <- job
+      combined$pageToken <- NULL
+      if (!is.null(combined$pageRowCount)) combined$pageRowCount <- as.character(length(rows))
+      if (raw) combined else .odb_bigquery_frame(rows, schema)
     },
     datasets = function() {
       values <- private$list_items(c("projects", private$project, "datasets"), "datasets")
