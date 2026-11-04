@@ -3,7 +3,7 @@
 arguments <- commandArgs(trailingOnly = TRUE)
 if (length(arguments)) .libPaths(c(arguments, .libPaths()))
 Sys.setenv(LC_ALL = "C", LANG = "C", LANGUAGE = "en")
-needed <- c("pkgbuild", "pkgload", "testthat", "rcmdcheck")
+needed <- c("pkgbuild", "pkgload", "testthat", "rcmdcheck", "jsonlite")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing)) {
   stop(
@@ -17,6 +17,10 @@ root <- normalizePath(".", winslash = "/", mustWork = TRUE)
 if (!file.exists(file.path(root, "DESCRIPTION"))) {
   stop("Run this from the package repository root.", call. = FALSE)
 }
+source(file.path(root, "tools", "validation.R"))
+validation_check_dependencies()
+output <- file.path(root, ".validation")
+dir.create(output, showWarnings = FALSE)
 
 validation_library <- tempfile("shinyOAuthDB-validation-library-")
 dir.create(validation_library)
@@ -34,21 +38,18 @@ pkgbuild::rcmd_build_tools(
 results <- testthat::test_local(
   root,
   reporter = "summary",
-  stop_on_failure = TRUE
+  stop_on_failure = FALSE,
+  stop_on_warning = FALSE
 )
 counts <- as.data.frame(results)
-cat(
-  "\nPassing assertions:",
-  sum(counts$passed),
-  "; skipped scenarios:",
-  sum(counts$skipped),
-  "\n"
-)
+validation_check_results(counts, output)
 check <- rcmdcheck::rcmdcheck(
   root,
   args = "--no-manual",
   error_on = "never"
 )
+jsonlite::write_json(list(errors = check$errors, warnings = check$warnings, notes = check$notes),
+  file.path(output, "package-check.json"), auto_unbox = TRUE, pretty = TRUE)
 cat(
   "\nR CMD check:",
   length(check$errors),

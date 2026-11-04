@@ -3,6 +3,8 @@
 ^tools$
 ^integration$
 ^\.github$
+^\.validation$
+^src/.*\.gc(da|no)$
 ^\.gitignore$
 ^\.gitattributes$
 ^.*\.Rcheck$

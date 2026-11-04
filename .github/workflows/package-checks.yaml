@@ -25,6 +25,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: "yes"
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
     steps:
       - uses: actions/checkout@v6
 
@@ -39,6 +40,8 @@ jobs:
             any::pkgbuild
             any::pkgload
             any::rcmdcheck
+            any::covr
+            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
           needs: check
           install-pandoc: true
 
@@ -47,3 +50,19 @@ jobs:
 
       - name: Run tests and R CMD check
         run: Rscript --vanilla tools/check-package.R
+
+      - name: Verify validation rejects incomplete runs
+        run: Rscript --vanilla tools/test-validation.R
+
+      - name: Measure package test coverage
+        if: runner.os == 'Linux'
+        run: Rscript --vanilla tools/check-coverage.R
+
+      - name: Retain test, dependency and coverage results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-validation-${{ matrix.os }}
+          path: .validation/
+          include-hidden-files: true
+          if-no-files-found: warn

@@ -3,6 +3,7 @@
 .RData
 .Renviron
 .env
+.validation/
 *.Rcheck/
 *.tar.gz
 tests/integration/results/
@@ -11,3 +12,5 @@ src/Makevars
 src/*.o
 src/*.so
 src/*.dll
+src/*.gcda
+src/*.gcno
