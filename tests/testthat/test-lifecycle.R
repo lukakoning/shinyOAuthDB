@@ -127,6 +127,45 @@ test_that("permission observers do not renew repeatedly when expiry stays unknow
   })
 })
 
+test_that("a confirmed denial survives refresh uncertainty and recovers when permission status is valid", {
+  skip_if_not_installed("RSQLite")
+  for (restored_status in c("active", "limited")) odb_test_domain(function(session) {
+    status <- shiny::reactiveVal("active")
+    opened <- token_reads <- 0L
+    token_value <- "initial-token"
+    grant <- list(id = "denial-recovery", has_scopes = function(...) TRUE,
+      summary = function() list(status = status()),
+      access_token = function(...) { token_reads <<- token_reads + 1L; token_value })
+    con <- oauth_db_connect(grant, connect = function(token) {
+      opened <<- opened + 1L
+      native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+      DBI::dbWriteTable(native, "identity", data.frame(token = token))
+      native
+    })
+    first <- con()
+    status("insufficient_scope")
+    session$flushReact()
+    expect_false(DBI::dbIsValid(first))
+    expect_error(con(), class = "shiny.silent.error")
+    for (uncertain in c("refreshing", "not_acquired")) {
+      status(uncertain)
+      session$flushReact()
+      expect_error(con(), class = "shiny.silent.error")
+      expect_identical(c(opened, token_reads), c(1L, 1L))
+    }
+    token_value <- "restored-token"
+    status(restored_status)
+    session$flushReact()
+    replacement <- tryCatch(con(), error = identity)
+    expect_s4_class(replacement, "DBIConnection")
+    if (inherits(replacement, "DBIConnection")) {
+      expect_identical(DBI::dbReadTable(replacement, "identity")$token, "restored-token")
+      expect_identical(con(), replacement)
+    }
+    expect_identical(c(opened, token_reads), c(2L, 2L))
+  })
+})
+
 test_that("zero minimum lifetime accepts live tokens but still refreshes expired ones", {
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session)
