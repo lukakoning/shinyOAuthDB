@@ -296,7 +296,8 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     closed <<- TRUE
     grant <<- NULL
     epoch <<- epoch + 1L
-    changed(epoch)
+    # Shiny may already have destroyed session-owned reactive values. There
+    # are no live consumers to notify; retained accessors check `closed` first.
     observer$destroy()
   })
   connection
