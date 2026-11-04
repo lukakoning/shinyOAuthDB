@@ -10,12 +10,17 @@ profiles <- list(
   transport = list(files = c("http.R", "api.R", "conditions.R"),
     tests = "^(http|http-contracts|postgrest|clickhouse|api|backend-dependencies)$"),
   lifecycle = list(files = c("session.R", "authorization.R"),
-    tests = "^(authorization-protocol|core|lifecycle|lifecycle-cleanup|custom-clients|query-button|multiple-connections)$"),
+    tests = "^(authorization-protocol|api|core|lifecycle|lifecycle-cleanup|operation-scopes|module-setup|custom-clients|query-button|multiple-connections)$"),
   bigquery = list(files = "backend__bigquery.R",
     tests = "^(bigquery|bigquery-responses|bigquery-contracts|bigquery-transport|bigquery-types|http|http-contracts)$"),
+  trino = list(files = c("backend__trino.R", "options.R"),
+    tests = "^(trino|trino-contracts|native-options|backend-dependencies)$"),
+  odbc = list(files = c("odbc.R", "options.R", "backend__sql_server.R", "backend__redshift.R",
+    "backend__snowflake.R", "backend__starrocks.R", "backend__databricks.R"),
+    tests = "^(auth|api|backends|native-options|odbc-contracts|redshift|starrocks|backend-dependencies)$"),
   all = list(files = list.files("R", pattern = "\\.R$"), tests = NULL)
 )
-if (!profile %in% names(profiles)) stop("Choose transport, lifecycle, bigquery or all.", call. = FALSE)
+if (!profile %in% names(profiles)) stop("Choose transport, lifecycle, bigquery, trino, odbc or all.", call. = FALSE)
 integer_setting <- function(name, default) {
   text <- Sys.getenv(name, as.character(default))
   if (!grepl("^[0-9]+$", text) || !is.finite(as.numeric(text)) ||

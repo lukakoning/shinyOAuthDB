@@ -43,11 +43,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [transport, lifecycle, bigquery]
+        include:
+          - profile: transport
+            mutants: 60
+          - profile: lifecycle
+            mutants: 20
+          - profile: bigquery
+            mutants: 60
+          - profile: trino
+            mutants: 60
+          - profile: odbc
+            mutants: 40
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled
-      OAUTHDB_MUTATOR_LIMIT: '60'
+      OAUTHDB_MUTATOR_LIMIT: ${{ matrix.mutants }}
       OAUTHDB_MUTATOR_CORES: '2'
       OAUTHDB_MUTATOR_SEED: '20261104'
       OAUTHDB_MUTATOR_TIMEOUT: '240'

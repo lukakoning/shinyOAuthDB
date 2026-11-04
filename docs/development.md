@@ -79,6 +79,8 @@ development library, then choose a campaign:
 Rscript --vanilla tools/check-mutator.R transport
 Rscript --vanilla tools/check-mutator.R lifecycle
 Rscript --vanilla tools/check-mutator.R bigquery
+Rscript --vanilla tools/check-mutator.R trino
+Rscript --vanilla tools/check-mutator.R odbc
 Rscript --vanilla tools/check-mutator.R all
 ```
 
@@ -99,7 +101,9 @@ source hashes, tool version, selected tests and sampling settings.
 | `OAUTHDB_MUTATOR_TIMEOUT` | `240` | Seconds allowed per mutant |
 | `OAUTHDB_MUTATOR_OUTPUT` | `.validation/mutator` | Report parent directory |
 
-The three focused CI campaigns run independently, sampling 60 mutants each.
+The five focused CI campaigns run independently. Transport, BigQuery and
+Trino sample 60 mutants each; lifecycle samples 20 and ODBC samples 40 to
+limit the cost of their broader test suites. Each job has a 60-minute cap.
 Artifacts include baseline assertion counts, mutation summaries, individual
 outcomes, original R files and the sampled mutant sources. A missing baseline,
 failed/skipped baseline test or incomplete campaign fails the job. Survivors
@@ -112,6 +116,13 @@ regression when it changes the package contract. A harmless equivalent change
 does not justify an implementation-specific assertion. External/LLM equivalence
 detection is disabled. These campaigns mutate R source; the native C OAuth hook
 has its separate PostgreSQL Docker coverage run.
+
+The Trino campaign includes native option and TLS policy tests. The ODBC
+campaign covers SQL Server, Redshift, Snowflake, StarRocks and Databricks;
+it includes provider configuration tests as well as connection tests.
+These use mocked network responses and native connection boundaries. Use
+the separate Docker integration lanes to validate actual driver/server
+behavior.
 
 ## Compatibility lanes
 
