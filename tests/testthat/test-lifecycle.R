@@ -84,13 +84,13 @@ test_that("unknown expiry alone preserves SQL sessions without a refresh credent
 
 test_that("permission validation cannot return a cached connection after access becomes uncertain", {
   skip_if_not_installed("RSQLite")
-  odb_test_domain(function(session) {
+  for (expiry in c("expired", "expiry_unknown")) odb_test_domain(function(session) {
     status <- shiny::reactiveVal("active")
     grant <- list(id = "state-transition",
       summary = function() list(status = status()),
-      has_scopes = function(scopes, target = NULL) status() %in% c("active", "expired"),
+      has_scopes = function(scopes, target = NULL) status() %in% c("active", "expired", "expiry_unknown"),
       access_token = function(...) {
-        if (identical(status(), "expired")) {
+        if (status() %in% c("expired", "expiry_unknown")) {
           status("uncertain")
           getFromNamespace("connection_access_error", "shinyOAuth")("interaction_required")
         }
@@ -99,7 +99,7 @@ test_that("permission validation cannot return a cached connection after access 
     con <- oauth_db_connect(grant,
       connect = function(token) DBI::dbConnect(RSQLite::SQLite(), ":memory:"))
     first <- con()
-    status("expired")
+    status(expiry)
     expect_error(con(), class = "shiny.silent.error")
     expect_false(DBI::dbIsValid(first))
   })
