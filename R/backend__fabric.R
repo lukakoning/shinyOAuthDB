@@ -49,6 +49,7 @@ oauth_db_fabric_sql <- function(
     "failover_partner", "drv", "attributes",
     ".connection_string", "connection_string", "trusted_connection",
     "integrated_security", "encrypt", "trust_server_certificate"))
+  .odb_odbc_values(options)
   .odb_bind(authorization, .odb_backend_fabric_sql, server = server,
     database = database, provider_scopes = required_scopes,
     options = options, target = target, required_scopes = .odb_microsoft_scopes(required_scopes),

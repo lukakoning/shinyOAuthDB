@@ -4,9 +4,17 @@
     .odb_abort("ODBC option names cannot contain connection-string delimiters or control characters.")
   }
   for (value in values) {
-    if (!is.character(value)) next
-    if (anyNA(value) || any(grepl("[[:cntrl:]]", value)) ||
-        any(grepl("[;{}]", value) & !.odb_odbc_quoted(value))) {
+    if (is.null(value)) next
+    if (!typeof(value) %in% c("character", "integer", "double", "logical") ||
+        length(value) != 1L || !is.null(dim(value)) || anyNA(value) ||
+        is.object(value) && !(is.character(value) && identical(class(value), "AsIs"))) {
+      .odb_abort("ODBC option values must be NULL or one non-missing character, numeric, or logical scalar; only quoted character values may have a class.")
+    }
+    # odbc pastes a list of values; named numeric scalars can also contribute
+    # connection-string syntax through their names during that conversion.
+    text <- paste(list(value))
+    if (grepl("[[:cntrl:]]", text) ||
+        grepl("[;{}]", text) && !.odb_odbc_quoted(text)) {
       .odb_abort(paste0("Quote ODBC values containing connection-string delimiters with ",
         "odbc::quote_value(); missing values and control characters are not allowed."))
     }

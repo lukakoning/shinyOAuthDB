@@ -95,3 +95,36 @@ test_that("ODBC endpoint aliases and file settings cannot override connection id
     expect_error(do.call(helper, args), "cannot be overridden", class = "shinyOAuthDB_invalid_configuration")
   }
 })
+
+test_that("ODBC option values cannot inject protected keywords through native coercion", {
+  local_mocked_bindings(.odb_require = function(...) TRUE,
+    .odb_bind = function(...) stop("Invalid options must not reach binding"))
+  payload <- "review;SERVER=other.example.org;TAIL=review"
+  invalid <- list(list(payload), as.name(payload), factor(payload), expression(value),
+    c("first", "second"), character(), c(1, 2), NA_real_, NA, complex(real = 1),
+    as.raw(65), matrix(1), structure("value", class = "custom"), I(1))
+  for (value in invalid) {
+    for (helper in list(oauth_db_azure_sql, oauth_db_snowflake, oauth_db_redshift, oauth_db_fabric_sql)) {
+      args <- list(NULL, "fixed.example.org", "reports", APP = value)
+      if (identical(helper, oauth_db_snowflake)) args$role <- "READER"
+      error <- expect_error(do.call(helper, args, quote = TRUE), "scalar",
+        class = "shinyOAuthDB_invalid_configuration")
+      expect_false(grepl(payload, conditionMessage(error), fixed = TRUE))
+    }
+    expect_error(oauth_db_starrocks(NULL, "fixed.example.org", "reports", "alice", "MySQL driver",
+      readtimeout = value), "scalar", class = "shinyOAuthDB_invalid_configuration")
+  }
+  for (value in list(stats::setNames(1, payload), stats::setNames(TRUE, payload))) {
+    expect_error(oauth_db_azure_sql(NULL, "fixed.example.org", "reports", APP = value),
+      "odbc::quote_value", fixed = TRUE, class = "shinyOAuthDB_invalid_configuration")
+  }
+  expect_error(.odb_odbc_values(list(APP = "line\nbreak")), "control characters")
+  expect_error(.odb_odbc_values(list(APP = I(payload))), "odbc::quote_value", fixed = TRUE)
+})
+
+test_that("ODBC validation preserves supported native scalar values", {
+  skip_if_not_installed("odbc")
+  values <- list(optional = NULL, text = "reporting", number = 12.5, integer = 10L,
+    flag = TRUE, unlimited_timeout = Inf, quoted = odbc::quote_value("Sales;Archive"))
+  expect_identical(.odb_odbc_values(values), values)
+})
