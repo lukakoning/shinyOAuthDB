@@ -2,6 +2,7 @@ Run the full package validation from the repository root:
 
 ```sh
 Rscript --vanilla tools/test-validation.R
+Rscript --vanilla tools/test-docs.R
 Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-coverage.R
 ```
@@ -12,6 +13,9 @@ real ClickHouse engine. It runs local SQL without a Cloud account or JWT
 configuration. Set `OAUTHDB_CLICKHOUSE_TEST_IMAGE` to use another Docker image.
 
 Each script accepts additional R library directories as trailing arguments.
+The documentation checker uses rmarkdown and Pandoc to resolve rendered section
+anchors and local file links, including every integration guide. It parses R
+examples without executing them.
 The scripts use an isolated temporary package installation; they do not install
 dependencies into your normal library. Install the package's Imports and
 Suggests, plus pkgbuild, rcmdcheck and covr, before running them.

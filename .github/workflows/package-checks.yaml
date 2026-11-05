@@ -48,6 +48,9 @@ jobs:
       - name: Check documentation examples and links
         run: Rscript --vanilla tools/check-docs.R
 
+      - name: Test documentation validation
+        run: Rscript --vanilla tools/test-docs.R
+
       - name: Run tests and R CMD check
         run: Rscript --vanilla tools/check-package.R
 
