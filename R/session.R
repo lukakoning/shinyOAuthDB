@@ -280,12 +280,12 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
       native_key <<- key
       value
     }, error = function(e) {
-      if (inherits(e, "shinyOAuth_access_error") &&
-          identical(e$context$reason, "refresh_pending")) {
-        # Subscribe only the waiting consumer. Successful operations never
-        # depend on token rotation; callbacks already handed out never enter here.
+      if (inherits(e, "shinyOAuth_access_error") && isTRUE(e$context$reason %in%
+          c("refresh_pending", "interaction_required", "refresh_unavailable", "lifetime_unavailable"))) {
+        # Only failed acquisition subscribes to credential changes. Retained
+        # callbacks run outside this handler, so rotation cannot replay their work.
         status <- .odb_authorization_status(pinned, target)
-        if (!is.null(status)) shiny::req(FALSE)
+        if (identical(e$context$reason, "refresh_pending") && !is.null(status)) shiny::req(FALSE)
       }
       stop(e)
     })
