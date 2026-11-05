@@ -27,6 +27,19 @@ access is enforced by the platform's own permissions.
 [Azure PostgreSQL](#azure-postgresql) ·
 [Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) · [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
 
+## Install in R
+
+Install the package from GitHub:
+
+```r
+install.packages("remotes")
+remotes::install_github("lukakoning/shinyOAuthDB")
+```
+
+This installs shinyOAuth too. Choose a source above for its database driver
+and sign-in setup, or follow the [getting-started guide](vignettes/getting-started.Rmd).
+The Docker playground below supplies its own R packages and drivers.
+
 ## Self-hosted PostgreSQL
 
 Try the package locally with PostgreSQL 18, Keycloak and a Shiny app in
