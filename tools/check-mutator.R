@@ -8,11 +8,11 @@ source("tools/validation.R")
 validation_check_dependencies(c(validation_dependencies(), mutator = "0.3.0", callr = "3.7.0"))
 profiles <- list(
   transport = list(files = c("http.R", "api.R", "conditions.R"),
-    tests = "^(http|http-contracts|postgrest|clickhouse|api|backend-dependencies)$"),
+    tests = "^(http|http-contracts|http-diagnostics|postgrest|clickhouse|api|backend-dependencies)$"),
   lifecycle = list(files = c("session.R", "authorization.R"),
     tests = "^(authorization-protocol|api|core|lifecycle|lifecycle-cleanup|operation-scopes|credential-recovery|module-setup|custom-clients|query-button|multiple-connections)$"),
   bigquery = list(files = "backend__bigquery.R",
-    tests = "^(bigquery|bigquery-responses|bigquery-contracts|bigquery-transport|bigquery-types|http|http-contracts)$"),
+    tests = "^(bigquery|bigquery-responses|bigquery-contracts|bigquery-transport|bigquery-types|http|http-contracts|http-diagnostics)$"),
   trino = list(files = c("backend__trino.R", "options.R"),
     tests = "^(trino|trino-contracts|native-options|backend-dependencies)$"),
   odbc = list(files = c("odbc.R", "options.R", "backend__sql_server.R", "backend__redshift.R",

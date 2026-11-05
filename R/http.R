@@ -49,6 +49,40 @@
 
 .odb_http_time <- function() unname(proc.time()[["elapsed"]])
 
+.odb_http_diagnostics <- function(resp, service, credentials) {
+  scalar <- function(value, pattern) {
+    if (is.character(value) && length(value) == 1L && !is.na(value) &&
+        !value %in% credentials && grepl(pattern, value)) value else NULL
+  }
+  uuid <- "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+  request_id <- NULL
+  for (header in c("X-Request-Id", if (service == "ClickHouse") "X-ClickHouse-Query-Id")) {
+    request_id <- scalar(httr2::resp_header(resp, header), uuid)
+    if (!is.null(request_id)) break
+  }
+  code <- NULL
+  if (service == "ClickHouse") {
+    code <- scalar(httr2::resp_header(resp, "X-ClickHouse-Exception-Code"), "^[1-9][0-9]{0,8}$")
+  } else if (service %in% c("BigQuery", "PostgREST")) {
+    body <- tryCatch({
+      if (length(httr2::resp_body_raw(resp)) > 65536L) NULL else
+        httr2::resp_body_json(resp, simplifyVector = FALSE)
+    }, error = function(e) NULL)
+    if (is.list(body) && service == "PostgREST") {
+      code <- scalar(body[["code"]], "^(PGRST[0-9]{3}|[0-9A-Z]{5})$")
+    } else if (is.list(body) && is.list(body[["error"]]) && is.list(body[["error"]][["errors"]]) &&
+        length(body[["error"]][["errors"]]) && is.list(body[["error"]][["errors"]][[1L]])) {
+      reason <- body[["error"]][["errors"]][[1L]][["reason"]]
+      known <- c("accessDenied", "backendError", "billingNotEnabled", "duplicate", "internalError",
+        "invalid", "invalidQuery", "notFound", "quotaExceeded", "rateLimitExceeded",
+        "resourcesExceeded", "responseTooLarge", "stopped")
+      if (is.character(reason) && length(reason) == 1L && !is.na(reason) &&
+          reason %in% known && !reason %in% credentials) code <- reason
+    }
+  }
+  list(service_code = code, request_id = request_id)
+}
+
 .odb_http_perform <- function(req, service) {
   tryCatch(httr2::req_perform(req), error = function(error) {
     cause <- error
@@ -76,8 +110,10 @@
   req <- httr2::req_options(req, followlocation = FALSE)
   if (!is.null(ca_bundle)) req <- httr2::req_options(req, cainfo = ca_bundle)
   req <- httr2::req_error(req, is_error = function(resp) FALSE)
+  credentials <- character()
   perform <- function(value) {
     force(value)
+    credentials <<- union(credentials, value)
     remaining <- deadline - .odb_http_time()
     if (remaining <= 0) .odb_abort(paste0(service, " operation timed out."), "timeout")
     request <- httr2::req_timeout(req, remaining)
@@ -93,8 +129,10 @@
   if (.odb_http_time() >= deadline) .odb_abort(paste0(service, " operation timed out."), "timeout")
   status <- httr2::resp_status(resp)
   if (status < 200L || status >= 300L) {
+    diagnostics <- .odb_http_diagnostics(resp, service, credentials)
     .odb_abort(paste0(service, " request failed (HTTP ", status,
-      "). Check the endpoint, token audience, and user permissions."), "request_failed", status = status)
+      "). Check the endpoint, token audience, and user permissions."), "request_failed", status = status,
+      service_code = diagnostics$service_code, request_id = diagnostics$request_id)
   }
   resp
 }

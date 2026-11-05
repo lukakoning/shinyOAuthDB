@@ -17,7 +17,7 @@ expected_r <- Sys.getenv("OAUTHDB_EXPECTED_R")
 if (nzchar(expected_r) && !identical(as.character(getRversion()), expected_r)) {
   stop("The minimum lane is using the wrong R runtime.", call. = FALSE)
 }
-filter <- paste0("^(", paste(c("auth", "authorization-protocol", "core", "http", "http-contracts", "lifecycle", "lifecycle-cleanup",
+filter <- paste0("^(", paste(c("auth", "authorization-protocol", "core", "http", "http-contracts", "http-diagnostics", "lifecycle", "lifecycle-cleanup",
   "operation-scopes", "credential-recovery", "postgrest", "bigquery", "bigquery-responses", "bigquery-contracts", "bigquery-transport", "bigquery-types", "clickhouse", "query-button",
   "multiple-connections", "two-authorizations"), collapse = "|"), ")$")
 results <- testthat::test_local(".", filter = filter, reporter = "summary",

@@ -298,8 +298,10 @@ oauth_db_bigquery_client <- function(
   req <- httr2::req_error(req, is_error = function(resp) FALSE)
   if (length(query)) req <- do.call(httr2::req_url_query, c(list(req), query))
   if (!is.null(body)) req <- httr2::req_body_json(req, body, auto_unbox = TRUE)
+  credentials <- character()
   perform <- function(value) {
     force(value)
+    credentials <<- union(credentials, value)
     remaining <- deadline - .odb_bigquery_time()
     if (remaining <= 0) .odb_abort("BigQuery operation timed out; the remote job may still be running.", "timeout")
     request <- httr2::req_timeout(req, min(remaining, 30))
@@ -319,9 +321,11 @@ oauth_db_bigquery_client <- function(
   if (deadline <= .odb_bigquery_time()) .odb_abort("BigQuery operation timed out; the remote job may still be running.", "timeout")
   status <- httr2::resp_status(resp)
   if (status < 200L || status >= 300L) {
+    diagnostics <- .odb_http_diagnostics(resp, "BigQuery", credentials)
     .odb_abort(paste0("BigQuery request failed (HTTP ", status,
       "). Check the Google permissions, project, location, and job in Google Cloud."),
-      "request_failed", status = status)
+      "request_failed", status = status, service_code = diagnostics$service_code,
+      request_id = diagnostics$request_id)
   }
   result <- .odb_http_json(resp, "BigQuery")
   if (!is.list(result)) .odb_abort("BigQuery returned an invalid JSON response.", "invalid_response")

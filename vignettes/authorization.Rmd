@@ -108,6 +108,18 @@ You can create separate helpers for different selected accounts.
 The source checkout's `playground/example-two-authorizations.R` shows
 independent SQL and Databricks authorizations.
 
+## Inspect HTTP errors
+
+BigQuery, PostgREST and ClickHouse HTTP failures raise
+`shinyOAuthDB_request_failed`. Catch that condition inside the Shiny operation
+to inspect its `status`. When the response supplies a recognized service code
+or a UUID request identifier, the condition also includes `service_code` and
+`request_id`; unavailable or rejected values are `NULL`.
+
+For example, BigQuery can report `invalidQuery` or `accessDenied`, PostgREST
+can report SQLSTATE `42P01`, and ClickHouse can report a numeric exception code.
+The condition excludes server messages, response bodies and credentials.
+
 ## Token refresh and background work
 
 shinyOAuth renews tokens. Call `con()` before each operation so the helper
