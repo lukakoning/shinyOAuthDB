@@ -68,7 +68,7 @@ oauth_db_redshift <- function(
     "sessiontoken", "client_id", "client_secret", "idp_host", "idp_port", "idp_tenant",
     "issuer_url", "login_url", "provider_name", "endpointurl", "stsendpointurl",
     "sslmode", "ssl_insecure", "min_tls", "encrypt", "trust_server_certificate"
-  ))
+  ), partial = "dsn")
   .odb_odbc_values(c(list(server, database, driver), options))
   .odb_bind(authorization, .odb_backend_redshift, server = server, database = database,
     driver = driver, port = as.integer(port), token_type = token_type, options = options,

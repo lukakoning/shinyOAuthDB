@@ -60,7 +60,7 @@ oauth_db_azure_sql <- function(
     "filedsn", "savefile", "failover_partner", ".connection_string",
     "connection_string", "attributes", "token", "access_token", "user", "uid",
     "pwd", "password", "authentication", "authenticator", "trusted_connection",
-    "integrated_security", "encrypt", "trust_server_certificate"))
+    "integrated_security", "encrypt", "trust_server_certificate"), partial = "dsn")
   .odb_odbc_values(options)
   .odb_bind(authorization, .odb_backend_sql, server = server, database = database,
     driver = driver, port = port, options = options, target = target,

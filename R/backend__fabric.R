@@ -48,7 +48,8 @@ oauth_db_fabric_sql <- function(
     "authenticator", "user", "uid", "pwd", "password", "dsn", "filedsn", "savefile",
     "failover_partner", "drv", "attributes",
     ".connection_string", "connection_string", "trusted_connection",
-    "integrated_security", "encrypt", "trust_server_certificate"))
+    "integrated_security", "encrypt", "trust_server_certificate"),
+    partial = c("dsn", "tenant_id", "client_id", "auth_args"))
   .odb_odbc_values(options)
   .odb_bind(authorization, .odb_backend_fabric_sql, server = server,
     database = database, provider_scopes = required_scopes,

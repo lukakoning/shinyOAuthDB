@@ -252,7 +252,7 @@ oauth_db_azure_postgres <- function(
   .odb_string(user, "user")
   options <- .odb_options(list(...), blocked = c(
     "host", "dbname", "port", "sslrootcert", "service", "passfile", "drv",
-    "user", "password", "sslmode"))
+    "user", "password", "sslmode"), partial = "service")
   .odb_bind(authorization, .odb_backend_postgres, host = host, dbname = dbname,
     user = user, port = port, sslrootcert = sslrootcert, options = options,
     target = target, required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)

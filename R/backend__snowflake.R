@@ -63,7 +63,7 @@ oauth_db_snowflake <- function(
     "password", "token", "access_token", "authentication", "authenticator",
     "token_file_path", "client_secret", "oauth_client_id", "oauth_client_secret",
     "oauth_scope", "insecure_mode", "disable_saml_url_check", "encrypt",
-    "trust_server_certificate"))
+    "trust_server_certificate"), partial = "dsn")
   .odb_odbc_values(options)
   .odb_bind(authorization, .odb_backend_snowflake, server = server,
     database = database, schema = schema, warehouse = warehouse, role = role,

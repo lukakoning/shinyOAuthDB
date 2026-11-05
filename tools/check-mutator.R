@@ -17,7 +17,7 @@ profiles <- list(
     tests = "^(trino|trino-contracts|native-options|backend-dependencies)$"),
   odbc = list(files = c("odbc.R", "options.R", "backend__sql_server.R", "backend__redshift.R",
     "backend__snowflake.R", "backend__starrocks.R", "backend__databricks.R"),
-    tests = "^(auth|api|backends|native-options|odbc-contracts|redshift|starrocks|backend-dependencies)$"),
+    tests = "^(auth|api|backends|native-options|native-partial-arguments|odbc-contracts|redshift|starrocks|backend-dependencies)$"),
   all = list(files = list.files("R", pattern = "\\.R$"), tests = NULL)
 )
 if (!profile %in% names(profiles)) stop("Choose transport, lifecycle, bigquery, trino, odbc or all.", call. = FALSE)

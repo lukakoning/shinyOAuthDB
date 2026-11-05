@@ -1,12 +1,13 @@
 # Validate option names mechanically; the calling backend owns its policy.
-.odb_options <- function(options, blocked) {
+.odb_options <- function(options, blocked, partial = character()) {
   key <- function(x) tolower(gsub("[^A-Za-z0-9]", "", x))
   nms <- names(options)
   .odb_named_args(options, "Native options in ...")
   if (anyDuplicated(key(nms))) {
     .odb_abort("Native options in ... must have unique names, ignoring case and punctuation.")
   }
-  protected <- nms[key(nms) %in% key(blocked)]
+  native_match <- vapply(nms, function(name) any(startsWith(partial, name)), logical(1))
+  protected <- nms[key(nms) %in% key(blocked) | native_match]
   if (length(protected)) {
     .odb_abort(paste0(
       "Options ", paste0("`", protected, "`", collapse = ", "),
