@@ -358,3 +358,62 @@ test_that("Fabric operations subscribe only to targets they actually use", {
       class = "shinyOAuthDB_authorization_unavailable")
   })
 })
+
+test_that("retained Fabric resources recover target permissions without repeating discovery", {
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  for (initially_denied in c(TRUE, FALSE)) odb_test_domain(function(session) {
+    auth <- odb_test_fabric_authorization(session, services = c("fabric", "sql"))
+    set_sql <- function(value, scopes = .odb_fabric_profile("sql")$scopes) {
+      tokens <- auth$tokens()
+      tokens$sql <- auth$make_token("sql", value, scopes = scopes)
+      auth$tokens(tokens)
+      session$flushReact()
+    }
+    if (initially_denied) set_sql("denied", character())
+    api <- oauth_db_fabric_api(auth$connection, targets = c(fabric = "fabric", sql = "sql"))
+    discoveries <- 0L
+    item <- shiny::reactive(api$call(function(token) {
+      token("https://api.fabric.microsoft.com/.default")
+      discoveries <<- discoveries + 1L
+      list(read = function() token("https://database.windows.net//.default"))
+    }))
+    rows <- shiny::reactive(item()$read())
+    if (initially_denied) expect_error(rows(), class = "shiny.silent.error") else {
+      expect_identical(rows(), "A-sql")
+      set_sql("denied", character())
+      expect_error(rows(), class = "shiny.silent.error")
+    }
+    set_sql("restored")
+    expect_identical(rows(), "restored")
+    set_sql("rotated")
+    expect_identical(rows(), "restored")
+    expect_identical(item()$read(), "rotated")
+    expect_identical(discoveries, 1L)
+    expect_identical(auth$calls$targets, character())
+  })
+})
+
+test_that("Fabric callback recovery never revives a replaced or ended authorization", {
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  for (transition in c("replacement", "logout", "end")) odb_test_domain(function(session) {
+    a <- odb_test_fabric_authorization(session, services = c("fabric", "sql"))
+    b <- odb_test_fabric_authorization(session, id = "B", services = c("fabric", "sql"))
+    selected <- shiny::reactiveVal(a$connection)
+    tokens <- a$tokens()
+    tokens$sql <- a$make_token("sql", "denied", scopes = character())
+    a$tokens(tokens)
+    api <- oauth_db_fabric_api(selected, targets = c(fabric = "fabric", sql = "sql"))
+    saved <- api$token_provider()
+    session$flushReact()
+    switch(transition, replacement = selected(b$connection), logout = selected(NULL), end = a$current(FALSE))
+    session$flushReact()
+    selected(a$connection)
+    a$current(TRUE)
+    tokens$sql <- a$make_token("sql", "restored")
+    a$tokens(tokens)
+    session$flushReact()
+    expect_error(saved("https://database.windows.net//.default"),
+      class = "shinyOAuthDB_authorization_unavailable")
+    expect_identical(api$token_provider()("https://database.windows.net//.default"), "restored")
+  })
+})

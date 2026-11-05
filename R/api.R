@@ -26,8 +26,9 @@
 
 .odb_api_authorization <- function(authorization, session) {
   owner <- .odb_root_session(session)
+  closed <- FALSE
   assert_owner <- function() {
-    if (is.null(owner) || isTRUE(owner$isClosed()) ||
+    if (closed || is.null(owner) || isTRUE(owner$isClosed()) ||
         !identical(owner, .odb_root_session(shiny::getDefaultReactiveDomain()))) {
       .odb_abort("Use the API client in its owning, open Shiny session.",
                  "authorization_unavailable")
@@ -35,11 +36,56 @@
   }
   assert_owner()
   reader <- .odb_authorization_reader(authorization)
-  function() {
+  grant <- failure <- failure_key <- NULL
+  epoch <- 0L
+  changed <- shiny::reactiveVal(epoch)
+  sync <- function() {
     assert_owner()
-    grant <- reader()
+    next_grant <- next_failure <- NULL
+    tryCatch({
+      next_grant <- reader()
+      if (!is.null(next_grant)) {
+        .odb_authorization_validate(next_grant)
+        # Monitor reference availability without requiring any service's scopes
+        # or token lifetime. A denied target must not retire other services.
+        .odb_authorization_status(next_grant, NULL)
+      }
+    }, error = function(error) {
+      next_grant <<- NULL
+      next_failure <<- error
+    })
+    next_failure_key <- .odb_failure_key(next_failure)
+    if (!identical(next_grant, grant) || !identical(next_failure_key, failure_key)) {
+      epoch <<- epoch + 1L
+      changed(epoch)
+    }
+    grant <<- next_grant
+    failure <<- next_failure
+    failure_key <<- next_failure_key
+    invisible(NULL)
+  }
+  observer <- shiny::observe(sync(), priority = 100, domain = owner)
+  owner$onSessionEnded(function() {
+    closed <<- TRUE
+    grant <<- NULL
+    observer$destroy()
+  })
+  function(.pin = FALSE) {
+    assert_owner()
+    shiny::isolate(sync())
+    changed()
+    if (!is.null(failure)) stop(failure)
     shiny::req(!is.null(grant))
-    .odb_authorization_validate(grant)
-    grant
+    if (!.pin) return(grant)
+    captured <- epoch
+    function() {
+      assert_owner()
+      shiny::isolate(sync())
+      changed()
+      if (is.null(grant) || !identical(epoch, captured)) {
+        .odb_abort("This provider's authorization is no longer current.", "authorization_unavailable")
+      }
+      invisible(NULL)
+    }
   }
 }

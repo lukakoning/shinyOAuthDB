@@ -221,19 +221,14 @@ oauth_db_fabric_api <- function(
       do.call(.fn, c(args, list(token = provider)))
     },
     token_provider = function() {
-      private$read()
-      # Capture every callback for this authorization, but subscribe to a
-      # target's changes only when an operation actually requests its token.
+      assert_current <- private$read(.pin = TRUE)
+      # Resolve target callbacks on use so retained resources can recover
+      # permissions while remaining bound to their original authorization.
       providers <- lapply(private$providers, function(accessor) {
-        provider <- shiny::isolate(tryCatch(accessor(), error = identity))
         function(force_refresh = FALSE, scopes = character()) {
-          tryCatch(accessor(), error = function(error) {
-            # A retained callback must report its original authorization's
-            # end, rather than becoming a new consumer waiting for sign-in.
-            if (!inherits(provider, "condition")) provider(.check_only = TRUE)
-            stop(error)
-          })
-          if (inherits(provider, "condition")) stop(provider)
+          assert_current()
+          provider <- accessor()
+          assert_current()
           provider(force_refresh = force_refresh, scopes = scopes)
         }
       })
