@@ -62,3 +62,50 @@ test_that("Trino passes verified TLS and the selected CA bundle to the native dr
       class = "shinyOAuthDB_invalid_audience")
   })
 })
+
+test_that("Trino rejects malformed header names and control characters before credentials or HTTP", {
+  skip_if_not_installed("RTrino", "0.1.0")
+  requests <- 0L
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    trino_test_response(req)
+  })
+  invalid <- list(
+    list(Report = "ok\r\nX-Trino-Original-User: attacker"),
+    list(Report = "ok\nAuthorization: Bearer other"),
+    list(Report = "ok\rCookie: other"), list(Report = "ok\tother"),
+    stats::setNames(list("value"), "Report\r\nX-Trino-User"),
+    stats::setNames(list("value"), "Report: X-Trino-User"),
+    stats::setNames(list("value"), "Report Name"),
+    list(Report = c("one", "two")), list(Report = NA_character_), list(Report = list("nested")))
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    auth$token(auth$make_token("expired", lifetime = -1))
+    for (option in c("extra.headers", "extra.h", "e")) for (headers in invalid) {
+      args <- c(list(auth$connection, "trino.example.org", "lake", "reports", "reader"),
+        stats::setNames(list(headers), option))
+      expect_error(do.call(oauth_db_trino, args)(), class = "shinyOAuthDB_invalid_configuration")
+    }
+    expect_identical(auth$calls$acquire, 0L)
+    expect_identical(requests, 0L)
+  })
+})
+
+test_that("Trino preserves valid native headers through its request builder", {
+  skip_if_not_installed("RTrino", "0.1.0")
+  received <- NULL
+  httr2::local_mocked_responses(function(req) {
+    received <<- httr2::req_get_headers(req, redacted = "reveal")
+    trino_test_response(req)
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    con <- oauth_db_trino(auth$connection, "trino.example.org", "lake", "reports", "reader",
+      extra.headers = list("X-Report!" = "caf\u00e9 report", "X-Number" = 12L, "X-Empty" = ""))
+    expect_s4_class(con(), "TrinoConnection")
+    expect_identical(received[["X-Report!"]], "caf\u00e9 report")
+    expect_identical(received[["X-Number"]], "12")
+    expect_identical(received$Authorization, "Bearer fixture-A")
+    expect_identical(received[["X-Trino-User"]], "reader")
+  })
+})

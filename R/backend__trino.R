@@ -74,11 +74,24 @@ oauth_db_trino <- function(
   }
   if (length(header_options)) names(options)[header_options] <- "extra.headers"
   if (!is.null(options[["extra.headers"]])) {
-    .odb_options(options[["extra.headers"]], blocked = c(
+    headers <- .odb_options(options[["extra.headers"]], blocked = c(
       "Authorization", "Proxy-Authorization", "Cookie", "Host",
       "X-Trino-User", "X-Presto-User", "X-Trino-Original-User", "X-Presto-Original-User",
       "X-Trino-Session-User", "X-Trino-Principal"
     ))
+    if (!is.list(headers) || any(!grepl("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$", names(headers)))) {
+      .odb_abort("extra.headers must be a named list with valid HTTP header names.")
+    }
+    options[["extra.headers"]] <- lapply(headers, function(value) {
+      if (!is.atomic(value) || length(value) != 1L || anyNA(value)) {
+        .odb_abort("Each extra header must have one non-missing scalar value.")
+      }
+      value <- as.character(value)
+      if (length(value) != 1L || is.na(value) || grepl("[[:cntrl:]]", value)) {
+        .odb_abort("Extra header values cannot contain control characters.")
+      }
+      value
+    })
   }
   .odb_bind(authorization, .odb_backend_trino, host = address$host, port = address$port,
     catalog = catalog, schema = schema, user = username, ca_bundle = ca_bundle,
