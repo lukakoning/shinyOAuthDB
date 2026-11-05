@@ -17,7 +17,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        r: ['4.1.0', release]
+        include:
+          - r: '4.1.0'
+            testthat: testthat@3.2.0
+            expected-testthat: '3.2.0'
+          # testthat 3.2.0 uses SET_FORMALS, which newer R no longer exports.
+          - r: release
+            testthat: any::testthat
+            expected-testthat: release
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled
@@ -30,18 +37,23 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: 'c("Depends", "Imports", "LinkingTo")'
+          install-pandoc: false
+          install-quarto: false
           extra-packages: |
             DBI@1.2.0
             httr2@1.2.0
             curl@6.4.0
             shiny@1.8.1
-            testthat@3.2.0
+            ${{ matrix.testthat }}
             any::RSQLite
             any::pkgload
+            any::jsonlite
+            any::S7
             github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
       - name: Run core tests at their dependency floors
         env:
           OAUTHDB_EXPECTED_R: ${{ matrix.r == '4.1.0' && '4.1.0' || '' }}
+          OAUTHDB_EXPECTED_TESTTHAT: ${{ matrix.expected-testthat }}
         run: Rscript --vanilla tools/check-minimum.R
       - uses: actions/upload-artifact@v4
         if: always()
