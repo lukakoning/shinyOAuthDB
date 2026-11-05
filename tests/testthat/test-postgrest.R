@@ -148,3 +148,28 @@ test_that("PostgREST accepts successful writes with no representation", {
     expect_null(api$request("orders", method = "PATCH", body = list(total = 1)))
   })
 })
+
+test_that("PostgREST distinguishes empty table arrays from objects and RPC values", {
+  payload <- "[]"
+  httr2::local_mocked_responses(function(req) odb_http_response(payload))
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_postgrest_api(auth$connection, "https://data.example")
+    expect_identical(api$select("orders"), data.frame())
+    for (body in c("{}", "null", "[1,2]", '{"private":"response-canary"}')) {
+      payload <<- body
+      error <- expect_error(api$select("orders"), class = "shinyOAuthDB_invalid_response")
+      expect_false(grepl("response-canary", conditionMessage(error), fixed = TRUE))
+      expect_null(error$parent)
+    }
+    payload <<- "{}"
+    expect_identical(api$rpc("empty_object"), stats::setNames(list(), character()))
+    expect_s3_class(api$select("orders", raw = TRUE), "httr2_response")
+    payload <<- "42"
+    expect_equal(api$rpc("scalar"), 42)
+    payload <<- '[{"id":null,"children":[]}]'
+    rows <- api$select("orders")
+    expect_equal(nrow(rows), 1)
+    expect_true(is.na(rows$id))
+  })
+})

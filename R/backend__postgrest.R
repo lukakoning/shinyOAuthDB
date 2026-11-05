@@ -103,7 +103,7 @@ oauth_db_postgrest_api <- function(
       }
       value <- self$request(table, query = query, prefer = prefer, raw = raw)
       if (raw) return(value)
-      if (is.list(value) && !length(value)) return(data.frame())
+      if (identical(value, list())) return(data.frame())
       if (!is.data.frame(value)) .odb_abort("PostgREST returned a non-tabular selection.", "invalid_response")
       value
     },
