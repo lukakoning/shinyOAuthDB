@@ -38,6 +38,8 @@ remotes::install_github("lukakoning/shinyOAuthDB")
 
 This installs shinyOAuth too. Choose a source above for its database driver
 and sign-in setup, or follow the [getting-started guide](vignettes/getting-started.Rmd).
+To install the local guides used by `vignette()` below, add
+`build_vignettes = TRUE` to the GitHub installation call.
 The Docker playground below supplies its own R packages and drivers.
 
 ## Self-hosted PostgreSQL
@@ -74,7 +76,8 @@ The [Docker configuration](integration/postgres-keycloak/compose.yml),
 [playground instructions](playground/postgres/README.md) are available in
 the source repository. The dedicated [PostgreSQL guide](vignettes/postgres.Rmd)
 also covers ZIP downloads, launch options without a local R installation,
-and adapting the configuration to your own server. From R, open it with
+and adapting the configuration to your own server. With the local guides
+installed, open it in R with
 `vignette("postgres", package = "shinyOAuthDB")`.
 
 For your own PostgreSQL server, create a shinyOAuth client for your identity
