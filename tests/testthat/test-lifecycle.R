@@ -43,6 +43,30 @@ test_that("credential expiry alone preserves established SQL sessions", {
   })
 })
 
+test_that("refresh ending an authorization closes its cached SQL connection immediately", {
+  skip_if_not_installed("RSQLite")
+  for (target in list(NULL, "data")) for (lifetime in c(-1, NA_real_)) {
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session, target = target, refresh_token = "fixture-refresh",
+        acquire = function(...) {
+          auth$current(FALSE)
+          stop("Fixture refresh rejection")
+        })
+      con <- oauth_db_connect(auth$connection, target = target,
+        connect = function(token) DBI::dbConnect(RSQLite::SQLite(), ":memory:"))
+      first <- con()
+      session$flushReact()
+      auth$token(auth$make_token("expired", lifetime = lifetime))
+      expect_error(con(), class = "shiny.silent.error")
+      expect_false(auth$current())
+      expect_false(DBI::dbIsValid(first))
+      expect_identical(auth$calls$acquire, 1L)
+      session$flushReact()
+      expect_error(con(), class = "shiny.silent.error")
+    })
+  }
+})
+
 test_that("expired and unknown lifetimes cannot hide client or target permission loss", {
   skip_if_not_installed("RSQLite")
   for (target in list(NULL, "data")) for (lifetime in c(-1, NA_real_)) {

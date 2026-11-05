@@ -9,7 +9,8 @@ odb_test_authorization <- function(
   resource = "https://example.invalid/api",
   client_required_scopes = character(),
   client = NULL,
-  refresh_token = NA_character_
+  refresh_token = NA_character_,
+  acquire = NULL
 ) {
   provider <- shinyOAuth::oauth_provider(
     name = "test",
@@ -122,6 +123,7 @@ odb_test_authorization <- function(
 
     acquire = function(async = FALSE, ...) {
       calls$acquire <- calls$acquire + 1L
+      if (is.function(acquire)) return(acquire(async = async, ...))
       token(make_token(paste0("fixture-", id, "-acquired")))
       stopifnot(!async)
       TRUE

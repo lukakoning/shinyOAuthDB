@@ -202,6 +202,7 @@ oauth_db_token <- function(authorization, target = NULL, required_scopes = chara
     }, error = function(e) {
       ended <- inherits(e, "shinyOAuth_access_error") &&
         identical(e$context$reason, "authorization_unavailable")
+      if (ended) next_available <<- FALSE
       waiting <- inherits(e, "shiny.silent.error") && !nzchar(conditionMessage(e))
       if (!ended && !waiting) next_failure <<- e
     })

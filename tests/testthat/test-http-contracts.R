@@ -115,6 +115,34 @@ test_that("completed HTTP responses do not renew newly short-lived tokens", {
   })
 })
 
+test_that("HTTP responses are discarded when postflight refresh ends authorization", {
+  for (backend in c("postgrest", "clickhouse", "bigquery")) for (target in list(NULL, "data")) local({
+    requests <- 0L
+    auth <- NULL
+    httr2::local_mocked_responses(function(req) {
+      requests <<- requests + 1L
+      auth$token(auth$make_token("expired", lifetime = -1))
+      odb_http_response("[]")
+    })
+    odb_test_domain(function(session) {
+      auth <<- odb_test_authorization(session, target = target, refresh_token = "fixture-refresh",
+        acquire = function(...) {
+          auth$current(FALSE)
+          stop("Fixture refresh rejection")
+        })
+      api <- switch(backend,
+        postgrest = oauth_db_postgrest_api(auth$connection, "https://data.example", target = target),
+        clickhouse = oauth_db_clickhouse_api(auth$connection, "https://data.example", target = target),
+        bigquery = oauth_db_bigquery_api(auth$connection, "billing", target = target))
+      operation <- if (backend == "postgrest") function() api$select("rows") else function() api$query("SELECT 1")
+      expect_error(operation(), class = "shinyOAuthDB_authorization_unavailable")
+      expect_false(auth$current())
+      expect_identical(auth$calls$acquire, 1L)
+      expect_identical(requests, 1L)
+    })
+  })
+})
+
 test_that("PostgREST rejects reserved and malformed query options before HTTP", {
   invalid <- list(NULL, c(id = "eq.1"), list(id = c("eq.1", "eq.2")),
     list(id = NA_character_), list(.req = "another-request"),
