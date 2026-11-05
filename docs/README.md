@@ -5,6 +5,7 @@ source guide below for setup and further examples.
 
 | Source | Guide |
 | --- | --- |
+| Self-hosted PostgreSQL | [Native OAuth and Docker playground](../vignettes/postgres.Rmd) |
 | Azure SQL and SQL Server | [DBI and dbplyr queries](../vignettes/azure-sql.Rmd) |
 | Microsoft Fabric | [SQL, platform functions, and Lakehouse objects](../vignettes/fabric.Rmd) |
 | Databricks | [SQL warehouses and brickster](../vignettes/databricks.Rmd) |
