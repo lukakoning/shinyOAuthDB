@@ -21,6 +21,17 @@ validation_check_dependencies <- function(packages = validation_dependencies()) 
   invisible(TRUE)
 }
 
+validation_check_exact_dependencies <- function(packages) {
+  validation_check_dependencies(packages)
+  actual <- vapply(names(packages), function(package)
+    as.character(utils::packageVersion(package)), "")
+  if (!identical(actual, packages)) {
+    stop("Compatibility tests require exact dependency versions: ",
+      paste(paste0(names(packages), " == ", packages), collapse = ", "), call. = FALSE)
+  }
+  invisible(actual)
+}
+
 validation_check_results <- function(counts, output, packages = validation_dependencies()) {
   dir.create(output, recursive = TRUE, showWarnings = FALSE)
   details <- counts[!vapply(counts, is.list, logical(1))]

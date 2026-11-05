@@ -15,6 +15,15 @@ testthat::test_that("dependency requirements include optional backends and their
   testthat::expect_identical(validation_dependencies(path), c(DBI = "1.2.0", odbc = "1.4.2", RSQLite = "0"))
 })
 
+testthat::test_that("exact compatibility validation rejects silently upgraded SDKs", {
+  actual <- c(stats = as.character(utils::packageVersion("stats")))
+  testthat::expect_identical(validation_check_exact_dependencies(actual), actual)
+  testthat::expect_error(validation_check_exact_dependencies(c(stats = "0")), "exact dependency versions")
+  testthat::expect_error(validation_check_exact_dependencies(c(stats = "9999.0.0")), "declared minimum")
+  testthat::expect_error(validation_check_exact_dependencies(c(oauthdb_absent_backend = "1.0.0")),
+    "oauthdb_absent_backend")
+})
+
 testthat::test_that("skips, warnings, failures and empty runs cannot pass full validation", {
   # Keep metadata lookup independent of the caller's working directory.
   validation_dependencies <- function(...) c(stats = "0")

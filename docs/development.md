@@ -129,11 +129,24 @@ behavior.
 The [minimum workflow](../.github/workflows/minimum-compatibility.yaml) runs
 the core authorization, lifecycle, SQLite and HTTP API tests on R 4.1.0 and
 the current R release. It requires exactly DBI 1.2.0, httr2 1.2.0, Shiny 1.8.1
-and testthat 3.2.0, with httr2's curl 6.4.0 dependency floor. It fails if those
+and curl 6.4.0. The R 4.1.0 job uses testthat 3.2.0; the current R job uses
+the current testthat release. It fails if the pinned dependency
 versions drift, if tests are skipped, or if any assertion, error or warning
 fails validation. Versions and counts are retained in `.validation/minimum/`.
-Optional platform SDKs run in the full package and Docker lanes; their current
-versions can require newer dependencies than this core configuration.
+
+The [minimum backend workflow](../.github/workflows/minimum-backends.yaml)
+tests actual SDK releases in four separate R release jobs: brickster 0.2.14,
+fabricQueryR 1.0.1, RTrino 0.1.0, and odbc 1.4.2. Each job installs its selected
+SDK at the declared minimum and runs the full source suite with the other test
+dependencies. The runner checks the installed version against `DESCRIPTION`
+before testing, so an upgraded SDK cannot silently pass a minimum-version job.
+Results and installed versions are retained in `.validation/minimum-backends/`.
+These jobs use mocked platform responses and native driver boundaries; the
+Docker lanes cover their real server fixtures.
+
+Run `Rscript --vanilla tools/check-backend-minimum.R brickster path/to/library`
+to reproduce a backend job locally. These jobs test one SDK minimum at a time;
+they use newer core dependencies than the R 4.1.0 lane when an SDK needs them.
 
 Routine package and Docker workflows use the same pinned shinyOAuth revision.
 The independent [upstream workflow](../.github/workflows/upstream-compatibility.yaml)

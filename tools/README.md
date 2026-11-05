@@ -38,6 +38,19 @@ The package-check workflow uploads these artifacts separately for Windows and
 Linux. Linux also collects coverage. It installs all direct dependencies and
 pins shinyOAuth to the same revision as the local integration workflows.
 
+The minimum-backends workflow installs brickster 0.2.14, fabricQueryR 1.0.1,
+RTrino 0.1.0, or odbc 1.4.2 in separate jobs and runs the full source suite.
+To reproduce a job with that SDK installed in an isolated library, run:
+
+```sh
+Rscript --vanilla tools/check-backend-minimum.R brickster path/to/minimum-sdk-library
+```
+
+The script requires the exact version declared in `DESCRIPTION` and all other
+test dependencies. It rejects skips, warnings, errors, and failed assertions.
+Counts and installed versions are retained under
+`.validation/minimum-backends/<package>/`.
+
 Coverage runs installed-package tests. Repository-only example checks can skip
 in that context; the required source suite already checks them without skips.
 The package-check lane disables native PostgreSQL OAuth. Its C coverage is the
