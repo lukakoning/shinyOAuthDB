@@ -5,6 +5,7 @@ if (length(arguments) > 1L) .libPaths(c(arguments[-1L], .libPaths()))
 Sys.setenv(R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep),
   SHINYOAUTHDB_POSTGRES_OAUTH = "disabled")
 source("tools/validation.R")
+source("tools/mutation-policy.R")
 validation_check_dependencies(c(validation_dependencies(), mutator = "0.3.0", callr = "3.7.0"))
 profiles <- list(
   transport = list(files = c("http.R", "api.R", "conditions.R"),
@@ -13,6 +14,9 @@ profiles <- list(
     tests = "^(authorization-protocol|api|core|lifecycle|lifecycle-cleanup|operation-scopes|credential-recovery|module-setup|custom-clients|query-button|multiple-connections)$"),
   bigquery = list(files = "backend__bigquery.R",
     tests = "^(bigquery|bigquery-responses|bigquery-contracts|bigquery-transport|bigquery-types|http|http-contracts|http-diagnostics)$"),
+  clickhouse = list(files = "backend__clickhouse.R", tests = "^(clickhouse|http|http-contracts|http-diagnostics)$"),
+  postgrest = list(files = "backend__postgrest.R", tests = "^(postgrest|http|http-contracts|http-diagnostics)$"),
+  fabric = list(files = "backend__fabric.R", tests = "^(api|backends|custom-clients|operation-scopes|lifecycle|lifecycle-cleanup)$"),
   trino = list(files = c("backend__trino.R", "options.R"),
     tests = "^(trino|trino-contracts|native-options|backend-dependencies)$"),
   odbc = list(files = c("odbc.R", "options.R", "backend__sql_server.R", "backend__redshift.R",
@@ -20,7 +24,7 @@ profiles <- list(
     tests = "^(auth|api|backends|native-options|native-partial-arguments|odbc-contracts|redshift|starrocks|backend-dependencies)$"),
   all = list(files = list.files("R", pattern = "\\.R$"), tests = NULL)
 )
-if (!profile %in% names(profiles)) stop("Choose transport, lifecycle, bigquery, trino, odbc or all.", call. = FALSE)
+if (!profile %in% names(profiles)) stop("Choose transport, lifecycle, bigquery, clickhouse, postgrest, fabric, trino, odbc or all.", call. = FALSE)
 integer_setting <- function(name, default) {
   text <- Sys.getenv(name, as.character(default))
   if (!grepl("^[0-9]+$", text) || !is.finite(as.numeric(text)) ||
@@ -97,7 +101,10 @@ local({
     mutant <- mutants[[id]]
     saved <- paste0(id, ".R")
     stopifnot(file.copy(mutant$mutant_file, file.path(output, "mutants", saved), overwrite = TRUE))
+    hash <- function(path) as.character(openssl::sha256(readBin(path, "raw", n = file.info(path)$size)))
     data.frame(id = id, file = basename(mutant$src), status = mutant$status,
+      source_sha256 = hash(file.path(output, "original", basename(mutant$src))),
+      mutant_sha256 = hash(file.path(output, "mutants", saved)),
       mutation = paste(mutant$mutation_info, collapse = " "),
       source_mutant = paste0("mutants/", saved), stringsAsFactors = FALSE)
   }))
@@ -109,5 +116,7 @@ local({
       any(!details$status %in% c("KILLED", "SURVIVED", "HANG"))) {
     stop("The mutation campaign did not produce complete results.", call. = FALSE)
   }
+  mutation_check_baseline(details, utils::read.csv(file.path(root, "tools", "mutation-baseline.csv"),
+    stringsAsFactors = FALSE), profile)
   cat("Mutation results:", file.path(output, "summary.json"), "\n")
 })

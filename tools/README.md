@@ -5,6 +5,7 @@ Rscript --vanilla tools/test-validation.R
 Rscript --vanilla tools/test-docs.R
 Rscript --vanilla tools/test-integration.R
 Rscript --vanilla tools/test-live.R
+Rscript --vanilla tools/test-mutations.R
 Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-coverage.R
 ```
@@ -33,6 +34,14 @@ from successful reads; PostgREST also counts reads at its real HTTPS proxy.
 `test-live.R` checks the public Databricks/Fabric routes with the installed
 SDKs and synthetic authorization, plus the cloud runner's identity, denial,
 replacement and cleanup rules. It makes no cloud requests.
+
+Curated guard mutations run on relevant pull requests. Weekly AST campaigns
+also mutate ClickHouse, PostgREST and Fabric implementations. A new survivor
+fails the campaign; a timeout remains inconclusive and cannot be allowlisted.
+Only a reviewed equivalent survivor with the exact profile, original-source
+SHA-256, mutant SHA-256 and explanation in `mutation-baseline.csv` is accepted.
+The initial baseline has no exceptions. Review the saved original/mutant files
+and add a useful regression before considering an equivalence exception.
 
 `check-package.R` checks dependency availability and declared minimum versions,
 then runs the source suite. Any failure, error, warning, skipped scenario or

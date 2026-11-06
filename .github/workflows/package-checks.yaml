@@ -67,6 +67,9 @@ jobs:
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-coverage.R
 
+      - name: Verify mutation survivor policy
+        run: Rscript --vanilla tools/test-mutations.R
+
       - name: Check timestamp parameters against the real ClickHouse engine
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-clickhouse-parameters.R
