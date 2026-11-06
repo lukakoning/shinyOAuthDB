@@ -126,6 +126,7 @@ and a complete app.
 
 Other platform API clients:
 \code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
+\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
 \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
 \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
 \code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},

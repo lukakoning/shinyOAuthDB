@@ -6,6 +6,7 @@
 ^\.validation$
 ^src/.*\.gc(da|no)$
 ^\.gitignore$
+^\.git$
 ^\.gitattributes$
 ^.*\.Rcheck$
 ^.*\.tar\.gz$

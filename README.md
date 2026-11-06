@@ -27,7 +27,7 @@ access is enforced by the platform's own permissions.
 [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Azure PostgreSQL](#azure-postgresql) ·
 [Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) ·
-[DuckDB](#duckdb) · [libSQL and Turso](#libsql-and-turso) ·
+[DuckDB](#duckdb) · [libSQL and Turso](#libsql-and-turso) · [CrateDB](#cratedb) ·
 [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
 
 ## Install in R
@@ -74,6 +74,29 @@ Use `$execute()` for statements and `ca_bundle` for a private server CA.
 The [libSQL guide](vignettes/libsql.Rmd) covers compatible token issuers,
 bound parameters and a complete app. This client uses the HTTP API;
 calls do not share transactions or return a DBI connection.
+
+## CrateDB
+
+Run SQL through CrateDB's HTTPS endpoint with each visitor's JWT access
+token. Configure CrateDB's HTTP JWT authentication and database user mapping
+first; the server enforces each user's privileges.
+
+```r
+crate <- oauth_db_cratedb_api(
+  auth$connection, url = "https://crate.example.org:4200/_sql", schema = "doc"
+)
+output$rows <- shiny::renderTable({
+  crate$query("SELECT id, total FROM orders WHERE country = $1 LIMIT 20",
+    parameters = list("NL"))
+})
+```
+
+The helper renews tokens before requests, keeps BIGINT and NUMERIC results
+exact, and never replays SQL submissions. See the
+[CrateDB guide](vignettes/cratedb.Rmd) for JWT claim requirements, server
+configuration and a complete Shiny app. The
+[Docker fixture](integration/cratedb-oauth/README.md) tests real JWT
+validation, database privileges and TLS without production credentials.
 
 ## DuckDB
 

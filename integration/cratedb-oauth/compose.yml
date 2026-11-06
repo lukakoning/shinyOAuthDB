@@ -1,0 +1,34 @@
+services:
+  engine:
+    image: crate:6.4.3
+    environment:
+      CRATE_HEAP_SIZE: 512m
+    command:
+      - -Cdiscovery.type=single-node
+      - -Cnetwork.host=0.0.0.0
+      - -Cauth.host_based.enabled=true
+      - -Cauth.host_based.config.0.user=crate
+      - -Cauth.host_based.config.0.method=trust
+      - -Cauth.host_based.config.0.protocol=http
+      - -Cauth.host_based.config.1.method=jwt
+      - -Cauth.host_based.config.1.protocol=http
+  fixture:
+    build: .
+    depends_on: [engine]
+    ports:
+      - "127.0.0.1:${OAUTHDB_CRATEDB_TEST_PORT}:8443"
+    volumes:
+      - "${OAUTHDB_CRATEDB_FIXTURE_OUT}:/out"
+  test-runner:
+    image: shinyoauthdb-local-runner:1
+    network_mode: service:fixture
+    working_dir: /workspace/shinyOAuthDB
+    environment:
+      OAUTHDB_CRATEDB_FIXTURE_OUT: /out
+      OAUTHDB_CRATEDB_ENDPOINT: https://localhost:8443/_sql
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    volumes:
+      - ../..:/workspace/shinyOAuthDB:ro
+      - ../../../shinyOAuth:/workspace/shinyOAuth:ro
+      - "${OAUTHDB_CRATEDB_FIXTURE_OUT}:/out"
+    entrypoint: ['Rscript', 'integration/cratedb-oauth/run-tests.R']

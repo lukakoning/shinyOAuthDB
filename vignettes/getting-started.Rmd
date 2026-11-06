@@ -31,6 +31,7 @@ Each source guide includes a complete app with sign-in and a first query.
 | [PostgREST](postgrest.html) | Read PostgreSQL tables and call functions over HTTP |
 | [StarRocks](starrocks.html) | Query with JWT authentication and MySQL Connector/ODBC |
 | [ClickHouse](clickhouse.html) | Run SQL over HTTPS with a visitor token |
+| [CrateDB](cratedb.html) | Run SQL over HTTPS with JWT authentication and database user privileges |
 | [DuckDB](duckdb.html) | Query a remote Quack server with OAuth access tokens |
 | [libSQL and Turso](libsql.html) | Run SQLite SQL over HTTPS with compatible user tokens |
 | [Azure SQL and SQL Server](azure-sql.html) | Query with DBI or dbplyr |

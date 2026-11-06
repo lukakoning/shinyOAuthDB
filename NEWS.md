@@ -5,6 +5,9 @@
   64-bit integers, blobs and mixed SQLite types. Each operation uses a fresh
   stream and connection; SQL is never retried after a lost response or 401.
   Includes a real libSQL/JWT/TLS fixture and provider compatibility guidance.
+* Add `oauth_db_cratedb_api()` for CrateDB's JWT-authenticated HTTPS SQL
+  interface, positional parameters and exact BIGINT/NUMERIC results. Tokens
+  are renewed before requests, and SQL submissions are never replayed.
 * Add `oauth_db_duckdb()` for DBI and dbplyr queries against OAuth-enabled
   DuckDB Quack servers. Connections use TLS by default and are replaced when
   access tokens rotate; sign-out and session end shut down their private

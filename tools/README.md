@@ -11,8 +11,14 @@ Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-libsql-oauth.R
+Rscript --vanilla tools/check-cratedb-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
+
+With Docker running, `check-cratedb-oauth.R` exercises native CrateDB JWT
+validation, user privileges, exact results and verified TLS. It also checks
+timeouts and dropped write responses using the
+[CrateDB fixture](../integration/cratedb-oauth/README.md).
 
 `check-duckdb.R` downloads the matching Quack extension and starts a real
 loopback DuckDB server. It checks DBI/dbplyr queries, token replacement,
