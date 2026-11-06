@@ -15,6 +15,7 @@ live_client <- function(spec) {
   args <- list(client_id = live_env("OAUTHDB_CLIENT_ID"),
     client_secret = live_env("OAUTHDB_CLIENT_SECRET", ""),
     redirect_uri = live_env("OAUTHDB_REDIRECT_URI", "http://localhost:8100"))
+  if (identical(spec$auth_mode, "google")) return(do.call(shinyOAuthDB::oauth_db_bigquery_client, args))
   if (identical(spec$auth_mode, "snowflake_oauth")) {
     return(do.call(shinyOAuthDB::oauth_db_snowflake_client, c(list(
       server = live_env("OAUTHDB_SNOWFLAKE_SERVER"), role = live_env("OAUTHDB_SNOWFLAKE_ROLE")), args)))
@@ -48,6 +49,7 @@ live_spec <- function(backend) {
 
 live_backend_spec <- function(backend) {
   live_require("shinyOAuthDB")
+  if (identical(backend, "bigquery")) return(live_bigquery_spec())
   sql_spec <- function(bind, query, service = "sql", helper = "oauth_db_azure_sql") list(
     helper = helper,
     service = service, bind = bind,

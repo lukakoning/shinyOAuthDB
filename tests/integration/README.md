@@ -83,6 +83,10 @@ Test visitor sign-in separately.
 
 ## Your own cloud database
 
+For real Google API, IAM, pagination and typed-value acceptance, use the
+[BigQuery fixture](bigquery.md). It runs tiny capped queries against an
+operator-prepared project and makes no cloud provisioning calls.
+
 `run-live.R` uses two existing user tokens to check queries, account
 changes, sign-out, and connection reuse where applicable. It supports
 Azure SQL, SQL Server, Fabric, Azure PostgreSQL, Databricks, and Snowflake

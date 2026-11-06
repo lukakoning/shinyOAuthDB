@@ -145,6 +145,7 @@ run_live_transport <- function(fixture) {
     connection_a <- native()
     record("A_identity", identical(fixture$identify("A", connection_a, spec), unname(fixture$users[["A"]])))
     record("A_denied", fixture$denied("A", connection_a, spec))
+    if (is.function(spec$checks)) record("A_roundtrip", spec$checks(connection_a))
     is_sql <- inherits(connection_a, "DBIConnection")
     if (is_sql) {
       spec$query(native(), spec$native_args(7L))
@@ -163,6 +164,7 @@ run_live_transport <- function(fixture) {
     connection_b <- native()
     record("B_identity", identical(fixture$identify("B", connection_b, spec), unname(fixture$users[["B"]])))
     record("B_denied", fixture$denied("B", connection_b, spec))
+    if (is.function(spec$checks)) record("B_roundtrip", spec$checks(connection_b))
 
     current(NULL)
     session$flushReact()

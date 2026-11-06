@@ -8,6 +8,7 @@ if (!identical(Sys.getenv("OAUTHDB_LIVE_TESTS"), "true")) {
 }
 
 source("tests/integration/source-config.R", local = TRUE)
+source("tests/integration/bigquery.R", local = TRUE)
 source("tests/integration/live-transport.R", local = TRUE)
 fixture_path <- live_env("OAUTHDB_LIVE_FIXTURE")
 if (!file.exists(fixture_path)) {

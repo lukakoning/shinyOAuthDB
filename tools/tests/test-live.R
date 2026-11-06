@@ -1,6 +1,7 @@
 root <- normalizePath(file.path("..", ".."), winslash = "/")
 pkgload::load_all(root, quiet = TRUE)
 source(file.path(root, "tests/integration/source-config.R"), local = TRUE)
+source(file.path(root, "tests/integration/bigquery.R"), local = TRUE)
 source(file.path(root, "tests/integration/live-transport.R"), local = TRUE)
 source(file.path(root, "tests/testthat/helper-authorization.R"), local = TRUE)
 
@@ -131,4 +132,35 @@ testthat::test_that("a retained Fabric resource keeps its original multi-audienc
     withr::local_envvar(c(OAUTHDB_LIVE_A_TOKENS_JSON = "{}"))
     testthat::expect_error(live_fixture_authorization(client, "A", current, session), "named target")
   })
+})
+
+testthat::test_that("BigQuery acceptance uses the public capped regional paginator", {
+  withr::local_envvar(c(OAUTHDB_BIGQUERY_PROJECT = "fixture-project", OAUTHDB_BIGQUERY_DATASET = "reporting",
+    OAUTHDB_BIGQUERY_TABLE = "visible_rows", OAUTHDB_BIGQUERY_LOCATION = "EU"))
+  requests <- list()
+  httr2::local_mocked_responses(function(req) {
+    requests[[length(requests) + 1L]] <<- req
+    result <- list(jobComplete = TRUE, jobReference = list(projectId = "fixture-project", jobId = "job", location = "EU"),
+      schema = list(fields = list(list(name = "database_user", type = "STRING"), list(name = "visible_marker", type = "STRING"))),
+      rows = list(list(f = list(list(v = "a@example.org"), list(v = if (req$method == "POST") "A-first" else "A-second")))))
+    if (req$method == "POST") result$pageToken <- "second"
+    httr2::response(status_code = 200L, headers = list(`content-type` = "application/json"),
+      body = charToRaw(jsonlite::toJSON(result, auto_unbox = TRUE)))
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    spec <- live_spec("bigquery")
+    api <- spec$bind(auth$connection)()
+    testthat::expect_s3_class(api, "OAuthBigQueryAPI")
+    rows <- spec$query(api, spec$native_args(7L))
+    testthat::expect_identical(rows$visible_marker, c("A-first", "A-second"))
+    testthat::expect_identical(spec$auth_mode, "google")
+    testthat::expect_length(requests, 2L)
+    body <- requests[[1L]]$body$data
+    testthat::expect_identical(body$maximumBytesBilled, "10485760")
+    testthat::expect_identical(body$maxResults, 1L)
+    testthat::expect_identical(body$location, "EU")
+    testthat::expect_false(body$useQueryCache)
+  })
+  testthat::expect_error(live_bigquery_table("rows`; SELECT 1"), "identifiers")
 })
