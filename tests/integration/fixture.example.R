@@ -3,6 +3,14 @@
 # row-level security or separate grants. Set its exact trusted read query here.
 fixture <- list(
   backend = "azure-sql",
+  users = c(A = "user-a@example.org", B = "user-b@example.org"),
+  identify = function(user, native, spec) {
+    as.character(DBI::dbGetQuery(native, "SELECT ORIGINAL_LOGIN() AS identity")$identity[[1L]])
+  },
+  denied = function(user, native, spec) {
+    failure <- tryCatch(DBI::dbGetQuery(native, "SELECT * FROM dbo.OAuthDBForbidden"), error = identity)
+    inherits(failure, "error") && grepl("permission|denied", conditionMessage(failure), ignore.case = TRUE)
+  },
   configure = function(spec) {
     spec$native_args <- function(value) {
       list(

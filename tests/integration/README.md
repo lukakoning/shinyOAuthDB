@@ -86,8 +86,23 @@ Test visitor sign-in separately.
 `run-live.R` uses two existing user tokens to check queries, account
 changes, sign-out, and connection reuse where applicable. It supports
 Azure SQL, SQL Server, Fabric, Azure PostgreSQL, Databricks, and Snowflake
-with Entra External OAuth. BigQuery, Redshift, and Trino can be tested
-manually with their playground apps.
+with native and Entra External OAuth, and Redshift. Databricks uses the actual
+public DBI/API helpers; Fabric uses the public API client and can retain a
+Lakehouse resource across account replacement.
+
+| Route | Public path / authentication |
+| --- | --- |
+| `databricks-dbi`, `databricks-api` | DBI or API helper with Databricks OAuth |
+| `databricks-dbi-entra`, `databricks-api-entra` | Same helpers with Entra |
+| `fabric-api-discovery`, `fabric-api-kql`, `fabric-api-dax`, `fabric-api-graphql`, `fabric-api-onelake` | Fabric API client for each service/audience |
+| `fabric-api-resource` | Fabric item lookup and retained Lakehouse table read; needs Fabric and storage tokens |
+| `snowflake-native`, `snowflake-external` | Snowflake native OAuth or Entra External OAuth |
+| `redshift`, `redshift-access-token` | Native ODBC EXT_JWT or ACCESS_TOKEN |
+
+`databricks` selects the DBI route. Existing `fabric-<service>` names select
+the corresponding API route. These are fixed-token acceptance routes, not
+browser sign-in or refresh tests. For Redshift, set `OAUTHDB_OIDC_ISSUER` and
+`OAUTHDB_SCOPES` for its provider as well as server/database/driver settings.
 
 Browser sign-in, consent, and refresh need a separate browser test.
 
@@ -96,8 +111,10 @@ Browser sign-in, consent, and refresh need a separate browser test.
 2. Give users A and B distinct access to fixture data. The same query should
    return each user's permitted rows.
 3. Copy [fixture.example.R](fixture.example.R) outside Git. Edit `backend`,
-   `configure()`, and `validate()` for your data. The runner executes this file
-   as trusted R code.
+   `configure()`, and `validate()` for your data. Supply distinct expected
+   remote identities in `users = c(A = ..., B = ...)`, an `identify()` query,
+   and a `denied()` check of a known forbidden resource. A/B results must
+   differ. The runner executes this file as trusted R code.
 4. Set these variables privately:
 
 | Variable | Value |
@@ -115,6 +132,18 @@ Rscript tests/integration/run-live.R
 ```
 
 The summary reports pass or fail without printing tokens or query results.
+It writes helper, auth mode and named acceptance scenarios to
+`results/live.json`. Stateless brickster handles retain copied tokens after
+disconnect; the runner checks the owning accessor after logout and does not
+claim that a copied bearer has been revoked remotely.
+
+For multiple audiences, set `OAUTHDB_LIVE_A_TOKENS_JSON` and
+`OAUTHDB_LIVE_B_TOKENS_JSON` instead of the scalar token variables. Each JSON
+object must contain exactly the client's target names, such as `fabric` and
+`storage`. Each target contains `access_token`, numeric Unix `expires_at`, and
+a JSON array of `scopes`. All tokens must have at least five minutes left.
+The runner never prints this object. Resource fixtures also need
+`OAUTHDB_ONELAKE_TABLE`; the retained A resource must fail after switching to B.
 
 ## Check browser sign-in
 

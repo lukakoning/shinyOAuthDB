@@ -27,9 +27,8 @@ if (!exists("fixture", envir = fixture_environment, inherits = FALSE)) {
 }
 
 success <- tryCatch(
-  suppressWarnings(suppressMessages(run_live_transport(
-    fixture_environment$fixture
-  ))),
+  suppressMessages(withCallingHandlers(run_live_transport(fixture_environment$fixture),
+    warning = function(w) stop("Live acceptance emitted a warning.", call. = FALSE))),
   error = function(e) {
     # Driver errors may contain tokens or connection strings. Do not print the
     # condition, call, raw result or fixture contents in this runner.
@@ -41,9 +40,12 @@ success <- tryCatch(
   }
 )
 
-if (!isTRUE(success)) {
+if (!is.list(success) || !identical(success$status, "pass")) {
   quit(save = "no", status = 1L)
 }
+
+dir.create("tests/integration/results", recursive = TRUE, showWarnings = FALSE)
+jsonlite::write_json(success, "tests/integration/results/live.json", auto_unbox = TRUE, pretty = TRUE)
 
 message(
   "Live A/B transport, authorization replacement and cleanup checks passed."

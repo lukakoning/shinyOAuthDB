@@ -60,6 +60,9 @@ jobs:
       - name: Verify integration assertion contracts
         run: Rscript --vanilla tools/test-integration.R
 
+      - name: Verify live adapter routes and acceptance validation
+        run: Rscript --vanilla tools/test-live.R
+
       - name: Measure package test coverage
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-coverage.R
