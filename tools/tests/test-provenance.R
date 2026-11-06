@@ -15,4 +15,6 @@ testthat::test_that("integration fingerprints change with dirty source and exclu
   testthat::expect_match(after$source_sha256, "^[a-f0-9]{64}$")
   testthat::expect_identical(after$dependencies$DBI, as.character(utils::packageVersion("DBI")))
   testthat::expect_error(jsonlite::toJSON(after, auto_unbox = TRUE), NA)
+  absent <- integration_provenance(root, packages = "nonexistentFixturePackage")
+  testthat::expect_true(is.na(absent$dependencies$nonexistentFixturePackage))
 })

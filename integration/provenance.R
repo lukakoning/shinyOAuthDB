@@ -17,8 +17,10 @@ integration_provenance <- function(root = ".", packages = c("shinyOAuth", "shiny
     } else revision <- ref
   }
   if (!is.na(revision) && !grepl("^[0-9a-f]{40,64}$", revision)) revision <- NA_character_
-  versions <- lapply(packages, function(package)
-    if (requireNamespace(package, quietly = TRUE)) as.character(utils::packageVersion(package)) else NA_character_)
+  versions <- lapply(packages, function(package) {
+    path <- find.package(package, lib.loc = .libPaths(), quiet = TRUE)
+    if (length(path)) as.character(utils::packageVersion(package, lib.loc = .libPaths())) else NA_character_
+  })
   list(revision = revision, source_sha256 = unclass(as.character(openssl::sha256(charToRaw(paste(names(hashes), hashes, collapse = "\n"))))),
     source_files = as.list(hashes), fixture_version = 1L,
     R = as.character(getRversion()), platform = R.version$platform,
