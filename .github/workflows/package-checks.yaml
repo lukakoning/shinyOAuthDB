@@ -61,6 +61,10 @@ jobs:
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-duckdb-oauth.R
 
+      - name: Check libSQL JWT, TLS and lost write responses
+        if: runner.os == 'Linux'
+        run: Rscript --vanilla tools/check-libsql-oauth.R
+
       - name: Verify validation rejects incomplete runs
         run: Rscript --vanilla tools/test-validation.R
 

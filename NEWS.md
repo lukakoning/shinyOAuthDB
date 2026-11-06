@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_libsql_api()` for SQL queries and statements against libSQL
+  and compatible Turso HTTPS endpoints. Supports bound parameters, exact
+  64-bit integers, blobs and mixed SQLite types. Each operation uses a fresh
+  stream and connection; SQL is never retried after a lost response or 401.
+  Includes a real libSQL/JWT/TLS fixture and provider compatibility guidance.
 * Add `oauth_db_duckdb()` for DBI and dbplyr queries against OAuth-enabled
   DuckDB Quack servers. Connections use TLS by default and are replaced when
   access tokens rotate; sign-out and session end shut down their private

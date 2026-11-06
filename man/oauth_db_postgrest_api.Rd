@@ -104,6 +104,7 @@ Other platform API clients:
 \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
 \code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
 \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
+\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}}
 }
 \concept{platform API clients}

@@ -10,6 +10,7 @@ Rscript --vanilla tools/test-mutations.R
 Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
+Rscript --vanilla tools/check-libsql-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
 
@@ -23,6 +24,12 @@ With Docker running, `check-duckdb-oauth.R` also exercises real JWT validation
 and server policies through `quack_oauth`, including verified TLS, private
 CA trust, and certificate hostname checks. It generates disposable tokens
 and certificates in the [DuckDB OAuth fixture](../integration/duckdb-oauth/README.md).
+
+`check-libsql-oauth.R` runs a real libSQL server behind verified HTTPS with
+Ed25519-signed user tokens. It checks database permissions, native SQLite
+values, token changes, TLS failures, and dropped/delayed write responses.
+See the [libSQL fixture](../integration/libsql-oauth/README.md) for scope
+and token compatibility. It needs Docker and no production credentials.
 
 With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a

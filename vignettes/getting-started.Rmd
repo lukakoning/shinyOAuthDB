@@ -32,6 +32,7 @@ Each source guide includes a complete app with sign-in and a first query.
 | [StarRocks](starrocks.html) | Query with JWT authentication and MySQL Connector/ODBC |
 | [ClickHouse](clickhouse.html) | Run SQL over HTTPS with a visitor token |
 | [DuckDB](duckdb.html) | Query a remote Quack server with OAuth access tokens |
+| [libSQL and Turso](libsql.html) | Run SQLite SQL over HTTPS with compatible user tokens |
 | [Azure SQL and SQL Server](azure-sql.html) | Query with DBI or dbplyr |
 | [Microsoft Fabric](fabric.html) | Query SQL endpoints, read OneLake tables, and call fabricQueryR functions |
 | [Databricks](databricks.html) | Query SQL warehouses and call brickster functions |

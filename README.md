@@ -8,6 +8,7 @@ It supports commercial and cloud-hosted data platforms, such as Microsoft
 Fabric, Databricks, Snowflake and BigQuery, as well as open-source systems
 you host yourself, including [PostgreSQL](#self-hosted-postgresql) and
 [Trino](#trino-and-starburst-enterprise) and [DuckDB](#duckdb) configured for OAuth.
+Remote [libSQL](#libsql-and-turso) endpoints can use compatible provider-issued tokens.
 
 The app user signs in with their own account for the database or data platform,
 and your app can query the database or platform on their behalf.
@@ -26,7 +27,8 @@ access is enforced by the platform's own permissions.
 [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Azure PostgreSQL](#azure-postgresql) ·
 [Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) ·
-[DuckDB](#duckdb) · [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
+[DuckDB](#duckdb) · [libSQL and Turso](#libsql-and-turso) ·
+[ClickHouse](#clickhouse) · [StarRocks](#starrocks)
 
 ## Install in R
 
@@ -42,6 +44,36 @@ and sign-in setup, or follow the [getting-started guide](vignettes/getting-start
 To install the local guides used by `vignette()` below, add
 `build_vignettes = TRUE` to the GitHub installation call.
 The Docker playground below supplies its own R packages and drivers.
+
+## libSQL and Turso
+
+Run SQLite SQL against a remote libSQL or compatible Turso endpoint with
+the visitor's current access token. The server must accept that provider's
+tokens: self-hosted libSQL requires Ed25519-signed database tokens with
+libSQL permission claims; Turso Cloud has a separate external-provider
+JWKS setup. A normal SQLite file has no OAuth login.
+
+Inside `server()`, use the HTTP API client:
+
+```r
+libsql <- oauth_db_libsql_api(
+  auth$connection, url = "https://sqlite.example.org",
+  required_scopes = "sqlite.read"
+)
+output$rows <- shiny::renderTable({
+  libsql$query("SELECT id, total FROM orders WHERE country = :country LIMIT 20",
+    parameters = list(country = "NL"))
+})
+```
+
+`libsql://` URLs also work and use HTTPS. Each call obtains a current token,
+executes one statement and closes its server stream. Requests are never
+replayed automatically, including writes with a lost response. Integers
+remain exact strings; blobs and mixed SQLite types use list columns.
+Use `$execute()` for statements and `ca_bundle` for a private server CA.
+The [libSQL guide](vignettes/libsql.Rmd) covers compatible token issuers,
+bound parameters and a complete app. This client uses the HTTP API;
+calls do not share transactions or return a DBI connection.
 
 ## DuckDB
 

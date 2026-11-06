@@ -12,7 +12,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     and calls exposed database functions through PostgREST. Supports StarRocks
     JWT authentication through MySQL Connector/ODBC, and ClickHouse queries
     through JWT-enabled HTTPS endpoints. Connects to remote DuckDB servers
-    through the Quack protocol with OAuth access tokens.
+    through the Quack protocol with OAuth access tokens. Queries remote
+    libSQL and compatible Turso endpoints using each visitor's access token.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
