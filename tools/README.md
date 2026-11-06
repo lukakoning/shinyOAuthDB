@@ -66,10 +66,14 @@ Suggests, plus pkgbuild, rcmdcheck and covr, before running them.
 temporary library, starts its packaged Docker demo from outside the checkout
 and checks real browser sign-in for Alice and Bob, row permissions, sign-out
 and the stop button. It needs Docker, Chrome, pkgbuild, callr and chromote.
-Use `postgrest`, `trino` or `starrocks` to check another demo; run one at a
+Use `postgrest`, `trino`, `starrocks`, `duckdb`, `libsql`, `cratedb` or
+`opensearch` to check another demo; run one at a
 time because they use the same loopback ports. The
 [packaged demo workflow](../.github/workflows/packaged-demos.yaml) runs each
 in a separate job and retains logs under `.validation/demos/`.
+The DuckDB, libSQL and CrateDB examples share a read-only table between
+accounts; OpenSearch filters documents per user. These four checks also
+verify the current account display and database rejection of writes.
 
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty

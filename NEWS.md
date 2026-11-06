@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Extend `oauth_db_demo()` with DuckDB Quack, libSQL, CrateDB and OpenSearch.
+  Each includes browser sign-in, server-validated tokens and sample data;
+  the apps also demonstrate database rejection of writes.
+
 * Add `oauth_db_demo()` to launch packaged PostgreSQL, PostgREST, Trino and
   StarRocks Docker demos with sign-in and sample data, without a checkout.
 * Keep one PostgreSQL example in the README and add a pkgdown website with

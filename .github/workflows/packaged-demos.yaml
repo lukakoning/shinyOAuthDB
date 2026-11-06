@@ -11,11 +11,11 @@ permissions:
 jobs:
   demo:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        database: [postgres, postgrest, trino, starrocks]
+        database: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch]
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled

@@ -48,6 +48,7 @@
 #' }
 #' @seealso `vignette("duckdb", package = "shinyOAuthDB")` has server
 #'   requirements, sign-in setup and a complete app.
+#'   [oauth_db_demo()] runs a local Quack and Keycloak example.
 #' @family database connections
 #' @export
 oauth_db_duckdb <- function(

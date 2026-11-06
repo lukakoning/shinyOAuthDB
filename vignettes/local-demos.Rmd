@@ -32,9 +32,9 @@ access and several GB of disk space. Later starts reuse Docker's cache.
 | `alice` | `alice-fixture-password` | `alice-visible-1`, `alice-visible-2` |
 | `bob` | `bob-fixture-password` | `bob-visible-1`, `bob-visible-2` |
 
-Click **Sign in** and use either account. Sign out, then sign in with the
-other account to see the permissions change. The database applies the
-restriction; the app sends the same query for both people.
+Click **Sign in** and use either account. In the default PostgreSQL demo,
+signing in with the other account changes the rows you can see. The database
+applies the restriction; the app sends the same query for both people.
 
 Keycloak, the open-source sign-in server, uses `https://localhost:18443`.
 Your browser may ask you to accept its generated local test certificate.
@@ -51,16 +51,46 @@ Run one demo at a time; they share the same browser ports.
 | `oauth_db_demo("postgrest")` | PostgreSQL and PostgREST with JWT role mapping | [PostgREST](postgrest.html) |
 | `oauth_db_demo("trino")` | Trino, an in-memory catalog and row filters | [Trino](trino.html) |
 | `oauth_db_demo("starrocks")` | StarRocks with JWT users and a filtered view | [StarRocks](starrocks.html) |
+| `oauth_db_demo("duckdb")` | DuckDB Quack with JWT validation and read-only access | [DuckDB](duckdb.html) |
+| `oauth_db_demo("libsql")` | libSQL with Ed25519-signed database tokens | [libSQL](libsql.html) |
+| `oauth_db_demo("cratedb")` | CrateDB with JWT users and read-only table grants | [CrateDB](cratedb.html) |
+| `oauth_db_demo("opensearch")` | OpenSearch Security with per-user document permissions | [OpenSearch](opensearch.html) |
+
+DuckDB, libSQL and CrateDB give both accounts read-only access to the same
+sample table, containing `shared-visible-1` and `shared-visible-2`. These
+databases enforce their read-only policy on the server. OpenSearch gives
+each person their own documents. These four apps show the signed-in
+account and include **Try a write**, which the database should reject.
 
 Docker supplies the R packages and drivers too. StarRocks needs roughly
 4 GB of Docker memory and uses amd64 images, so other architectures need
-emulation. Trino needs at least 2 GB for its database container.
+emulation. Trino and OpenSearch each need at least 2 GB for their database
+container. DuckDB downloads a matching R client and Quack extensions. It
+compiles the client from source if a Linux binary isn't available, which
+takes longer.
 
 Cloud platforms need real accounts and OAuth registrations; a local Docker
 container cannot reproduce that setup. ClickHouse's custom-provider JWT
-feature needs a qualifying Cloud service. Other backend guides describe
-their token requirements and developer fixtures where available; a fixture
-that generates test tokens doesn't supply an interactive OAuth deployment.
+feature needs a qualifying Cloud service.
+
+## How the extra token formats work
+
+The additional demos use `realm-extended.json`, which registers separate
+Shiny clients for the four databases. DuckDB validates Keycloak tokens with
+`quack_oauth`; OpenSearch validates the provider's signing key and applies
+document permissions. OpenSearch takes a signing-key snapshot at startup.
+
+Self-hosted libSQL needs a specific database token format. Its demo client
+uses Keycloak's Ed25519 signing key, `id=default` and `a=ro` claims, and no
+access-token audience. A separate service client seeds the database with
+write access; the Shiny app receives only read-only tokens. This is a
+self-hosted libSQL demo, separate from Turso Cloud's external-provider setup.
+
+CrateDB expects the token's issuer URL to return its signing keys directly.
+Its demo includes a local HTTPS gateway that serves Keycloak's public keys
+at that URL and forwards the usual sign-in endpoints to Keycloak. Tokens
+stay unchanged; CrateDB checks their signatures and enforces user grants.
+For another provider, follow its [token requirements](cratedb.html).
 
 ## Stop and clean up
 
@@ -88,7 +118,8 @@ shinyOAuthDB::oauth_db_demo("postgres", path = path)
 ```
 
 `compose.yml` defines Keycloak and the app; `compose.postgres.yml` adds
-PostgreSQL. `realm.json` configures sign-in accounts, claims and audiences.
+PostgreSQL. `realm.json` configures the original demos; `realm-extended.json`
+adds clients and claims for DuckDB, libSQL, CrateDB and OpenSearch.
 The backend subdirectory contains its app and database configuration.
 Edits in this directory survive subsequent launches. Use a new empty `path`
 after upgrading the package to obtain fresh templates.

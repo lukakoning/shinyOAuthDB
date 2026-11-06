@@ -21,7 +21,8 @@ the table. This uses local SQLite data and makes no OAuth requests.
 For a local database with real Keycloak sign-in, run
 `shinyOAuthDB::oauth_db_demo()` from any directory. The installed package
 supplies the app and Docker configuration. The same command accepts
-`"postgrest"`, `"trino"` or `"starrocks"`; see
+`"postgrest"`, `"trino"`, `"starrocks"`, `"duckdb"`, `"libsql"`, `"cratedb"`
+or `"opensearch"`; see
 [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
 
 Follow [your source guide](../vignettes/getting-started.Rmd#choose-your-source)

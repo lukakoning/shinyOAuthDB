@@ -97,6 +97,7 @@ output$rows <- shiny::renderTable({
 }
 \seealso{
 \code{vignette("libsql", package = "shinyOAuthDB")}.
+\code{\link[=oauth_db_demo]{oauth_db_demo()}} runs a local libSQL and Keycloak example.
 
 Other platform API clients:
 \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},

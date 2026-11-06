@@ -1,0 +1,55 @@
+services:
+  keycloak:
+    volumes:
+      - ./realm-extended.json:/opt/keycloak/data/import/realm.json:ro
+  prepare:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+      target: python
+    network_mode: service:keycloak
+    command: ["python", "opensearch/prepare.py"]
+    volumes:
+      - .:/demo:ro
+      - tls:/fixtures/tls:ro
+      - search:/state
+    depends_on:
+      keycloak:
+        condition: service_healthy
+  database:
+    image: opensearchproject/opensearch:3.9.0@sha256:3b55f6b6249cfdb92b52ee59adc8a266203ba9ef9f5d82544fad6f1af2f3609e
+    network_mode: service:keycloak
+    mem_limit: 2g
+    environment:
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+    entrypoint: ["bash", "/demo/opensearch/start.sh"]
+    volumes:
+      - .:/demo:ro
+      - tls:/usr/share/opensearch/config/demo:ro
+      - search:/state:ro
+    depends_on:
+      prepare:
+        condition: service_completed_successfully
+  seed:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+      target: python
+    network_mode: service:keycloak
+    command: ["python", "opensearch/seed.py"]
+    volumes:
+      - .:/demo:ro
+      - tls:/fixtures/tls:ro
+      - search:/state:ro
+    depends_on:
+      database:
+        condition: service_started
+  app:
+    environment:
+      OAUTHDB_DEMO: opensearch
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+volumes:
+  search:

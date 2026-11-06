@@ -95,6 +95,7 @@ output$results <- shiny::renderPrint({
 }
 \seealso{
 \code{vignette("opensearch", package = "shinyOAuthDB")}.
+\code{\link[=oauth_db_demo]{oauth_db_demo()}} runs a local OpenSearch and Keycloak example.
 
 Other platform API clients:
 \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},

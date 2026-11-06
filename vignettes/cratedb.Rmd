@@ -17,6 +17,26 @@ with each visitor's JWT access token. CrateDB maps the token to a database
 user and enforces that user's privileges. This is an HTTP query client;
 CrateDB's JWT authentication does not work through its PostgreSQL interface.
 
+## Try CrateDB locally
+
+With Docker running:
+
+```{r demo}
+shinyOAuthDB::oauth_db_demo("cratedb")
+```
+
+The demo includes CrateDB 6.4.3, Keycloak, a Shiny app and read-only database
+users. Alice and Bob can read a shared table; **Try a write** checks that
+CrateDB rejects their writes. See [Local Docker demos](local-demos.html)
+for accounts and cleanup.
+
+CrateDB expects the token's issuer URL to serve its public signing keys.
+The demo's HTTPS gateway supplies those keys at Keycloak's issuer URL while
+forwarding normal browser sign-in to Keycloak. It passes the original
+access token to CrateDB. Inspect `cratedb/server.py` and
+`realm-extended.json` with `oauth_db_demo("cratedb", action = "files")`
+for the complete setup.
+
 ## Collect the connection settings
 
 Your server must enable JWT authentication for its HTTP SQL interface.

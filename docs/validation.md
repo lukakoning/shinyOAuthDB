@@ -1,5 +1,38 @@
 # Validation record
 
+## 6 November 2026: four more packaged Docker demos
+
+`oauth_db_demo()` now also launches DuckDB Quack, libSQL, CrateDB and
+OpenSearch with Keycloak browser sign-in. DuckDB, libSQL and CrateDB give
+both accounts read-only access to a shared table; OpenSearch applies
+per-user document permissions. Each app includes a rejected-write example.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 3,847 assertions across 254 scenarios; zero failures, errors, warnings or skips |
+| Final focused launcher and documentation-app tests | 190 assertions pass |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes |
+| Four added installed-package demos | Real Keycloak browser sign-in for Alice and Bob, correct account and rows, database rejection of writes, blank output before login and after sign-out, and stop-button cleanup |
+| Documentation checker | 77 R blocks parse; 180 local links and 16 section anchors resolve |
+| pkgdown | Updated articles and function reference build successfully; all README website targets exist |
+| Packaged configurations | All eight Compose contexts resolve their bind mounts; the README still has one app matching the packaged PostgreSQL app |
+| Packaged demo workflow | Eight database jobs; actionlint 1.7.12 passes |
+
+These checks use Docker Desktop Linux containers and Chrome on Windows.
+The checker installs the current package and launches it outside the source
+checkout, with spaces in its configuration path. The database versions are
+DuckDB 1.5.4, libSQL 0.24.33, CrateDB 6.4.3 and OpenSearch 3.9.0.
+The pinned DuckDB R client installs from a dated Posit Linux binary
+repository; its image stage was built and exercised in the browser check.
+ARM builds and other host systems were not tested. The original four demos
+were not rerun for this follow-up; their results appear below.
+
+The demos use Keycloak-issued tokens directly. libSQL uses Ed25519 tokens
+with database permission claims and no audience. CrateDB uses a local
+issuer/JWKS gateway. OpenSearch reads a signing-key snapshot during setup.
+No cloud accounts or production credentials were used. Remote Actions and
+website deployment still require a push; artifacts remain in `.validation/`.
+
 ## 6 November 2026: packaged demos and documentation website
 
 The README now contains one PostgreSQL app. All database guides explain

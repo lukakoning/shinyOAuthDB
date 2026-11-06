@@ -3,7 +3,10 @@
 arguments <- commandArgs(trailingOnly = TRUE)
 database <- if (length(arguments)) arguments[[1L]] else "postgres"
 if (length(arguments) > 1L) .libPaths(c(arguments[-1L], .libPaths()))
-stopifnot(database %in% c("postgres", "postgrest", "trino", "starrocks"))
+stopifnot(database %in% c("postgres", "postgrest", "trino", "starrocks",
+  "duckdb", "libsql", "cratedb", "opensearch"))
+shared <- database %in% c("duckdb", "libsql", "cratedb")
+permission_demo <- shared || database == "opensearch"
 
 check_demo <- function() {
   output <- file.path(normalizePath(".validation", winslash = "/", mustWork = TRUE), "demos", database)
@@ -23,6 +26,17 @@ check_demo <- function() {
   on.exit({
     if (!is.null(chrome)) chrome$close()
     if (process$is_alive()) {
+      if (file.exists(file.path(path, ".shinyOAuthDB-demo"))) {
+        normalized <- normalizePath(path, winslash = "/", mustWork = TRUE)
+        project <- paste0("shinyoauthdb-demo-", database, "-",
+          substr(openssl::sha256(charToRaw(normalized)), 1L, 8L))
+        args <- c("compose", "--project-name", project, "--project-directory", normalized,
+          "--file", file.path(normalized, "compose.yml"),
+          "--file", file.path(normalized, paste0("compose.", database, ".yml")),
+          "logs", "--no-color", "--tail", "100")
+        try(system2(Sys.which("docker"), vapply(args, shQuote, ""),
+          stdout = file.path(output, "services.log"), stderr = file.path(output, "services-error.log")), silent = TRUE)
+      }
       try(callr::r(function(database, path) {
         shinyOAuthDB::oauth_db_demo(database, action = "stop", path = path)
       }, args = list(database, path), libpath = libpath), silent = TRUE)
@@ -30,7 +44,8 @@ check_demo <- function() {
       if (process$is_alive()) process$kill()
     }
   }, add = TRUE)
-  deadline <- Sys.time() + 1200
+  # Allow a source build when the pinned DuckDB R client has no binary.
+  deadline <- Sys.time() + if (database == "duckdb") 4200 else 1200
   repeat {
     ready <- tryCatch(curl::curl_fetch_memory("http://localhost:18100")$status_code == 200L,
       error = function(e) FALSE)
@@ -46,7 +61,11 @@ check_demo <- function() {
     deadline <- Sys.time() + 40
     repeat {
       if (isTRUE(tryCatch(value(browser, js), error = function(e) FALSE))) return(invisible(TRUE))
-      if (Sys.time() > deadline) stop("Demo browser check timed out: ", js, call. = FALSE)
+      if (Sys.time() > deadline) {
+        page <- value(browser, "({origin: location.origin, path: location.pathname, text: document.body.innerText.slice(0, 1200)})")
+        stop("Demo browser check timed out: ", js, "; page: ",
+          jsonlite::toJSON(page, auto_unbox = TRUE), call. = FALSE)
+      }
       Sys.sleep(0.1)
     }
   }
@@ -59,18 +78,27 @@ check_demo <- function() {
     browser$go_to("http://localhost:18100")
     wait(browser, "Boolean(window.Shiny && Shiny.shinyapp && Shiny.shinyapp.isConnected() && document.querySelector('#login:not(:disabled)'))")
     stopifnot(identical(trimws(value(browser, "document.querySelector('#rows').textContent")), ""))
+    if (permission_demo) stopifnot(identical(trimws(value(browser, "document.querySelector('#account').textContent")), ""))
     value(browser, "document.querySelector('#login').click()")
     wait(browser, "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")
     value(browser, sprintf(paste0("document.querySelector('#username').value='%s';",
       "document.querySelector('#password').value='%s-fixture-password';",
       "document.querySelector('#kc-login').click()"), user, user))
-    wait(browser, sprintf("Boolean(document.querySelector('#rows')?.textContent.includes('%s-visible-1'))", user))
+    prefix <- if (shared) "shared" else user
+    wait(browser, sprintf("Boolean(document.querySelector('#rows')?.textContent.includes('%s-visible-1'))", prefix))
     rows <- value(browser, "document.querySelector('#rows').textContent")
     other <- if (user == "alice") "bob" else "alice"
-    stopifnot(grepl(paste0(user, "-visible-2"), rows), !grepl(paste0(other, "-visible"), rows))
+    stopifnot(grepl(paste0(prefix, "-visible-2"), rows), !grepl(paste0(other, "-visible"), rows))
+    if (permission_demo) {
+      stopifnot(grepl(paste("Signed in as", user), value(browser, "document.querySelector('#account').textContent"), fixed = TRUE))
+      value(browser, "document.querySelector('#probe').click()")
+      wait(browser, "document.querySelector('#permission').textContent === 'Write rejected by database'")
+    }
     value(browser, "document.querySelector('#logout').click()")
     wait(browser, "Boolean(document.querySelector('#rows') && document.querySelector('#rows').textContent.trim() === '')")
-    cat(user, ": sign-in, own rows, other account excluded, sign-out clears output\n")
+    if (permission_demo) wait(browser, "document.querySelector('#account').textContent.trim() === '' && document.querySelector('#permission').textContent.trim() === ''")
+    cat(user, ": sign-in, expected data policy, sign-out clears output",
+      if (permission_demo) ", database rejects writes", "\n", sep = "")
     if (user == "bob") {
       value(browser, "document.querySelector('#stop').click()")
     }
@@ -82,7 +110,9 @@ check_demo <- function() {
   stopifnot(identical(process$get_exit_status(), 0L))
   process$get_result()
   jsonlite::write_json(list(database = database, accounts = c("alice", "bob"),
-    installed_package = TRUE, sign_in = TRUE, isolated_rows = TRUE,
+    installed_package = TRUE, sign_in = TRUE, isolated_rows = !shared,
+    data_policy = if (shared) "shared-read-only" else "per-user rows",
+    writes_denied = if (permission_demo) TRUE else NULL,
     sign_out = TRUE, stopped = TRUE), file.path(output, "result.json"), auto_unbox = TRUE, pretty = TRUE)
   cat(database, ": installed-package Docker/browser demo passed.\n")
 }

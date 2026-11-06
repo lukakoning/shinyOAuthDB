@@ -53,6 +53,7 @@
 #' })
 #' }
 #' @seealso `vignette("libsql", package = "shinyOAuthDB")`.
+#'   [oauth_db_demo()] runs a local libSQL and Keycloak example.
 #' @family platform API clients
 #' @export
 oauth_db_libsql_api <- function(

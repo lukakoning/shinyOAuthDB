@@ -18,6 +18,10 @@ ENTRYPOINT ["bash", "/usr/local/bin/demo-entrypoint.sh"]
 FROM app AS trino
 RUN Rscript -e 'install.packages("RTrino", repos="https://cloud.r-project.org"); stopifnot(requireNamespace("RTrino"))'
 
+FROM app AS duckdb
+COPY install-duckdb.R /tmp/install-duckdb.R
+RUN Rscript /tmp/install-duckdb.R
+
 FROM app AS starrocks
 RUN curl --fail --location --retry 3 \
       https://repo.mysql.com/apt/debian/pool/mysql-tools/m/mysql-connector-odbc/mysql-connector-odbc_9.5.0-1debian13_amd64.deb \

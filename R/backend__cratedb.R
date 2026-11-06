@@ -54,6 +54,7 @@
 #' })
 #' }
 #' @seealso `vignette("cratedb", package = "shinyOAuthDB")`.
+#'   [oauth_db_demo()] runs a local CrateDB and Keycloak example.
 #' @family platform API clients
 #' @export
 oauth_db_cratedb_api <- function(

@@ -1,0 +1,52 @@
+services:
+  keycloak:
+    environment:
+      KC_HTTPS_PORT: "18442"
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ./realm-extended.json:/opt/keycloak/data/import/realm.json:ro
+  engine:
+    image: crate:6.4.3@sha256:b427b7c534f0203ea61d829cbd65d58619ad0b9232465e281b39af25ad0bd71a
+    network_mode: service:keycloak
+    environment:
+      CRATE_HEAP_SIZE: 512m
+      CRATE_JAVA_OPTS: -Djavax.net.ssl.trustStore=/fixtures/tls/server.p12 -Djavax.net.ssl.trustStorePassword=fixture-keystore
+    command:
+      - -Cdiscovery.type=single-node
+      - -Cnetwork.host=127.0.0.1
+      - -Cauth.host_based.enabled=true
+      - -Cauth.host_based.config.0.user=crate
+      - -Cauth.host_based.config.0.method=trust
+      - -Cauth.host_based.config.0.protocol=http
+      - -Cauth.host_based.config.1.method=jwt
+      - -Cauth.host_based.config.1.protocol=http
+    volumes:
+      - tls:/fixtures/tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+  database:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+      target: python
+    network_mode: service:keycloak
+    command: ["python", "cratedb/server.py"]
+    volumes:
+      - .:/demo:ro
+      - tls:/fixtures/tls:ro
+    depends_on:
+      engine:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import ssl, urllib.request; urllib.request.urlopen('https://localhost:18444/health', context=ssl.create_default_context(cafile='/fixtures/tls/ca-cert.pem'), timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      start_period: 15s
+      retries: 60
+  app:
+    environment:
+      OAUTHDB_DEMO: cratedb
+    depends_on:
+      database:
+        condition: service_healthy

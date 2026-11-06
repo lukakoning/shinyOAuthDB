@@ -92,6 +92,7 @@ output$rows <- shiny::renderTable({
 \seealso{
 \code{vignette("duckdb", package = "shinyOAuthDB")} has server
 requirements, sign-in setup and a complete app.
+\code{\link[=oauth_db_demo]{oauth_db_demo()}} runs a local Quack and Keycloak example.
 
 Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},

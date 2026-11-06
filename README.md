@@ -103,8 +103,9 @@ server <- function(input, output, session) {
 shinyApp(ui, server, uiPattern = ".*")
 ```
 
-To edit and rerun this app, or try the packaged PostgREST, Trino and StarRocks
-setups, follow [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
+To edit and rerun this app, or try the packaged PostgREST, Trino, StarRocks,
+DuckDB Quack, libSQL, CrateDB and OpenSearch setups, follow
+[Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
 For your own server, follow the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
 [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html) explains the Shiny pattern.

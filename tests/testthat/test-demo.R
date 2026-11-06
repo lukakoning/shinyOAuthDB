@@ -8,7 +8,8 @@ test_that("demo files ship with the package and can be edited without Docker", {
   writeLines("# my edited app", file.path(path, "postgres", "app.R"))
   oauth_db_demo(action = "files", path = path)
   expect_identical(readLines(file.path(path, "postgres", "app.R")), "# my edited app")
-  for (backend in c("postgres", "postgrest", "trino", "starrocks")) {
+  for (backend in c("postgres", "postgrest", "trino", "starrocks",
+    "duckdb", "libsql", "cratedb", "opensearch")) {
     expect_true(file.exists(file.path(path, paste0("compose.", backend, ".yml"))))
     expect_true(file.exists(file.path(path, backend, "app.R")))
   }

@@ -20,7 +20,8 @@ the database or query engine trusts; that server enforces their permissions.
 With Docker running, use \code{\link[=oauth_db_demo]{oauth_db_demo()}} to start PostgreSQL 18,
 Keycloak and a Shiny app with demo accounts and sample data. The installed
 package includes the configuration; Docker provides R and native libraries.
-PostgREST, Trino and StarRocks demos use the same launcher.
+PostgREST, Trino, StarRocks, DuckDB Quack, libSQL, CrateDB and OpenSearch
+demos use the same launcher.
 See the \href{https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html}{local demo guide}
 for accounts, editing and cleanup.
 }

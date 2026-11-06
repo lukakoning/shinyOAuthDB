@@ -5,7 +5,8 @@
 #' no source checkout, cloud account or local database driver is needed.
 #'
 #' @param database Demo to run: `"postgres"` (the default), `"postgrest"`,
-#'   `"trino"`, or `"starrocks"`.
+#'   `"trino"`, `"starrocks"`, `"duckdb"` (Quack), `"libsql"`, `"cratedb"`,
+#'   or `"opensearch"`.
 #' @param action `"start"` runs the demo until you stop it or interrupt R.
 #'   `"stop"` removes its containers and data, including after a forced exit.
 #'   `"files"` copies the configuration without starting Docker.
@@ -22,6 +23,9 @@
 #' from GitHub. PostgreSQL also compiles its native OAuth runtime. Allow
 #' several minutes and a few GB of disk space. StarRocks uses amd64 images
 #' and needs about 4 GB of Docker memory; other architectures need emulation.
+#' DuckDB installs a matching R client and Quack extensions; the client
+#' compiles from source if a Linux binary isn't available.
+#' OpenSearch needs about 2 GB of Docker memory for its database container.
 #'
 #' Open `http://localhost:18100` and sign in as `alice` with password
 #' `alice-fixture-password`, or `bob` with password `bob-fixture-password`.
@@ -43,14 +47,20 @@
 #' oauth_db_demo("postgrest")
 #' oauth_db_demo("trino")
 #' oauth_db_demo("starrocks")
+#' oauth_db_demo("duckdb")
+#' oauth_db_demo("libsql")
+#' oauth_db_demo("cratedb")
+#' oauth_db_demo("opensearch")
 #' oauth_db_demo(action = "stop")
 #' path <- oauth_db_demo(action = "files")
 #' }
 #' @seealso [oauth_db_postgres()], [oauth_db_postgrest_api()],
-#'   [oauth_db_trino()], [oauth_db_starrocks()].
+#'   [oauth_db_trino()], [oauth_db_starrocks()], [oauth_db_duckdb()],
+#'   [oauth_db_libsql_api()], [oauth_db_cratedb_api()], [oauth_db_opensearch_api()].
 #' @export
 oauth_db_demo <- function(
-  database = c("postgres", "postgrest", "trino", "starrocks"),
+  database = c("postgres", "postgrest", "trino", "starrocks",
+    "duckdb", "libsql", "cratedb", "opensearch"),
   action = c("start", "stop", "files"), path = NULL,
   launch_browser = interactive(), build = TRUE
 ) {

@@ -17,6 +17,25 @@ Use `oauth_db_opensearch_api()` to search OpenSearch with each Shiny visitor's
 current OAuth access token. It supports Query DSL, aggregations and the SQL
 plugin through HTTPS. You do not need an OpenSearch R driver or JDBC.
 
+## Try OpenSearch locally
+
+Start Docker and run:
+
+```{r demo}
+shinyOAuthDB::oauth_db_demo("opensearch")
+```
+
+The package starts OpenSearch 3.9.0 with its Security plugin, Keycloak and a
+Shiny app. Alice and Bob see their own documents, and **Try a write** shows
+that their roles cannot change the index. See [Local Docker demos](local-demos.html)
+for accounts and cleanup; allow at least 2 GB of Docker memory for OpenSearch.
+
+`oauth_db_demo("opensearch", action = "files")` copies the configuration.
+`opensearch/prepare.py` creates the signing-key, role and document-permission
+settings; `realm-extended.json` configures the corresponding Shiny client.
+The signing key is a startup snapshot. For rotating keys, use the OIDC
+authenticator described later in this guide.
+
 ## Settings for the example
 
 The cluster needs the Security plugin, HTTPS and bearer-token authentication.

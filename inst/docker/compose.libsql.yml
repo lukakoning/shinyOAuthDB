@@ -1,0 +1,29 @@
+services:
+  keycloak:
+    volumes:
+      - ./realm-extended.json:/opt/keycloak/data/import/realm.json:ro
+  database:
+    build:
+      context: .
+      dockerfile: python/Dockerfile
+      target: libsql
+    network_mode: service:keycloak
+    command: ["python", "libsql/server.py"]
+    volumes:
+      - .:/demo:ro
+      - tls:/fixtures/tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import ssl, urllib.request; urllib.request.urlopen('https://localhost:18444/health', context=ssl.create_default_context(cafile='/fixtures/tls/ca-cert.pem'), timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      start_period: 15s
+      retries: 60
+  app:
+    environment:
+      OAUTHDB_DEMO: libsql
+    depends_on:
+      database:
+        condition: service_healthy

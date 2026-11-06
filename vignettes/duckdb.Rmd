@@ -18,6 +18,22 @@ visitor's OAuth access token. The connection works with DBI and dbplyr.
 A local DuckDB file has no OAuth login; this helper connects to a server
 that validates tokens and enforces its own data access policy.
 
+## Try the local Quack demo
+
+With Docker running, launch the configured server and Shiny app:
+
+```{r demo}
+shinyOAuthDB::oauth_db_demo("duckdb")
+```
+
+Sign in as Alice or Bob using the [demo accounts](local-demos.html#start-a-demo).
+Both can read the shared sample table. **Try a write** demonstrates that
+the server rejects writes. Docker supplies DuckDB 1.5.4, matching Quack
+extensions, `quack_oauth` and Keycloak. It uses a prebuilt R client where
+available; compiling the client on other platforms takes longer.
+The installed `duckdb/server.py` and `realm-extended.json`
+show the validator, audience and `quack:read` scope configuration.
+
 ## Before running the app
 
 This example needs a remote Quack server that accepts OAuth tokens, plus

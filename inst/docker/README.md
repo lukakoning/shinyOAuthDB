@@ -1,7 +1,8 @@
 # Local OAuth demos
 
 From R, use `shinyOAuthDB::oauth_db_demo()` to run PostgreSQL, or choose
-`"postgrest"`, `"trino"` or `"starrocks"`. Use `action = "files"` to copy
+`"postgrest"`, `"trino"`, `"starrocks"`, `"duckdb"`, `"libsql"`, `"cratedb"`
+or `"opensearch"`. Use `action = "files"` to copy
 this directory without starting Docker.
 
 | File | Purpose |
@@ -9,6 +10,7 @@ this directory without starting Docker.
 | `compose.yml` | Shared Keycloak, certificates and Shiny runtime |
 | `compose.<database>.yml` | The selected database and its dependencies |
 | `realm.json` | Demo accounts, app registration, token claims and audiences |
+| `realm-extended.json` | Additional database clients, Ed25519 signing and database claims |
 | `<database>/app.R` | The small Shiny app you can edit |
 | `install.R` | Pinned R package sources used in the app containers |
 

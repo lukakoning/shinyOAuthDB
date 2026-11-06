@@ -55,6 +55,7 @@
 #' })
 #' }
 #' @seealso `vignette("opensearch", package = "shinyOAuthDB")`.
+#'   [oauth_db_demo()] runs a local OpenSearch and Keycloak example.
 #' @family platform API clients
 #' @export
 oauth_db_opensearch_api <- function(

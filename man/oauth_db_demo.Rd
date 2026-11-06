@@ -5,7 +5,8 @@
 \title{Run a local database OAuth demo}
 \usage{
 oauth_db_demo(
-  database = c("postgres", "postgrest", "trino", "starrocks"),
+  database = c("postgres", "postgrest", "trino", "starrocks", "duckdb", "libsql",
+    "cratedb", "opensearch"),
   action = c("start", "stop", "files"),
   path = NULL,
   launch_browser = interactive(),
@@ -14,7 +15,8 @@ oauth_db_demo(
 }
 \arguments{
 \item{database}{Demo to run: \code{"postgres"} (the default), \code{"postgrest"},
-\code{"trino"}, or \code{"starrocks"}.}
+\code{"trino"}, \code{"starrocks"}, \code{"duckdb"} (Quack), \code{"libsql"}, \code{"cratedb"},
+or \code{"opensearch"}.}
 
 \item{action}{\code{"start"} runs the demo until you stop it or interrupt R.
 \code{"stop"} removes its containers and data, including after a forced exit.
@@ -43,6 +45,9 @@ The first build downloads images, R packages and pinned package sources
 from GitHub. PostgreSQL also compiles its native OAuth runtime. Allow
 several minutes and a few GB of disk space. StarRocks uses amd64 images
 and needs about 4 GB of Docker memory; other architectures need emulation.
+DuckDB installs a matching R client and Quack extensions; the client
+compiles from source if a Linux binary isn't available.
+OpenSearch needs about 2 GB of Docker memory for its database container.
 
 Open \verb{http://localhost:18100} and sign in as \code{alice} with password
 \code{alice-fixture-password}, or \code{bob} with password \code{bob-fixture-password}.
@@ -65,11 +70,16 @@ oauth_db_demo()
 oauth_db_demo("postgrest")
 oauth_db_demo("trino")
 oauth_db_demo("starrocks")
+oauth_db_demo("duckdb")
+oauth_db_demo("libsql")
+oauth_db_demo("cratedb")
+oauth_db_demo("opensearch")
 oauth_db_demo(action = "stop")
 path <- oauth_db_demo(action = "files")
 }
 }
 \seealso{
 \code{\link[=oauth_db_postgres]{oauth_db_postgres()}}, \code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}, \code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}}.
+\code{\link[=oauth_db_trino]{oauth_db_trino()}}, \code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}}, \code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
+\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}}, \code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}}, \code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}}.
 }
