@@ -11,11 +11,82 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
+OpenSearch is an open-source search and analytics engine. It stores
+documents in indexes and can search them or query them with its SQL plugin.
 Use `oauth_db_opensearch_api()` to search OpenSearch with each Shiny visitor's
 current OAuth access token. It supports Query DSL, aggregations and the SQL
 plugin through HTTPS. You do not need an OpenSearch R driver or JDBC.
 
-## Configure OpenSearch authentication
+## Settings for the example
+
+The cluster needs the Security plugin, HTTPS and bearer-token authentication.
+Its OIDC/JWT and role configuration follow the app example.
+
+| Setting | Where to get it |
+| --- | --- |
+| `url` | The cluster's HTTPS API endpoint, rather than the Dashboards page |
+| Index, such as `orders` | OpenSearch Dashboards' index list or your administrator |
+| Issuer, client ID, secret | The [Shiny registration](oauth-setup.html) with the cluster's trusted provider |
+| `search.read` | The example API scope; define it in your provider or use your deployment's scope |
+
+Save `OAUTHDB_OPENSEARCH_ISSUER`, `OAUTHDB_CLIENT_ID` and
+`OAUTHDB_CLIENT_SECRET` in `.Renviron`, then restart R. AWS endpoints that
+require SigV4 need a different client.
+
+## A complete app
+
+Replace the cluster URL and index name. This example assumes the provider
+exposes a `search.read` scope; use your own registration's scopes.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_OPENSEARCH_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "search.read")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  verbatimTextOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  search <- oauth_db_opensearch_api(
+    auth$connection, url = "https://search.example.org",
+    required_scopes = "search.read"
+  )
+  output$rows <- renderPrint({
+    result <- search$search("orders", body = list(
+      size = 20L, query = list(term = list(country = "NL"))
+    ))
+    result$hits
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)`. The app waits for sign-in before making
+requests and clears the output on sign-out. If your provider requires a
+resource parameter or named token target, configure it in shinyOAuth and
+pass the target name to the helper's `target` argument.
+
+
+## Configure cluster authentication and permissions
 
 Enable the Security plugin and configure its
 [OpenID Connect authentication](https://docs.opensearch.org/latest/security/authentication-backends/openid-connect/)
@@ -79,57 +150,6 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 OAUTHDB_OPENSEARCH_ISSUER=https://login.example.org/realms/reporting
 ```
 
-## A complete app
-
-Replace the cluster URL and index name. This example assumes the provider
-exposes a `search.read` scope; use your own registration's scopes.
-
-```{r app}
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-provider <- oauth_provider_oidc_discover(
-  issuer = Sys.getenv("OAUTHDB_OPENSEARCH_ISSUER")
-)
-client <- oauth_client(
-  provider,
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100",
-  scopes = c("openid", "search.read")
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  verbatimTextOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  search <- oauth_db_opensearch_api(
-    auth$connection, url = "https://search.example.org",
-    required_scopes = "search.read"
-  )
-  output$rows <- renderPrint({
-    result <- search$search("orders", body = list(
-      size = 20L, query = list(term = list(country = "NL"))
-    ))
-    result$hits
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before making
-requests and clears the output on sign-out. If your provider requires a
-resource parameter or named token target, configure it in shinyOAuth and
-pass the target name to the helper's `target` argument.
 
 ## Search results and aggregations
 

@@ -11,7 +11,8 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Add Snowflake data to a Shiny app using each visitor's own account and role.
+Snowflake is a hosted SQL data platform. A warehouse supplies the compute
+for queries; database roles control access. Add Snowflake data to a Shiny app using each visitor's own account and role.
 Query through a DBI connection, or use dbplyr to work with tables.
 
 The example first shows the signed-in user's Snowflake username and role,
@@ -19,7 +20,9 @@ so you can check the connection before querying your data.
 
 ## Snowflake setup
 
-Install `odbc` and the Snowflake ODBC driver. Ask your administrator for a
+In R, run `install.packages("odbc")`, then install the
+[Snowflake ODBC driver](https://docs.snowflake.com/en/developer-guide/odbc/odbc)
+for your operating system. Ask your administrator for a
 [custom-client OAuth integration](https://docs.snowflake.com/en/user-guide/oauth-custom)
 with `http://localhost:8100` as its redirect URI. Users need a role with
 access to the warehouse and data.
@@ -36,6 +39,16 @@ then restart R:
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
+
+| Setting | Where to get it |
+| --- | --- |
+| `server` | Your account's connection details; use its `.snowflakecomputing.com` hostname |
+| `warehouse`, `database`, `role` | Names your Snowflake administrator grants to the users |
+| Client ID and secret | The custom-client security integration, shown below |
+
+If the integration doesn't exist yet, follow **Create the OAuth integration**
+after the app example. Snowflake runs as a cloud service; this guide needs
+an account rather than a Docker container.
 
 ## A complete app
 
@@ -86,6 +99,32 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Run `shiny::runApp(port = 8100)` from the app directory and open
 `http://localhost:8100`. Sign in to run the query; signing out clears the
 output.
+
+## Create the OAuth integration
+
+A Snowflake administrator can run this in a SQL worksheet to register a
+local development app:
+
+```sql
+CREATE SECURITY INTEGRATION shiny_reporting
+  TYPE = OAUTH
+  ENABLED = TRUE
+  OAUTH_CLIENT = CUSTOM
+  OAUTH_CLIENT_TYPE = 'CONFIDENTIAL'
+  OAUTH_REDIRECT_URI = 'http://localhost:8100'
+  OAUTH_ALLOW_NON_TLS_REDIRECT_URI = TRUE
+  OAUTH_ENFORCE_PKCE = TRUE
+  OAUTH_ISSUE_REFRESH_TOKENS = TRUE;
+
+SELECT SYSTEM$SHOW_OAUTH_CLIENT_SECRETS('SHINY_REPORTING');
+```
+
+Copy `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` into `.Renviron` as
+`OAUTHDB_CLIENT_ID` and `OAUTHDB_CLIENT_SECRET`. The integration registers
+the app; grant users the reporting role and that role's warehouse/table
+permissions separately. Use HTTPS and disable the non-TLS redirect exception
+when deploying. Snowflake's [custom-client guide](https://docs.snowflake.com/en/user-guide/oauth-custom)
+covers integration privileges and role restrictions.
 
 ## Query a table
 

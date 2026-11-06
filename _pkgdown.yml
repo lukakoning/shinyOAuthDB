@@ -1,0 +1,49 @@
+url: https://lukakoning.github.io/shinyOAuthDB/
+destination: _site
+template:
+  bootstrap: 5
+home:
+  title: Query data in Shiny with each visitor's account
+navbar:
+  structure:
+    left: [intro, articles, reference]
+    right: [search, github]
+  components:
+    intro:
+      text: Start here
+      href: articles/getting-started.html
+    articles:
+      text: Guides
+      menu:
+        - text: Local Docker demos
+          href: articles/local-demos.html
+        - text: OAuth setup
+          href: articles/oauth-setup.html
+        - text: Authentication and sessions
+          href: articles/authorization.html
+        - text: All database guides
+          href: articles/index.html
+articles:
+  - title: Start here
+    contents: [getting-started, local-demos, oauth-setup, authorization]
+  - title: Self-hosted databases and APIs
+    contents: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch]
+  - title: Cloud platforms
+    contents: [fabric, databricks, snowflake, bigquery, azure-sql, azure-postgres, redshift, clickhouse]
+reference:
+  - title: Local demos
+    contents: oauth_db_demo
+  - title: Database connections
+    contents: [oauth_db_postgres, oauth_db_azure_postgres, oauth_db_azure_sql, oauth_db_sql_server,
+      oauth_db_fabric_sql, oauth_db_databricks, oauth_db_snowflake, oauth_db_redshift,
+      oauth_db_trino, oauth_db_starrocks, oauth_db_duckdb, oauth_db_connect]
+  - title: API clients
+    contents: [oauth_db_bigquery_api, oauth_db_clickhouse_api, oauth_db_cratedb_api,
+      oauth_db_databricks_api, oauth_db_fabric_api, oauth_db_libsql_api,
+      oauth_db_opensearch_api, oauth_db_postgrest_api]
+  - title: Sign-in clients and providers
+    contents: [oauth_db_microsoft_client, oauth_db_bigquery_client,
+      oauth_db_databricks_client, oauth_db_databricks_provider,
+      oauth_db_snowflake_client, oauth_db_snowflake_provider]
+  - title: Credentials and package help
+    contents: [oauth_db_fabric, oauth_db_token, shinyOAuthDB-package]

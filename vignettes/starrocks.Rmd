@@ -7,36 +7,35 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-Query StarRocks with DBI or dbplyr using each visitor's JWT access token.
+StarRocks is an open-source SQL engine for analytics. Query StarRocks with DBI or dbplyr using each visitor's JWT access token.
 The connection uses StarRocks's MySQL protocol and MySQL Connector/ODBC's
 OpenID Connect client plugin.
 
-## Server and driver requirements
+## Try the local demo
 
-Use StarRocks 3.5 or later with JWT authentication. Configure a trusted
-JWKS, the exact issuer and audience, and a principal claim that maps to
-the StarRocks username. Grant the user or group its database privileges.
-See [JWT authentication](https://docs.starrocks.io/docs/administration/user_privs/authentication/jwt_authentication/)
-and [security integrations](https://docs.starrocks.io/docs/administration/user_privs/authentication/security_integration/).
+With Docker running, `shinyOAuthDB::oauth_db_demo("starrocks")` starts a
+configured server, Keycloak and an app with Alice and Bob's accounts.
+See [Local Docker demos](local-demos.html) for credentials and cleanup.
+StarRocks uses amd64 images and needs about 4 GB of Docker memory.
 
-Install the R package `odbc` and MySQL Connector/ODBC 9.2 or later, including
-its `authentication_openid_connect_client` plugin. A MariaDB driver or an
-older MySQL driver is not sufficient. List installed driver names with
-`odbc::odbcListDrivers()` and pass the registered name as `driver`.
-On Unix, a driver library path may also be accepted by the driver manager.
-Windows requires the driver to be installed and registered.
-Set `plugin_dir` if the driver cannot find its installed authentication
-plugins. See MySQL's [authentication options](https://dev.mysql.com/doc/connector-odbc/en/connector-odbc-configuration-authentication.html).
+## Values for your own server
 
-Enable TLS for the StarRocks MySQL endpoint. The helper requires server
-identity verification; supply `ssl_ca` for a private CA. Use the hostname
-in the server certificate. The default query port is 9030.
+Run `install.packages("odbc")` in R, then install
+[MySQL Connector/ODBC](https://dev.mysql.com/doc/connector-odbc/en/connector-odbc-installation.html)
+9.2 or later with its OpenID Connect plugin. Your StarRocks 3.5+ server must accept JWT access tokens; the detailed
+server setup follows the app.
 
-The helper uses the visitor's **access token** from shinyOAuth. Configure
-the provider and StarRocks to accept that JWT with its issuer, audience,
-and principal claim. A provider that issues only opaque access tokens,
-or an integration that accepts only that provider's ID tokens, needs a
-different provider configuration before using this helper.
+| Setting | Where to get it |
+| --- | --- |
+| `OAUTHDB_STARROCKS_SERVER` | The cluster's MySQL endpoint hostname; the default port is 9030 |
+| `database` | The StarRocks database your users can query |
+| `OAUTHDB_STARROCKS_DRIVER` | The registered driver name from `odbc::odbcListDrivers()` |
+| `OAUTHDB_STARROCKS_SSL_CA` | The CA certificate for that endpoint |
+| Issuer, client ID, secret | Your [OIDC app registration](oauth-setup.html#use-keycloak-with-a-self-hosted-database) |
+
+Save the `OAUTHDB_*` values in `.Renviron` and restart R. The app requests
+the database username from the login; configure the matching principal
+claim on StarRocks.
 
 ## Complete Shiny app
 
@@ -98,6 +97,35 @@ Save this as `app.R`, replace the database and claim mapping, and run
 `shiny::runApp(port = 8100)`. Use `target` when your shinyOAuth client
 contains named token targets. No separate browser authentication is
 performed by the database driver.
+
+
+## Configure server authentication and the driver
+
+Use StarRocks 3.5 or later with JWT authentication. Configure a trusted
+JWKS, the exact issuer and audience, and a principal claim that maps to
+the StarRocks username. Grant the user or group its database privileges.
+See [JWT authentication](https://docs.starrocks.io/docs/administration/user_privs/authentication/jwt_authentication/)
+and [security integrations](https://docs.starrocks.io/docs/administration/user_privs/authentication/security_integration/).
+
+Install the R package `odbc` and MySQL Connector/ODBC 9.2 or later, including
+its `authentication_openid_connect_client` plugin. A MariaDB driver or an
+older MySQL driver is not sufficient. List installed driver names with
+`odbc::odbcListDrivers()` and pass the registered name as `driver`.
+On Unix, a driver library path may also be accepted by the driver manager.
+Windows requires the driver to be installed and registered.
+Set `plugin_dir` if the driver cannot find its installed authentication
+plugins. See MySQL's [authentication options](https://dev.mysql.com/doc/connector-odbc/en/connector-odbc-configuration-authentication.html).
+
+Enable TLS for the StarRocks MySQL endpoint. The helper requires server
+identity verification; supply `ssl_ca` for a private CA. Use the hostname
+in the server certificate. The default query port is 9030.
+
+The helper uses the visitor's **access token** from shinyOAuth. Configure
+the provider and StarRocks to accept that JWT with its issuer, audience,
+and principal claim. A provider that issues only opaque access tokens,
+or an integration that accepts only that provider's ID tokens, needs a
+different provider configuration before using this helper.
+
 
 ## Connection lifetime and queries
 

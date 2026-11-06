@@ -17,21 +17,21 @@ the database or query engine trusts; that server enforces their permissions.
 }
 \section{Try a self-hosted database locally}{
 
-The \href{https://github.com/lukakoning/shinyOAuthDB/blob/main/playground/postgres/README.md}{PostgreSQL Docker playground}
-runs PostgreSQL 18, Keycloak and a Shiny app with demo accounts and data.
-Docker provides the R packages and native libraries. The
-\href{https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak}{configuration files}
-are available in the source repository.
-See \code{vignette("postgres", package = "shinyOAuthDB")} for downloads,
-launch commands and your own server setup, or \code{\link[=oauth_db_postgres]{oauth_db_postgres()}} for
-the connection helper. \code{vignette("trino", package = "shinyOAuthDB")}
-covers self-hosted Trino and Starburst Enterprise.
+With Docker running, use \code{\link[=oauth_db_demo]{oauth_db_demo()}} to start PostgreSQL 18,
+Keycloak and a Shiny app with demo accounts and sample data. The installed
+package includes the configuration; Docker provides R and native libraries.
+PostgREST, Trino and StarRocks demos use the same launcher.
+See the \href{https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html}{local demo guide}
+for accounts, editing and cleanup.
 }
 
 \section{Start with your source}{
 
 \code{vignette("getting-started", package = "shinyOAuthDB")} links to a guide
 for each source. Each includes sign-in setup and a complete Shiny app.
+Read the guides on the
+\href{https://lukakoning.github.io/shinyOAuthDB/articles/index.html}{documentation website},
+or install with \code{build_vignettes = TRUE} for local \code{vignette()} help.
 For example, use \code{vignette("snowflake", package = "shinyOAuthDB")} for
 Snowflake or \code{vignette("fabric", package = "shinyOAuthDB")} for Fabric.
 }
@@ -64,6 +64,7 @@ permissions, multiple accounts, and saved query results.
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://lukakoning.github.io/shinyOAuthDB/}
   \item \url{https://github.com/lukakoning/shinyOAuthDB}
   \item Report bugs at \url{https://github.com/lukakoning/shinyOAuthDB/issues}
 }

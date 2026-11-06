@@ -1,5 +1,35 @@
 # Validation record
 
+## 6 November 2026: packaged demos and documentation website
+
+The README now contains one PostgreSQL app. All database guides explain
+connection values and sign-in setup, with shared OAuth and local demo guides.
+The installed package supplies Docker contexts for PostgreSQL, PostgREST,
+Trino and StarRocks through `oauth_db_demo()`.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 3,838 assertions across 254 scenarios; zero failures, errors, warnings or skips |
+| Final focused launcher and documentation-app tests | 182 assertions pass after the launcher follow-up |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes |
+| Installed-package Docker demos | PostgreSQL, PostgREST, Trino and StarRocks pass real browser sign-in for Alice and Bob, separate row access, blank outputs before login and after sign-out, and stop-button cleanup |
+| Documentation checker | 73 R blocks parse; 171 local links and 15 section anchors resolve |
+| pkgdown | Website builds with all 20 articles and the function reference; every README website target exists in the output |
+| README and Docker contexts | The single README app matches the packaged PostgreSQL app; all four Compose configurations resolve their bind mounts |
+| New GitHub workflows | actionlint 1.7.12 passes |
+
+The demo checks install the current package into a temporary library and
+launch it outside the source checkout, using paths containing spaces.
+Docker Desktop runs Linux containers on Windows; Chrome completes the real
+Keycloak login. App containers install the pinned package API revisions in
+`inst/docker/install.R`. No cloud services or production credentials are used.
+Other host operating systems and ARM emulation were not tested locally.
+
+The website builds into ignored `_site/`, preserving the contributor notes
+in `docs/`. The new workflow can deploy after the commit is pushed and
+GitHub Pages uses **GitHub Actions** as its publishing source. Remote
+deployment has not run. Results remain under ignored `.validation/`.
+
 ## 4 November 2026: lifecycle and adapter follow-up
 
 Added 291 assertions covering malformed authorization identities and methods,

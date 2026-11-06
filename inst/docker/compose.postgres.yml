@@ -1,0 +1,29 @@
+services:
+  database:
+    build:
+      context: .
+      dockerfile: postgres/Dockerfile
+      target: postgres
+    network_mode: service:keycloak
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - tls:/fixture-tls:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/postgres-healthcheck.sh"]
+      interval: 3s
+      timeout: 5s
+      retries: 60
+  app:
+    build:
+      dockerfile: postgres/Dockerfile
+      target: app
+    environment:
+      OAUTHDB_DEMO: postgres
+    depends_on:
+      database:
+        condition: service_healthy
+volumes:
+  postgres:

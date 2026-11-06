@@ -1,4 +1,6 @@
 ^docs$
+^_site$
+^_pkgdown\.yml$
 ^playground$
 ^tools$
 ^integration$

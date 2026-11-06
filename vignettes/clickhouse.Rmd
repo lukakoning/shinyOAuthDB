@@ -7,32 +7,26 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-Run SQL against a JWT-enabled ClickHouse service using each visitor's
+ClickHouse is a SQL database for analytics. This guide uses a service
+configured to accept OAuth JWT access tokens. Run SQL against a JWT-enabled ClickHouse service using each visitor's
 account. The client uses ClickHouse's HTTPS interface and returns data
 frames without an ODBC or native ClickHouse driver.
 
-## Enable database JWT authentication
+## Prepare a JWT-enabled service
 
-Custom identity providers currently require **ClickHouse Cloud Enterprise**
-and service version 26.4 or later, or 26.8 for EC signing keys. Configure
-the trusted issuer, audience, and public HTTPS JWKS endpoint in the
-service's JWT authentication settings. Map the provider's roles claim to
-roles that exist in ClickHouse, and grant those roles the required database
-permissions. See [JWT authentication and availability](https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud).
+Custom identity providers need a qualifying **ClickHouse Cloud Enterprise**
+service. An ordinary ClickHouse Docker container doesn't supply this
+authentication feature. The service configuration follows the app.
 
-Use the database's HTTPS query endpoint, commonly port 8443. A Cloud
-management API key, database password, or the fact that a server speaks
-ClickHouse SQL does not establish JWT database authentication. This helper
-requires a deployment that accepts the visitor's bearer access token.
+| Setting | Where to find it |
+| --- | --- |
+| `OAUTHDB_CLICKHOUSE_URL` | Your service's **Connect** dialog, HTTPS endpoint, commonly port 8443 |
+| `OAUTHDB_CLICKHOUSE_ISSUER` | The issuer trusted by the service's JWT settings |
+| Client ID and secret | Your [Shiny registration](oauth-setup.html) with that identity provider |
+| Database roles | Existing ClickHouse roles mapped from the token's role claims |
 
-Register your Shiny app with the trusted identity provider, using
-`http://localhost:8100` for the local redirect URI. Configure the audience,
-scopes, and role claims that ClickHouse expects. The example assumes the
-provider issues the intended JWT access token through its normal
-authorization-code flow; it does not invoke `clickhouse-client --login`.
-
-Set `OAUTHDB_CLICKHOUSE_ISSUER`, `OAUTHDB_CLICKHOUSE_URL`,
-`OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET` in your environment.
+Save the `OAUTHDB_*` values in `.Renviron` and restart R. You need no
+additional R database driver.
 
 ## Complete Shiny app
 
@@ -78,6 +72,31 @@ Save the example as `app.R` and run `shiny::runApp(port = 8100)`.
 Set `database` when creating the API client to choose a default database.
 Use `target` for a named shinyOAuth token target, and `ca_bundle` for a
 private certificate authority supported by your curl TLS backend.
+
+
+## Enable service JWT authentication
+
+Custom identity providers currently require **ClickHouse Cloud Enterprise**
+and service version 26.4 or later, or 26.8 for EC signing keys. Configure
+the trusted issuer, audience, and public HTTPS JWKS endpoint in the
+service's JWT authentication settings. Map the provider's roles claim to
+roles that exist in ClickHouse, and grant those roles the required database
+permissions. See [JWT authentication and availability](https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud).
+
+Use the database's HTTPS query endpoint, commonly port 8443. A Cloud
+management API key, database password, or the fact that a server speaks
+ClickHouse SQL does not establish JWT database authentication. This helper
+requires a deployment that accepts the visitor's bearer access token.
+
+Register your Shiny app with the trusted identity provider, using
+`http://localhost:8100` for the local redirect URI. Configure the audience,
+scopes, and role claims that ClickHouse expects. The example assumes the
+provider issues the intended JWT access token through its normal
+authorization-code flow; it does not invoke `clickhouse-client --login`.
+
+Set `OAUTHDB_CLICKHOUSE_ISSUER`, `OAUTHDB_CLICKHOUSE_URL`,
+`OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET` in your environment.
+
 
 ## Native typed parameters
 

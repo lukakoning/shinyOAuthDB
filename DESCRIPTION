@@ -18,7 +18,7 @@ Description: Query databases and data platforms in Shiny using each visitor's
     Searches OpenSearch
     indexes and runs its SQL plugin queries using each visitor's bearer token.
 License: MIT + file LICENSE
-URL: https://github.com/lukakoning/shinyOAuthDB
+URL: https://lukakoning.github.io/shinyOAuthDB/, https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)

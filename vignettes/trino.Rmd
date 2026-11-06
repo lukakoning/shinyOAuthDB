@@ -11,19 +11,21 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use a self-hosted Trino cluster or Starburst Enterprise as a data source for Shiny.
+Trino is an open-source SQL query engine that connects to other data
+stores. Starburst Enterprise builds on Trino. Use a self-hosted Trino cluster or Starburst Enterprise as a data source for Shiny.
 People sign in with the cluster's identity provider and query using their
 own database permissions.
 
 You can run Trino and its trusted OAuth identity provider on your own
-infrastructure. For a ready-made local Docker example with PostgreSQL and
-Keycloak, see the [self-hosted PostgreSQL guide](postgres.html#try-the-docker-playground).
+infrastructure. The installed package includes a local Trino and Keycloak
+demo, described below.
 
 The connection uses RTrino, so you can write queries with DBI or dbplyr.
 
 ## Set up sign-in
 
-Install `RTrino` 0.1.0 or later. Ask the cluster administrator for an OAuth
+Run `install.packages("RTrino")` in R (version 0.1.0 or later).
+Ask the cluster administrator for an OAuth
 app registration the cluster accepts, with `http://localhost:8100` as its
 redirect URI.
 
@@ -38,6 +40,21 @@ OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 OAUTHDB_TRINO_ISSUER=https://your-identity-provider.example.org
 ```
+
+Try `shinyOAuthDB::oauth_db_demo("trino")` for a local cluster, sign-in and
+sample data. See [Local Docker demos](local-demos.html) for accounts and cleanup.
+
+| Setting | Where to get it |
+| --- | --- |
+| `host` | The coordinator's HTTPS URL and port from your cluster administrator |
+| `catalog` | The data source name shown by Trino's `SHOW CATALOGS` |
+| `schema` | A schema listed by `SHOW SCHEMAS FROM your_catalog` |
+| Issuer, client ID, secret | The cluster's trusted provider and your [Shiny client registration](oauth-setup.html) |
+| User field | The profile claim selected by the cluster's principal mapping |
+
+Ask the administrator to check OAuth and impersonation rules as described
+after the app example. A cluster's own Web UI registration may have a
+different audience from the Shiny app.
 
 ## A complete app
 
@@ -94,6 +111,31 @@ output.
 The query shows the Trino user. Replace it with SQL for your data.
 `con()` returns the DBI connection; call it inside the render or reactive
 expression before using DBI or dbplyr.
+
+## Prepare the coordinator and identity provider
+
+The local demo contains `trino/etc/config.properties` and an access-control
+policy you can inspect with `oauth_db_demo("trino", action = "files")`.
+For your coordinator, configure HTTPS and its OAuth provider. The relevant
+settings include:
+
+```text
+http-server.authentication.type=oauth2
+http-server.authentication.oauth2.issuer=https://login.example.org/realms/reporting
+http-server.authentication.oauth2.client-id=your-coordinator-client
+http-server.authentication.oauth2.client-secret=your-coordinator-secret
+http-server.authentication.oauth2.additional-audiences=your-shiny-api-audience
+http-server.authentication.oauth2.principal-field=email
+```
+
+The coordinator's OAuth client is separate from the app's registration.
+Both must agree on the access-token issuer and accepted audience. The app
+uses the profile email for `user`; change both sides if your deployment
+uses a different claim. With locally verifiable JWTs, check whether
+`http-server.authentication.oauth2.oidc.use-userinfo-endpoint=false` is
+appropriate for your issuer. See [Trino OAuth configuration](https://trino.io/docs/current/security/oauth2).
+Configure access control to restrict impersonation, catalogs and tables;
+authentication alone doesn't define data permissions.
 
 ## Connection settings
 

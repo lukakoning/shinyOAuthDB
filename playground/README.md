@@ -18,9 +18,11 @@ the table. This uses local SQLite data and makes no OAuth requests.
 
 ## Connect to your platform
 
-For a local PostgreSQL server with real Keycloak sign-in, run
-`source("playground/postgres/run.R")` from the checkout root. Docker supplies
-the database and app; see the [PostgreSQL playground](postgres/README.md).
+For a local database with real Keycloak sign-in, run
+`shinyOAuthDB::oauth_db_demo()` from any directory. The installed package
+supplies the app and Docker configuration. The same command accepts
+`"postgrest"`, `"trino"` or `"starrocks"`; see
+[Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
 
 Follow [your source guide](../vignettes/getting-started.Rmd#choose-your-source)
 to install the client and driver and register the OAuth app. Users need

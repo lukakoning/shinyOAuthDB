@@ -11,12 +11,87 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
+DuckDB is an open-source analytical SQL database, often used inside R.
+Here it runs as a remote server through Quack, DuckDB's network protocol.
 Use `oauth_db_duckdb()` to query a remote DuckDB Quack server with each
 visitor's OAuth access token. The connection works with DBI and dbplyr.
 A local DuckDB file has no OAuth login; this helper connects to a server
 that validates tokens and enforces its own data access policy.
 
-## Prepare the server and client
+## Before running the app
+
+This example needs a remote Quack server that accepts OAuth tokens, plus
+R's `duckdb` package (1.5.3 or later) with matching `quack` and `httpfs`
+extensions. The server and extension setup follows the app.
+
+| Setting | Where to get it |
+| --- | --- |
+| `host`, `port` | The remote Quack server or its TLS proxy; the example uses HTTPS port 443 |
+| Table name | A table in the remote catalog you are allowed to read |
+| Issuer, client ID, secret | An [OAuth registration](oauth-setup.html) with the server's trusted provider |
+| `quack:read` | The default quack_oauth read scope; your provider must issue it |
+| `ca_bundle`, if needed | The CA for a privately signed server certificate |
+
+Set `OAUTHDB_DUCKDB_ISSUER`, `OAUTHDB_CLIENT_ID` and `OAUTHDB_CLIENT_SECRET`
+in `.Renviron`, then restart R. A local `.duckdb` file has no user sign-in.
+
+## A complete app
+
+Replace the hostname, port and table name for your deployment. This example
+uses port 443 for a TLS proxy; Quack's default port is 9494.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_DUCKDB_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "quack:read")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_duckdb(
+    auth$connection, host = "duckdb.example.org", port = 443,
+    required_scopes = "quack:read"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT * FROM orders LIMIT 20")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)`. The app waits for sign-in before connecting
+and clears the output on sign-out. Get a connection inside each render or
+reactive expression before running queries.
+
+For dbplyr, use `dplyr::tbl(con(), "orders")`. The helper attaches the remote
+catalog as `oauth_remote` and selects its `main` schema. Pass `schema` to
+select another remote schema. Table queries use the attached catalog;
+standalone expressions such as `SELECT current_user` can run locally and
+do not prove which remote principal the server authenticated.
+
+
+## Install extensions and prepare the server
 
 Use compatible DuckDB and Quack versions on both sides. The R client needs
 `duckdb` 1.5.3 or later and its matching `quack` and `httpfs` extensions. Quack's interface
@@ -78,60 +153,6 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 OAUTHDB_DUCKDB_ISSUER=https://login.example.org/realms/reporting
 ```
 
-## A complete app
-
-Replace the hostname, port and table name for your deployment. This example
-uses port 443 for a TLS proxy; Quack's default port is 9494.
-
-```{r app}
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-provider <- oauth_provider_oidc_discover(
-  issuer = Sys.getenv("OAUTHDB_DUCKDB_ISSUER")
-)
-client <- oauth_client(
-  provider,
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100",
-  scopes = c("openid", "quack:read")
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  con <- oauth_db_duckdb(
-    auth$connection, host = "duckdb.example.org", port = 443,
-    required_scopes = "quack:read"
-  )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT * FROM orders LIMIT 20")
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before connecting
-and clears the output on sign-out. Get a connection inside each render or
-reactive expression before running queries.
-
-For dbplyr, use `dplyr::tbl(con(), "orders")`. The helper attaches the remote
-catalog as `oauth_remote` and selects its `main` schema. Pass `schema` to
-select another remote schema. Table queries use the attached catalog;
-standalone expressions such as `SELECT current_user` can run locally and
-do not prove which remote principal the server authenticated.
 
 ## Connection lifetime
 

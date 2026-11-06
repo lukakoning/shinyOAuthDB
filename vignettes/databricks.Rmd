@@ -11,7 +11,8 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Query a Databricks SQL warehouse from Shiny using each visitor's Databricks
+Databricks is a hosted data and analytics platform. Its SQL warehouses run
+queries against your tables. Query a Databricks SQL warehouse from Shiny using each visitor's Databricks
 account. `oauth_db_databricks()` gives you a DBI connection for SQL or
 dbplyr queries.
 
@@ -20,7 +21,7 @@ listing and query submission.
 
 ## Register the app
 
-Install `brickster` and ask your administrator to
+In R, run `install.packages("brickster")` and ask your administrator to
 [register a Databricks OAuth application](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth)
 with a client secret and `http://localhost:8100` as its redirect URI.
 Allow the scopes requested by the preset, including `all-apis` and
@@ -32,6 +33,23 @@ Save the client ID and secret in a local `.Renviron` file and restart R:
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
+
+In the Databricks **account console**, an administrator opens **Settings >
+App connections > Add connection**. Register `http://localhost:8100`, allow
+**All APIs** for this preset and generate a client secret. Copy the ID and
+secret from the result; the secret can't be retrieved later. These are
+[custom OAuth connections](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth),
+separate from service-principal machine credentials.
+
+| App value | Where to find it |
+| --- | --- |
+| `host` | Your workspace browser address, e.g. `example.cloud.databricks.com` |
+| `warehouse_id` | Workspace **SQL Warehouses > your warehouse > Connection details**; also the last part of its HTTP path |
+| Client ID and secret | The account console's custom app connection |
+
+Give users **CAN USE** on the warehouse and the appropriate catalog, schema
+and table privileges. The cloud service can't be reproduced by a local
+Docker demo.
 
 ## A complete app
 

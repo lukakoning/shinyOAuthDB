@@ -1,0 +1,53 @@
+services:
+  tls:
+    build:
+      context: .
+      target: tls
+    volumes:
+      - tls:/fixtures/tls
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.1@sha256:dea26401d06341095cc4ea9d66896200b55de5ca1daa1d2fcbe58493afa6e0ad
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: demo-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: demo-admin-password
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_MANAGEMENT_SCHEME: http
+      KC_HOSTNAME: https://localhost:18443
+      KC_HTTPS_PORT: "18443"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "18080"
+      KC_HTTPS_CERTIFICATE_FILE: /fixtures/tls/server-cert.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /fixtures/tls/server-key.pem
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "127.0.0.1:18443:18443"
+      - "127.0.0.1:18100:18100"
+    volumes:
+      - ./realm.json:/opt/keycloak/data/import/realm.json:ro
+      - tls:/fixtures/tls:ro
+    depends_on:
+      tls:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3; IFS= read -r response <&3; [[ $$response == *' 200 '* ]]"]
+      interval: 3s
+      timeout: 3s
+      start_period: 30s
+      retries: 60
+  app:
+    build:
+      context: .
+      target: app
+    network_mode: service:keycloak
+    command: ["Rscript", "run.R"]
+    volumes:
+      - .:/demo:ro
+      - tls:/fixtures/tls:ro
+    healthcheck:
+      test: ["CMD", "Rscript", "-e", "stopifnot(httr2::resp_status(httr2::req_perform(httr2::request('http://localhost:18100'))) == 200L)"]
+      interval: 3s
+      timeout: 10s
+      start_period: 15s
+      retries: 60
+volumes:
+  tls:

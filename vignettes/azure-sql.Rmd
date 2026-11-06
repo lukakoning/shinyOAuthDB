@@ -11,7 +11,8 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Let people sign in with their Microsoft account and query Azure SQL from
+Azure SQL is Microsoft's hosted SQL database; SQL Server can also run on
+your own infrastructure. Let people sign in with their Microsoft account and query Azure SQL from
 your Shiny app. Their database permissions determine which data they can see.
 
 `oauth_db_azure_sql()` provides a connection for ordinary DBI or dbplyr
@@ -19,7 +20,9 @@ queries. The app below starts by listing the tables the user can access.
 
 ## Set up access
 
-Install `odbc` and Microsoft ODBC Driver 18 for SQL Server. Your database
+In R, run `install.packages("odbc")`, then install
+[Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
+for your operating system. Your database
 administrator must [enable Microsoft Entra authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
 and give users or their groups access to the database.
 
@@ -32,6 +35,20 @@ OAUTHDB_TENANT_ID=your-tenant-id
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
+
+Follow [Microsoft app registration](oauth-setup.html#register-a-microsoft-entra-app)
+to find the IDs and secret. Add the **Azure SQL Database** delegated
+`user_impersonation` permission and obtain consent as your tenant requires.
+
+| Value in the app | Where to find it |
+| --- | --- |
+| `server` | Azure portal: SQL database overview, **Server name** |
+| `database` | The database's name in Azure, not the logical server name |
+| Tenant ID and client ID | Entra app registration overview |
+| Client secret | Registration's **Certificates & secrets**, secret **Value** |
+
+In Azure, allow the app server's IP or private network to reach SQL.
+Creating an app registration doesn't open the database firewall.
 
 ## A complete app
 
@@ -79,6 +96,22 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Run `shiny::runApp(port = 8100)` from the app directory and open
 `http://localhost:8100`. Sign in to run the query; signing out clears the
 output.
+
+## Give users database access
+
+An administrator first sets an Entra administrator on the Azure SQL logical
+server. Connect to the target database with that administrator and create
+an external user or group, then grant the intended access. For example:
+
+```sql
+CREATE USER [reporting-readers] FROM EXTERNAL PROVIDER;
+GRANT SELECT ON OBJECT::dbo.Orders TO [reporting-readers];
+```
+
+Use an existing Entra group name and your actual table. This establishes
+database permissions for its members; OAuth registration alone doesn't.
+Microsoft's [Entra configuration guide](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
+covers administrator setup and external users.
 
 ## Query with dbplyr
 

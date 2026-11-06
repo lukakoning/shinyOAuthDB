@@ -1,7 +1,7 @@
 documentation_paths <- function() {
   unique(c("README.md", "NEWS.md", "tools/README.md",
     list.files("vignettes", "\\.Rmd$", full.names = TRUE),
-    unlist(lapply(c("docs", "playground", "integration", "tests/integration"),
+    unlist(lapply(c("docs", "playground", "integration", "tests/integration", "inst/docker"),
       list.files, pattern = "\\.md$", full.names = TRUE, recursive = TRUE), use.names = FALSE)))
 }
 

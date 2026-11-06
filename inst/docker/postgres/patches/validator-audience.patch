@@ -1,0 +1,38 @@
+diff --git a/src/pg_oidc_validator.cpp b/src/pg_oidc_validator.cpp
+index 7ef0a16..7e96f2a 100644
+--- a/src/pg_oidc_validator.cpp
++++ b/src/pg_oidc_validator.cpp
+@@ -36,6 +36,7 @@ const OAuthValidatorCallbacks* _PG_oauth_validator_module_init(void) { return &v
+ }
+ 
+ static char* authn_field = nullptr;
++static char* expected_audience = nullptr;
+ 
+ // When non-empty, the validator uses this URL (instead of pg_hba's `issuer=`)
+ static char* discovery_url_override = nullptr;
+@@ -44,6 +45,10 @@ extern "C" void _PG_init() {
+   DefineCustomStringVariable("pg_oidc_validator.authn_field",
+                              gettext_noop("OAuth field used for matching PostgreSQL users"), nullptr, &authn_field,
+                              "sub", PGC_SIGHUP, 0, nullptr, nullptr, nullptr);
++  DefineCustomStringVariable(
++      "pg_oidc_validator.expected_audience",
++      gettext_noop("Required JWT audience for the isolated shinyOAuthDB fixture."),
++      nullptr, &expected_audience, "", PGC_SIGHUP, 0, nullptr, nullptr, nullptr);
+   DefineCustomStringVariable(
+       "pg_oidc_validator.discovery_url_override",
+       gettext_noop("If set, fetch OIDC discovery and JWKS from this URL instead of the pg_hba issuer."),
+@@ -95,7 +100,13 @@ bool validate_token(const ValidatorModuleState* state, const char* token, const
+   const auto jwks_info = http.get_json(jwks_uri);
+   const auto decoded_token = jwt::decode(token);
+   const std::string jwt_kid = decoded_token.get_header_claim("kid").as_string();
+-  const auto verifier = configure_verifier_with_jwks(issuer, jwks_info, jwt_kid);
++  auto verifier = configure_verifier_with_jwks(issuer, jwks_info, jwt_kid);
++  // Fail closed: this fixture must never accept a token for another resource.
++  if (expected_audience == nullptr || *expected_audience == '\0') {
++    elog(WARNING, "OAuth fixture expected_audience is not configured");
++    return false;
++  }
++  verifier.with_audience(expected_audience);
+   verifier.verify(decoded_token);
+   auto received_scopes = parse_jwt_scopes(decoded_token.get_payload_json()["scp"]);
+   const auto json_scope = parse_jwt_scopes(decoded_token.get_payload_json()["scope"]);

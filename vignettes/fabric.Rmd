@@ -11,15 +11,17 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use Fabric data in a Shiny app with each visitor's Microsoft account.
+Microsoft Fabric brings SQL warehouses, lakehouses and other analytics
+services into one platform. Use Fabric data in a Shiny app with each visitor's Microsoft account.
 For a Warehouse, Lakehouse SQL endpoint, or SQL Database, query with DBI
 or dbplyr. For other Fabric work, call fabricQueryR functions with the same
 sign-in.
 
 ## Set up SQL access
 
-Install `fabricQueryR` and `odbc`, plus Microsoft ODBC Driver 18 for SQL
-Server. Copy the server and database from the item's SQL connection settings.
+In R, run `install.packages(c("fabricQueryR", "odbc"))`. Install
+[Microsoft ODBC Driver 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
+for your operating system too. Copy the server and database from the item's SQL connection settings.
 Users need access to that item and its data; see
 [Fabric SQL connectivity](https://learn.microsoft.com/en-us/fabric/data-warehouse/connectivity).
 
@@ -32,6 +34,21 @@ OAUTHDB_TENANT_ID=your-tenant-id
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
+
+Use the [Microsoft registration steps](oauth-setup.html#register-a-microsoft-entra-app).
+For this first SQL app, add **Azure SQL Database** delegated
+`user_impersonation`. Fabric API permissions are needed only when adding
+the API examples later in this guide.
+
+| Value | Where to find it |
+| --- | --- |
+| `server` | Open the Warehouse or Lakehouse **SQL analytics endpoint**, then copy its **SQL connection string** server |
+| `database` | The database/catalog shown in those connection settings |
+| Tenant ID, client ID, secret | Your [Entra app registration](oauth-setup.html#register-a-microsoft-entra-app) |
+
+Copy the server hostname, without a connection-string prefix or credentials.
+Share the item with the app's users and grant access to its data. A workspace
+or item ID from the browser URL isn't the SQL server hostname.
 
 ## A complete app
 

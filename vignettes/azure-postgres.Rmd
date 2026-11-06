@@ -11,13 +11,14 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Connect a Shiny app to Azure Database for PostgreSQL using each visitor's
+Azure Database for PostgreSQL hosts the open-source PostgreSQL database
+for you. Connect a Shiny app to Azure Database for PostgreSQL using each visitor's
 Microsoft account. Queries use RPostgres connections, so you can keep your
 usual DBI or dbplyr code.
 
 ## Set up access
 
-Install `RPostgres`. Ask your administrator to
+In R, run `install.packages("RPostgres")`. Ask your administrator to
 [enable Entra authentication and create database roles](https://learn.microsoft.com/en-us/azure/postgresql/security/security-entra-configure)
 for the app's users or their groups. You'll need the server and database
 names, the database role to connect as, and a certificate bundle for the server.
@@ -31,6 +32,20 @@ OAUTHDB_TENANT_ID=your-tenant-id
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
+
+Use the [Microsoft registration steps](oauth-setup.html#register-a-microsoft-entra-app)
+and configure delegated access to **Azure OSSRDBMS Database**. The preset
+requests `https://ossrdbms-aad.database.windows.net/.default`.
+
+| Value in the app | Where to find it |
+| --- | --- |
+| `host` | Azure PostgreSQL server overview, full server name ending in `.postgres.database.azure.com` |
+| `dbname` | The database name in your existing connection settings |
+| `user` | The Entra user or group role created in PostgreSQL by the Entra administrator |
+| `sslrootcert` | The CA bundle recommended for your server's certificate chain |
+| Tenant ID, client ID, secret | [Entra registration](oauth-setup.html#register-a-microsoft-entra-app) |
+
+Allow the app host through the server's networking settings too.
 
 ## A complete app
 
@@ -81,6 +96,20 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Run `shiny::runApp(port = 8100)` from the app directory and open
 `http://localhost:8100`. Sign in to run the query; signing out clears the
 output.
+
+## Create the database identity
+
+In Azure PostgreSQL's **Authentication** settings, enable Entra and set an
+Entra administrator. That administrator creates the database principals
+for the people or groups who will use the app. Azure provides
+`pgaadauth_create_principal` for this; its [Entra setup guide](https://learn.microsoft.com/en-us/azure/postgresql/security/security-entra-configure)
+shows the supported commands and group mapping. Grant the resulting role
+database/schema access and SELECT on the intended tables.
+
+Use that exact database role as `user` in the app. The example's shared
+group role assumes the server maps signed-in members to that group. With
+individual roles, choose a role for the current identity and have the
+server verify the mapping; don't let arbitrary input choose another role.
 
 ## Read a table
 

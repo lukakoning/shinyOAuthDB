@@ -11,6 +11,8 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
+libSQL is based on SQLite and can run as a remote database server. Turso
+offers hosted endpoints with compatible SQL APIs.
 Use `oauth_db_libsql_api()` to run SQLite SQL against a remote libSQL or
 compatible Turso endpoint. shinyOAuth manages the visitor's sign-in and
 token renewal; the database endpoint checks their token and permissions.
@@ -19,7 +21,77 @@ This helper uses the Hrana HTTP API, without an additional R database driver.
 A local SQLite file has no OAuth login. The endpoint must be a server
 configured to accept the access tokens issued to your app.
 
-## Choose a compatible token issuer
+## Before running the app
+
+The endpoint must accept visitor access tokens from your provider. Turso
+Cloud's external-provider setup and self-hosted libSQL use different token
+formats; the compatibility section after the app explains both.
+
+| Setting | Where to get it |
+| --- | --- |
+| `OAUTHDB_LIBSQL_URL` | Turso database details or `turso db show your-database --url`; for self-hosting, your server's HTTPS URL |
+| `OAUTHDB_LIBSQL_ISSUER` | The provider configured to issue compatible database tokens |
+| Client ID and secret | Your [OAuth app registration](oauth-setup.html) |
+| `OAUTHDB_LIBSQL_AUDIENCE` | The provider's API audience, if required; leave empty for the self-hosted format below |
+| `sqlite.read` | An example scope your provider must define or replace |
+
+Save these values in `.Renviron` and restart R. The client uses the HTTP
+API and needs no extra R database driver. A local SQLite file has no OAuth
+login.
+
+## A complete app
+
+Replace the table name and scopes for your database. The provider's token
+configuration must satisfy the requirements above before running the app.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+audience <- Sys.getenv("OAUTHDB_LIBSQL_AUDIENCE")
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_LIBSQL_ISSUER"),
+  extra_auth_params = if (nzchar(audience)) list(audience = audience) else list()
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "sqlite.read")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  libsql <- oauth_db_libsql_api(
+    auth$connection, url = Sys.getenv("OAUTHDB_LIBSQL_URL"),
+    required_scopes = "sqlite.read"
+  )
+  output$rows <- renderTable({
+    libsql$query("SELECT id, total FROM orders WHERE country = :country LIMIT 20",
+      parameters = list(country = "NL"))
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)`. The app waits for sign-in before sending
+SQL and clears the output on sign-out. Request `offline_access` too if
+your provider requires it to renew tokens.
+
+
+## Configure a compatible token issuer
 
 ### Self-hosted libSQL
 
@@ -91,56 +163,6 @@ The audience setting is for provider configurations such as Auth0 with
 Turso Cloud. Leave it empty for a self-hosted issuer configured to issue
 database tokens without an audience claim.
 
-## A complete app
-
-Replace the table name and scopes for your database. The provider's token
-configuration must satisfy the requirements above before running the app.
-
-```{r app}
-library(shiny)
-library(shinyOAuth)
-library(shinyOAuthDB)
-
-audience <- Sys.getenv("OAUTHDB_LIBSQL_AUDIENCE")
-provider <- oauth_provider_oidc_discover(
-  issuer = Sys.getenv("OAUTHDB_LIBSQL_ISSUER"),
-  extra_auth_params = if (nzchar(audience)) list(audience = audience) else list()
-)
-client <- oauth_client(
-  provider,
-  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
-  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
-  redirect_uri = "http://localhost:8100",
-  scopes = c("openid", "sqlite.read")
-)
-
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
-
-server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  libsql <- oauth_db_libsql_api(
-    auth$connection, url = Sys.getenv("OAUTHDB_LIBSQL_URL"),
-    required_scopes = "sqlite.read"
-  )
-  output$rows <- renderTable({
-    libsql$query("SELECT id, total FROM orders WHERE country = :country LIMIT 20",
-      parameters = list(country = "NL"))
-  })
-}
-
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
-```
-
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before sending
-SQL and clears the output on sign-out. Request `offline_access` too if
-your provider requires it to renew tokens.
 
 ## Parameters and result types
 

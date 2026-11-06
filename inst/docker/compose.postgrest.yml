@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:18.3-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7
+    environment:
+      POSTGRES_PASSWORD: demo-superuser-password
+      POSTGRES_DB: reporting
+    volumes:
+      - ./postgrest/fixture.sql:/docker-entrypoint-initdb.d/01-demo.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reporting"]
+      interval: 3s
+      timeout: 3s
+      retries: 60
+  jwks:
+    build:
+      context: .
+      target: app
+    network_mode: service:keycloak
+    entrypoint: ["Rscript", "-e", "jsonlite::write_json(httr2::resp_body_json(httr2::req_perform(httr2::request('http://localhost:18080/realms/shinyoauthdb/protocol/openid-connect/certs'))), '/jwks/keys.json', auto_unbox=TRUE)"]
+    volumes:
+      - jwks:/jwks
+    depends_on:
+      keycloak:
+        condition: service_healthy
+  database:
+    image: postgrest/postgrest@sha256:1347d7552b88f17832912c06afbf7c43209af6eeeb60834b04aae12c9bd9d5cc
+    network_mode: service:keycloak
+    environment:
+      PGRST_DB_URI: postgres://authenticator:demo-authenticator-password@postgres:5432/reporting
+      PGRST_DB_SCHEMAS: public
+      PGRST_JWT_SECRET: '@/jwks/keys.json'
+      PGRST_JWT_AUD: local-fixture
+      PGRST_SERVER_PORT: "13000"
+    volumes:
+      - jwks:/jwks:ro
+    depends_on:
+      jwks:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+  https:
+    image: python:3.12.12-slim
+    network_mode: service:keycloak
+    entrypoint: ["python", "/demo/postgrest/proxy.py"]
+    volumes:
+      - .:/demo:ro
+      - tls:/fixtures/tls:ro
+    depends_on:
+      database:
+        condition: service_started
+  app:
+    environment:
+      OAUTHDB_DEMO: postgrest
+    depends_on:
+      https:
+        condition: service_started
+volumes:
+  jwks:

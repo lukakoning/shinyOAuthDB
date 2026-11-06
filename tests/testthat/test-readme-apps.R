@@ -1,8 +1,10 @@
 readme_example <- function(title) {
-  path <- test_path("..", "..", "README.md")
+  guide <- c(PostgREST = "postgrest", StarRocks = "starrocks", ClickHouse = "clickhouse")
+  path <- if (title == "Self-hosted PostgreSQL") test_path("..", "..", "README.md") else
+    test_path("..", "..", "vignettes", paste0(guide[[title]], ".Rmd"))
   skip_if_not(file.exists(path), "README source is unavailable")
   lines <- readLines(path, encoding = "UTF-8")
-  start <- which(lines == paste("##", title))
+  start <- which(lines == if (title == "Self-hosted PostgreSQL") "## The Shiny app" else "## Complete Shiny app")
   stopifnot(length(start) == 1L)
   following <- which(seq_along(lines) > start & grepl("^## ", lines))
   end <- if (length(following)) following[[1L]] - 1L else length(lines)
@@ -10,7 +12,7 @@ readme_example <- function(title) {
   fences <- which(grepl("^```", section))
   for (i in seq.int(1L, length(fences), by = 2L)) {
     code <- section[seq.int(fences[[i]] + 1L, fences[[i + 1L]] - 1L)]
-    if (identical(section[[fences[[i]]]], "```r") && "library(shiny)" %in% code) {
+    if ("library(shiny)" %in% code) {
       return(parse(text = code))
     }
   }
@@ -19,14 +21,15 @@ readme_example <- function(title) {
 
 for (title in c("Self-hosted PostgreSQL", "PostgREST", "StarRocks", "ClickHouse")) local({
   source_name <- title
-  test_that(paste("the README", source_name, "app follows the visitor's login"), {
+  test_that(paste("the documented", source_name, "app follows the visitor's login"), {
     skip_if_not_installed("RSQLite")
     if (source_name == "StarRocks") skip_if_not_installed("odbc")
     withr::local_envvar(playground_env())
-    local_mocked_bindings(oauth_provider_oidc_discover = function(issuer, ...) {
+    local_mocked_bindings(oauth_provider_oidc_discover = function(issuer, token_auth_style = "header", ...) {
       shinyOAuth::oauth_provider(name = "readme", issuer = issuer,
         auth_url = paste0(issuer, "/authorize"), token_url = paste0(issuer, "/token"),
-        jwks_uri = paste0(issuer, "/jwks"), id_token_validation = TRUE)
+        jwks_uri = paste0(issuer, "/jwks"), id_token_validation = TRUE,
+        token_auth_style = token_auth_style)
     }, .package = "shinyOAuth")
     opened <- list()
     users <- character()
@@ -65,7 +68,14 @@ for (title in c("Self-hosted PostgreSQL", "PostgREST", "StarRocks", "ClickHouse"
     envir$oauth_module_server <- function(...) {
       module <- playground_module(actions)(...)
       module$logout()
-      module
+      result <- list2env(module)
+      makeActiveBinding("token", function(value) {
+        reference <- shiny::req(module$connection())
+        user <- reference$identity(claims = "preferred_username")$id_token_claims$preferred_username
+        shinyOAuth::OAuthToken(access_token = paste0("fixture-", user),
+          userinfo = list(preferred_username = user))
+      }, result)
+      result
     }
     shiny::testServer(envir$server, {
       session$flushReact()

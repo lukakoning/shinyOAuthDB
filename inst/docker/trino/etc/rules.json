@@ -1,0 +1,17 @@
+{
+  "impersonation": [],
+  "catalogs": [
+    {"user": "service-account-fixture-admin", "catalog": ".*", "allow": "all"},
+    {"user": "alice|bob", "catalog": "memory", "allow": "read-only"}
+  ],
+  "schemas": [
+    {"user": "service-account-fixture-admin", "owner": true},
+    {"user": "alice|bob", "catalog": "memory", "schema": "reporting", "owner": false}
+  ],
+  "tables": [
+    {"user": "service-account-fixture-admin", "privileges": ["SELECT", "INSERT", "DELETE", "UPDATE", "OWNERSHIP", "GRANT_SELECT"]},
+    {"user": "alice|bob", "catalog": "memory", "schema": "reporting", "table": "visible_rows", "privileges": ["SELECT"], "filter": "owner_name = current_user"},
+    {"user": "alice", "catalog": "memory", "schema": "reporting", "table": "alice_only", "privileges": ["SELECT"]},
+    {"user": "bob", "catalog": "memory", "schema": "reporting", "table": "bob_only", "privileges": ["SELECT"]}
+  ]
+}

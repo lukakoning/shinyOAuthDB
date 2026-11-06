@@ -56,6 +56,31 @@ with its own start and pause workflow.
 
 Record versions, results, and limits in [validation.md](validation.md).
 
+## Documentation website and packaged demos
+
+Run `pkgdown::build_site()` to preview the website. `_pkgdown.yml` groups the
+database articles and reference pages. Output goes to ignored `_site/`, so
+building the website preserves the developer notes in `docs/`.
+
+The [website workflow](../.github/workflows/pkgdown.yaml) builds pull requests
+and deploys pushes to the default branch. In repository **Settings > Pages**,
+select **GitHub Actions** as the publishing source before the first deployment.
+The public URL is `https://lukakoning.github.io/shinyOAuthDB/`.
+
+`inst/docker/` contains the installed Docker contexts. `oauth_db_demo()` copies
+them into a writable cache and starts Compose without a source checkout.
+The app containers install the pinned revisions in `inst/docker/install.R`;
+update those pins when a newer runtime is needed, then verify browser sign-in
+and the row policy for Alice and Bob. Run `action = "files"` from an installed
+package to check that the demo doesn't depend on repository-only files.
+`Rscript --vanilla tools/check-demos.R postgres` automates the installed-package
+and browser check; substitute another demo name to check it too.
+
+Keep the README's app identical to `inst/docker/postgres/app.R`. Each backend
+guide should introduce the source, show where settings come from, present
+one complete app and then explain server setup and advanced options. Put
+shared registration terminology in `vignettes/oauth-setup.Rmd`.
+
 ## Selected mutation checks
 
 Run `Rscript --vanilla tools/check-mutations.R` with the full test dependencies

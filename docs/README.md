@@ -1,7 +1,9 @@
-# Documentation
+# Documentation for contributors
 
-Start with the [README](../README.md) for a complete app, or choose a
-source guide below for setup and further examples.
+The [package website](https://lukakoning.github.io/shinyOAuthDB/) contains
+the user documentation. Start with the [README](../README.md) for a local
+PostgreSQL app or choose a source guide below. This directory holds
+contributor notes; pkgdown builds separately into `_site/`.
 
 | Source | Guide |
 | --- | --- |
@@ -17,10 +19,16 @@ source guide below for setup and further examples.
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
 | StarRocks | [JWT authentication and DBI queries](../vignettes/starrocks.Rmd) |
 | ClickHouse | [HTTPS SQL queries with JWT](../vignettes/clickhouse.Rmd) |
+| DuckDB | [Remote Quack servers and OAuth](../vignettes/duckdb.Rmd) |
+| libSQL and Turso | [Remote SQLite SQL and compatible tokens](../vignettes/libsql.Rmd) |
+| CrateDB | [JWT-authenticated HTTP SQL](../vignettes/cratedb.Rmd) |
+| OpenSearch | [Search, SQL and user permissions](../vignettes/opensearch.Rmd) |
 
 [Getting started](../vignettes/getting-started.Rmd) covers installation and
 the Shiny pattern. [Authentication and sessions](../vignettes/authorization.Rmd)
 covers custom sign-in, multiple accounts, and saved query results.
+The [OAuth setup guide](../vignettes/oauth-setup.Rmd) explains registration
+values; [Local Docker demos](../vignettes/local-demos.Rmd) covers packaged apps.
 The [playground](../playground/README.md) contains runnable scripts.
 
 For existing apps and package development:

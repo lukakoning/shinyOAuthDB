@@ -62,6 +62,15 @@ The scripts use an isolated temporary package installation; they do not install
 dependencies into your normal library. Install the package's Imports and
 Suggests, plus pkgbuild, rcmdcheck and covr, before running them.
 
+`Rscript --vanilla tools/check-demos.R postgres` installs the package in a
+temporary library, starts its packaged Docker demo from outside the checkout
+and checks real browser sign-in for Alice and Bob, row permissions, sign-out
+and the stop button. It needs Docker, Chrome, pkgbuild, callr and chromote.
+Use `postgrest`, `trino` or `starrocks` to check another demo; run one at a
+time because they use the same loopback ports. The
+[packaged demo workflow](../.github/workflows/packaged-demos.yaml) runs each
+in a separate job and retains logs under `.validation/demos/`.
+
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty
 or incomplete runs cannot pass. Browser snapshots distinguish read attempts

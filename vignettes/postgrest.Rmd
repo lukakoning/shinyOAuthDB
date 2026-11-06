@@ -7,6 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+PostgREST turns PostgreSQL tables and functions into an HTTP API.
 Read PostgreSQL tables and views through PostgREST using each visitor's
 account. PostgREST validates the visitor's JWT and PostgreSQL applies the
 role's grants and row-level security policies. The R client uses HTTP and
@@ -40,6 +41,19 @@ Set `OAUTHDB_POSTGREST_ISSUER`, `OAUTHDB_POSTGREST_URL`, `OAUTHDB_CLIENT_ID`,
 and `OAUTHDB_CLIENT_SECRET` in your environment. The API URL must use HTTPS;
 it may include a reverse proxy prefix such as `/rest/v1`. For a private CA,
 pass `ca_bundle` to `oauth_db_postgrest_api()`.
+
+For a configured local example, run `shinyOAuthDB::oauth_db_demo("postgrest")`.
+It includes PostgreSQL, PostgREST, Keycloak and an app. The [local demo guide](local-demos.html)
+lists the accounts and cleanup command.
+
+| Setting | Where to get it |
+| --- | --- |
+| `OAUTHDB_POSTGREST_URL` | Your HTTPS PostgREST endpoint, including any proxy path such as `/rest/v1` |
+| `schema`, table | The schema exposed by PostgREST and a table the user can read |
+| Issuer, client ID, secret | The [OIDC registration](oauth-setup.html#use-keycloak-with-a-self-hosted-database) with the API's trusted provider |
+
+Store the `OAUTHDB_*` values in `.Renviron` and restart R. See the server
+recipe after the app if your PostgreSQL database doesn't yet expose an API.
 
 ## Complete Shiny app
 
@@ -89,6 +103,36 @@ shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
 Create the client inside `server()`. Its requests wait quietly before
 sign-in and use a current access token for the selected authorization.
 Use `target` if your shinyOAuth client has named token targets.
+
+## Prepare PostgreSQL, PostgREST and Keycloak
+
+Copy a working configuration with
+`oauth_db_demo("postgrest", action = "files")`. In that directory,
+`postgrest/fixture.sql` creates an `authenticator` login, database roles and
+a row policy. `realm.json` adds the verified token's `role` claim; PostgREST
+switches to that role when executing SQL.
+
+For your deployment, create a restricted login for PostgREST and let it
+assume only the roles the API exposes. For example:
+
+```sql
+CREATE ROLE reporting_reader NOLOGIN;
+GRANT reporting_reader TO authenticator;
+GRANT USAGE ON SCHEMA reporting TO reporting_reader;
+GRANT SELECT ON reporting.orders TO reporting_reader;
+```
+
+Configure the issuer's access-token mapper to emit `role=reporting_reader`
+and the API's audience. Set `PGRST_DB_SCHEMAS` to the exposed schema,
+`PGRST_JWT_SECRET` to its public JWK/JWKS material, and `PGRST_JWT_AUD` to
+that audience. The default role claim is `role`; configure a different
+claim path only if your tokens use one. Plan how to update signing keys
+when the provider rotates them; the demo takes a snapshot at startup.
+Terminate HTTPS at your API or reverse proxy.
+
+PostgREST's [authentication guide](https://docs.postgrest.org/en/v14/references/auth.html)
+explains key formats and role extraction. PostgreSQL table grants and row
+policies still control which rows the role can access.
 
 ## Filters, embedded resources, and pagination
 

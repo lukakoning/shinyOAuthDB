@@ -4,6 +4,7 @@
 .Renviron
 .env
 .validation/
+_site/
 *.Rcheck/
 *.tar.gz
 tests/integration/results/

@@ -15,13 +15,22 @@ With shinyOAuthDB, people sign in to your app and query a database with their
 own permissions. You can use DBI, dbplyr, or the platform's R package to read
 the data.
 
-The package supports commercial and cloud-hosted platforms as well as
-self-hosted open-source systems, including PostgreSQL and Trino configured
-for OAuth. To try it on your own machine, the [PostgreSQL Docker playground](postgres.html#try-the-docker-playground)
-provides a database, Keycloak sign-in and sample data. Its guide includes
-download links and launch commands.
+## Try an app on your computer
 
-Each source guide includes a complete app with sign-in and a first query.
+Install the package, then start Docker with Linux containers and run:
+
+```{r first-demo}
+shinyOAuthDB::oauth_db_demo()
+```
+
+The package starts PostgreSQL, Keycloak sign-in and a small Shiny app with
+demo accounts. Open `http://localhost:18100` when ready. See
+[Local Docker demos](local-demos.html) for the passwords, other databases,
+editing the app and cleanup. No repository clone or cloud account is needed.
+
+For your own data, choose a guide below. Each starts with the database's
+purpose, the settings you need and a complete app, then explains the
+server and advanced configuration.
 
 ## Choose your source
 
@@ -55,9 +64,7 @@ This also installs shinyOAuth. Your source may need another R package or a
 database driver; its guide lists those requirements.
 
 For locally browsable guides, add `build_vignettes = TRUE` to the GitHub
-installation call. The Docker playground runs its own R environment, so
-you can also follow its download-and-run instructions before installing
-the package locally.
+installation call. The Docker demos supply their own R environment and database drivers.
 
 ## Run your first app
 
@@ -66,6 +73,7 @@ application, which gives your Shiny app a client ID and client secret.
 The registration also records the redirect URI: the address where the
 browser returns after sign-in. The examples use `http://localhost:8100`.
 
+Use [OAuth setup](oauth-setup.html) for the registration steps and terminology.
 Save the credentials in a local `.Renviron` file as shown in the guide
 and restart R. Copy the example into `app.R`, replace the connection
 settings, and run `shiny::runApp(port = 8100)` from that directory.

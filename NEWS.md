@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_demo()` to launch packaged PostgreSQL, PostgREST, Trino and
+  StarRocks Docker demos with sign-in and sample data, without a checkout.
+* Keep one PostgreSQL example in the README and add a pkgdown website with
+  database guides, OAuth registration instructions and local demo help.
+
 * Add `oauth_db_libsql_api()` for SQL queries and statements against libSQL
   and compatible Turso HTTPS endpoints. Supports bound parameters, exact
   64-bit integers, blobs and mixed SQLite types. Each operation uses a fresh

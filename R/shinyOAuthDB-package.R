@@ -9,19 +9,19 @@
 #' the database or query engine trusts; that server enforces their permissions.
 #'
 #' @section Try a self-hosted database locally:
-#' The [PostgreSQL Docker playground](https://github.com/lukakoning/shinyOAuthDB/blob/main/playground/postgres/README.md)
-#' runs PostgreSQL 18, Keycloak and a Shiny app with demo accounts and data.
-#' Docker provides the R packages and native libraries. The
-#' [configuration files](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak)
-#' are available in the source repository.
-#' See `vignette("postgres", package = "shinyOAuthDB")` for downloads,
-#' launch commands and your own server setup, or [oauth_db_postgres()] for
-#' the connection helper. `vignette("trino", package = "shinyOAuthDB")`
-#' covers self-hosted Trino and Starburst Enterprise.
+#' With Docker running, use [oauth_db_demo()] to start PostgreSQL 18,
+#' Keycloak and a Shiny app with demo accounts and sample data. The installed
+#' package includes the configuration; Docker provides R and native libraries.
+#' PostgREST, Trino and StarRocks demos use the same launcher.
+#' See the [local demo guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
+#' for accounts, editing and cleanup.
 #'
 #' @section Start with your source:
 #' `vignette("getting-started", package = "shinyOAuthDB")` links to a guide
 #' for each source. Each includes sign-in setup and a complete Shiny app.
+#' Read the guides on the
+#' [documentation website](https://lukakoning.github.io/shinyOAuthDB/articles/index.html),
+#' or install with `build_vignettes = TRUE` for local `vignette()` help.
 #' For example, use `vignette("snowflake", package = "shinyOAuthDB")` for
 #' Snowflake or `vignette("fabric", package = "shinyOAuthDB")` for Fabric.
 #'

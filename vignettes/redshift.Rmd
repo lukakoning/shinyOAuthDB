@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Query Amazon Redshift from Shiny using each visitor's own database access.
+Amazon Redshift is AWS's hosted SQL data warehouse. Query Amazon Redshift from Shiny using each visitor's own database access.
 The connection works with DBI, so you can use your existing SQL queries.
 
 This example signs users in through Microsoft Entra. It requires a Redshift
@@ -19,8 +19,9 @@ deployment already linked to AWS IAM Identity Center.
 
 ## Set up access
 
-Install `odbc` and the AWS Redshift ODBC 2.x driver with
-`IdpTokenAuthPlugin` support. Ask your administrator to configure
+In R, run `install.packages("odbc")`. Install the
+[AWS Redshift ODBC 2.x driver](https://docs.aws.amazon.com/redshift/latest/mgmt/odbc20-install.html)
+with `IdpTokenAuthPlugin` support. Ask your administrator to configure
 [Redshift's IAM Identity Center integration](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html)
 and set up users' database permissions.
 
@@ -38,6 +39,22 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 OAUTHDB_REDSHIFT_RESOURCE=your-redshift-resource
 OAUTHDB_REDSHIFT_SCOPE=your-redshift-delegated-scope
 ```
+
+| Value | Where to get it |
+| --- | --- |
+| `server` | AWS Redshift console: cluster or serverless workgroup endpoint, without the port suffix |
+| `database` | Database name in that endpoint's connection settings |
+| Tenant ID, client ID, secret | The [Entra Web registration](oauth-setup.html#register-a-microsoft-entra-app) |
+| Resource and scope | The administrator who configured IAM Identity Center's trusted token issuer and application |
+
+For Entra, the resource is the accepted API identifier; the scope is the
+delegated permission exposed by that registration. These values depend
+on your AWS/Entra integration and aren't the Redshift hostname. Give this
+exact resource/scope pair to `token_targets` as below.
+
+OAuth setup spans AWS and the identity provider. The [AWS integration guide](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html)
+explains which tokens `IdpTokenAuthPlugin` accepts. This needs a real AWS
+deployment; there is no local Docker equivalent.
 
 ## A complete app
 

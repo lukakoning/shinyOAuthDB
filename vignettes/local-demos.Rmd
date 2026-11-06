@@ -1,0 +1,116 @@
+---
+title: "Local Docker demos"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Local Docker demos}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Try a database with real browser sign-in before configuring your own server.
+The package includes Docker files, a Shiny app, demo accounts and sample data.
+You need R with shinyOAuthDB installed and Docker running with Linux containers
+and Compose v2. You can use Windows, macOS or Linux.
+
+## Start a demo
+
+```{r launch}
+shinyOAuthDB::oauth_db_demo()             # PostgreSQL 18
+```
+
+Wait for the launcher to print the app address, then open
+`http://localhost:18100`. The first build downloads images and R packages;
+PostgreSQL also compiles its native OAuth libraries. Builds need internet
+access and several GB of disk space. Later starts reuse Docker's cache.
+
+| Account | Password | Rows shown by the app |
+| --- | --- | --- |
+| `alice` | `alice-fixture-password` | `alice-visible-1`, `alice-visible-2` |
+| `bob` | `bob-fixture-password` | `bob-visible-1`, `bob-visible-2` |
+
+Click **Sign in** and use either account. Sign out, then sign in with the
+other account to see the permissions change. The database applies the
+restriction; the app sends the same query for both people.
+
+Keycloak, the open-source sign-in server, uses `https://localhost:18443`.
+Your browser may ask you to accept its generated local test certificate.
+The containers trust this demo's CA; the launcher doesn't change your
+computer's certificate store.
+
+## Choose another database
+
+Run one demo at a time; they share the same browser ports.
+
+| Command | What runs | Guide |
+| --- | --- | --- |
+| `oauth_db_demo("postgres")` | PostgreSQL 18 with native OAuth and row policies | [PostgreSQL](postgres.html) |
+| `oauth_db_demo("postgrest")` | PostgreSQL and PostgREST with JWT role mapping | [PostgREST](postgrest.html) |
+| `oauth_db_demo("trino")` | Trino, an in-memory catalog and row filters | [Trino](trino.html) |
+| `oauth_db_demo("starrocks")` | StarRocks with JWT users and a filtered view | [StarRocks](starrocks.html) |
+
+Docker supplies the R packages and drivers too. StarRocks needs roughly
+4 GB of Docker memory and uses amd64 images, so other architectures need
+emulation. Trino needs at least 2 GB for its database container.
+
+Cloud platforms need real accounts and OAuth registrations; a local Docker
+container cannot reproduce that setup. ClickHouse's custom-provider JWT
+feature needs a qualifying Cloud service. Other backend guides describe
+their token requirements and developer fixtures where available; a fixture
+that generates test tokens doesn't supply an interactive OAuth deployment.
+
+## Stop and clean up
+
+Click **Stop demo** or interrupt the foreground R call. Cleanup removes
+that demo's containers, network and database volumes. Docker images and
+the copied configuration stay for the next run.
+
+If R exits forcibly, restart R and stop the same database:
+
+```{r stop}
+shinyOAuthDB::oauth_db_demo("postgres", action = "stop")
+```
+
+Use the same `path` too if you chose a custom directory. The launcher prints
+a complete recovery command before starting containers.
+
+## Change the app or inspect the configuration
+
+Copy the files without starting Docker:
+
+```{r files}
+path <- shinyOAuthDB::oauth_db_demo("postgres", action = "files")
+file.edit(file.path(path, "postgres", "app.R"))
+shinyOAuthDB::oauth_db_demo("postgres", path = path)
+```
+
+`compose.yml` defines Keycloak and the app; `compose.postgres.yml` adds
+PostgreSQL. `realm.json` configures sign-in accounts, claims and audiences.
+The backend subdirectory contains its app and database configuration.
+Edits in this directory survive subsequent launches. Use a new empty `path`
+after upgrading the package to obtain fresh templates.
+
+These are disposable, local configurations with public passwords. For a
+deployment, replace the accounts, secrets, certificates and hostnames,
+then follow the database guide's OAuth setup instructions.
+
+The app images install pinned revisions of shinyOAuth and shinyOAuthDB
+from GitHub, listed in `install.R`. They don't use your local R library.
+Maintainers can update those revisions after testing a new package release.
+
+## If the demo doesn't start
+
+If Docker isn't found, install Docker Desktop or Docker Engine with Compose
+v2, then restart R so it picks up your PATH. Start the Docker daemon and
+select Linux containers. On a port conflict, stop the other local demo or
+the program using ports 18100 and 18443.
+
+Read the Docker output for failed downloads, low disk space or memory
+limits. Retry with the default `build = TRUE` after fixing the problem;
+`build = FALSE` only works after images have built successfully.
+An app that starts but can't sign in usually needs the browser's local
+certificate exception. Keep `localhost` in the URL; `127.0.0.1` doesn't
+match the registered callback.
