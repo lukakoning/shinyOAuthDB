@@ -46,6 +46,8 @@ if (!is.list(success) || !identical(success$status, "pass")) {
 }
 
 dir.create("tests/integration/results", recursive = TRUE, showWarnings = FALSE)
+source("integration/provenance.R", local = TRUE)
+success$provenance <- integration_provenance(packages = c("shinyOAuth", "shinyOAuthDB", "DBI", "httr2", "brickster", "fabricQueryR", "odbc", "RPostgres", "RTrino"))
 jsonlite::write_json(success, "tests/integration/results/live.json", auto_unbox = TRUE, pretty = TRUE)
 
 message(

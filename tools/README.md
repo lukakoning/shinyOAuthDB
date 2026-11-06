@@ -4,6 +4,7 @@ Run the full package validation from the repository root:
 Rscript --vanilla tools/test-validation.R
 Rscript --vanilla tools/test-docs.R
 Rscript --vanilla tools/test-integration.R
+Rscript --vanilla tools/test-provenance.R
 Rscript --vanilla tools/test-live.R
 Rscript --vanilla tools/test-mutations.R
 Rscript --vanilla tools/check-package.R
@@ -31,6 +32,11 @@ The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty
 or incomplete runs cannot pass. Browser snapshots distinguish read attempts
 from successful reads; PostgREST also counts reads at its real HTTPS proxy.
+Integration artifacts include a Git revision when available, a SHA-256
+manifest of package/test/fixture sources, fixture version, dependency versions,
+and named scenario results. The content hash distinguishes dirty runs even
+when the package version and Git revision are unchanged. Generated results
+and compiled objects are excluded from the manifest.
 `test-live.R` checks the public Databricks/Fabric routes with the installed
 SDKs and synthetic authorization, plus the cloud runner's identity, denial,
 replacement and cleanup rules. It makes no cloud requests.

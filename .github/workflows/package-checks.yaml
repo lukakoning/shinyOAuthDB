@@ -60,6 +60,9 @@ jobs:
       - name: Verify integration assertion contracts
         run: Rscript --vanilla tools/test-integration.R
 
+      - name: Verify integration source fingerprints
+        run: Rscript --vanilla tools/test-provenance.R
+
       - name: Verify live adapter routes and acceptance validation
         run: Rscript --vanilla tools/test-live.R
 

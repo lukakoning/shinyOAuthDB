@@ -18,6 +18,9 @@ local({
   source("integration/contracts.R", local = TRUE)
   results <- testthat::test_file("integration/clickhouse-http/test-http.R", reporter = "summary")
   counts <- as.data.frame(results)
+  source("integration/provenance.R", local = TRUE)
+  provenance <- integration_provenance()
+  jsonlite::write_json(provenance, "/results/provenance.json", auto_unbox = TRUE, pretty = TRUE)
   saveRDS(results, "/results/test-results.rds")
   utils::write.csv(counts[!vapply(counts, is.list, logical(1))], "/results/test-results.csv", row.names = FALSE)
   integration_validate_results(counts, c("ClickHouse public HTTPS queries round-trip native values and enforce local user grants",

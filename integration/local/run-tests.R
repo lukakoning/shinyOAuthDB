@@ -34,7 +34,10 @@ local({
   test_file <- if (is.null(fixture_backend$test_file)) "integration/local/test-browser.R" else fixture_backend$test_file
   results <- testthat::test_file(test_file, reporter = "summary")
   counts <- as.data.frame(results)
+  source("integration/provenance.R", local = TRUE)
   jsonlite::write_json(list(backend = backend,
+    provenance = integration_provenance(packages = c("shinyOAuth", "shinyOAuthDB", "DBI", "httr2", "dbplyr", "dplyr", "RTrino", "odbc", "brickster")),
+    scenarios = counts[!vapply(counts, is.list, logical(1))],
     package_version = as.character(packageVersion("shinyOAuthDB")),
     shinyOAuth_version = as.character(packageVersion("shinyOAuth")),
     platform = fixture_backend$version(),

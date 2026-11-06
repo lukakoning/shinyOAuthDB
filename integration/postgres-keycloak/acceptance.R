@@ -18,7 +18,10 @@ local({
       load_helpers = TRUE
     )
     counts <- as.data.frame(browser_results)
+    source("integration/provenance.R", local = TRUE)
     jsonlite::write_json(list(
+      provenance = integration_provenance(packages = c("shinyOAuth", "shinyOAuthDB", "RPostgres", "dbplyr", "dplyr")),
+      scenarios = counts[!vapply(counts, is.list, logical(1))],
       package_version = as.character(utils::packageVersion("shinyOAuthDB")),
       runtime = getFromNamespace(".odb_postgres_runtime", "shinyOAuthDB")(),
       passed = sum(counts$passed), failed = sum(counts$failed),
