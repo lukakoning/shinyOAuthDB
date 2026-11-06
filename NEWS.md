@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a guided Fabric cloud demo with Entra registration help, editable SQL
+  app files and an explicit query button. Cloud drafts are now isolated by
+  platform and use platform-specific secret environment variables.
+
 * Add `oauth_db_cloud_demo("databricks")`, a `cli` console guide that prepares
   an editable local Shiny app, supports public and confidential OAuth app
   registrations, and explains why Free Edition lacks its registration path.

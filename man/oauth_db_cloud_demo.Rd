@@ -16,14 +16,15 @@ oauth_db_cloud_demo(
   edition = NULL,
   action = c("start", "files"),
   prompt = interactive(),
-  launch_browser = interactive()
+  launch_browser = interactive(),
+  ...
 )
 }
 \arguments{
-\item{platform}{Cloud platform. Currently \code{"databricks"}.}
+\item{platform}{Cloud platform: \code{"databricks"} or \code{"fabric"}.}
 
-\item{host}{Workspace hostname or browser URL. Paths, queries and fragments
-are removed; the workspace must use HTTPS.}
+\item{host}{Databricks workspace hostname or browser URL. Paths, queries and
+fragments are removed. For other SQL demos, an alias for \code{server}.}
 
 \item{client_id}{Client ID from your custom OAuth app registration.}
 
@@ -49,6 +50,10 @@ editable draft without network calls or asking for a secret.}
 \item{prompt}{Ask interactively for missing settings. Use \code{FALSE} in scripts.}
 
 \item{launch_browser}{Open the local app in a regular browser.}
+
+\item{...}{Named platform settings. Fabric uses \code{server}, \code{database},
+\code{tenant_id} and optionally \code{driver}. Missing required values are explained
+and requested interactively. See the guided cloud demos vignette.}
 }
 \value{
 Invisibly, the demo directory, including after pausing incomplete
@@ -60,6 +65,11 @@ then runs a local Shiny app with your installed R packages. Visitors sign
 in through shinyOAuth and use their own cloud data permissions.
 }
 \details{
+Fabric asks for its SQL server/database and an Entra tenant and app
+registration. Install fabricQueryR, odbc and Microsoft ODBC Driver 18.
+Its confidential secret uses \code{OAUTHDB_FABRIC_CLIENT_SECRET}. The copied
+\code{app.R} contains the connection and query code; \code{demo-ui.R} contains the UI.
+
 Databricks needs an account-level custom OAuth app registration with the
 exact callback and SQL access. Public PKCE registrations need no secret.
 For confidential apps, set \code{OAUTHDB_DATABRICKS_CLIENT_SECRET} or use the

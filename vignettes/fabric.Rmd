@@ -17,6 +17,23 @@ For a Warehouse, Lakehouse SQL endpoint, or SQL Database, query with DBI
 or dbplyr. For other Fabric work, call fabricQueryR functions with the same
 sign-in.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("fabric")` in your R console.
+The guide asks for the SQL `server`, `database`, Entra `tenant_id` and
+`client_id`, then whether your registration is public PKCE or confidential.
+It shows where to find each value, registration instructions and your local
+callback. You can pause until an administrator grants access.
+
+Install `fabricQueryR`, `odbc`, `processx` and, for masked secrets, `askpass`;
+install Microsoft ODBC Driver 18 on your computer too. The app opens locally
+and runs its identity query only when you click **Run example query**.
+For scripted setup, pass those names as arguments; `driver` can override
+the installed driver's name. See [Guided cloud demos](cloud-demos.html).
+
+If you have no workspace, check [Fabric trial eligibility](https://learn.microsoft.com/en-us/fabric/get-started/fabric-trial).
+You still need an Entra app registration and permission to use a SQL item.
+
 ## Set up SQL access
 
 In R, run `install.packages(c("fabricQueryR", "odbc"))`. Install

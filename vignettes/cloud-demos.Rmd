@@ -11,13 +11,47 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Try an editable Shiny app with your own Databricks workspace. The console
+Try an editable Shiny app with your own cloud data platform. The console
 guide explains where to find the settings, then opens a local app where
-you sign in and run a query as yourself. Databricks enforces your existing
-permissions. The example needs no tables: its first query shows the
-signed-in database user.
+you sign in and run a query as yourself. The platform enforces your existing
+permissions. Each example starts with a database identity query, so you
+don't need to create tables or upload data.
 
-## Start the guide
+## Choose a platform
+
+| Platform name | Guide and required setup |
+| --- | --- |
+| `"databricks"` | [Databricks](databricks.html): workspace URL and custom OAuth registration; choose a SQL warehouse after sign-in |
+| `"fabric"` | [Microsoft Fabric](fabric.html): SQL server/database and an Entra registration; install fabricQueryR, odbc and Microsoft ODBC Driver 18 |
+
+For example, start the Fabric guide with:
+
+```{r fabric-guide}
+shinyOAuthDB::oauth_db_cloud_demo("fabric")
+```
+
+The guide uses `cli` messages and asks only for missing settings. Enter `?`
+for help, `back` to revisit a setting, or leave an answer blank to save a
+draft for later. It prints a command to resume the same directory.
+Account and trial links explain how to arrange access if you have no account
+yet; eligibility and organization policies still apply. The guide doesn't
+provision cloud resources.
+
+All apps run in local R, without Docker. Sign-in doesn't run SQL; click
+**Run example query** when ready. Running queries uses the platform's normal
+compute or query allowance. Stop demo ends the local app without stopping
+shared cloud services. Edit `app.R` to try different SQL; save and reload
+the browser. The non-Databricks apps also copy an editable `demo-ui.R`.
+
+Every platform supports `action = "files"` to create an offline draft.
+For scripts, supply the named settings shown in its guide and
+`prompt = FALSE`. Settings also use platform-specific environment names,
+such as `OAUTHDB_FABRIC_SERVER` or `OAUTHDB_FABRIC_TENANT_ID`.
+Secrets use masked input or `OAUTHDB_<PLATFORM>_CLIENT_SECRET`; the launcher
+passes them to the child R environment and keeps them out of generated
+files. Azure platform names use underscores in environment names.
+
+## Databricks
 
 With shinyOAuthDB installed, install the optional local-app packages:
 

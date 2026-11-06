@@ -1,10 +1,10 @@
 name: Guided cloud demo
 on:
   pull_request:
-    paths: ['R/cloud-demo.R', 'R/backend__databricks.R', 'inst/cloud-demo/**', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
+    paths: ['R/cloud-demo*.R', 'R/backend__databricks.R', 'inst/cloud-demo/**', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
   push:
     branches: [main, master]
-    paths: ['R/cloud-demo.R', 'R/backend__databricks.R', 'inst/cloud-demo/**', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
+    paths: ['R/cloud-demo*.R', 'R/backend__databricks.R', 'inst/cloud-demo/**', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
   workflow_dispatch:
 permissions:
   contents: read

@@ -4,9 +4,9 @@
 #' then runs a local Shiny app with your installed R packages. Visitors sign
 #' in through shinyOAuth and use their own cloud data permissions.
 #'
-#' @param platform Cloud platform. Currently `"databricks"`.
-#' @param host Workspace hostname or browser URL. Paths, queries and fragments
-#'   are removed; the workspace must use HTTPS.
+#' @param platform Cloud platform: `"databricks"` or `"fabric"`.
+#' @param host Databricks workspace hostname or browser URL. Paths, queries and
+#'   fragments are removed. For other SQL demos, an alias for `server`.
 #' @param client_id Client ID from your custom OAuth app registration.
 #' @param client_type `"public"` for PKCE without a secret, or `"confidential"`.
 #'   The guide asks when needed; noninteractive calls default to `"public"`.
@@ -22,9 +22,17 @@
 #'   editable draft without network calls or asking for a secret.
 #' @param prompt Ask interactively for missing settings. Use `FALSE` in scripts.
 #' @param launch_browser Open the local app in a regular browser.
+#' @param ... Named platform settings. Fabric uses `server`, `database`,
+#'   `tenant_id` and optionally `driver`. Missing required values are explained
+#'   and requested interactively. See the guided cloud demos vignette.
 #' @return Invisibly, the demo directory, including after pausing incomplete
 #'   interactive setup. Noninteractive starts report missing settings as errors.
 #' @details
+#' Fabric asks for its SQL server/database and an Entra tenant and app
+#' registration. Install fabricQueryR, odbc and Microsoft ODBC Driver 18.
+#' Its confidential secret uses `OAUTHDB_FABRIC_CLIENT_SECRET`. The copied
+#' `app.R` contains the connection and query code; `demo-ui.R` contains the UI.
+#'
 #' Databricks needs an account-level custom OAuth app registration with the
 #' exact callback and SQL access. Public PKCE registrations need no secret.
 #' For confidential apps, set `OAUTHDB_DATABRICKS_CLIENT_SECRET` or use the
@@ -61,9 +69,19 @@
 oauth_db_cloud_demo <- function(
   platform = "databricks", host = NULL, client_id = NULL, client_type = NULL,
   warehouse_id = NULL, http_path = NULL, path = NULL, port = NULL, edition = NULL,
-  action = c("start", "files"), prompt = interactive(), launch_browser = interactive()
+  action = c("start", "files"), prompt = interactive(), launch_browser = interactive(), ...
 ) {
-  platform <- match.arg(platform, "databricks")
+  platform <- match.arg(platform, c("databricks", names(.odb_cloud_specs())))
+  settings <- list(...)
+  .odb_named_args(settings, "Platform settings")
+  if (platform != "databricks") {
+    common <- list(host = host, client_id = client_id, client_type = client_type,
+      warehouse_id = warehouse_id, http_path = http_path, edition = edition)
+    common <- common[!vapply(common, is.null, logical(1))]
+    return(.odb_cloud_platform_demo(platform, c(common, settings), path, port,
+      match.arg(action), prompt, launch_browser))
+  }
+  if (length(settings)) cli::cli_abort("Unknown Databricks settings: {.field {names(settings)}}.")
   action <- match.arg(action)
   for (flag in list(prompt, launch_browser)) {
     if (!is.logical(flag) || length(flag) != 1L || is.na(flag)) cli::cli_abort("{.arg prompt} and {.arg launch_browser} must be TRUE or FALSE.")
@@ -77,6 +95,7 @@ oauth_db_cloud_demo <- function(
   }
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  .odb_cloud_check_marker(path, platform)
   config <- .odb_cloud_load(path)
   if (!is.null(host) && !is.null(config$host) && !identical(.odb_cloud_host(host), .odb_cloud_host(config$host))) {
     config$client_id <- config$client_type <- config$warehouse_id <- NULL
@@ -193,17 +212,22 @@ oauth_db_cloud_demo <- function(
   stats::setNames(as.list(unname(data[1L, , drop = TRUE])), colnames(data))
 }
 
-.odb_cloud_save <- function(config, path) {
+.odb_cloud_save <- function(config, path, platform = "databricks") {
   values <- vapply(config, as.character, "")
   write.dcf(as.data.frame(as.list(values), stringsAsFactors = FALSE), file.path(path, "settings.dcf"))
-  writeLines("databricks", file.path(path, ".shinyOAuthDB-cloud-demo"))
+  writeLines(platform, file.path(path, ".shinyOAuthDB-cloud-demo"))
 }
 
-.odb_cloud_files <- function(path) {
-  source <- system.file("cloud-demo", "databricks", package = "shinyOAuthDB", mustWork = TRUE)
+.odb_cloud_files <- function(path, platform = "databricks") {
+  source <- system.file("cloud-demo", platform, package = "shinyOAuthDB", mustWork = TRUE)
   for (name in c("app.R", "README.md")) {
     destination <- file.path(path, name)
     if (!file.exists(destination) && !file.copy(file.path(source, name), destination)) cli::cli_abort("Could not copy the demo app to {.path {path}}.")
+  }
+  if (platform != "databricks") {
+    destination <- file.path(path, "demo-ui.R")
+    if (!file.exists(destination) && !file.copy(system.file("cloud-demo", "demo-ui.R",
+      package = "shinyOAuthDB", mustWork = TRUE), destination)) cli::cli_abort("Could not copy the demo UI.")
   }
 }
 
@@ -305,21 +329,21 @@ oauth_db_cloud_demo <- function(
   invisible(NULL)
 }
 
-.odb_cloud_secret <- function(prompt) {
-  secret <- .odb_cloud_env("OAUTHDB_DATABRICKS_CLIENT_SECRET")
+.odb_cloud_secret <- function(prompt, envvar = "OAUTHDB_DATABRICKS_CLIENT_SECRET") {
+  secret <- .odb_cloud_env(envvar)
   if (is.null(secret) && prompt) {
     .odb_require("askpass")
-    secret <- askpass::askpass("Databricks OAuth app client secret (not saved)")
+    secret <- askpass::askpass("OAuth app client secret (not saved)")
   }
   if (is.null(secret) || !is.character(secret) || length(secret) != 1L || is.na(secret) || !nzchar(secret)) {
-    cli::cli_abort("This confidential registration needs its secret. Set {.envvar OAUTHDB_DATABRICKS_CLIENT_SECRET}, or rerun interactively for masked input.")
+    cli::cli_abort("This confidential registration needs its secret. Set {.envvar {envvar}}, or rerun interactively for masked input.")
   }
   secret
 }
 
-.odb_cloud_run <- function(path, port, launch_browser, secret) {
+.odb_cloud_run <- function(path, port, launch_browser, secret, secret_env = "OAUTHDB_DATABRICKS_CLIENT_SECRET") {
   env <- c("current", R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep),
-    OAUTHDB_DATABRICKS_CLIENT_SECRET = if (is.null(secret)) "" else secret)
+    stats::setNames(if (is.null(secret)) "" else secret, secret_env))
   result <- processx::run(file.path(R.home("bin"), if (.Platform$OS.type == "windows") "Rterm.exe" else "R"),
     args = c("--vanilla", "--slave", "-f", system.file("cloud-demo", "run.R", package = "shinyOAuthDB", mustWork = TRUE),
       "--args", path, as.character(port), as.character(launch_browser)), env = env, encoding = "UTF-8",
