@@ -5,6 +5,12 @@ From R, use `shinyOAuthDB::oauth_db_demo()` to run PostgreSQL, or choose
 or `"opensearch"`. Use `action = "files"` to copy
 this directory without starting Docker.
 
+Use `app = "local"` to start only the database and sign-in infrastructure
+in Docker, and run the editable Shiny app in a local R process. Its copy
+is at `local-app/<database>/app.R`. The extra `compose.local.yml` and
+`<database>/compose.local.yml` files expose the database on host loopback
+port 19444 and leave 18100 for local Shiny.
+
 | File | Purpose |
 | --- | --- |
 | `compose.yml` | Shared Keycloak, certificates and Shiny runtime |

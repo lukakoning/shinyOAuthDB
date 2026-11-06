@@ -1,0 +1,7 @@
+services:
+  local:
+    environment:
+      OAUTHDB_RELAY_TARGET_PORT: "18444"
+    depends_on:
+      https:
+        condition: service_started

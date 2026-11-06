@@ -32,6 +32,7 @@ Imports:
     shinyOAuth (>= 0.7.0)
 Suggests:
     brickster (>= 0.2.14),
+    callr,
     dbplyr,
     dplyr,
     duckdb (>= 1.5.3),

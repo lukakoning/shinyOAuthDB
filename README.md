@@ -133,6 +133,10 @@ shinyApp(ui, server, uiPattern = ".*")
 To edit and rerun this app, or try the packaged PostgREST, Trino, StarRocks,
 DuckDB Quack, libSQL, CrateDB and OpenSearch setups, follow
 [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
+For editing in local R, `shinyOAuthDB::oauth_db_demo("postgrest", app = "local")` runs
+PostgreSQL, PostgREST and sign-in in Docker while you edit and run the Shiny app on
+your computer. The [local app guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-and-edit-shiny-in-local-r)
+explains the R packages and drivers needed for each database.
 For your own server, follow the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
 [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html) explains the Shiny pattern.

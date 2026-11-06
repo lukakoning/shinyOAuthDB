@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `app = "local"` to `oauth_db_demo()`: keep the database and sign-in
+  services in Docker and run an editable Shiny app with your local R library.
+  The default continues to run the app in Docker.
+
 * Extend `oauth_db_demo()` with DuckDB Quack, libSQL, CrateDB and OpenSearch.
   Each includes browser sign-in, server-validated tokens and sample data;
   the apps also demonstrate database rejection of writes.

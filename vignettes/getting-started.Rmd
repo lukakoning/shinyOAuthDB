@@ -28,6 +28,11 @@ demo accounts. Open `http://localhost:18100` when ready. See
 [Local Docker demos](local-demos.html) for the passwords, other databases,
 editing the app and cleanup. No repository clone or cloud account is needed.
 
+To run an editable app in local R with its database in Docker, try
+`shinyOAuthDB::oauth_db_demo("postgrest", app = "local")`. The
+[local app guide](local-demos.html#run-and-edit-shiny-in-local-r) lists the
+required R packages and explains how to edit and reload the app.
+
 For your own data, choose a guide below. Each starts with the database's
 purpose, the settings you need and a complete app, then explains the
 server and advanced configuration.

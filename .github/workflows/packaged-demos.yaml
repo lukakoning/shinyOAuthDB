@@ -16,6 +16,14 @@ jobs:
       fail-fast: false
       matrix:
         database: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch]
+        app: [docker]
+        include:
+          - {database: postgrest, app: local}
+          - {database: trino, app: local}
+          - {database: duckdb, app: local}
+          - {database: libsql, app: local}
+          - {database: cratedb, app: local}
+          - {database: opensearch, app: local}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled
@@ -23,6 +31,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
         with:
+          r-version: '4.5'
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
@@ -32,13 +41,17 @@ jobs:
             any::callr
             any::chromote
             any::jsonlite
+            any::RTrino
             github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+      - name: Install the matching local DuckDB client
+        if: matrix.database == 'duckdb' && matrix.app == 'local'
+        run: Rscript --vanilla inst/docker/install-duckdb.R
       - name: Test the installed demo and real sign-in
-        run: Rscript --vanilla tools/check-demos.R ${{ matrix.database }}
+        run: Rscript --vanilla tools/check-demos.R ${{ matrix.database }} ${{ matrix.app }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: demo-${{ matrix.database }}
+          name: demo-${{ matrix.database }}-${{ matrix.app }}
           path: .validation/demos/
           include-hidden-files: true
           if-no-files-found: error

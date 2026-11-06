@@ -38,8 +38,64 @@ applies the restriction; the app sends the same query for both people.
 
 Keycloak, the open-source sign-in server, uses `https://localhost:18443`.
 Your browser may ask you to accept its generated local test certificate.
-The containers trust this demo's CA; the launcher doesn't change your
+The app trusts this demo's CA; the launcher doesn't change your
 computer's certificate store.
+
+## Run and edit Shiny in local R
+
+The default `app = "docker"` runs everything in containers, including R and
+the database driver. Choose `app = "local"` to run the app in an R process
+on your computer, using your installed R packages. Docker still runs the
+database, Keycloak and the services needed by that database.
+
+PostgREST is an easy first example: it queries PostgreSQL over HTTPS, so
+your local R installation doesn't need a database driver.
+
+```{r local-app}
+install.packages("callr")
+shinyOAuthDB::oauth_db_demo("postgrest", app = "local")
+```
+
+The launcher prints the path to your editable `app.R`. Open it in your
+editor, change the query or UI, save it and reload the browser. The local
+Shiny process watches that file for changes. Sign in with the same Alice
+and Bob accounts as above.
+
+To open the file before starting the demo:
+
+```{r edit-local-app}
+path <- shinyOAuthDB::oauth_db_demo("postgrest", app = "local", action = "files")
+file.edit(file.path(path, "local-app", "postgrest", "app.R"))
+shinyOAuthDB::oauth_db_demo("postgrest", app = "local", path = path)
+```
+
+Your edits stay between runs. Local mode uses a separate default directory
+from Docker mode. Use the same `app = "local"` and `path` when resuming or
+stopping a local demo. **Stop demo** or an R interrupt stops the local app
+and removes the Docker containers and data.
+
+| Local app | What you need in local R |
+| --- | --- |
+| PostgREST, libSQL, CrateDB, OpenSearch | callr and jsonlite; no database driver |
+| Trino | callr and RTrino 0.1.0 or later |
+| DuckDB Quack | callr and a DuckDB 1.5.4 client matching the server; the launcher installs its Quack/httpfs extensions |
+| StarRocks | callr, odbc and MySQL Connector/ODBC 9.2 or later with its OpenID Connect plugin |
+| Native PostgreSQL | callr, Linux and shinyOAuthDB/RPostgres built against the same shared libpq 18 |
+
+The launcher reports missing R packages before starting Docker. PostgreSQL's
+native client cannot run in local R on Windows or macOS; use PostgREST there,
+or keep the PostgreSQL app in Docker. For StarRocks, check `driver` and
+`plugin_dir` in the copied app against your local MySQL ODBC installation.
+You can set `OAUTHDB_DEMO_ODBC_DRIVER` before copying the app to supply a
+registered driver name (required on Windows), or a library path on Unix.
+For a separate plugin directory, set `OAUTHDB_DEMO_ODBC_PLUGINS` before
+copying the app, or edit `plugin_dir` in the copied file.
+
+Local mode requires Docker Compose 2.24.4 or later. It leaves port 18100
+for local Shiny and publishes the selected database endpoint on
+`localhost:19444`. The app uses the demo's generated CA, with certificate
+verification enabled. Only its own R process trusts that CA; your R
+session and system certificate store keep their existing settings.
 
 ## Choose another database
 
@@ -62,8 +118,8 @@ databases enforce their read-only policy on the server. OpenSearch gives
 each person their own documents. These four apps show the signed-in
 account and include **Try a write**, which the database should reject.
 
-Docker supplies the R packages and drivers too. StarRocks needs roughly
-4 GB of Docker memory and uses amd64 images, so other architectures need
+With `app = "docker"`, Docker supplies the R packages and drivers too.
+StarRocks needs roughly 4 GB of Docker memory and uses amd64 images, so other architectures need
 emulation. Trino and OpenSearch each need at least 2 GB for their database
 container. DuckDB downloads a matching R client and Quack extensions. It
 compiles the client from source if a Linux binary isn't available, which
@@ -102,6 +158,8 @@ If R exits forcibly, restart R and stop the same database:
 
 ```{r stop}
 shinyOAuthDB::oauth_db_demo("postgres", action = "stop")
+# For the local app example:
+shinyOAuthDB::oauth_db_demo("postgrest", app = "local", action = "stop")
 ```
 
 Use the same `path` too if you chose a custom directory. The launcher prints
@@ -128,8 +186,8 @@ These are disposable, local configurations with public passwords. For a
 deployment, replace the accounts, secrets, certificates and hostnames,
 then follow the database guide's OAuth setup instructions.
 
-The app images install pinned revisions of shinyOAuth and shinyOAuthDB
-from GitHub, listed in `install.R`. They don't use your local R library.
+In Docker mode, the app images install pinned revisions of shinyOAuth and
+shinyOAuthDB from GitHub, listed in `install.R`. They don't use your local R library.
 Maintainers can update those revisions after testing a new package release.
 
 ## If the demo doesn't start
@@ -137,7 +195,7 @@ Maintainers can update those revisions after testing a new package release.
 If Docker isn't found, install Docker Desktop or Docker Engine with Compose
 v2, then restart R so it picks up your PATH. Start the Docker daemon and
 select Linux containers. On a port conflict, stop the other local demo or
-the program using ports 18100 and 18443.
+the program using ports 18100 and 18443 (and 19444 in local mode).
 
 Read the Docker output for failed downloads, low disk space or memory
 limits. Retry with the default `build = TRUE` after fixing the problem;

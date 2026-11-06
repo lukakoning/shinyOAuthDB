@@ -1,0 +1,16 @@
+services:
+  keycloak:
+    ports: !override
+      - "127.0.0.1:18443:18443"
+      - "127.0.0.1:19444:19444"
+  local:
+    image: python:3.12.12-slim
+    network_mode: service:keycloak
+    entrypoint: ["python", "/demo/local/relay.py"]
+    volumes:
+      - .:/demo:ro
+    healthcheck:
+      test: ["CMD", "python", "/demo/local/relay.py", "--check"]
+      interval: 2s
+      timeout: 5s
+      retries: 60

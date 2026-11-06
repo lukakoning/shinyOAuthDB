@@ -1,0 +1,7 @@
+services:
+  local:
+    environment:
+      OAUTHDB_RELAY_TARGET_PORT: "9030"
+    depends_on:
+      database:
+        condition: service_healthy

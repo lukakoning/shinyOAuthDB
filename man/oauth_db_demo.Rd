@@ -10,7 +10,8 @@ oauth_db_demo(
   action = c("start", "stop", "files"),
   path = NULL,
   launch_browser = interactive(),
-  build = TRUE
+  build = TRUE,
+  app = c("docker", "local")
 )
 }
 \arguments{
@@ -30,14 +31,19 @@ the app or configuration. An unrelated nonempty directory is refused.}
 
 \item{build}{Build Docker images before starting. Set to \code{FALSE} to reuse
 images from a previous successful build.}
+
+\item{app}{Where to run the Shiny app: \code{"docker"} (the default) supplies
+its R environment and drivers, or \code{"local"} uses your installed R packages.
+Local mode creates an editable app under \verb{local-app/<database>/} in \code{path}.}
 }
 \value{
 Invisibly, the directory containing the demo configuration.
 }
 \description{
-Start a database, Keycloak sign-in and a small Shiny app using Docker.
+Start a database and Keycloak sign-in using Docker, with a small Shiny app
+running either in Docker or in a local R process.
 The installed package includes the configuration, accounts and sample data;
-no source checkout, cloud account or local database driver is needed.
+no source checkout or cloud account is needed.
 }
 \details{
 Install and start Docker with Linux containers and Docker Compose v2.
@@ -64,6 +70,29 @@ To edit an example, first use \code{action = "files"}, edit the returned
 directory, then call with the same \code{path}. \code{app.R} in the selected
 database's subdirectory is the Shiny app. Stop the demo before rebuilding.
 }
+\section{Run and edit the app locally}{
+
+Use \code{app = "local"} to keep the database and sign-in services in Docker
+while running Shiny in a separate R process on your computer. This uses
+your R library and watches the copied \verb{local-app/<database>/app.R} for
+changes. Save the file and reload the browser to try your edits. Existing
+app files are preserved. Local and Docker modes have separate default
+cache directories.
+
+Local mode requires the optional callr package. Trino also needs RTrino;
+StarRocks needs odbc and MySQL Connector/ODBC with its OpenID Connect plugin;
+DuckDB needs a client matching the demo server (DuckDB 1.5.4) and installs
+its matching Quack/httpfs extensions. PostgreSQL's native client requires
+Linux and shinyOAuthDB/RPostgres built against the same shared libpq 18.
+Use the PostgREST demo for local editing on Windows or macOS without a
+database driver.
+
+The launcher copies the demo's public CA certificate and trusts it only
+inside the local app process. It does not change your certificate store
+or the parent R session's TLS settings. Local mode requires Compose 2.24.4
+or later and publishes its database endpoint on loopback port 19444.
+}
+
 \examples{
 \dontrun{
 oauth_db_demo()
@@ -76,6 +105,10 @@ oauth_db_demo("cratedb")
 oauth_db_demo("opensearch")
 oauth_db_demo(action = "stop")
 path <- oauth_db_demo(action = "files")
+# Edit a local R app backed by PostgreSQL and PostgREST in Docker:
+path <- oauth_db_demo("postgrest", app = "local", action = "files")
+file.edit(file.path(path, "local-app", "postgrest", "app.R"))
+oauth_db_demo("postgrest", app = "local", path = path)
 }
 }
 \seealso{

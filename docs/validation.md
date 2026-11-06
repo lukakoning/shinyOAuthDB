@@ -1,5 +1,40 @@
 # Validation record
 
+## 6 November 2026: editable demo apps in local R
+
+`oauth_db_demo(app = "local")` runs the database and sign-in infrastructure
+in Docker and an editable Shiny app in a separate host R process. Its
+default remains `app = "docker"`. Local app files keep user edits and watch
+for saved changes; certificate settings stay inside the app process.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 3,909 assertions across 257 scenarios; zero failures, errors, warnings or skips |
+| Final focused launcher and documentation tests | 265 assertions pass, including the process-isolation follow-up |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes after correcting an unqualified utility call |
+| Local R browser demos | PostgREST, Trino, DuckDB Quack, libSQL, CrateDB and OpenSearch pass real Alice/Bob sign-in, expected data access, output clearing and stop-button cleanup |
+| Local editing | Each local browser check loads a saved app edit before login and another saved edit between accounts; no Docker Shiny app container runs |
+| Write restrictions | DuckDB, libSQL, CrateDB and OpenSearch reject writes from the local apps |
+| Forced-exit cleanup | Force-ending the launcher also ends its local R app process |
+| Existing Docker mode | PostgREST passes its two-account browser regression |
+| Compose configurations | All eight local contexts resolve; browser/database ports bind to host loopback and port 18100 remains free for local Shiny |
+| Documentation and website | 79 R blocks parse; 181 local links and 17 section anchors resolve; pkgdown builds and README website targets resolve |
+| Workflow syntax | actionlint 1.7.12 passes; CI includes six local variants and eight Docker variants |
+
+Checks use Docker Desktop Linux containers and Chrome on Windows. The
+browser harness installs the current package into a temporary library and
+launches it outside the checkout, with spaces in its configuration path.
+The final process-isolation changes have additional focused, browser and
+forced-exit checks. No cloud services or production credentials were used.
+
+Native PostgreSQL local mode needs the matching Linux/libpq 18 client
+build and was not run on this Windows host; its early diagnostic is tested.
+StarRocks local mode needs an installed MySQL ODBC driver and plugin. An
+extracted, unregistered Windows DLL was rejected by the ODBC manager, so
+that local browser variant remains unverified here. Both databases retain
+their existing Docker app mode. Other host systems and ARM were not tested.
+Remote Actions have not run; local artifacts remain under `.validation/`.
+
 ## 6 November 2026: four more packaged Docker demos
 
 `oauth_db_demo()` now also launches DuckDB Quack, libSQL, CrateDB and

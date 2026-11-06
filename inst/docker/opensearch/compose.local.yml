@@ -1,0 +1,7 @@
+services:
+  local:
+    environment:
+      OAUTHDB_RELAY_TARGET_PORT: "9200"
+    depends_on:
+      seed:
+        condition: service_completed_successfully

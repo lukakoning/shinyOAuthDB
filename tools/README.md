@@ -75,6 +75,19 @@ The DuckDB, libSQL and CrateDB examples share a read-only table between
 accounts; OpenSearch filters documents per user. These four checks also
 verify the current account display and database rejection of writes.
 
+Pass `local` after the database name to check a host R app backed by Docker:
+
+```sh
+Rscript --vanilla tools/check-demos.R postgrest local
+```
+
+This also verifies that Docker isn't running the Shiny app and that a saved
+edit to the local app appears in the next browser session. Local checks use
+the host R library; install the database-specific dependencies listed in
+the local demo guide. CI checks six local variants alongside the eight
+Docker apps. Native PostgreSQL needs the matching Linux/libpq 18 build;
+StarRocks needs the native MySQL ODBC driver and plugin.
+
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty
 or incomplete runs cannot pass. Browser snapshots distinguish read attempts
