@@ -41,7 +41,5 @@ local({
     passed = sum(counts$passed), failed = sum(counts$failed), errors = sum(counts$error),
     warnings = sum(counts$warning), skipped = sum(counts$skipped)),
     "/results/results.json", auto_unbox = TRUE, pretty = TRUE)
-  if (any(counts$failed > 0 | counts$error | counts$warning > 0 | counts$skipped) || sum(counts$passed) == 0L) {
-    stop("Local integration requires passing assertions and zero failures, errors, warnings or skips.", call. = FALSE)
-  }
+  integration_validate_results(counts, integration_scenarios(backend))
 })

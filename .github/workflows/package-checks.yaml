@@ -57,6 +57,9 @@ jobs:
       - name: Verify validation rejects incomplete runs
         run: Rscript --vanilla tools/test-validation.R
 
+      - name: Verify integration assertion contracts
+        run: Rscript --vanilla tools/test-integration.R
+
       - name: Measure package test coverage
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-coverage.R

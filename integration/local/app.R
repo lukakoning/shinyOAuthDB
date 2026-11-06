@@ -24,6 +24,7 @@ fixture_run_app <- function(config) {
     shiny::tableOutput("rows"), shiny::verbatimTextOutput("snapshot")
   ), id = "auth", client = client)
   server <- function(input, output, session) {
+    request_baseline <- if (is.function(spec$request_count)) spec$request_count() else NULL
     auth <- shinyOAuth::oauth_module_server("auth", client,
       auto_redirect = FALSE, async = FALSE, refresh_proactively = FALSE)
     username <- function() {
@@ -32,6 +33,7 @@ fixture_run_app <- function(config) {
     }
     native <- spec$bind(auth$connection, username, config)
     calls <- shiny::reactiveVal(0L)
+    read_attempts <- shiny::reactiveVal(0L)
     refresh_failed <- shiny::reactiveVal(NULL)
     held_usable <- shiny::reactiveVal(NULL)
     refreshes <- shiny::reactiveVal(0L)
@@ -68,6 +70,7 @@ fixture_run_app <- function(config) {
         previous <<- value
       }
       held <<- value
+      read_attempts(shiny::isolate(read_attempts()) + 1L)
       rows <- spec$read(value)
       calls(shiny::isolate(calls()) + 1L)
       rows
@@ -172,7 +175,9 @@ fixture_run_app <- function(config) {
       jsonlite::toJSON(list(ready = isTRUE(auth$has_browser_token()), authorized = !is.null(reference),
         authorization_id = if (!is.null(reference)) reference$id else NULL,
         auth_error = if (is.null(auth$error)) NULL else "authorization_failed",
-        result = rows, error = failure, calls = calls(), openings = openings(),
+        result = rows, error = failure, calls = calls(), read_attempts = read_attempts(),
+        remote_read_attempts = if (is.null(request_baseline)) NULL else spec$request_count() - request_baseline,
+        openings = openings(),
         refresh_failed = refresh_failed(), held_usable = held_usable(),
         refreshes = refreshes(), rotated = rotated(), denied = denied(), tampered_denied = tampered(),
         expired_denied = expired_denied(), original_expiry = old_expiry,

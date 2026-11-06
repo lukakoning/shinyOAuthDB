@@ -17,9 +17,8 @@ testthat::test_that("both public Databricks helpers execute real local SQL and r
   }
   fixture_click(browser, "data")
   data <- fixture_wait(browser, function(x) !is.null(x$data_checks), timeout = 90)
-  for (name in c("quoted_value", "named_parameter_gap", "both_helpers", "null", "bigint_text", "timestamp", "empty", "pages")) {
-    testthat::expect_true(data$data_checks[[name]], info = paste(name, data$data_error))
-  }
+  testthat::expect_true(integration_require_checks(data$data_checks,
+    integration_check_names("minilake", "data"), "MiniLake data checks"))
   fixture_click(browser, "load")
   reused <- fixture_wait(browser, function(x) x$calls > data$calls)
   testthat::expect_identical(reused$result[[1L]]$generation, initial$result[[1L]]$generation)

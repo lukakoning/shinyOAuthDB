@@ -3,6 +3,7 @@ Run the full package validation from the repository root:
 ```sh
 Rscript --vanilla tools/test-validation.R
 Rscript --vanilla tools/test-docs.R
+Rscript --vanilla tools/test-integration.R
 Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-coverage.R
 ```
@@ -19,6 +20,11 @@ examples without executing them.
 The scripts use an isolated temporary package installation; they do not install
 dependencies into your normal library. Install the package's Imports and
 Suggests, plus pkgbuild, rcmdcheck and covr, before running them.
+
+The integration harness requires the complete named scenario set and exact
+TLS, permission, and data check names. `test-integration.R` verifies that empty
+or incomplete runs cannot pass. Browser snapshots distinguish read attempts
+from successful reads; PostgREST also counts reads at its real HTTPS proxy.
 
 `check-package.R` checks dependency availability and declared minimum versions,
 then runs the source suite. Any failure, error, warning, skipped scenario or
@@ -40,6 +46,8 @@ pins shinyOAuth to the same revision as the local integration workflows.
 
 The minimum-backends workflow installs brickster 0.2.14, fabricQueryR 1.0.1,
 RTrino 0.1.0, or odbc 1.4.2 in separate jobs and runs the full source suite.
+The odbc job uses R 4.5 because its configure script requires `CXX11`, which
+R 4.6 removed. The other jobs use the current R release.
 To reproduce a job with that SDK installed in an isolated library, run:
 
 ```sh

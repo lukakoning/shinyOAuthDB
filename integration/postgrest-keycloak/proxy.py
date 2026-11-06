@@ -4,10 +4,26 @@ import http.server
 import ssl
 import socket
 import time
+import threading
+
+read_count = 0
+count_lock = threading.Lock()
 
 
 class Proxy(http.server.BaseHTTPRequestHandler):
     def forward(self):
+        global read_count
+        if self.path == "/_fixture/read-count":
+            with count_lock:
+                payload = str(read_count).encode("ascii")
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if self.path == "/rpc/own_rows":
+            with count_lock:
+                read_count += 1
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         upstream = http.client.HTTPConnection("127.0.0.1", 13000, timeout=20)
         headers = {key: value for key, value in self.headers.items()

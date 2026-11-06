@@ -12,6 +12,8 @@ fixture_backend <- list(
     }
   },
   version = function() "PostgREST 16.5 / PostgreSQL 18.3",
+  request_count = function() as.integer(httr2::resp_body_string(httr2::req_perform(
+    httr2::request("https://localhost:18444/_fixture/read-count")))),
   bind = function(authorization, username, config) {
     api <- shinyOAuthDB::oauth_db_postgrest_api(authorization,
       paste0("https://", config$server, ":", config$port), schema = "reporting", required_scopes = "database.read",

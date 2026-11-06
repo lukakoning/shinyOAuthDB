@@ -1,4 +1,5 @@
 local({
+  source("integration/contracts.R", local = TRUE)
   fixture <- file.path(getwd(), "integration", "postgres-keycloak")
     withCallingHandlers(
       sys.source(
@@ -38,14 +39,5 @@ local({
       " skips."
     )
 
-    if (
-      any(
-        counts$failed > 0 | counts$error | counts$warning > 0 | counts$skipped
-      )
-    ) {
-      stop(
-        "Integration requires zero failures, errors, warnings and skips.",
-        call. = FALSE
-      )
-    }
+    integration_validate_results(counts, integration_scenarios("postgres"))
 })

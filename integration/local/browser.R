@@ -1,3 +1,4 @@
+source("integration/contracts.R")
 fixture_repository <- normalizePath(".", mustWork = TRUE)
 
 fixture_config <- function(client_id = "shiny-db") {

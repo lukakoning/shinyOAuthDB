@@ -18,18 +18,19 @@ testthat::test_that("real browser users receive only their server-enforced rows"
     testthat::expect_identical(vapply(snapshot$result, `[[`, "", "marker"), paste0(entry$user, "-visible-", 1:2))
     fixture_click(entry$browser, "probe")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$denied))
-    if (is.list(check$denied)) {
-      for (name in names(check$denied)) testthat::expect_true(check$denied[[name]], info = name)
-    } else testthat::expect_true(check$denied)
+    testthat::expect_true(integration_require_checks(check$denied,
+      integration_check_names(fixture$config$backend, "denied"), "Permission checks"))
     fixture_click(entry$browser, "tamper")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$tampered_denied))
     testthat::expect_true(check$tampered_denied)
     fixture_click(entry$browser, "tls")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$tls_checks))
-    for (name in names(check$tls_checks)) testthat::expect_true(check$tls_checks[[name]], info = name)
+    testthat::expect_true(integration_require_checks(check$tls_checks,
+      integration_check_names(fixture$config$backend, "tls"), "TLS checks"))
     fixture_click(entry$browser, "data")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$data_checks))
-    for (name in names(check$data_checks)) testthat::expect_true(check$data_checks[[name]], info = name)
+    testthat::expect_true(integration_require_checks(check$data_checks,
+      integration_check_names(fixture$config$backend, "data"), "Data checks"))
   }
   initial <- fixture_snapshot(a)
   testthat::expect_false(identical(initial$authorization_id, fixture_snapshot(b)$authorization_id))
@@ -92,9 +93,11 @@ testthat::test_that("the real service rejects a valid token for another audience
   value <- fixture_wait(browser, function(x) !is.null(x$error))
   testthat::expect_identical(value$error, "backend_operation_failed")
   testthat::expect_null(value$result)
+  testthat::expect_true(value$read_attempts >= 1L || fixture_backend$dbi)
+  testthat::expect_identical(value$calls, 0L)
 })
 
-testthat::test_that("missing operation scope is blocked before querying the service", {
+testthat::test_that("missing operation scope blocks fixture read attempts", {
   fixture <- fixture_setup(fixture_config("shiny-missing-scope"))
   on.exit(fixture$close(), add = TRUE)
   browser <- fixture$new_browser()
@@ -104,6 +107,9 @@ testthat::test_that("missing operation scope is blocked before querying the serv
   value <- fixture_snapshot(browser)
   testthat::expect_null(value$result)
   testthat::expect_identical(value$calls, 0L)
+  if (fixture$config$backend == "postgrest") {
+    testthat::expect_identical(value$remote_read_attempts, 0L)
+  } else testthat::expect_identical(value$read_attempts, 0L)
 })
 
 testthat::test_that("the service rejects an expired browser-issued token independently of local access", {
