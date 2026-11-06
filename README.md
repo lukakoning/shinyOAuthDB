@@ -1,9 +1,35 @@
 # shinyOAuthDB
 
-Query data from Shiny using each visitor's own account. shinyOAuthDB handles
-database connections and API clients; [shinyOAuth](https://github.com/lukakoning/shinyOAuth)
-handles sign-in and token renewal. The database enforces the visitor's
-permissions, including which rows they can see.
+shinyOAuthDB helps you build Shiny apps that query a database or data
+platform using each app user's own account. People sign in with the account
+they already use for that data source, and your app queries data on their
+behalf.
+
+This is useful when your organization already manages accounts and data
+permissions in a database or data platform. Your Shiny app can reuse those
+permissions, so you don't have to maintain a separate set of user accounts
+and data-access rules in the app. For example, if your database limits an
+analyst to sales data for their region, a Shiny dashboard can query as that
+analyst and use the same restriction.
+
+The OAuth sign-in and data access work like this:
+
+1. A user clicks **Sign in** in your Shiny app.
+   [shinyOAuth](https://github.com/lukakoning/shinyOAuth) sends their browser
+   to the platform's sign-in page, or to a sign-in service that your database
+   trusts, such as your organization's login service.
+2. They sign in with their existing account and, if asked, approve the
+   access your app requests.
+3. They return to your Shiny app. shinyOAuth obtains an **access token**,
+   a temporary credential that lets the app request data on their behalf.
+4. Your app uses shinyOAuthDB to send that token with its data requests.
+   The database or platform checks the token and applies that user's
+   permissions before returning data.
+
+shinyOAuthDB provides R functions to open database connections, run queries
+and make API calls. Depending on the data source, you can work with familiar
+tools such as DBI and dbplyr, or use the package's query and API helpers.
+shinyOAuth handles sign-in and token renewal.
 
 Supported databases and platforms (links open their setup guides):
 
@@ -24,8 +50,9 @@ Supported databases and platforms (links open their setup guides):
 [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html) ·
 [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html).
 
-Self-hosted servers need OAuth configured. Each guide explains how to prepare
-the server, register the app and find the settings you need.
+Your database or data platform must accept OAuth access tokens, and you'll
+need to register your Shiny app with its sign-in service. Each guide explains
+the setup and where to find the settings you need.
 
 ## Install
 
