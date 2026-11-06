@@ -177,6 +177,28 @@ testthat::test_that("cloud configuration cannot replace secrets or opt in to rem
   testthat::expect_error(live_apply_config('{"OAUTHDB_BIGQUERY_PROJECT":42}'), "non-secret")
 })
 
+testthat::test_that("ClickHouse cloud acceptance uses its public HTTPS helper and native parameters", {
+  withr::local_envvar(c(OAUTHDB_CLICKHOUSE_URL = "https://clickhouse.example", OAUTHDB_CLICKHOUSE_DATABASE = "reporting"))
+  requests <- list()
+  httr2::local_mocked_responses(function(req) {
+    requests[[length(requests) + 1L]] <<- req
+    httr2::response(status_code = 200L, headers = list(`content-type` = "application/json"),
+      body = charToRaw('{"meta":[{"name":"database_user","type":"String"}],"data":[["alice"]],"rows":1}'))
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    spec <- live_spec("clickhouse")
+    native <- spec$bind(auth$connection)()
+    testthat::expect_s3_class(native, "OAuthClickHouseAPI")
+    testthat::expect_identical(spec$query(native, spec$native_args(7L))$database_user, "alice")
+    testthat::expect_identical(spec$helper, "oauth_db_clickhouse_api")
+    testthat::expect_identical(httr2::url_parse(requests[[1L]]$url)$query$param_value, "7")
+    auth$current(FALSE)
+    testthat::expect_error(spec$query(native, spec$native_args(7L)), class = "shiny.silent.error")
+    testthat::expect_length(requests, 1L)
+  })
+})
+
 testthat::test_that("Google scheduled credentials use delegated refresh with bounded non-redirecting requests", {
   withr::local_envvar(c(OAUTHDB_LIVE_TESTS = "true", OAUTHDB_CLIENT_ID = "fixture-client",
     OAUTHDB_CLIENT_SECRET = "fixture-secret", OAUTHDB_LIVE_A_REFRESH_TOKEN = "fixture-refresh",

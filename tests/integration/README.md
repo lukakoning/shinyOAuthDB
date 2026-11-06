@@ -112,6 +112,7 @@ Lakehouse resource across account replacement.
 | `fabric-api-resource` | Fabric item lookup and retained Lakehouse table read; needs Fabric and storage tokens |
 | `snowflake-native`, `snowflake-external` | Snowflake native OAuth or Entra External OAuth |
 | `redshift`, `redshift-access-token` | Native ODBC EXT_JWT or ACCESS_TOKEN |
+| `clickhouse` | Public HTTPS API with delegated JWT; requires an eligible JWT-enabled service |
 
 `databricks` selects the DBI route. Existing `fabric-<service>` names select
 the corresponding API route. These are fixed-token acceptance routes, not
@@ -119,6 +120,15 @@ browser sign-in or refresh tests. For Redshift, set `OAUTHDB_OIDC_ISSUER` and
 `OAUTHDB_SCOPES` for its provider as well as server/database/driver settings.
 
 Browser sign-in, consent, and refresh need a separate browser test.
+
+ClickHouse uses `OAUTHDB_CLICKHOUSE_URL`, `OAUTHDB_CLICKHOUSE_DATABASE`,
+`OAUTHDB_OIDC_ISSUER`, and the provider's `OAUTHDB_SCOPES`, together with
+client and A/B credentials. [clickhouse.fixture.R](clickhouse.fixture.R)
+requires operator-prepared `reporting.visible_rows` with A/B markers and
+server-enforced row policies, plus a known forbidden `reporting.denied_rows`.
+It requires ClickHouse's `497` permission-denial code, not an arbitrary error.
+This is separate from the local synthetic-gateway fixture and has not been
+qualified against a managed JWT service by the local tests.
 
 1. Install the database client and driver. Set the backend's connection
    variables listed in [source-config.R](source-config.R).

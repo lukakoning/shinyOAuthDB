@@ -50,6 +50,15 @@ live_spec <- function(backend) {
 live_backend_spec <- function(backend) {
   live_require("shinyOAuthDB")
   if (identical(backend, "bigquery")) return(live_bigquery_spec())
+  if (identical(backend, "clickhouse")) return(list(
+    service = "clickhouse", helper = "oauth_db_clickhouse_api", auth_mode = "oidc", retires_handle = FALSE,
+    bind = function(auth) {
+      api <- shinyOAuthDB::oauth_db_clickhouse_api(auth, live_env("OAUTHDB_CLICKHOUSE_URL"),
+        database = live_env("OAUTHDB_CLICKHOUSE_DATABASE"), timeout = 30)
+      function() api
+    }, native_args = function(value) list(sql = "SELECT currentUser() AS database_user, {value:Int32} AS requested_value",
+      parameters = list(value = value)),
+    query = function(native, args) do.call(native$query, args)))
   sql_spec <- function(bind, query, service = "sql", helper = "oauth_db_azure_sql") list(
     helper = helper,
     service = service, bind = bind,
