@@ -1,0 +1,47 @@
+services:
+  tls:
+    image: shinyoauthdb-local-tls:1
+    volumes:
+      - fixture_tls:/fixtures/tls
+  engine:
+    image: clickhouse/clickhouse-server:26.1.2.11
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: '1'
+    volumes:
+      - ./fixture.sql:/docker-entrypoint-initdb.d/fixture.sql:ro
+    healthcheck:
+      test: ['CMD', 'clickhouse-client', '--query', 'SELECT 1']
+      interval: 2s
+      timeout: 3s
+      retries: 60
+  https:
+    image: python:3.12.12-slim
+    entrypoint: ['python', '/fixture/proxy.py']
+    volumes:
+      - ./proxy.py:/fixture/proxy.py:ro
+      - fixture_tls:/fixtures/tls:ro
+    depends_on:
+      tls:
+        condition: service_completed_successfully
+      engine:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request,ssl; urllib.request.urlopen('https://localhost:18444/health', context=ssl.create_default_context(cafile='/fixtures/tls/ca-cert.pem'))"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  test-runner:
+    image: shinyoauthdb-local-runner:1
+    network_mode: service:https
+    environment:
+      OAUTHDB_CLICKHOUSE_HTTP_TEST: '1'
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    volumes:
+      - ../..:/workspace/shinyOAuthDB:ro
+      - ../../../shinyOAuth:/workspace/shinyOAuth:ro
+      - fixture_tls:/fixtures/tls:ro
+      - ./.generated:/results
+    entrypoint: ['bash', '/usr/local/bin/runner-entrypoint.sh']
+    command: ['Rscript', 'integration/clickhouse-http/run-tests.R']
+volumes:
+  fixture_tls:

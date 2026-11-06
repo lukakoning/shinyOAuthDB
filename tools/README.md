@@ -13,6 +13,10 @@ With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a
 real ClickHouse engine. It runs local SQL without a Cloud account or JWT
 configuration. Set `OAUTHDB_CLICKHOUSE_TEST_IMAGE` to use another Docker image.
+The Linux package workflow runs this real-engine parameter check.
+`Rscript tools/check-clickhouse-http.R` additionally checks the public API
+helper, real HTTPS, typed results, local grants and dropped/delayed write
+responses in an isolated [Docker fixture](../integration/clickhouse-http/README.md).
 
 Each script accepts additional R library directories as trailing arguments.
 The documentation checker uses rmarkdown and Pandoc to resolve rendered section

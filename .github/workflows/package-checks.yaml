@@ -67,6 +67,10 @@ jobs:
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-coverage.R
 
+      - name: Check timestamp parameters against the real ClickHouse engine
+        if: runner.os == 'Linux'
+        run: Rscript --vanilla tools/check-clickhouse-parameters.R
+
       - name: Retain test, dependency and coverage results
         if: always()
         uses: actions/upload-artifact@v4
