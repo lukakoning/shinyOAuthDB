@@ -1,0 +1,65 @@
+name: Cloud acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      route:
+        description: Protected environment suffix (cloud-<route>)
+        default: bigquery
+        required: true
+      credential_mode:
+        type: choice
+        options: [google-refresh, fixed-token]
+        default: google-refresh
+  schedule:
+    - cron: '19 5 * * 3'
+  release:
+    types: [prereleased]
+permissions:
+  contents: read
+concurrency:
+  group: cloud-acceptance-${{ inputs.route || 'bigquery' }}
+  cancel-in-progress: false
+jobs:
+  acceptance:
+    if: >-
+      (github.event_name == 'release' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) &&
+      (github.event_name == 'workflow_dispatch' || vars.OAUTHDB_CLOUD_ACCEPTANCE_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: cloud-${{ inputs.route || 'bigquery' }}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::pkgbuild
+            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+      - name: Run bounded delegated-user acceptance
+        env:
+          OAUTHDB_LIVE_TESTS: 'true'
+          OAUTHDB_LIVE_CONFIG_JSON: ${{ vars.OAUTHDB_LIVE_CONFIG_JSON }}
+          OAUTHDB_LIVE_CREDENTIAL_MODE: ${{ inputs.credential_mode || 'google-refresh' }}
+          OAUTHDB_CLIENT_SECRET: ${{ secrets.OAUTHDB_CLIENT_SECRET }}
+          OAUTHDB_LIVE_A_REFRESH_TOKEN: ${{ secrets.OAUTHDB_LIVE_A_REFRESH_TOKEN }}
+          OAUTHDB_LIVE_B_REFRESH_TOKEN: ${{ secrets.OAUTHDB_LIVE_B_REFRESH_TOKEN }}
+          OAUTHDB_LIVE_A_TOKEN: ${{ secrets.OAUTHDB_LIVE_A_TOKEN }}
+          OAUTHDB_LIVE_B_TOKEN: ${{ secrets.OAUTHDB_LIVE_B_TOKEN }}
+          OAUTHDB_LIVE_A_TOKENS_JSON: ${{ secrets.OAUTHDB_LIVE_A_TOKENS_JSON }}
+          OAUTHDB_LIVE_B_TOKENS_JSON: ${{ secrets.OAUTHDB_LIVE_B_TOKENS_JSON }}
+        run: Rscript --vanilla tools/check-live.R
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-acceptance-${{ inputs.route || 'bigquery' }}
+          path: tests/integration/results/live.json
+          if-no-files-found: error

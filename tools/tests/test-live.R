@@ -3,6 +3,7 @@ pkgload::load_all(root, quiet = TRUE)
 source(file.path(root, "tests/integration/source-config.R"), local = TRUE)
 source(file.path(root, "tests/integration/bigquery.R"), local = TRUE)
 source(file.path(root, "tests/integration/live-transport.R"), local = TRUE)
+source(file.path(root, "tests/integration/cloud-credentials.R"), local = TRUE)
 source(file.path(root, "tests/testthat/helper-authorization.R"), local = TRUE)
 
 testthat::test_that("Databricks live routes use both public helpers with their real SDK", {
@@ -163,4 +164,55 @@ testthat::test_that("BigQuery acceptance uses the public capped regional paginat
     testthat::expect_false(body$useQueryCache)
   })
   testthat::expect_error(live_bigquery_table("rows`; SELECT 1"), "identifiers")
+})
+
+testthat::test_that("cloud configuration cannot replace secrets or opt in to remote tests", {
+  withr::local_envvar(c(OAUTHDB_BIGQUERY_PROJECT = NA))
+  live_apply_config('{"OAUTHDB_BIGQUERY_PROJECT":"fixture"}')
+  testthat::expect_identical(Sys.getenv("OAUTHDB_BIGQUERY_PROJECT"), "fixture")
+  for (name in c("OAUTHDB_CLIENT_SECRET", "OAUTHDB_LIVE_A_TOKEN", "OAUTHDB_LIVE_TESTS", "PATH")) {
+    encoded <- jsonlite::toJSON(stats::setNames(list("unsafe"), name), auto_unbox = TRUE)
+    testthat::expect_error(live_apply_config(encoded), "non-secret")
+  }
+  testthat::expect_error(live_apply_config('{"OAUTHDB_BIGQUERY_PROJECT":42}'), "non-secret")
+})
+
+testthat::test_that("Google scheduled credentials use delegated refresh with bounded non-redirecting requests", {
+  withr::local_envvar(c(OAUTHDB_LIVE_TESTS = "true", OAUTHDB_CLIENT_ID = "fixture-client",
+    OAUTHDB_CLIENT_SECRET = "fixture-secret", OAUTHDB_LIVE_A_REFRESH_TOKEN = "fixture-refresh",
+    OAUTHDB_LIVE_A_SCOPES = "previous-consent", OAUTHDB_LIVE_A_TOKEN = NA, OAUTHDB_LIVE_A_EXPIRES_AT = NA))
+  requests <- 0L
+  response <- list(access_token = "fresh-google-token", expires_in = 3600, token_type = "Bearer", scope = "actual-consent")
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    testthat::expect_identical(req$url, "https://oauth2.googleapis.com/token")
+    testthat::expect_false(req$options$followlocation)
+    testthat::expect_identical(unclass(req$body$data$grant_type), "refresh_token")
+    testthat::expect_identical(unclass(req$body$data$refresh_token), "fixture-refresh")
+    httr2::response(status_code = 200L, headers = list(`content-type` = "application/json"),
+      body = charToRaw(jsonlite::toJSON(response, auto_unbox = TRUE)))
+  })
+  live_google_refresh("A")
+  testthat::expect_identical(Sys.getenv("OAUTHDB_LIVE_A_TOKEN"), "fresh-google-token")
+  testthat::expect_identical(Sys.getenv("OAUTHDB_LIVE_A_SCOPES"), "actual-consent")
+  testthat::expect_gt(as.numeric(Sys.getenv("OAUTHDB_LIVE_A_EXPIRES_AT")), as.numeric(Sys.time()) + 3500)
+  response$expires_in <- 100
+  testthat::expect_error(live_google_refresh("A"), "usable delegated")
+  Sys.setenv(OAUTHDB_LIVE_TESTS = "false")
+  testthat::expect_error(live_google_refresh("A"), "disabled")
+  testthat::expect_identical(requests, 2L)
+})
+
+testthat::test_that("failed Google renewal preserves the previous credential and sanitizes errors", {
+  withr::local_envvar(c(OAUTHDB_LIVE_TESTS = "true", OAUTHDB_CLIENT_ID = "fixture-client",
+    OAUTHDB_CLIENT_SECRET = "fixture-secret", OAUTHDB_LIVE_A_REFRESH_TOKEN = "fixture-refresh",
+    OAUTHDB_LIVE_A_SCOPES = "read", OAUTHDB_LIVE_A_TOKEN = "previous-token"))
+  httr2::local_mocked_responses(function(req) httr2::response(status_code = 400L,
+    headers = list(`content-type` = "application/json"),
+    body = charToRaw('{"error":"invalid_grant","error_description":"sensitive-provider-detail"}')))
+  failure <- tryCatch(live_google_refresh("A"), error = identity)
+  testthat::expect_s3_class(failure, "error")
+  testthat::expect_match(conditionMessage(failure), "credential renewal failed")
+  testthat::expect_false(grepl("sensitive-provider-detail|fixture-refresh|fixture-secret", conditionMessage(failure)))
+  testthat::expect_identical(Sys.getenv("OAUTHDB_LIVE_A_TOKEN"), "previous-token")
 })

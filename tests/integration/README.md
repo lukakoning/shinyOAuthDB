@@ -86,6 +86,8 @@ Test visitor sign-in separately.
 For real Google API, IAM, pagination and typed-value acceptance, use the
 [BigQuery fixture](bigquery.md). It runs tiny capped queries against an
 operator-prepared project and makes no cloud provisioning calls.
+The [cloud CI setup](cloud-ci.md) provides an opt-in weekly/prerelease BigQuery
+lane with fresh delegated credentials and manual acceptance for other routes.
 
 `run-live.R` uses two existing user tokens to check queries, account
 changes, sign-out, and connection reuse where applicable. It supports
