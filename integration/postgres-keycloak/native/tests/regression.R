@@ -64,6 +64,42 @@ restored <- function() {
 }
 
 restored()
+local({
+  stage <- tempfile("native-hook-fixture-")
+  dir.create(stage)
+  on.exit(unlink(stage, recursive = TRUE), add = TRUE)
+  source <- file.path("integration", "postgres-keycloak", "native", "tests")
+  build <- function(name, libpq = FALSE) {
+    stopifnot(file.copy(file.path(source, paste0(name, ".c")), stage))
+    flags <- if (libpq) c(
+      PKG_CPPFLAGS = trimws(processx::run("pkg-config", c("--cflags", "libpq"))$stdout),
+      PKG_LIBS = trimws(processx::run("pkg-config", c("--libs", "libpq"))$stdout)) else character()
+    result <- processx::run(file.path(R.home("bin"), "R"), c("CMD", "SHLIB", paste0(name, ".c")),
+      wd = stage, env = c("current", flags), error_on_status = FALSE)
+    if (result$status != 0L) stop("Native fixture compilation failed: ", result$stderr, call. = FALSE)
+    normalizePath(file.path(stage, paste0(name, .Platform$dynlib.ext)))
+  }
+  foreign_path <- build("foreign-hook", libpq = TRUE)
+  mismatch_path <- build("mismatched-runtime")
+  foreign <- dyn.load(foreign_path, local = TRUE)
+  on.exit(dyn.unload(foreign_path), add = TRUE, after = FALSE)
+  setter <- getNativeSymbolInfo("fixture_foreign_hook", PACKAGE = foreign)
+  current <- getNativeSymbolInfo("fixture_foreign_current", PACKAGE = foreign)
+  local({
+    stopifnot(isTRUE(.Call(setter, TRUE)))
+    on.exit(.Call(setter, FALSE), add = TRUE)
+    callback_ran <- FALSE
+    fail(with_hook(function() { callback_ran <<- TRUE }), "Another libpq OAuth hook")
+    fail(pg_bearer_runtime(), "Another libpq OAuth hook")
+    stopifnot(!callback_ran, isTRUE(.Call(current)))
+  })
+  restored()
+  mismatch <- dyn.load(mismatch_path, local = TRUE)
+  on.exit(dyn.unload(mismatch_path), add = TRUE, after = FALSE)
+  fail(.Call(get("C_pg_bearer_runtime", ns), mismatch_path), "same shared libpq hook")
+  fail(.Call(get("C_pg_bearer_runtime", ns), file.path(stage, "not-loaded.so")), "not already loaded")
+  restored()
+})
 stopifnot(identical(with_hook(function() 17L), 17L))
 restored()
 fail(
