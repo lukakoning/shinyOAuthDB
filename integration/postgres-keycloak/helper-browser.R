@@ -277,6 +277,13 @@ postgres_browser_login <- function(
     stop("Choose a predefined fixture user.", call. = FALSE)
   }
 
+  if (isTRUE(postgres_browser_snapshot(browser)$authorized)) {
+    cookies <- browser$Network$getCookies(urls = list(paste0(config$issuer, "/")))$cookies
+    for (cookie in cookies) if (startsWith(cookie$name, "KEYCLOAK_")) {
+      browser$Network$deleteCookies(name = cookie$name, domain = cookie$domain, path = cookie$path)
+    }
+  }
+
   postgres_browser_click(browser, "login")
   deadline <- Sys.time() + 25
 

@@ -157,6 +157,14 @@ testthat::test_that("browser PKCE users receive their PostgreSQL grants and life
     reused$result$backend_pid
   )
 
+  postgres_browser_login(browser_a, "bob", fixture$config)
+  direct <- postgres_browser_wait(browser_a, function(value) !is.null(value$result) &&
+    identical(value$result$database_user, "bob") && !identical(value$authorization_id, a$authorization_id))
+  testthat::expect_identical(unlist(direct$result$markers), c("bob-visible-1", "bob-visible-2"))
+  testthat::expect_false(identical(direct$result$backend_pid, a$result$backend_pid))
+  testthat::expect_false(identical(direct$result$backend_pid, b$result$backend_pid))
+  testthat::expect_true(postgres_browser_snapshot(browser_b)$authorized)
+
   postgres_browser_click(browser_a, "logout")
   logged_out <- postgres_browser_wait(browser_a, function(value) {
     !isTRUE(value$authorized)
@@ -350,4 +358,44 @@ testthat::test_that("PostgreSQL independently rejects tampered, expired and TLS-
   expired <- postgres_browser_wait(browser, function(x) !is.null(x$expired_denied))
   testthat::expect_true(expired$expired_denied)
   testthat::expect_true(expired$hook_restored)
+})
+
+testthat::test_that("PostgreSQL reads renew natural expiry while retaining the SQL session", {
+  config <- postgres_browser_config("shiny-short-lived")
+  config$retain_expired <- TRUE
+  fixture <- postgres_browser_setup(config)
+  on.exit(fixture$close(), add = TRUE)
+  browser <- fixture$new_browser()
+  postgres_browser_login(browser, "alice", config)
+  before <- postgres_browser_wait(browser, function(x) !is.null(x$result))
+  postgres_browser_value(browser, "Shiny.setInputValue('native_credentials', 1, {priority:'event'}); true")
+  postgres_browser_wait(browser, function(x) !is.null(x$native_checks))
+  Sys.sleep(17)
+  postgres_browser_click(browser, "load")
+  after <- postgres_browser_wait(browser, function(x) x$query_attempts > before$query_attempts)
+  testthat::expect_null(after$error)
+  testthat::expect_true(after$credential_rotated)
+  testthat::expect_identical(after$authorization_id, before$authorization_id)
+  testthat::expect_identical(after$result$backend_pid, before$result$backend_pid)
+  testthat::expect_identical(after$successful_connections, before$successful_connections)
+  testthat::expect_identical(after$query_attempts, before$query_attempts + 1L)
+})
+
+testthat::test_that("a rejected PostgreSQL refresh closes local access and recovers with Bob", {
+  fixture <- postgres_browser_setup()
+  on.exit(fixture$close(), add = TRUE)
+  browser <- fixture$new_browser()
+  postgres_browser_login(browser, "alice", fixture$config)
+  before <- postgres_browser_wait(browser, function(x) !is.null(x$result))
+  postgres_browser_value(browser, "Shiny.setInputValue('fail_refresh', 1, {priority:'event'}); true")
+  failed <- postgres_browser_wait(browser, function(x) isTRUE(x$refresh_rejected))
+  testthat::expect_false(failed$authorized)
+  testthat::expect_false(failed$held_connection_valid)
+  testthat::expect_false(failed$held_provider_usable)
+  testthat::expect_null(failed$result)
+  testthat::expect_identical(failed$query_attempts, before$query_attempts)
+  postgres_browser_login(browser, "bob", fixture$config)
+  recovered <- postgres_browser_wait(browser, function(x) !is.null(x$result) &&
+    identical(x$result$database_user, "bob"))
+  testthat::expect_false(identical(recovered$authorization_id, before$authorization_id))
 })

@@ -56,7 +56,8 @@ postgres_browser_app <- function(config) {
       client,
       auto_redirect = FALSE,
       async = TRUE,
-      refresh_proactively = FALSE
+      refresh_proactively = FALSE,
+      indefinite_session = isTRUE(config$retain_expired)
     )
 
     authorization <- shiny::reactive(auth$connection())
@@ -180,6 +181,7 @@ postgres_browser_app <- function(config) {
     refreshes <- shiny::reactiveVal(0L)
 
     credential_rotated <- shiny::reactiveVal(FALSE)
+    refresh_rejected <- shiny::reactiveVal(NULL)
 
     reset_count <- shiny::reactiveVal(0L)
     terminated_pid <- shiny::reactiveVal(NULL)
@@ -290,6 +292,8 @@ postgres_browser_app <- function(config) {
       pid <- DBI::dbGetQuery(native,
         "SELECT pg_backend_pid()::integer AS backend_pid")$backend_pid[[1L]]
       held_connection <<- native
+      if (!is.null(original_token)) credential_rotated(!identical(original_token,
+        shiny::isolate(authorization()$access_token(min_valid_for_seconds = 0))))
       held_owner <<- shiny::isolate(owner())
       held_connection_valid(TRUE)
       held_provider_usable(TRUE)
@@ -477,6 +481,23 @@ postgres_browser_app <- function(config) {
         "PostgreSQL accepted this token for database.read.", if (denied) "warning" else "success")
     })
 
+    shiny::observeEvent(input$fail_refresh, {
+      reference <- shiny::req(authorization())
+      subject <- reference$identity(claims = "sub")$id_token_claims$sub
+      admin <- httr2::request("https://localhost:18443/realms/master/protocol/openid-connect/token") |>
+        httr2::req_body_form(grant_type = "password", client_id = "admin-cli",
+          username = "fixture-admin", password = "fixture-admin-password") |>
+        httr2::req_perform() |> httr2::resp_body_json()
+      httr2::request(paste0("https://localhost:18443/admin/realms/shinyoauthdb/users/", subject, "/logout")) |>
+        httr2::req_auth_bearer_token(admin$access_token) |> httr2::req_method("POST") |> httr2::req_perform()
+      refresh_rejected(tryCatch({
+        reference$access_token(force_refresh = TRUE, async = FALSE); FALSE
+      }, error = function(e) TRUE))
+      tryCatch(con(), error = function(e) NULL)
+      held_connection_valid(if (is.null(held_connection)) FALSE else DBI::dbIsValid(held_connection))
+      held_provider_usable(tryCatch({ held_provider(); TRUE }, error = function(e) FALSE))
+    })
+
     shiny::observeEvent(input$logout, {
       refresh_job <<- NULL
       refreshing(FALSE)
@@ -635,6 +656,7 @@ postgres_browser_app <- function(config) {
           disconnects = disconnects(),
           refreshes = refreshes(),
           credential_rotated = credential_rotated(),
+          refresh_rejected = refresh_rejected(),
           held_provider_usable = held_provider_usable(),
           held_connection_valid = held_connection_valid(),
           reset_count = reset_count(),

@@ -56,6 +56,13 @@ testthat::test_that("real browser users receive only their server-enforced rows"
     testthat::expect_identical(recovered$result, refreshed_read$result)
   }
 
+  fixture_login(a, "bob", fixture$config)
+  replacement <- fixture_wait(a, function(x) !identical(x$authorization_id, initial$authorization_id) &&
+    !is.null(x$result) && identical(x$result[[1L]]$database_user, "bob"))
+  testthat::expect_identical(vapply(replacement$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
+  testthat::expect_identical(vapply(replacement$result, `[[`, "", "database_user"), rep("bob", 2L))
+  testthat::expect_true(fixture_snapshot(b)$authorized)
+
   fixture_click(a, "logout")
   logged_out <- fixture_wait(a, function(x) !isTRUE(x$authorized))
   testthat::expect_null(logged_out$result)
@@ -125,27 +132,15 @@ testthat::test_that("the service rejects an expired browser-issued token indepen
   fixture_click(browser, "expired")
   value <- fixture_wait(browser, function(x) !is.null(x$expired_denied))
   testthat::expect_true(value$expired_denied)
+  testthat::expect_false(value$authorized)
+  testthat::expect_null(value$result)
+  testthat::expect_identical(value$calls, initial$calls)
 })
 
-if (identical(Sys.getenv("OAUTHDB_FIXTURE"), "postgrest")) {
-  testthat::test_that("a real invalid_grant retires local API access without replaying SQL", {
-    fixture <- fixture_setup()
-    on.exit(fixture$close(), add = TRUE)
-    browser <- fixture$new_browser()
-    fixture_login(browser, "alice", fixture$config)
-    before <- fixture_wait(browser, function(x) !is.null(x$result))
-    fixture_wait(browser, function(x) isTRUE(fixture_value(browser,
-      "!document.documentElement.classList.contains('shiny-busy')")))
-    fixture_value(browser, "Shiny.setInputValue('fail_refresh', 1, {priority:'event'}); true")
-    failed <- fixture_wait(browser, function(x) !is.null(x$refresh_failed))
-    testthat::expect_true(failed$refresh_failed)
-    testthat::expect_false(failed$authorized)
-    testthat::expect_false(failed$held_usable)
-    testthat::expect_null(failed$result)
-    testthat::expect_identical(failed$calls, before$calls)
-    fixture_login(browser, "bob", fixture$config)
-    recovered <- fixture_wait(browser, function(x) !is.null(x$result))
-    testthat::expect_false(identical(recovered$authorization_id, before$authorization_id))
-    testthat::expect_identical(vapply(recovered$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
-  })
-}
+testthat::test_that("a real invalid_grant retires local access without replaying SQL", {
+  fixture_check_refresh_rejection()
+})
+
+testthat::test_that("normal reads renew naturally expired browser credentials", {
+  fixture_check_natural_expiry()
+})

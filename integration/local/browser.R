@@ -1,6 +1,48 @@
 source("integration/contracts.R")
 fixture_repository <- normalizePath(".", mustWork = TRUE)
 
+fixture_check_refresh_rejection <- function() {
+  fixture <- fixture_setup()
+  on.exit(fixture$close(), add = TRUE)
+  browser <- fixture$new_browser()
+  fixture_login(browser, "alice", fixture$config)
+  before <- fixture_wait(browser, function(x) !is.null(x$result))
+  fixture_wait(browser, function(x) isTRUE(fixture_value(browser,
+    "!document.documentElement.classList.contains('shiny-busy')")))
+  fixture_value(browser, "Shiny.setInputValue('fail_refresh', 1, {priority:'event'}); true")
+  failed <- fixture_wait(browser, function(x) isTRUE(x$refresh_failed) && !is.null(x$held_usable))
+  testthat::expect_false(failed$authorized)
+  testthat::expect_false(failed$held_usable)
+  testthat::expect_null(failed$result)
+  testthat::expect_identical(failed$calls, before$calls)
+  if (fixture_backend$dbi) testthat::expect_false(failed$held_valid)
+  fixture_login(browser, "bob", fixture$config)
+  recovered <- fixture_wait(browser, function(x) !is.null(x$result))
+  testthat::expect_false(identical(recovered$authorization_id, before$authorization_id))
+  testthat::expect_identical(vapply(recovered$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
+}
+
+fixture_check_natural_expiry <- function() {
+  config <- fixture_config("shiny-short-lived")
+  config$retain_expired <- TRUE
+  fixture <- fixture_setup(config)
+  on.exit(fixture$close(), add = TRUE)
+  browser <- fixture$new_browser()
+  fixture_login(browser, "alice", fixture$config)
+  before <- fixture_wait(browser, function(x) !is.null(x$result))
+  testthat::expect_false(before$read_credential_rotated)
+  wait <- before$original_expiry + 1 - as.numeric(Sys.time())
+  if (wait > 0) Sys.sleep(wait)
+  fixture_click(browser, "load")
+  after <- fixture_wait(browser, function(x) x$calls > before$calls)
+  testthat::expect_null(after$error)
+  testthat::expect_identical(after$authorization_id, before$authorization_id)
+  testthat::expect_true(after$read_credential_rotated)
+  testthat::expect_identical(after$calls, before$calls + 1L)
+  if (fixture_backend$dbi) testthat::expect_identical(after$openings, before$openings)
+  testthat::expect_identical(vapply(after$result, `[[`, "", "marker"), paste0("alice-visible-", 1:2))
+}
+
 fixture_config <- function(client_id = "shiny-db") {
   list(backend = Sys.getenv("OAUTHDB_FIXTURE"), client_id = client_id,
     issuer = "https://localhost:18443/realms/shinyoauthdb",
@@ -52,6 +94,14 @@ fixture_click <- function(browser, id) {
 
 fixture_login <- function(browser, username, config) {
   stopifnot(username %in% c("alice", "bob"))
+  if (isTRUE(fixture_snapshot(browser)$authorized)) {
+    # Keycloak prompt=login reauthenticates its SSO user. Clear only IdP
+    # cookies to choose another account, retaining the live Shiny grant.
+    cookies <- browser$Network$getCookies(urls = list(paste0(config$issuer, "/")))$cookies
+    for (cookie in cookies) if (startsWith(cookie$name, "KEYCLOAK_")) {
+      browser$Network$deleteCookies(name = cookie$name, domain = cookie$domain, path = cookie$path)
+    }
+  }
   fixture_click(browser, "login")
   fixture_wait(browser, function(snapshot) isTRUE(fixture_value(browser,
     "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")))

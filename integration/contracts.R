@@ -33,16 +33,21 @@ integration_scenarios <- function(backend) {
     "the playground switches accounts, cancels refresh and stops cleanly",
     "browser-issued wrong audience is denied by PostgreSQL OAuth",
     "browser-issued missing scope never reaches PostgreSQL connect",
-    "PostgreSQL independently rejects tampered, expired and TLS-invalid credentials"))
+    "PostgreSQL independently rejects tampered, expired and TLS-invalid credentials",
+    "PostgreSQL reads renew natural expiry while retaining the SQL session",
+    "a rejected PostgreSQL refresh closes local access and recovers with Bob"))
   if (identical(backend, "minilake")) return(c(
     "both public Databricks helpers execute real local SQL and rotate copied credentials",
-    "the bridge blocks missing Databricks operation scopes before SQL"))
+    "the bridge blocks missing Databricks operation scopes before SQL",
+    "a real invalid_grant retires local access without replaying SQL",
+    "normal reads renew naturally expired browser credentials"))
   if (!backend %in% c("postgrest", "trino", "starrocks")) stop("Unknown integration backend.", call. = FALSE)
   c("real browser users receive only their server-enforced rows",
     "the real service rejects a valid token for another audience",
     "missing operation scope blocks fixture read attempts",
     "the service rejects an expired browser-issued token independently of local access",
-    if (backend == "postgrest") "a real invalid_grant retires local API access without replaying SQL")
+    "a real invalid_grant retires local access without replaying SQL",
+    "normal reads renew naturally expired browser credentials")
 }
 
 integration_validate_results <- function(counts, expected) {

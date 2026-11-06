@@ -26,7 +26,8 @@ fixture_run_app <- function(config) {
   server <- function(input, output, session) {
     request_baseline <- if (is.function(spec$request_count)) spec$request_count() else NULL
     auth <- shinyOAuth::oauth_module_server("auth", client,
-      auto_redirect = FALSE, async = FALSE, refresh_proactively = FALSE)
+      auto_redirect = FALSE, async = FALSE, refresh_proactively = FALSE,
+      indefinite_session = isTRUE(config$retain_expired))
     username <- function() {
       reference <- shiny::req(auth$connection())
       shiny::req(reference$identity(claims = "preferred_username")$id_token_claims$preferred_username)
@@ -38,6 +39,7 @@ fixture_run_app <- function(config) {
     held_usable <- shiny::reactiveVal(NULL)
     refreshes <- shiny::reactiveVal(0L)
     rotated <- shiny::reactiveVal(FALSE)
+    read_rotated <- shiny::reactiveVal(FALSE)
     denied <- shiny::reactiveVal(NULL)
     tampered <- shiny::reactiveVal(NULL)
     expired_denied <- shiny::reactiveVal(NULL)
@@ -72,6 +74,8 @@ fixture_run_app <- function(config) {
       held <<- value
       read_attempts(shiny::isolate(read_attempts()) + 1L)
       rows <- spec$read(value)
+      read_rotated(!identical(old_bearer,
+        shiny::isolate(reference$access_token(min_valid_for_seconds = 0))))
       calls(shiny::isolate(calls()) + 1L)
       rows
     })
@@ -99,7 +103,9 @@ fixture_run_app <- function(config) {
         httr2::req_method("POST") |> httr2::req_perform()
       failed <- tryCatch({ reference$access_token(force_refresh = TRUE); FALSE }, error = function(e) TRUE)
       refresh_failed(failed)
-      held_usable(tryCatch({ spec$read(held); TRUE }, error = function(e) FALSE))
+      session$onFlushed(function() {
+        held_usable(tryCatch({ spec$read(held); TRUE }, error = function(e) FALSE))
+      }, once = TRUE)
     })
     shiny::observeEvent(input$probe, {
       checks <- spec$denied(native(), username(), config)
@@ -179,7 +185,8 @@ fixture_run_app <- function(config) {
         remote_read_attempts = if (is.null(request_baseline)) NULL else spec$request_count() - request_baseline,
         openings = openings(),
         refresh_failed = refresh_failed(), held_usable = held_usable(),
-        refreshes = refreshes(), rotated = rotated(), denied = denied(), tampered_denied = tampered(),
+        refreshes = refreshes(), rotated = rotated(), read_credential_rotated = read_rotated(),
+        denied = denied(), tampered_denied = tampered(),
         expired_denied = expired_denied(), original_expiry = old_expiry,
         tls_checks = tls_checks(), data_checks = data_checks(), data_error = data_error(), broken = broken(),
         held_valid = if (inherits(held, "DBIConnection")) DBI::dbIsValid(held) else NULL),

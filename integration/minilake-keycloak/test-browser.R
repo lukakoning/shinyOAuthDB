@@ -33,6 +33,12 @@ testthat::test_that("both public Databricks helpers execute real local SQL and r
   testthat::expect_true(current$result[[1L]]$old_token_replaced)
   testthat::expect_true(current$result[[1L]]$dbi_token_current)
   testthat::expect_true(current$result[[1L]]$api_token_current)
+  fixture_login(browser, "bob", fixture$config)
+  direct <- fixture_wait(browser, function(x) !identical(x$authorization_id, initial$authorization_id) &&
+    !is.null(x$result) && identical(x$result[[1L]]$marker, "bob-visible-1"))
+  # OAuth navigation creates a new Shiny session, whose connection count starts at one.
+  testthat::expect_identical(direct$result[[1L]]$generation, 1L)
+  testthat::expect_true(direct$result[[1L]]$dbi_token_current)
   fixture_click(browser, "logout")
   logged_out <- fixture_wait(browser, function(x) !isTRUE(x$authorized))
   testthat::expect_null(logged_out$result)
@@ -42,6 +48,14 @@ testthat::test_that("both public Databricks helpers execute real local SQL and r
   testthat::expect_identical(vapply(switched$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
   testthat::expect_true(switched$result[[1L]]$dbi_token_current)
   testthat::expect_true(switched$result[[1L]]$api_token_current)
+})
+
+testthat::test_that("a real invalid_grant retires local access without replaying SQL", {
+  fixture_check_refresh_rejection()
+})
+
+testthat::test_that("normal reads renew naturally expired browser credentials", {
+  fixture_check_natural_expiry()
 })
 
 testthat::test_that("the bridge blocks missing Databricks operation scopes before SQL", {
