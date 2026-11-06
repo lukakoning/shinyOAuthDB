@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   backend:
-    name: ${{ matrix.package }} ${{ matrix.version }} / R release
+    name: ${{ matrix.package }} ${{ matrix.version }} / R ${{ matrix.r }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
@@ -20,12 +20,17 @@ jobs:
         include:
           - package: brickster
             version: '0.2.14'
+            r: release
           - package: fabricQueryR
             version: '1.0.1'
+            r: release
           - package: RTrino
             version: '0.1.0'
+            r: release
           - package: odbc
             version: '1.4.2'
+            # Its configure script uses CXX11, removed in R 4.6.
+            r: '4.5'
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled
@@ -33,7 +38,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: release
+          r-version: ${{ matrix.r }}
           use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:

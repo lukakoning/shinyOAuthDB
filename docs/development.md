@@ -135,8 +135,10 @@ versions drift, if tests are skipped, or if any assertion, error or warning
 fails validation. Versions and counts are retained in `.validation/minimum/`.
 
 The [minimum backend workflow](../.github/workflows/minimum-backends.yaml)
-tests actual SDK releases in four separate R release jobs: brickster 0.2.14,
-fabricQueryR 1.0.1, RTrino 0.1.0, and odbc 1.4.2. Each job installs its selected
+tests actual SDK releases in four separate jobs: brickster 0.2.14,
+fabricQueryR 1.0.1, RTrino 0.1.0, and odbc 1.4.2. The odbc job uses R 4.5
+because its configure script requires `CXX11`, which R 4.6 removed; the other
+jobs use the current R release. Each job installs its selected
 SDK at the declared minimum and runs the full source suite with the other test
 dependencies. The runner checks the installed version against `DESCRIPTION`
 before testing, so an upgraded SDK cannot silently pass a minimum-version job.
