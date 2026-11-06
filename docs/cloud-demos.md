@@ -1,7 +1,9 @@
 # Guided cloud demos
 
-Design proposal, starting with Databricks. The proposed package function
-is not implemented yet. A runnable `cli` console preview is available:
+Implementation notes for the Databricks guide. The package now exports
+`oauth_db_cloud_demo("databricks")`; see the
+[user guide](../vignettes/cloud-demos.Rmd) for setup and Free Edition limits.
+The original `cli` design preview remains available:
 
 ```sh
 Rscript --vanilla tools/preview-cloud-demo.R ready
@@ -31,7 +33,7 @@ token setup can follow later, using the existing Microsoft helpers.
 
 ## Entry point
 
-Proposed API:
+Public entry point:
 
 ```r
 shinyOAuthDB::oauth_db_cloud_demo("databricks")
@@ -49,7 +51,7 @@ something different for cloud providers.
 
 ## Ask for as little as possible
 
-| Setting | Proposed experience |
+| Setting | Guide behavior |
 | --- | --- |
 | Workspace URL | Paste the address from the workspace browser tab. Accept a full workspace URL and extract its HTTPS origin. Explain the difference if they paste an account-console URL. |
 | OAuth app client ID | Ask whether they have an app registration. Offer a short setup panel and an administrator request if they don't. |
@@ -180,11 +182,11 @@ history, console transcripts and generated files. Persistence in an OS
 credential store can be an explicit later option.
 
 Run the app with the user's installed R packages, using normal cloud TLS
-trust. Extract a general local-app runner from the Docker launcher rather
-than reusing its demo-CA configuration. Pass secrets into the app process
-without putting them in serialized arguments or temporary scripts; verify
-the transport before promising that they never touch disk. Disable request
-logging that could expose OAuth codes or credentials.
+trust. The processx runner inherits the environment and installed library paths.
+It passes a confidential secret only through the child environment, keeping
+it out of serialized arguments and generated files. It does not reuse the
+Docker launcher's demo CA configuration. A native-process canary checks
+credential transport without recording the credential.
 
 Stopping the demo closes its local app and connections. It doesn't stop
 or delete a shared warehouse, change auto-stop settings, create cloud
@@ -192,26 +194,27 @@ resources or grant permissions.
 
 ## Implementation boundaries and checks
 
-Build a provider-neutral prompt/state runner with a Databricks adapter for
-field validation, help links, scopes, registration guidance and app files.
-Reuse `oauth_db_databricks_client()`, `oauth_db_databricks_api()` and
-`oauth_db_databricks()`, with explicit SQL scopes for this example. Keep
-the existing clients' defaults unchanged.
+The first implementation keeps field validation, console help, registration
+guidance and app files specific to Databricks. It reuses
+`oauth_db_databricks_client()`, `oauth_db_databricks_api()` and
+`oauth_db_databricks()`, with explicit SQL scopes for this example.
+The existing clients' defaults stay unchanged.
 
-Warehouse discovery needs pagination. The current
+Warehouse discovery follows pagination through a guarded HTTP adapter. The
 [brickster list helper](https://databrickslabs.github.io/brickster/reference/db_sql_warehouse_list.html)
-has no page-token argument in its documented interface, so check the
-installed SDK's behavior and add an adapter if necessary. Don't silently
-present the first page as a complete list.
+has no page-token argument in its documented interface. The new API
+method follows page tokens with an overall deadline and rejects cycles.
 
-Before exporting the function, cover prompt validation, help/back/cancel,
-resuming incomplete setup and preserving edits. Exercise browser sign-in,
-warehouse selection, account changes and cleanup with mock service
-responses. Verify no SQL or DBI connection happens before the query button,
-and no secret appears in console capture or generated/temporary files.
-Then validate registration, SQL-only scope compatibility and the full
-browser flow in a real workspace supplied for that test.
+Validation covers prompt validation, help/back/cancel,
+resuming incomplete setup and preserving edits. The browser fixture uses
+real Keycloak sign-in with simulated Databricks warehouse and SQL responses.
+It checks warehouse selection, account separation, connection cleanup and
+the absence of implicit SQL or credentials in generated files.
+Registration, SQL-only scope compatibility and the full browser flow in a
+real Databricks workspace still need validation in an account supplied
+for that test. Local OAuth fixtures and mocked Databricks calls don't
+establish real-workspace compatibility.
 
-First implementation: Databricks OAuth, SQL warehouse discovery, the fixed
+This implementation includes Databricks OAuth, SQL warehouse discovery, the fixed
 identity query and an editable local app. Other platforms should get their
 own guided adapters after this flow is proven.

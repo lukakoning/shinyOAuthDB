@@ -1,5 +1,11 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_cloud_demo("databricks")`, a `cli` console guide that prepares
+  an editable local Shiny app, supports public and confidential OAuth app
+  registrations, and explains why Free Edition lacks its registration path.
+* Add `$warehouses()` to the Databricks API client, with paginated discovery
+  using the signed-in visitor's authorization.
+
 * Add `app = "local"` to `oauth_db_demo()`: keep the database and sign-in
   services in Docker and run an editable Shiny app with your local R library.
   The default continues to run the app in Docker.

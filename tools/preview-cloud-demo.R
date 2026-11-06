@@ -36,7 +36,7 @@ preview_cloud_demo <- function(scenario = c("ready", "registration", "redirect",
       "whether it is public or requires a client secret."))
     cli::cli_alert_info("You can pause here and resume when the registration is ready. The draft keeps your workspace and callback, without credentials.", wrap = TRUE)
     cli::cli_code('shinyOAuthDB::oauth_db_cloud_demo("databricks", path = "my-databricks-demo")')
-    cli::cli_text("{.emph Proposed command; the package function is not implemented yet.}")
+    cli::cli_text("{.emph Preview only: this example hasn't created a draft directory.}")
     return(invisible(NULL))
   }
 

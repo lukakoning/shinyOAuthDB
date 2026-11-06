@@ -19,6 +19,11 @@ dbplyr queries.
 The same sign-in works with brickster's API functions, including warehouse
 listing and query submission.
 
+For guided setup and an editable app, run
+`shinyOAuthDB::oauth_db_cloud_demo("databricks")`. The
+[cloud demo guide](cloud-demos.html) explains the console prompts,
+warehouse selection and Free Edition's registration limitation.
+
 ## Register the app
 
 In R, run `install.packages("brickster")` and ask your administrator to

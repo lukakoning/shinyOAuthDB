@@ -139,6 +139,11 @@ your computer. The [local app guide](https://lukakoning.github.io/shinyOAuthDB/a
 explains the R packages and drivers needed for each database.
 For your own server, follow the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
+For an existing Databricks workspace, `shinyOAuthDB::oauth_db_cloud_demo("databricks")`
+guides you through sign-in setup and opens an editable local app. See
+[Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html)
+for requirements, including the custom OAuth registration and Free Edition limits.
+
 [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html) explains the Shiny pattern.
 [OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html) explains app registrations and
 sign-in settings. [Authentication and sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)

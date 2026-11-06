@@ -86,6 +86,9 @@ oauth_db_databricks <- function(
 #' @return An R6 client with `$call(.fn, ...)`. Pass a brickster function as
 #'   `.fn` and its usual arguments through `...`, omitting `host` and
 #'   `token`. The method returns the function's result.
+#'   `$warehouses(timeout = 30)` lists visible SQL warehouses as a data frame
+#'   with `id`, `name` and `state`, following all result pages. Listing doesn't
+#'   start a warehouse or establish permission to run queries.
 #' @details
 #' Create the client inside `server()`. Set the authentication options when
 #' creating it; `$call()` uses those settings.
@@ -120,14 +123,19 @@ oauth_db_databricks_api <- function(
   .odb_require("brickster", version = "0.2.14")
   bearer <- oauth_db_token(authorization, target = target,
     required_scopes = required_scopes, min_valid_for = min_valid_for, session = session)
-  .odb_databricks_api$new(bearer, host)
+  provider <- .odb_http_provider(authorization, target, required_scopes, min_valid_for, session)
+  .odb_databricks_api$new(bearer, host, provider)
 }
 
 .odb_databricks_api <- R6::R6Class("OAuthDatabricksAPI", cloneable = FALSE,
   public = list(
-    initialize = function(bearer, host) {
+    initialize = function(bearer, host, provider) {
       private$bearer <- bearer
       private$host <- host
+      private$provider <- provider
+    },
+    warehouses = function(timeout = 30) {
+      .odb_databricks_warehouses(private$provider(), private$host, timeout)
     },
     call = function(.fn, ...) {
       args <- .odb_api_arguments(.fn, list(...), blocked = c(
@@ -142,8 +150,47 @@ oauth_db_databricks_api <- function(
       invisible(self)
     }
   ),
-  private = list(bearer = NULL, host = NULL)
+  private = list(bearer = NULL, host = NULL, provider = NULL)
 )
+
+.odb_databricks_warehouses <- function(token, host, timeout) {
+  .odb_require("jsonlite")
+  .odb_http_options(timeout, NULL)
+  deadline <- .odb_http_time() + timeout
+  page <- NULL
+  seen <- character()
+  rows <- list()
+  scalar <- function(value) is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+  repeat {
+    req <- httr2::request(paste0("https://", host, "/api/2.0/sql/warehouses"))
+    req <- httr2::req_url_query(req, page_size = 100L)
+    if (!is.null(page)) req <- httr2::req_url_query(req, page_token = page)
+    remaining <- deadline - .odb_http_time()
+    if (remaining <= 0) .odb_abort("Databricks warehouse listing timed out.", "timeout")
+    resp <- .odb_http_request(token, req, "Databricks", remaining)
+    data <- .odb_http_json(resp, "Databricks")
+    if (!is.list(data) || !is.null(data$warehouses) && !is.list(data$warehouses)) {
+      .odb_abort("Databricks returned an invalid warehouse list.", "invalid_response")
+    }
+    for (warehouse in data$warehouses) {
+      if (!is.list(warehouse) || !scalar(warehouse$id) || !scalar(warehouse$name) || !scalar(warehouse$state)) {
+        .odb_abort("Databricks returned invalid warehouse details.", "invalid_response")
+      }
+      rows[[length(rows) + 1L]] <- data.frame(id = warehouse$id, name = warehouse$name,
+        state = warehouse$state, stringsAsFactors = FALSE)
+    }
+    page <- data$next_page_token
+    if (is.null(page) || identical(page, "")) break
+    if (!scalar(page) || page %in% seen || length(seen) >= 100L) {
+      .odb_abort("Databricks returned invalid warehouse pagination.", "invalid_response")
+    }
+    seen <- c(seen, page)
+  }
+  token(.check_only = TRUE)
+  if (!length(rows)) return(data.frame(id = character(), name = character(), state = character()))
+  result <- do.call(rbind, rows)
+  result[!duplicated(result$id), , drop = FALSE]
+}
 
 #' Set up Databricks OAuth sign-in
 #'

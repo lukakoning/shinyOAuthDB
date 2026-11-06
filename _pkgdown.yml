@@ -17,6 +17,8 @@ navbar:
       menu:
         - text: Local Docker demos
           href: articles/local-demos.html
+        - text: Guided cloud demos
+          href: articles/cloud-demos.html
         - text: OAuth setup
           href: articles/oauth-setup.html
         - text: Authentication and sessions
@@ -25,14 +27,14 @@ navbar:
           href: articles/index.html
 articles:
   - title: Start here
-    contents: [getting-started, local-demos, oauth-setup, authorization]
+    contents: [getting-started, local-demos, cloud-demos, oauth-setup, authorization]
   - title: Self-hosted databases and APIs
     contents: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch]
   - title: Cloud platforms
     contents: [fabric, databricks, snowflake, bigquery, azure-sql, azure-postgres, redshift, clickhouse]
 reference:
-  - title: Local demos
-    contents: oauth_db_demo
+  - title: Demos
+    contents: [oauth_db_demo, oauth_db_cloud_demo]
   - title: Database connections
     contents: [oauth_db_postgres, oauth_db_azure_postgres, oauth_db_azure_sql, oauth_db_sql_server,
       oauth_db_fabric_sql, oauth_db_databricks, oauth_db_snowflake, oauth_db_redshift,

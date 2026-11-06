@@ -40,6 +40,9 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 An R6 client with \verb{$call(.fn, ...)}. Pass a brickster function as
 \code{.fn} and its usual arguments through \code{...}, omitting \code{host} and
 \code{token}. The method returns the function's result.
+\verb{$warehouses(timeout = 30)} lists visible SQL warehouses as a data frame
+with \code{id}, \code{name} and \code{state}, following all result pages. Listing doesn't
+start a warehouse or establish permission to run queries.
 }
 \description{
 Call brickster functions to list warehouses, run SQL, or use other

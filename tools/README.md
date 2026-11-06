@@ -88,6 +88,19 @@ the local demo guide. CI checks six local variants alongside the eight
 Docker apps. Native PostgreSQL needs the matching Linux/libpq 18 build;
 StarRocks needs the native MySQL ODBC driver and plugin.
 
+For the guided cloud demo, run:
+
+```sh
+Rscript --vanilla tools/check-cloud-demo.R
+```
+
+This starts Keycloak in Docker and the generated cloud app in native R.
+Chrome signs in as Alice and Bob. Databricks warehouse responses and SQL
+connections are mocked; the test verifies no implicit SQL, per-user output,
+sign-out cleanup and credential-free generated files. It doesn't validate
+a real Databricks registration or workspace. The dedicated cloud-demo
+workflow runs the same fixture without cloud credentials.
+
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty
 or incomplete runs cannot pass. Browser snapshots distinguish read attempts

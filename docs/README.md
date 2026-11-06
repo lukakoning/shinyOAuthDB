@@ -38,4 +38,4 @@ For existing apps and package development:
 - [Validation record](validation.md)
 - [Snowflake backend decision](snowflake-backends.md)
 - [Backend research notes](backend-candidates.md)
-- [Guided cloud demos: design and console preview](cloud-demos.md)
+- [Guided cloud demos: implementation notes](cloud-demos.md)

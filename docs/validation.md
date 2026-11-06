@@ -1,5 +1,39 @@
 # Validation record
 
+## 7 November 2026: guided Databricks cloud demo
+
+`oauth_db_cloud_demo("databricks")` now guides console setup with `cli`,
+preserves an editable local app and supports public PKCE or confidential
+OAuth registrations. Warehouse listing follows all result pages; a SQL
+connection and identity query require an explicit button click.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 3,989 assertions across 269 scenarios; zero failures, errors, warnings or skips |
+| Final focused suites | Guide, generated app, warehouse discovery and existing API tests pass, including help, pause/resume, edit preservation, return to setup and scope loss/restoration |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes |
+| Installed-package browser fixture | Real Keycloak login for Alice and Bob; warehouse selection, explicit query, account-specific output, sign-out connection cleanup and stop-button exit pass |
+| Native R runner | A credential fingerprint confirms environment transport without recording the secret; generated files and process arguments contain no secret; return-to-setup exit status passes |
+| Warehouse API | Mocked pagination, authorization loss, stale responses, cyclic page tokens, empty results and sanitized errors pass |
+| Documentation and website | 84 R blocks parse; 187 local links and 17 section anchors resolve; pkgdown builds and README website targets resolve |
+| Workflow syntax | actionlint 1.7.12 passes for the new cloud-demo browser workflow |
+
+Browser checks use Chrome and Docker Desktop Linux containers on Windows,
+launching the installed app outside the checkout with spaces in its path.
+OAuth and the native R process are real; Databricks warehouse responses and
+DBI operations are mocked. No Databricks account, registration or live SQL
+request was used. Real-workspace registration and SQL-scope compatibility
+remain unverified. Other host systems and remote Actions were not tested.
+Final help-text and test additions have focused follow-up checks. Local
+artifacts remain under `.validation/cloud-demo/` and `.validation/`.
+
+Free Edition's lack of account-console and account-level API access blocks
+the custom registration used here. The guide explains that limit before
+asking for credentials. An eligible full-platform trial needs registration
+access; its compatibility has not been established by these local tests.
+See [Free Edition limits](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations)
+and [custom OAuth registration](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth).
+
 ## 6 November 2026: editable demo apps in local R
 
 `oauth_db_demo(app = "local")` runs the database and sign-in infrastructure
