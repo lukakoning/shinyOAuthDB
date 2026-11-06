@@ -54,6 +54,13 @@ jobs:
       - name: Run tests and R CMD check
         run: Rscript --vanilla tools/check-package.R
 
+      - name: Check DuckDB against a real Quack server
+        run: Rscript --vanilla tools/check-duckdb.R
+
+      - name: Check DuckDB OAuth and TLS against quack_oauth
+        if: runner.os == 'Linux'
+        run: Rscript --vanilla tools/check-duckdb-oauth.R
+
       - name: Verify validation rejects incomplete runs
         run: Rscript --vanilla tools/test-validation.R
 

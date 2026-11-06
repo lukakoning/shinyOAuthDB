@@ -12,7 +12,7 @@ the user's sign-in.
 }
 \details{
 Supports commercial and cloud-hosted data platforms, as well as self-hosted
-PostgreSQL and Trino configured for OAuth. Users sign in through a provider
+PostgreSQL, Trino and DuckDB configured for OAuth. Users sign in through a provider
 the database or query engine trusts; that server enforces their permissions.
 }
 \section{Try a self-hosted database locally}{

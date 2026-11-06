@@ -133,6 +133,7 @@ Other database connections:
 \code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
 \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
 \code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
+\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
 \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
 \code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
 \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},

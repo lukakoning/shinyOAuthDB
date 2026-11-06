@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_duckdb()` for DBI and dbplyr queries against OAuth-enabled
+  DuckDB Quack servers. Connections use TLS by default and are replaced when
+  access tokens rotate; sign-out and session end shut down their private
+  in-memory DuckDB instances.
 * Add `oauth_db_clickhouse_api()` for JWT-authenticated HTTPS queries and
   statements. Supports native typed parameters, exact integers and decimals,
   metadata, and list columns. SQL submissions are never replayed automatically.

@@ -17,7 +17,8 @@ vignette_sources <- c(
   "azure-sql" = "odbc", fabric = "fabricQueryR", databricks = "brickster",
   snowflake = "odbc", bigquery = NA_character_, redshift = "odbc",
   trino = "RTrino", "azure-postgres" = "RPostgres", postgrest = NA_character_,
-  starrocks = "odbc", clickhouse = NA_character_, postgres = "RPostgres"
+  starrocks = "odbc", clickhouse = NA_character_, postgres = "RPostgres",
+  duckdb = "duckdb"
 )
 
 for (source in names(vignette_sources)) local({

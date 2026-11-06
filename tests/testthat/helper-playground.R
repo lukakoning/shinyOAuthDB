@@ -33,6 +33,7 @@ playground_env <- function() {
     OAUTHDB_REDSHIFT_RESOURCE = "https://redshift.example.org",
     OAUTHDB_REDSHIFT_SCOPE = "https://redshift.example.org/user_impersonation",
     OAUTHDB_TRINO_ISSUER = "https://issuer.example.org",
+    OAUTHDB_DUCKDB_ISSUER = "https://issuer.example.org",
     OAUTHDB_TRINO_HOST = "https://trino.example.org",
     OAUTHDB_TRINO_CATALOG = "lakehouse",
     OAUTHDB_TRINO_SCHEMA = "reporting",

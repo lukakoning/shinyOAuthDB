@@ -7,7 +7,7 @@ with functions to easily retrieve a database connection or API client for the si
 It supports commercial and cloud-hosted data platforms, such as Microsoft
 Fabric, Databricks, Snowflake and BigQuery, as well as open-source systems
 you host yourself, including [PostgreSQL](#self-hosted-postgresql) and
-[Trino](#trino-and-starburst-enterprise) configured for OAuth.
+[Trino](#trino-and-starburst-enterprise) and [DuckDB](#duckdb) configured for OAuth.
 
 The app user signs in with their own account for the database or data platform,
 and your app can query the database or platform on their behalf.
@@ -25,7 +25,8 @@ access is enforced by the platform's own permissions.
 [Snowflake](#snowflake) · [BigQuery](#google-bigquery) ·
 [Azure SQL and SQL Server](#azure-sql-and-sql-server) ·
 [Azure PostgreSQL](#azure-postgresql) ·
-[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) · [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
+[Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) ·
+[DuckDB](#duckdb) · [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
 
 ## Install in R
 
@@ -41,6 +42,35 @@ and sign-in setup, or follow the [getting-started guide](vignettes/getting-start
 To install the local guides used by `vignette()` below, add
 `build_vignettes = TRUE` to the GitHub installation call.
 The Docker playground below supplies its own R packages and drivers.
+
+## DuckDB
+
+Query a remote DuckDB Quack server with each visitor's OAuth access token.
+The server needs an OAuth validator such as
+[quack_oauth](https://github.com/DataZooDE/quack-oauth), with its trusted
+issuer, audience and data access policy configured. shinyOAuth handles
+browser sign-in and token renewal; quack_oauth is only needed on the server.
+
+Install the R package `duckdb` (1.5.3 or later) and its matching `quack`
+and `httpfs` extensions, then use this inside `server()`:
+
+```r
+con <- oauth_db_duckdb(
+  auth$connection, host = "duckdb.example.org", port = 443,
+  required_scopes = "quack:read"
+)
+output$rows <- shiny::renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT * FROM orders LIMIT 20")
+})
+```
+
+Connections require TLS by default. The helper replaces the connection when
+the token changes and shuts down its private in-memory DuckDB instance on
+sign-out or session end. Call `con()` before each operation.
+See the [DuckDB guide](vignettes/duckdb.Rmd) for server requirements,
+extension installation, connection lifetime and a complete app, or open
+`vignette("duckdb", package = "shinyOAuthDB")` after installing the local guides.
 
 ## Self-hosted PostgreSQL
 

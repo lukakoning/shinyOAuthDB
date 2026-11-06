@@ -11,7 +11,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     PostgreSQL with native OAuth and Azure PostgreSQL. Reads PostgreSQL tables
     and calls exposed database functions through PostgREST. Supports StarRocks
     JWT authentication through MySQL Connector/ODBC, and ClickHouse queries
-    through JWT-enabled HTTPS endpoints.
+    through JWT-enabled HTTPS endpoints. Connects to remote DuckDB servers
+    through the Quack protocol with OAuth access tokens.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
@@ -29,6 +30,7 @@ Suggests:
     brickster (>= 0.2.14),
     dbplyr,
     dplyr,
+    duckdb (>= 1.5.3),
     fabricQueryR (>= 1.0.1),
     jsonlite,
     knitr,

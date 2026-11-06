@@ -1,5 +1,7 @@
 test_that("public helpers reject outdated SDKs before acquiring credentials", {
   cases <- list(
+    list(package = "duckdb", older = "1.5.2", minimum = "1.5.3",
+      make = function(auth) oauth_db_duckdb(auth, "duckdb.example.org")),
     list(package = "brickster", older = "0.2.13", minimum = "0.2.14",
       make = function(auth) oauth_db_databricks_api(auth, "workspace.example")),
     list(package = "fabricQueryR", older = "1.0.0", minimum = "1.0.1",

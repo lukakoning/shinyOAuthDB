@@ -8,8 +8,21 @@ Rscript --vanilla tools/test-provenance.R
 Rscript --vanilla tools/test-live.R
 Rscript --vanilla tools/test-mutations.R
 Rscript --vanilla tools/check-package.R
+Rscript --vanilla tools/check-duckdb.R
+Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
+
+`check-duckdb.R` downloads the matching Quack extension and starts a real
+loopback DuckDB server. It checks DBI/dbplyr queries, token replacement,
+server rejection, TLS enforcement and cleanup using synthetic authorizations.
+It does not test an identity provider or quack_oauth's token validation.
+Set `OAUTHDB_DUCKDB_TEST_PORT` if the default port 19494 is occupied.
+
+With Docker running, `check-duckdb-oauth.R` also exercises real JWT validation
+and server policies through `quack_oauth`, including verified TLS, private
+CA trust, and certificate hostname checks. It generates disposable tokens
+and certificates in the [DuckDB OAuth fixture](../integration/duckdb-oauth/README.md).
 
 With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a
