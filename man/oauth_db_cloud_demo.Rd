@@ -21,7 +21,8 @@ oauth_db_cloud_demo(
 )
 }
 \arguments{
-\item{platform}{Cloud platform: \code{"databricks"}, \code{"fabric"} or \code{"bigquery"}.}
+\item{platform}{Cloud platform: \code{"databricks"}, \code{"fabric"}, \code{"bigquery"}
+or \code{"snowflake"}.}
 
 \item{host}{Databricks workspace hostname or browser URL. Paths, queries and
 fragments are removed. For other SQL demos, an alias for \code{server}.}
@@ -30,7 +31,7 @@ fragments are removed. For other SQL demos, an alias for \code{server}.}
 
 \item{client_type}{\code{"public"} for PKCE without a secret, or \code{"confidential"}.
 The guide asks when needed; noninteractive calls default to \code{"public"}
-where supported. BigQuery requires a confidential Web registration.}
+where supported. BigQuery and Snowflake demos use confidential registrations.}
 
 \item{warehouse_id}{Optional default SQL warehouse ID.}
 
@@ -55,7 +56,9 @@ editable draft without network calls or asking for a secret.}
 \item{...}{Named platform settings. Fabric uses \code{server}, \code{database},
 \code{tenant_id} and optionally \code{driver}. Missing required values are explained
 and requested interactively. BigQuery uses \code{project} and optionally
-\code{location} and \code{maximum_bytes_billed}. See the guided cloud demos vignette.}
+\code{location} and \code{maximum_bytes_billed}. Snowflake uses \code{server}, \code{role},
+\code{warehouse} and optionally \code{database}, \code{schema}, \code{driver}.
+See the guided cloud demos vignette.}
 }
 \value{
 Invisibly, the demo directory, including after pausing incomplete

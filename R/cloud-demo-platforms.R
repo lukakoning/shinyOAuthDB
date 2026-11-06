@@ -1,4 +1,5 @@
-.odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery())
+.odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery(),
+  snowflake = .odb_cloud_spec_snowflake())
 
 .odb_cloud_field <- function(label, help, type = "text", default = NULL) {
   list(label = label, help = help, type = type, default = default)
@@ -29,6 +30,12 @@
     if (!is.null(supplied$server)) cli::cli_abort("Supply only one of {.arg host} and {.arg server}.")
     supplied$server <- supplied$host
     supplied$host <- NULL
+  }
+  # R partially matches warehouse to the older Databricks warehouse_id formal.
+  if (!is.null(supplied$warehouse_id) && "warehouse" %in% names(spec$fields)) {
+    if (!is.null(supplied[["warehouse"]])) cli::cli_abort("Supply only one warehouse setting.")
+    supplied$warehouse <- supplied$warehouse_id
+    supplied$warehouse_id <- NULL
   }
   allowed <- c(names(spec$fields), "client_id", "client_type", "port")
   if (length(setdiff(names(supplied), allowed))) cli::cli_abort("Unknown {spec$title} settings: {.field {setdiff(names(supplied), allowed)}}.")
@@ -131,6 +138,7 @@
   if (type == "scopes") value <- paste(unique(strsplit(value, "[[:space:]]+")[[1L]]), collapse = " ")
   if (type == "project" && !grepl("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", value)) cli::cli_abort("Copy the Google Cloud project ID, not its name or number.")
   if (type == "bytes" && !grepl("^[0-9]+$", value)) cli::cli_abort("Supply the maximum billed bytes as a non-negative integer string.")
+  if (type == "role" && !grepl("^[A-Za-z_][A-Za-z0-9_$]*$", value)) cli::cli_abort("This demo uses a simple unquoted Snowflake role name. Copy its exact name, without spaces.")
   if (type == "odbc") .odb_odbc_values(list(value))
   value
 }

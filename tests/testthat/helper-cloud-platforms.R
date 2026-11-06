@@ -1,7 +1,9 @@
 cloud_platform_settings <- function() list(
   fabric = list(server = "example.datawarehouse.fabric.microsoft.com", database = "Reporting",
     tenant_id = "11111111-2222-3333-4444-555555555555", client_id = "demo-client", client_type = "public"),
-  bigquery = list(project = "example-project", client_id = "demo-client", client_type = "confidential")
+  bigquery = list(project = "example-project", client_id = "demo-client", client_type = "confidential"),
+  snowflake = list(server = "org-account.snowflakecomputing.com", role = "REPORTING_READER",
+    warehouse = "REPORTING_WH", client_id = "demo-client", client_type = "confidential")
 )
 
 cloud_platform_app <- function(platform) {

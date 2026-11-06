@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a Snowflake cloud demo with custom integration instructions, matching
+  OAuth/SQL roles and explicit warehouse selection.
+
 * Add a BigQuery cloud demo with Web OAuth registration guidance, query
   project/location settings and a maximum bytes billed limit.
 

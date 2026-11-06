@@ -4,13 +4,14 @@
 #' then runs a local Shiny app with your installed R packages. Visitors sign
 #' in through shinyOAuth and use their own cloud data permissions.
 #'
-#' @param platform Cloud platform: `"databricks"`, `"fabric"` or `"bigquery"`.
+#' @param platform Cloud platform: `"databricks"`, `"fabric"`, `"bigquery"`
+#'   or `"snowflake"`.
 #' @param host Databricks workspace hostname or browser URL. Paths, queries and
 #'   fragments are removed. For other SQL demos, an alias for `server`.
 #' @param client_id Client ID from your custom OAuth app registration.
 #' @param client_type `"public"` for PKCE without a secret, or `"confidential"`.
 #'   The guide asks when needed; noninteractive calls default to `"public"`
-#'   where supported. BigQuery requires a confidential Web registration.
+#'   where supported. BigQuery and Snowflake demos use confidential registrations.
 #' @param warehouse_id Optional default SQL warehouse ID.
 #' @param http_path Optional warehouse HTTP path, instead of `warehouse_id`.
 #' @param path Empty or existing cloud-demo directory. The default is a temporary
@@ -26,7 +27,9 @@
 #' @param ... Named platform settings. Fabric uses `server`, `database`,
 #'   `tenant_id` and optionally `driver`. Missing required values are explained
 #'   and requested interactively. BigQuery uses `project` and optionally
-#'   `location` and `maximum_bytes_billed`. See the guided cloud demos vignette.
+#'   `location` and `maximum_bytes_billed`. Snowflake uses `server`, `role`,
+#'   `warehouse` and optionally `database`, `schema`, `driver`.
+#'   See the guided cloud demos vignette.
 #' @return Invisibly, the demo directory, including after pausing incomplete
 #'   interactive setup. Noninteractive starts report missing settings as errors.
 #' @details

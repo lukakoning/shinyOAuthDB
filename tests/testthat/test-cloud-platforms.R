@@ -89,6 +89,17 @@ test_that("BigQuery demo requires a Web registration and limits query billing", 
   }))
 })
 
+test_that("Snowflake demo binds its OAuth role and warehouse to the SQL connection", {
+  app <- cloud_platform_app("snowflake")
+  expect_true("session:role:REPORTING_READER" %in% app$client@scopes)
+  local_mocked_bindings(.odb_bind = capture_backend)
+  binding <- app$make_access(function() NULL)
+  expect_identical(binding$required_scopes, "session:role:REPORTING_READER")
+  expect_identical(binding$args$role, "REPORTING_READER")
+  expect_identical(binding$args$warehouse, "REPORTING_WH")
+  expect_null(binding$args$database)
+})
+
 for (cloud_platform in names(cloud_platform_settings())) local({
   platform <- cloud_platform
   test_that(paste(platform, "app constructs its real client and waits for an explicit query"), {

@@ -24,6 +24,7 @@ don't need to create tables or upload data.
 | `"databricks"` | [Databricks](databricks.html): workspace URL and custom OAuth registration; choose a SQL warehouse after sign-in |
 | `"fabric"` | [Microsoft Fabric](fabric.html): SQL server/database and an Entra registration; install fabricQueryR, odbc and Microsoft ODBC Driver 18 |
 | `"bigquery"` | [BigQuery](bigquery.html): query project ID and a Google Web OAuth client; no database driver needed |
+| `"snowflake"` | [Snowflake](snowflake.html): account server, role, warehouse and a confidential custom OAuth integration; install odbc and the Snowflake ODBC driver |
 
 For example, start the Fabric guide with:
 

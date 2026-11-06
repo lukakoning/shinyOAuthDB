@@ -18,6 +18,25 @@ Query through a DBI connection, or use dbplyr to work with tables.
 The example first shows the signed-in user's Snowflake username and role,
 so you can check the connection before querying your data.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("snowflake")` in your R console.
+The guide asks for `server`, `role`, `warehouse` and the custom OAuth
+`client_id`; it explains how an administrator registers the exact local
+callback and where to obtain the client secret. It uses a confidential
+integration and masked secret input, or `OAUTHDB_SNOWFLAKE_CLIENT_SECRET`.
+Install `odbc`, `processx`, `askpass` and the Snowflake ODBC driver first.
+
+The editable local app requests the same role at sign-in and connection,
+then waits for **Run example query**. Queries may resume a warehouse and
+consume credits; stopping the app doesn't suspend a shared warehouse.
+Optional `database`, `schema` and `driver` arguments customize the setup.
+See [Guided cloud demos](cloud-demos.html) for pausing, editing and resuming.
+
+Without an account, check [Snowflake trial accounts](https://docs.snowflake.com/en/user-guide/admin-trial-account).
+You still need permission to create the OAuth integration and a usable
+role/warehouse. Live trial compatibility remains unverified here.
+
 ## Snowflake setup
 
 In R, run `install.packages("odbc")`, then install the
