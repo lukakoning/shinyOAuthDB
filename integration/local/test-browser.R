@@ -29,6 +29,7 @@ testthat::test_that("real browser users receive only their server-enforced rows"
       integration_check_names(fixture$config$backend, "tls"), "TLS checks"))
     fixture_click(entry$browser, "data")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$data_checks))
+    testthat::expect_null(check$data_error)
     testthat::expect_true(integration_require_checks(check$data_checks,
       integration_check_names(fixture$config$backend, "data"), "Data checks"))
   }

@@ -22,6 +22,7 @@ local({
     stopifnot(identical(normalizePath(find.package(package)), normalizePath(file.path(library, package))))
   }
   source("integration/local/browser.R", local = FALSE)
+  source("integration/local/dbplyr.R", local = FALSE)
   source(file.path("integration", paste0(backend, "-keycloak"), "backend.R"), local = FALSE)
   fixture_backend$prepare()
   deadline <- Sys.time() + 20

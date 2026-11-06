@@ -16,11 +16,11 @@ integration_check_names <- function(backend, kind) {
       data = c("parameter", "null", "bigint", "timestamp", "empty", "successful_write_once",
         "failed_response_once", "dropped_response_once", "timeout_response_once")),
     trino = list(denied = c("other_table_denied", "impersonation_denied", "native_fetch"),
-      data = c("unicode", "null", "bigint", "timestamp", "empty")),
+      data = c("unicode", "null", "bigint", "timestamp", "empty", "dbplyr_filter", "dbplyr_empty")),
     starrocks = list(denied = c("table_access", "impersonation_denied", "password_fallback_denied", "token_files_removed"),
-      data = c("parameter", "null", "bigint", "timestamp", "empty", "revoked_grant", "restored_grant")),
+      data = c("parameter", "null", "bigint", "timestamp", "empty", "revoked_grant", "restored_grant", "dbplyr_filter", "dbplyr_empty")),
     minilake = list(data = c("quoted_value", "named_parameter_gap", "both_helpers", "null",
-      "bigint_text", "timestamp", "empty", "pages")))
+      "bigint_text", "timestamp", "empty", "pages", "dbplyr_filter", "dbplyr_empty")))
   if (!backend %in% names(checks)) stop("Unknown integration backend.", call. = FALSE)
   value <- if (identical(kind, "tls")) c("untrusted_ca", "wrong_hostname") else checks[[backend]][[kind]]
   if (is.null(value)) stop("Unknown integration check group.", call. = FALSE)
@@ -34,6 +34,7 @@ integration_scenarios <- function(backend) {
     "browser-issued wrong audience is denied by PostgreSQL OAuth",
     "browser-issued missing scope never reaches PostgreSQL connect",
     "PostgreSQL independently rejects tampered, expired and TLS-invalid credentials",
+    "PostgreSQL delegated connections support dbplyr and native typed parameters",
     "PostgreSQL reads renew natural expiry while retaining the SQL session",
     "a rejected PostgreSQL refresh closes local access and recovers with Bob"))
   if (identical(backend, "minilake")) return(c(

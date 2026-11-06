@@ -360,6 +360,20 @@ testthat::test_that("PostgreSQL independently rejects tampered, expired and TLS-
   testthat::expect_true(expired$hook_restored)
 })
 
+testthat::test_that("PostgreSQL delegated connections support dbplyr and native typed parameters", {
+  fixture <- postgres_browser_setup()
+  on.exit(fixture$close(), add = TRUE)
+  for (user in c("alice", "bob")) {
+    browser <- fixture$new_browser()
+    postgres_browser_login(browser, user, fixture$config)
+    postgres_browser_wait(browser, function(x) !is.null(x$result))
+    postgres_browser_value(browser, "Shiny.setInputValue('dbplyr', 1, {priority:'event'}); true")
+    checked <- postgres_browser_wait(browser, function(x) !is.null(x$dbplyr_checks))
+    testthat::expect_setequal(names(checked$dbplyr_checks), c("filter", "empty", "parameter", "null", "bigint", "timestamp"))
+    for (name in names(checked$dbplyr_checks)) testthat::expect_true(checked$dbplyr_checks[[name]], info = name)
+  }
+})
+
 testthat::test_that("PostgreSQL reads renew natural expiry while retaining the SQL session", {
   config <- postgres_browser_config("shiny-short-lived")
   config$retain_expired <- TRUE

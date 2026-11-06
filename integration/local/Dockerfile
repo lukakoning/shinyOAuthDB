@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev unixodbc-dev \
     && rm -rf /var/lib/apt/lists/* && mkdir -p /opt/fixture-r-library
 RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); required <- c("DBI","shiny","promises","later","R6","rlang","S7","jsonlite","openssl","httr2","curl","urltools","cachem","jose","lifecycle","cli","htmltools","otel","chromote","callr","testthat","withr"); install.packages(required, Ncpus=2L); stopifnot(all(vapply(required, requireNamespace, logical(1), quietly=TRUE)))'
+RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages(c("dbplyr", "dplyr"), Ncpus=2L); stopifnot(requireNamespace("dbplyr"), requireNamespace("dplyr"))'
 COPY runner-entrypoint.sh fixture-chromium /usr/local/bin/
 WORKDIR /workspace/shinyOAuthDB
 ENTRYPOINT ["bash", "/usr/local/bin/runner-entrypoint.sh"]

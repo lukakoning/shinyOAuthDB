@@ -37,11 +37,12 @@ fixture_backend <- list(
     rows <- DBI::dbGetQuery(con, paste("SELECT 'café 雪' AS text_value, CAST(NULL AS VARCHAR) AS null_value,",
       "CAST(9223372036854775807 AS BIGINT) AS integer_value, TIMESTAMP '2020-02-29 12:34:56.123' AS time_value"))
     empty <- DBI::dbGetQuery(con, "SELECT CAST(NULL AS VARCHAR) AS value WHERE FALSE")
-    list(unicode = identical(rows$text_value, "café 雪"), null = is.na(rows$null_value),
+    c(fixture_dbplyr_checks(con, DBI::Id(schema = "reporting", table = "visible_rows"), username),
+      list(unicode = identical(rows$text_value, "café 雪"), null = is.na(rows$null_value),
       bigint = identical(as.character(rows$integer_value), "9223372036854775807"),
       timestamp = inherits(rows$time_value, "POSIXct") &&
         abs(as.numeric(rows$time_value) - as.numeric(as.POSIXct("2020-02-29 12:34:56", tz = "UTC")) - .123) < .0001,
-      empty = nrow(empty) == 0L && identical(names(empty), "value"))
+      empty = nrow(empty) == 0L && identical(names(empty), "value")))
   },
   denied = function(con, username, config) {
     other <- if (username == "alice") "bob" else "alice"

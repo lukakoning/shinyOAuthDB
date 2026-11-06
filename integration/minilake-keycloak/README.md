@@ -27,6 +27,12 @@ Quoted values round-trip through real SQL instead. Arrow results exercise
 typed NULLs and timestamps; INLINE JSON is also exercised during connection
 validation. Parameter binding still needs validation against Databricks.
 
+The dbplyr check executes `tbl()` over a SQL subquery, then `filter()` and
+`collect()`, including an empty result. brickster's bare-table field-discovery
+query wraps the table name in parentheses; the pinned DuckDB emulator rejects
+that form. Quoted table identifiers are checked on PostgreSQL, Trino and
+StarRocks. Databricks table discovery still needs the real workspace lane.
+
 MiniLake runs SQL on DuckDB. It accepts any bearer token and stores grants
 without enforcing them. Selecting Alice's or Bob's fixture rows is data
 selection, **not** evidence of Databricks isolation or permissions. This lane

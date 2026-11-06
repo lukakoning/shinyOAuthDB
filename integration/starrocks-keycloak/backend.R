@@ -72,7 +72,8 @@ fixture_backend <- list(
     denied <- tryCatch(fixture_backend$read(con), error = identity)
     DBI::dbExecute(admin, grant)
     restored <- fixture_backend$read(con)
-    list(parameter = identical(rows$text_value, payload), null = is.na(rows$null_value),
+    c(fixture_dbplyr_checks(con, DBI::Id(schema = "reporting", table = "visible_rows"), username),
+      list(parameter = identical(rows$text_value, payload), null = is.na(rows$null_value),
       bigint = identical(as.character(rows$integer_value), "9223372036854775807"),
       timestamp = inherits(rows$time_value, "POSIXct") &&
         identical(format(rows$time_value, tz = "UTC"), "2020-02-29 12:34:56"),
@@ -80,7 +81,7 @@ fixture_backend <- list(
       revoked_grant = inherits(denied, "error") && grepl("denied|privilege|permission",
         conditionMessage(denied), ignore.case = TRUE),
       restored_grant = identical(restored$database_user, rep(username, 2L)) &&
-        identical(restored$marker, paste0(username, "-visible-", 1:2)))
+        identical(restored$marker, paste0(username, "-visible-", 1:2))))
   },
   tls_checks = function(authorization, username, config) {
     checks <- list()

@@ -175,6 +175,26 @@ postgres_browser_app <- function(config) {
     }
 
     last_error <- shiny::reactiveVal(NULL)
+    dbplyr_checks <- shiny::reactiveVal(NULL)
+    shiny::observeEvent(input$dbplyr, {
+      native <- con()
+      tryCatch({
+        table <- dplyr::tbl(native, DBI::Id(schema = "public", table = "visible_rows"))
+        marker <- paste0(database_role(), "-visible-1")
+        filtered <- dplyr::collect(dplyr::select(dplyr::filter(table, .data$marker == !!marker), "marker"))
+        empty <- dplyr::collect(dplyr::select(dplyr::filter(table, .data$marker == "absent-fixture-row"), "marker"))
+        value <- "quoted ' text; -- café 雪"
+        typed <- DBI::dbGetQuery(native, paste("SELECT $1::text AS value, NULL::text AS missing,",
+          "9223372036854775807::bigint AS integer_value, TIMESTAMPTZ '2020-02-29 12:34:56.125+00' AS instant"),
+          params = list(value))
+        dbplyr_checks(list(filter = identical(filtered$marker, marker),
+          empty = identical(names(empty), "marker") && nrow(empty) == 0L,
+          parameter = identical(typed$value, value), null = is.na(typed$missing),
+          bigint = identical(as.character(typed$integer_value), "9223372036854775807"),
+          timestamp = inherits(typed$instant, "POSIXct") &&
+            abs(as.numeric(typed$instant) - as.numeric(as.POSIXct("2020-02-29 12:34:56", tz = "UTC")) - .125) < .0001))
+      }, error = function(e) dbplyr_checks(list(fixture_error = postgres_fixture_error_detail(e))))
+    })
 
     query_attempts <- shiny::reactiveVal(0L)
 
@@ -648,6 +668,7 @@ postgres_browser_app <- function(config) {
           result = saved,
           native_error_detail = native_error_detail(),
           native_checks = negative_results(),
+          dbplyr_checks = dbplyr_checks(),
           original_expired = !is.null(original_expiry) && as.numeric(Sys.time()) > original_expiry + 1,
           expired_denied = expired_denied(),
           query_attempts = query_attempts(),

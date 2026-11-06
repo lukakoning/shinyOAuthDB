@@ -3,6 +3,14 @@
 Use these checks to test browser sign-in or queries against a real database.
 The ordinary package tests use local data and mocked services.
 
+The DBI browser fixtures execute dbplyr `tbl()`/`filter()`/`collect()` against
+PostgreSQL, Trino, StarRocks and MiniLake, including empty results. The first
+three use quoted table identifiers; MiniLake uses a SQL subquery because of
+its documented table-discovery dialect gap. Native typed-value and parameter
+checks accompany those queries where supported. The SQLite source test also
+checks that a dbplyr consumer recovers after permission loss and follows
+account replacement.
+
 ## Local browser sign-in and PostgreSQL
 
 The [PostgreSQL/Keycloak fixture](../../integration/postgres-keycloak/README.md)

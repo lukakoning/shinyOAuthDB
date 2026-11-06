@@ -127,6 +127,7 @@ fixture_setup <- function(config = fixture_config()) {
   root <- fixture_repository
   process <- callr::r_bg(function(root, config) {
     setwd(root)
+    source("integration/local/dbplyr.R", local = TRUE)
     source("integration/local/app.R", local = TRUE)
     fixture_run_app(config)
   }, args = list(root, config), libpath = .libPaths(), supervise = TRUE, stdout = "|", stderr = "|")

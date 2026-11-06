@@ -17,6 +17,7 @@ testthat::test_that("both public Databricks helpers execute real local SQL and r
   }
   fixture_click(browser, "data")
   data <- fixture_wait(browser, function(x) !is.null(x$data_checks), timeout = 90)
+  testthat::expect_null(data$data_error)
   testthat::expect_true(integration_require_checks(data$data_checks,
     integration_check_names("minilake", "data"), "MiniLake data checks"))
   fixture_click(browser, "load")

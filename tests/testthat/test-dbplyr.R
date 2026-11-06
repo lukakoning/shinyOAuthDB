@@ -1,0 +1,38 @@
+test_that("dbplyr consumers follow the selected authorization and recover after permission loss", {
+  skip_if_not_installed("RSQLite")
+  skip_if_not_installed("dbplyr")
+  skip_if_not_installed("dplyr")
+  odb_test_domain(function(session) {
+    a <- odb_test_authorization(session, "alice")
+    b <- odb_test_authorization(session, "bob")
+    selected <- shiny::reactiveVal(a$connection)
+    con <- oauth_db_connect(selected, function(token) {
+      native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+      DBI::dbWriteTable(native, "quoted table", data.frame(id = 1:2,
+        marker = c(paste0(token, " café 雪"), NA_character_)))
+      native
+    }, required_scopes = "read")
+    rows <- shiny::reactive({
+      table <- dplyr::tbl(con(), DBI::Id(table = "quoted table"))
+      dplyr::collect(dplyr::filter(table, .data$id == 1L))
+    })
+    expect_identical(rows()$marker, "fixture-alice café 雪")
+    first <- con()
+    a$token(a$make_token("rotated"))
+    session$flushReact()
+    expect_identical(con(), first)
+    expect_identical(rows()$marker, "fixture-alice café 雪")
+    a$token(a$make_token("denied", permissions = "write"))
+    session$flushReact()
+    expect_false(DBI::dbIsValid(first))
+    expect_error(rows(), class = "shiny.silent.error")
+    selected(b$connection)
+    session$flushReact()
+    expect_identical(rows()$marker, "fixture-bob café 雪")
+    all <- dplyr::collect(dplyr::tbl(con(), DBI::Id(table = "quoted table")))
+    expect_true(is.na(all$marker[[2L]]))
+    selected(NULL)
+    session$flushReact()
+    expect_error(rows(), class = "shiny.silent.error")
+  })
+})

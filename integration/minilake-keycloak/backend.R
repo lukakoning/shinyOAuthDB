@@ -95,7 +95,10 @@ fixture_backend <- list(
     pages_sql <- "SELECT range AS id FROM range(100005) ORDER BY id"
     pages_dbi <- DBI::dbGetQuery(con, pages_sql)
     pages_api <- api_query(pages_sql)
-    list(quoted_value = identical(dbi$value, payload),
+    # brickster's field-discovery query wraps bare table names in parentheses,
+    # which Spark accepts but this DuckDB emulator rejects. Use a SQL source.
+    c(fixture_dbplyr_checks(con, dbplyr::sql("SELECT * FROM fixture_rows"), username),
+      list(quoted_value = identical(dbi$value, payload),
       named_parameter_gap = unsupported(parameter_dbi) && unsupported(parameter_api),
       both_helpers = identical(dbi, api), null = is.na(dbi$missing),
       bigint_text = identical(dbi$integer_text, "9223372036854775807"),
@@ -103,6 +106,6 @@ fixture_backend <- list(
         identical(format(dbi$time_value, tz = "UTC"), "2020-02-29 12:34:56"),
       empty = nrow(empty_dbi) == 0L && identical(empty_dbi, empty_api) && identical(names(empty_dbi), "marker"),
       pages = nrow(pages_dbi) == 100005L && identical(pages_dbi, pages_api) &&
-        identical(as.numeric(pages_dbi$id), as.numeric(0:100004)))
+        identical(as.numeric(pages_dbi$id), as.numeric(0:100004))))
   }
 )
