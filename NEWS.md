@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a BigQuery cloud demo with Web OAuth registration guidance, query
+  project/location settings and a maximum bytes billed limit.
+
 * Add a guided Fabric cloud demo with Entra registration help, editable SQL
   app files and an explicit query button. Cloud drafts are now isolated by
   platform and use platform-specific secret environment variables.

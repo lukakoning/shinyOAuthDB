@@ -76,6 +76,19 @@ test_that("Fabric demo uses SQL delegated access and its configured native drive
   expect_identical(binding$args$options$driver, "ODBC Driver 18 for SQL Server")
 })
 
+test_that("BigQuery demo requires a Web registration and limits query billing", {
+  app <- cloud_platform_app("bigquery")
+  expect_true("https://www.googleapis.com/auth/bigquery" %in% app$client@scopes)
+  expect_error(oauth_db_cloud_demo("bigquery", client_type = "public", action = "files",
+    path = cloud_demo_path(), prompt = FALSE), "confidential")
+  expect_error(.odb_cloud_value("123456", "project"), "project ID")
+  app$run_query(list(query = function(sql, maximum_bytes_billed) {
+    expect_identical(sql, "SELECT SESSION_USER() AS signed_in_user")
+    expect_identical(maximum_bytes_billed, "10000000")
+    data.frame(user = "fixture")
+  }))
+})
+
 for (cloud_platform in names(cloud_platform_settings())) local({
   platform <- cloud_platform
   test_that(paste(platform, "app constructs its real client and waits for an explicit query"), {
@@ -87,8 +100,9 @@ for (cloud_platform in names(cloud_platform_settings())) local({
     control$queries <- 0L
     app$oauth_module_server <- function(...) {
       session <- shiny::getDefaultReactiveDomain()
-      a <- odb_test_authorization(session, id = "A", target = app$query_target, scopes = "demo.read")
-      b <- odb_test_authorization(session, id = "B", target = app$query_target, scopes = "demo.read")
+      scopes <- if (length(app$query_scopes)) app$query_scopes else "demo.read"
+      a <- odb_test_authorization(session, id = "A", target = app$query_target, scopes = scopes)
+      b <- odb_test_authorization(session, id = "B", target = app$query_target, scopes = scopes)
       reference <- shiny::reactiveVal(NULL)
       control$choose <- function(id) {
         a$current(id == "A"); b$current(id == "B")
@@ -104,7 +118,6 @@ for (cloud_platform in names(cloud_platform_settings())) local({
         control$connections[[length(control$connections) + 1L]] <- con
         con
       })
-    app$query_scopes <- character()
     app$run_query <- function(access) {
       con <- access()
       control$queries <- control$queries + 1L

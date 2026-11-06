@@ -19,6 +19,27 @@ without managing a database server. Run GoogleSQL in a Shiny app using each visi
 The first app checks which Google account is signed in. You can then use
 the same client to query your tables.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("bigquery")` in your R console.
+The guide asks for the query `project` ID and OAuth `client_id`, explains
+the consent screen and test users, then asks for the Web client's secret
+through masked input. Install `processx`, `jsonlite` and `askpass` first.
+No database driver is needed. You can save a draft while arranging access.
+
+The editable app runs `SELECT SESSION_USER()` only after you click
+**Run example query**. Its default `location = "US"` suits the identity
+query; set it to your dataset's location before querying tables. The default
+`maximum_bytes_billed = "10000000"` limits bytes a query may bill.
+For scripts, supply `project`, `client_id` and optionally those settings,
+set `OAUTHDB_BIGQUERY_CLIENT_SECRET`, and use `prompt = FALSE`.
+See [Guided cloud demos](cloud-demos.html) for editing and resuming.
+
+With no account yet, [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox)
+offers a starting point without a billing account. You still need to enable
+the API, configure your Web OAuth client and have permission to run jobs.
+The full OAuth demo has not been verified against a sandbox account.
+
 ## Google Cloud setup
 
 Create a [Web OAuth client](https://developers.google.com/identity/protocols/oauth2/web-server)

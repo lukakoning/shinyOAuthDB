@@ -1,4 +1,4 @@
-.odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric())
+.odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery())
 
 .odb_cloud_field <- function(label, help, type = "text", default = NULL) {
   list(label = label, help = help, type = type, default = default)
@@ -130,6 +130,7 @@
   if (type == "port" && (!grepl("^[0-9]+$", value) || as.numeric(value) < 1 || as.numeric(value) > 65535)) cli::cli_abort("Choose a database port from 1 to 65535.")
   if (type == "scopes") value <- paste(unique(strsplit(value, "[[:space:]]+")[[1L]]), collapse = " ")
   if (type == "project" && !grepl("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", value)) cli::cli_abort("Copy the Google Cloud project ID, not its name or number.")
+  if (type == "bytes" && !grepl("^[0-9]+$", value)) cli::cli_abort("Supply the maximum billed bytes as a non-negative integer string.")
   if (type == "odbc") .odb_odbc_values(list(value))
   value
 }
