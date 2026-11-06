@@ -11,7 +11,7 @@ profiles <- list(
   transport = list(files = c("http.R", "api.R", "conditions.R"),
     tests = "^(http|http-contracts|http-diagnostics|postgrest|clickhouse|api|backend-dependencies)$"),
   lifecycle = list(files = c("session.R", "authorization.R"),
-    tests = "^(authorization-protocol|api|core|lifecycle|lifecycle-cleanup|operation-scopes|credential-recovery|module-setup|custom-clients|query-button|multiple-connections)$"),
+    tests = "^(authorization-protocol|api|core|lifecycle|lifecycle-cleanup|lifecycle-sequences|operation-scopes|credential-recovery|module-setup|custom-clients|query-button|multiple-connections)$"),
   bigquery = list(files = "backend__bigquery.R",
     tests = "^(bigquery|bigquery-responses|bigquery-contracts|bigquery-transport|bigquery-types|http|http-contracts|http-diagnostics)$"),
   clickhouse = list(files = "backend__clickhouse.R", tests = "^(clickhouse|http|http-contracts|http-diagnostics)$"),
