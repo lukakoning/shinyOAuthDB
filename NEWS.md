@@ -8,6 +8,10 @@
 * Add `oauth_db_cratedb_api()` for CrateDB's JWT-authenticated HTTPS SQL
   interface, positional parameters and exact BIGINT/NUMERIC results. Tokens
   are renewed before requests, and SQL submissions are never replayed.
+* Add `oauth_db_opensearch_api()` for Query DSL, aggregations, SQL plugin
+  queries and native JSON requests with a visitor's current bearer token.
+  Preserves nested results and metadata, rejects incomplete searches, and
+  includes a native OpenSearch Security JWT/TLS permission fixture.
 * Add `oauth_db_duckdb()` for DBI and dbplyr queries against OAuth-enabled
   DuckDB Quack servers. Connections use TLS by default and are replaced when
   access tokens rotate; sign-out and session end shut down their private

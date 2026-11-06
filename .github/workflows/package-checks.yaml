@@ -69,6 +69,10 @@ jobs:
         if: runner.os == 'Linux'
         run: Rscript --vanilla tools/check-cratedb-oauth.R
 
+      - name: Check OpenSearch JWT, document permissions and TLS
+        if: runner.os == 'Linux'
+        run: Rscript --vanilla tools/check-opensearch-oauth.R
+
       - name: Verify validation rejects incomplete runs
         run: Rscript --vanilla tools/test-validation.R
 

@@ -34,6 +34,7 @@ Each source guide includes a complete app with sign-in and a first query.
 | [CrateDB](cratedb.html) | Run SQL over HTTPS with JWT authentication and database user privileges |
 | [DuckDB](duckdb.html) | Query a remote Quack server with OAuth access tokens |
 | [libSQL and Turso](libsql.html) | Run SQLite SQL over HTTPS with compatible user tokens |
+| [OpenSearch](opensearch.html) | Search indexes, run aggregations and query the SQL plugin |
 | [Azure SQL and SQL Server](azure-sql.html) | Query with DBI or dbplyr |
 | [Microsoft Fabric](fabric.html) | Query SQL endpoints, read OneLake tables, and call fabricQueryR functions |
 | [Databricks](databricks.html) | Query SQL warehouses and call brickster functions |

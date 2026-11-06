@@ -97,6 +97,7 @@ Other platform API clients:
 \code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
 \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
 \code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
+\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
 \code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}}
 }
 \concept{platform API clients}

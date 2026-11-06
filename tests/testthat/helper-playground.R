@@ -38,6 +38,7 @@ playground_env <- function() {
     OAUTHDB_LIBSQL_URL = "libsql://db.example.org",
     OAUTHDB_LIBSQL_AUDIENCE = "libsql-fixture",
     OAUTHDB_CRATEDB_ISSUER = "https://issuer.example.org",
+    OAUTHDB_OPENSEARCH_ISSUER = "https://issuer.example.org",
     OAUTHDB_TRINO_HOST = "https://trino.example.org",
     OAUTHDB_TRINO_CATALOG = "lakehouse",
     OAUTHDB_TRINO_SCHEMA = "reporting",

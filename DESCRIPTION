@@ -15,6 +15,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     through the Quack protocol with OAuth access tokens. Queries remote
     libSQL and compatible Turso endpoints using each visitor's access token.
     Queries CrateDB's HTTPS SQL interface with per-user JWT access tokens.
+    Searches OpenSearch
+    indexes and runs its SQL plugin queries using each visitor's bearer token.
 License: MIT + file LICENSE
 URL: https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues

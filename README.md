@@ -28,7 +28,7 @@ access is enforced by the platform's own permissions.
 [Azure PostgreSQL](#azure-postgresql) ·
 [Redshift](#amazon-redshift) · [Trino](#trino-and-starburst-enterprise) ·
 [DuckDB](#duckdb) · [libSQL and Turso](#libsql-and-turso) · [CrateDB](#cratedb) ·
-[ClickHouse](#clickhouse) · [StarRocks](#starrocks)
+[OpenSearch](#opensearch) · [ClickHouse](#clickhouse) · [StarRocks](#starrocks)
 
 ## Install in R
 
@@ -97,6 +97,31 @@ exact, and never replays SQL submissions. See the
 configuration and a complete Shiny app. The
 [Docker fixture](integration/cratedb-oauth/README.md) tests real JWT
 validation, database privileges and TLS without production credentials.
+
+## OpenSearch
+
+Search documents, run aggregations or query the SQL plugin with each
+visitor's OAuth token. Configure the OpenSearch Security plugin for your
+trusted issuer and audience, and map token claims to the user's roles and
+index permissions. Document-level and field-level permissions stay on the
+server. Use this inside `server()`:
+
+```r
+search <- oauth_db_opensearch_api(
+  auth$connection, url = "https://search.example.org"
+)
+output$rows <- shiny::renderPrint({
+  search$search("orders", body = list(
+    size = 20L, query = list(term = list(country = "NL"))
+  ))$hits
+})
+```
+
+Responses keep their native JSON structure, including hits, aggregations
+and SQL metadata. The client uses verified HTTPS and a current token for
+each operation. POST searches, SQL queries and writes are not replayed
+automatically. See the [OpenSearch guide](vignettes/opensearch.Rmd) for a
+complete app, SQL parameters, private CA setup and a local Docker fixture.
 
 ## DuckDB
 

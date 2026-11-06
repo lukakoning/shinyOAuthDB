@@ -12,6 +12,7 @@ Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-libsql-oauth.R
 Rscript --vanilla tools/check-cratedb-oauth.R
+Rscript --vanilla tools/check-opensearch-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
 
@@ -36,6 +37,13 @@ Ed25519-signed user tokens. It checks database permissions, native SQLite
 values, token changes, TLS failures, and dropped/delayed write responses.
 See the [libSQL fixture](../integration/libsql-oauth/README.md) for scope
 and token compatibility. It needs Docker and no production credentials.
+
+With Docker running, `check-opensearch-oauth.R` checks native OpenSearch
+Security JWT authentication, document and field permissions, Query DSL,
+aggregations, SQL parameters and TLS through the public helper. The
+[fixture](../integration/opensearch-oauth/README.md) generates disposable
+keys and tokens. Set `OAUTHDB_OPENSEARCH_TEST_IMAGE` or
+`OAUTHDB_OPENSEARCH_TEST_PORT` to override its image or loopback port.
 
 With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a
