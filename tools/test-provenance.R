@@ -1,5 +1,14 @@
 arguments <- commandArgs(trailingOnly = TRUE)
-if (length(arguments)) .libPaths(c(arguments, .libPaths()))
-results <- testthat::test_file("tools/tests/test-provenance.R", reporter = "summary")
+if (length(arguments)) {
+  .libPaths(c(arguments, .libPaths()))
+}
+results <- testthat::test_file(
+  "tools/tests/test-provenance.R",
+  reporter = "summary"
+)
 counts <- as.data.frame(results)
-stopifnot(nrow(counts) > 0L, all(counts$passed > 0L), !any(counts$failed | counts$error | counts$warning | counts$skipped))
+stopifnot(
+  nrow(counts) > 0L,
+  all(counts$passed > 0L),
+  !any(counts$failed | counts$error | counts$warning | counts$skipped)
+)

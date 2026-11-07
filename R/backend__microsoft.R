@@ -40,24 +40,55 @@
 #' @family sign-in configuration
 #' @export
 oauth_db_microsoft_client <- function(
-  services = "sql", tenant_id, client_id, redirect_uri, client_secret = NULL, ...,
+  services = "sql",
+  tenant_id,
+  client_id,
+  redirect_uri,
+  client_secret = NULL,
+  ...,
   provider = shinyOAuth::oauth_provider_microsoft(
-    tenant = tenant_id, id_token_validation = TRUE, userinfo_required = FALSE),
+    tenant = tenant_id,
+    id_token_validation = TRUE,
+    userinfo_required = FALSE
+  ),
   token_targets = .odb_microsoft_targets(services),
-  token_target_default = if (length(token_targets)) names(token_targets)[[1L]] else character(),
-  scopes = c("openid", "profile", "offline_access",
-    unique(unlist(lapply(token_targets, `[[`, "scopes"), use.names = FALSE)))
+  token_target_default = if (length(token_targets)) {
+    names(token_targets)[[1L]]
+  } else {
+    character()
+  },
+  scopes = c(
+    "openid",
+    "profile",
+    "offline_access",
+    unique(unlist(lapply(token_targets, `[[`, "scopes"), use.names = FALSE))
+  )
 ) {
-  .odb_oauth_client(provider, client_id, redirect_uri, client_secret,
-    scopes = scopes, token_targets = token_targets,
-    token_target_default = token_target_default, ...)
+  .odb_oauth_client(
+    provider,
+    client_id,
+    redirect_uri,
+    client_secret,
+    scopes = scopes,
+    token_targets = token_targets,
+    token_target_default = token_target_default,
+    ...
+  )
 }
 
 .odb_microsoft_targets <- function(services) {
-  profiles <- c(.odb_sql_server_profiles(), .odb_postgres_profiles(),
-                .odb_fabric_profiles(), .odb_databricks_profiles())
-  if (!is.character(services) || !length(services) || anyNA(services) ||
-      any(!services %in% names(profiles))) {
+  profiles <- c(
+    .odb_sql_server_profiles(),
+    .odb_postgres_profiles(),
+    .odb_fabric_profiles(),
+    .odb_databricks_profiles()
+  )
+  if (
+    !is.character(services) ||
+      !length(services) ||
+      anyNA(services) ||
+      any(!services %in% names(profiles))
+  ) {
     .odb_abort("Choose one or more supported Microsoft services.")
   }
   targets <- list()
@@ -65,8 +96,11 @@ oauth_db_microsoft_client <- function(
     profile <- profiles[[service]]
     previous <- targets[[profile$target]]
     scopes <- union(previous$scopes, profile$scopes)
-    targets[[profile$target]] <- list(resource = profile$resource, scopes = scopes,
-                                     required_scopes = .odb_microsoft_scopes(scopes, "scopes"))
+    targets[[profile$target]] <- list(
+      resource = profile$resource,
+      scopes = scopes,
+      required_scopes = .odb_microsoft_scopes(scopes, "scopes")
+    )
   }
   targets
 }
@@ -74,7 +108,11 @@ oauth_db_microsoft_client <- function(
 # Microsoft consent recipes are supplied by each backend; only composition and
 # Microsoft's resource-qualified scope convention belong here.
 .odb_microsoft_profile <- function(target, resource, permissions) {
-  list(target = target, resource = resource, scopes = paste0(resource, "/", permissions))
+  list(
+    target = target,
+    resource = resource,
+    scopes = paste0(resource, "/", permissions)
+  )
 }
 
 .odb_microsoft_scopes <- function(scopes, name = "required_scopes") {

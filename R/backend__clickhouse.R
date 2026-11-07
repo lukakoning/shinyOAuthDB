@@ -70,18 +70,32 @@
 #' @family platform API clients
 #' @export
 oauth_db_clickhouse_api <- function(
-  authorization, url, database = NULL, target = NULL, required_scopes = character(),
-  min_valid_for = 60, timeout = 300, ca_bundle = NULL,
+  authorization,
+  url,
+  database = NULL,
+  target = NULL,
+  required_scopes = character(),
+  min_valid_for = 60,
+  timeout = 300,
+  ca_bundle = NULL,
   session = shiny::getDefaultReactiveDomain()
 ) {
   url <- .odb_http_url(url)
   .odb_string(database, "database", optional = TRUE)
   .odb_http_options(timeout, ca_bundle)
-  provider <- .odb_http_provider(authorization, target, required_scopes, min_valid_for, session)
+  provider <- .odb_http_provider(
+    authorization,
+    target,
+    required_scopes,
+    min_valid_for,
+    session
+  )
   .odb_clickhouse_api$new(provider, url, database, timeout, ca_bundle)
 }
 
-.odb_clickhouse_api <- R6::R6Class("OAuthClickHouseAPI", cloneable = FALSE,
+.odb_clickhouse_api <- R6::R6Class(
+  "OAuthClickHouseAPI",
+  cloneable = FALSE,
   public = list(
     initialize = function(provider, url, database, timeout, ca_bundle) {
       private$provider <- provider
@@ -94,7 +108,10 @@ oauth_db_clickhouse_api <- function(
       .odb_flag(raw, "raw")
       result <- .odb_http_json(private$submit(sql, parameters), "ClickHouse")
       if (!is.list(result) || !is.null(result$exception)) {
-        .odb_abort("The ClickHouse query failed. Inspect it in the server query log.", "query_failed")
+        .odb_abort(
+          "The ClickHouse query failed. Inspect it in the server query log.",
+          "query_failed"
+        )
       }
       if (raw) {
         .odb_clickhouse_validate(result)
@@ -106,7 +123,9 @@ oauth_db_clickhouse_api <- function(
       resp <- private$submit(sql, parameters)
       if (httr2::resp_has_body(resp)) {
         result <- .odb_http_json(resp, "ClickHouse")
-        if (!is.list(result) || !is.null(result$exception)) .odb_abort("The ClickHouse statement failed.", "query_failed")
+        if (!is.list(result) || !is.null(result$exception)) {
+          .odb_abort("The ClickHouse statement failed.", "query_failed")
+        }
         .odb_clickhouse_validate(result)
       }
       invisible(resp)
@@ -117,20 +136,46 @@ oauth_db_clickhouse_api <- function(
     }
   ),
   private = list(
-    provider = NULL, url = NULL, database = NULL, timeout = NULL, ca_bundle = NULL,
+    provider = NULL,
+    url = NULL,
+    database = NULL,
+    timeout = NULL,
+    ca_bundle = NULL,
     submit = function(sql, parameters) {
       .odb_string(sql, "sql")
-      query <- c(list(default_format = "JSONCompact", wait_end_of_query = "1",
-        output_format_json_quote_64bit_integers = "1", output_format_json_quote_decimals = "1",
-        output_format_json_quote_denormals = "1"), .odb_clickhouse_parameters(parameters))
-      if (!is.null(private$database)) query$database <- private$database
+      query <- c(
+        list(
+          default_format = "JSONCompact",
+          wait_end_of_query = "1",
+          output_format_json_quote_64bit_integers = "1",
+          output_format_json_quote_decimals = "1",
+          output_format_json_quote_denormals = "1"
+        ),
+        .odb_clickhouse_parameters(parameters)
+      )
+      if (!is.null(private$database)) {
+        query$database <- private$database
+      }
       req <- httr2::request(paste0(private$url, "/"))
       req <- do.call(httr2::req_url_query, c(list(req), query))
-      req <- httr2::req_body_raw(req, charToRaw(enc2utf8(sql)), type = "text/plain; charset=utf-8")
-      resp <- .odb_http_request(private$provider(), req, "ClickHouse", private$timeout, private$ca_bundle)
+      req <- httr2::req_body_raw(
+        req,
+        charToRaw(enc2utf8(sql)),
+        type = "text/plain; charset=utf-8"
+      )
+      resp <- .odb_http_request(
+        private$provider(),
+        req,
+        "ClickHouse",
+        private$timeout,
+        private$ca_bundle
+      )
       code <- httr2::resp_header(resp, "X-ClickHouse-Exception-Code")
       if (!is.null(code) && !identical(code, "0")) {
-        .odb_abort("The ClickHouse statement failed. Inspect it in the server query log.", "query_failed")
+        .odb_abort(
+          "The ClickHouse statement failed. Inspect it in the server query log.",
+          "query_failed"
+        )
       }
       resp
     }
@@ -138,32 +183,61 @@ oauth_db_clickhouse_api <- function(
 )
 
 .odb_clickhouse_parameters <- function(parameters) {
-  if (!is.list(parameters)) .odb_abort("parameters must be a named list of scalar R values.")
+  if (!is.list(parameters)) {
+    .odb_abort("parameters must be a named list of scalar R values.")
+  }
   .odb_named_args(parameters, "parameters")
-  if (!length(parameters)) return(list())
-  if (any(!grepl("^[A-Za-z_][A-Za-z0-9_]*$", names(parameters)))) .odb_abort("Invalid ClickHouse parameter name.")
+  if (!length(parameters)) {
+    return(list())
+  }
+  if (any(!grepl("^[A-Za-z_][A-Za-z0-9_]*$", names(parameters)))) {
+    .odb_abort("Invalid ClickHouse parameter name.")
+  }
   values <- lapply(parameters, function(value) {
-    if (is.null(value)) return("\\N")
+    if (is.null(value)) {
+      return("\\N")
+    }
     if (inherits(value, "AsIs")) {
       if (!is.character(value) || length(value) != 1L || is.na(value)) {
-        .odb_abort("I() parameters must contain one non-missing, already encoded string.")
+        .odb_abort(
+          "I() parameters must contain one non-missing, already encoded string."
+        )
       }
       return(as.character(value))
     }
-    if (!is.atomic(value) || length(value) != 1L || !is.null(dim(value)) ||
-        is.factor(value) || is.object(value) && !inherits(value, c("Date", "POSIXct"))) {
-      .odb_abort("Each parameter must be a scalar; wrap encoded array or tuple strings in I().")
+    if (
+      !is.atomic(value) ||
+        length(value) != 1L ||
+        !is.null(dim(value)) ||
+        is.factor(value) ||
+        is.object(value) && !inherits(value, c("Date", "POSIXct"))
+    ) {
+      .odb_abort(
+        "Each parameter must be a scalar; wrap encoded array or tuple strings in I()."
+      )
     }
-    if (is.na(value) && !is.nan(value)) return("\\N")
+    if (is.na(value) && !is.nan(value)) {
+      return("\\N")
+    }
     text <- if (inherits(value, "POSIXct")) {
       timestamp <- format(value, "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
       # DateTime rejects fractional seconds, even when the fraction is zero.
       sub("\\.$", "", sub("0+$", "", timestamp))
+    } else if (inherits(value, "Date")) {
+      as.character(value)
+    } else if (is.logical(value)) {
+      if (value) "1" else "0"
+    } else if (is.numeric(value)) {
+      format(
+        value,
+        scientific = FALSE,
+        trim = TRUE,
+        digits = 17,
+        decimal.mark = "."
+      )
+    } else {
+      as.character(value)
     }
-    else if (inherits(value, "Date")) as.character(value)
-    else if (is.logical(value)) if (value) "1" else "0"
-    else if (is.numeric(value)) format(value, scientific = FALSE, trim = TRUE, digits = 17, decimal.mark = ".")
-    else as.character(value)
     text <- gsub("\\", "\\\\", text, fixed = TRUE)
     text <- gsub("\t", "\\t", text, fixed = TRUE)
     text <- gsub("\n", "\\n", text, fixed = TRUE)
@@ -175,16 +249,52 @@ oauth_db_clickhouse_api <- function(
 .odb_clickhouse_validate <- function(result, validate_values = TRUE) {
   meta <- result$meta
   rows <- result$data
-  if (!is.list(meta) || !is.list(rows) ||
-      !all(vapply(meta, function(x) is.list(x) && is.character(x$name) && length(x$name) == 1L &&
-        !is.na(x$name) && is.character(x$type) && length(x$type) == 1L && !is.na(x$type), logical(1))) ||
-      !all(vapply(rows, function(row) is.list(row) && length(row) == length(meta), logical(1)))) {
-    .odb_abort("ClickHouse returned invalid JSONCompact metadata or rows. Omit FORMAT clauses from SQL.", "invalid_response")
+  if (
+    !is.list(meta) ||
+      !is.list(rows) ||
+      !all(vapply(
+        meta,
+        function(x) {
+          is.list(x) &&
+            is.character(x$name) &&
+            length(x$name) == 1L &&
+            !is.na(x$name) &&
+            is.character(x$type) &&
+            length(x$type) == 1L &&
+            !is.na(x$type)
+        },
+        logical(1)
+      )) ||
+      !all(vapply(
+        rows,
+        function(row) is.list(row) && length(row) == length(meta),
+        logical(1)
+      ))
+  ) {
+    .odb_abort(
+      "ClickHouse returned invalid JSONCompact metadata or rows. Omit FORMAT clauses from SQL.",
+      "invalid_response"
+    )
   }
-  if (!is.null(result$rows) && (!is.numeric(result$rows) || length(result$rows) != 1L ||
-      is.na(result$rows) || result$rows != length(rows))) .odb_abort("ClickHouse returned an inconsistent row count.", "invalid_response")
-  if (validate_values) for (i in seq_along(meta)) {
-    .odb_clickhouse_column(lapply(rows, function(row) row[[i]]), meta[[i]]$type)
+  if (
+    !is.null(result$rows) &&
+      (!is.numeric(result$rows) ||
+        length(result$rows) != 1L ||
+        is.na(result$rows) ||
+        result$rows != length(rows))
+  ) {
+    .odb_abort(
+      "ClickHouse returned an inconsistent row count.",
+      "invalid_response"
+    )
+  }
+  if (validate_values) {
+    for (i in seq_along(meta)) {
+      .odb_clickhouse_column(
+        lapply(rows, function(row) row[[i]]),
+        meta[[i]]$type
+      )
+    }
   }
   invisible(NULL)
 }
@@ -203,25 +313,56 @@ oauth_db_clickhouse_api <- function(
 .odb_clickhouse_column <- function(values, type) {
   repeat {
     inner <- sub("^(Nullable|LowCardinality)\\((.*)\\)$", "\\2", type)
-    if (identical(inner, type)) break
+    if (identical(inner, type)) {
+      break
+    }
     type <- inner
   }
-  if (grepl("^(Array|Map|Tuple|Nested|Object|JSON|Dynamic|Variant|AggregateFunction|SimpleAggregateFunction)($|\\()", type)) return(values)
-  if (any(!vapply(values, function(x) is.null(x) || is.atomic(x) && length(x) == 1L, logical(1)))) {
-    .odb_abort("ClickHouse returned a non-scalar value for a scalar column.", "invalid_response")
+  if (
+    grepl(
+      "^(Array|Map|Tuple|Nested|Object|JSON|Dynamic|Variant|AggregateFunction|SimpleAggregateFunction)($|\\()",
+      type
+    )
+  ) {
+    return(values)
   }
-  text <- vapply(values, function(x) if (is.null(x)) NA_character_ else as.character(x), "")
+  if (
+    any(
+      !vapply(
+        values,
+        function(x) is.null(x) || is.atomic(x) && length(x) == 1L,
+        logical(1)
+      )
+    )
+  ) {
+    .odb_abort(
+      "ClickHouse returned a non-scalar value for a scalar column.",
+      "invalid_response"
+    )
+  }
+  text <- vapply(
+    values,
+    function(x) if (is.null(x)) NA_character_ else as.character(x),
+    ""
+  )
   if (grepl("^(U?Int(8|16|32)|Float(32|64))$", type)) {
     text[!is.na(text) & tolower(text) %in% c("nan", "+nan", "-nan")] <- "NaN"
     value <- suppressWarnings(as.numeric(text))
-    if (any(!is.na(text) & is.na(value) & !is.nan(value))) .odb_abort("ClickHouse returned an invalid number.", "invalid_response")
+    if (any(!is.na(text) & is.na(value) & !is.nan(value))) {
+      .odb_abort("ClickHouse returned an invalid number.", "invalid_response")
+    }
     return(value)
   }
   if (type == "Bool") {
-    if (any(!is.na(text) & !tolower(text) %in% c("true", "false", "1", "0"))) .odb_abort("ClickHouse returned an invalid Bool.", "invalid_response")
+    if (any(!is.na(text) & !tolower(text) %in% c("true", "false", "1", "0"))) {
+      .odb_abort("ClickHouse returned an invalid Bool.", "invalid_response")
+    }
     return(ifelse(is.na(text), NA, tolower(text) %in% c("true", "1")))
   }
-  if (type %in% c("Date", "Date32")) return(tryCatch(as.Date(text),
-    error = function(e) .odb_abort("ClickHouse returned an invalid date.", "invalid_response")))
+  if (type %in% c("Date", "Date32")) {
+    return(tryCatch(as.Date(text), error = function(e) {
+      .odb_abort("ClickHouse returned an invalid date.", "invalid_response")
+    }))
+  }
   text
 }

@@ -28,8 +28,12 @@ if (!exists("fixture", envir = fixture_environment, inherits = FALSE)) {
 }
 
 success <- tryCatch(
-  suppressMessages(withCallingHandlers(run_live_transport(fixture_environment$fixture),
-    warning = function(w) stop("Live acceptance emitted a warning.", call. = FALSE))),
+  suppressMessages(withCallingHandlers(
+    run_live_transport(fixture_environment$fixture),
+    warning = function(w) {
+      stop("Live acceptance emitted a warning.", call. = FALSE)
+    }
+  )),
   error = function(e) {
     # Driver errors may contain tokens or connection strings. Do not print the
     # condition, call, raw result or fixture contents in this runner.
@@ -47,8 +51,25 @@ if (!is.list(success) || !identical(success$status, "pass")) {
 
 dir.create("tests/integration/results", recursive = TRUE, showWarnings = FALSE)
 source("integration/provenance.R", local = TRUE)
-success$provenance <- integration_provenance(packages = c("shinyOAuth", "shinyOAuthDB", "DBI", "httr2", "brickster", "fabricQueryR", "odbc", "RPostgres", "RTrino"))
-jsonlite::write_json(success, "tests/integration/results/live.json", auto_unbox = TRUE, pretty = TRUE)
+success$provenance <- integration_provenance(
+  packages = c(
+    "shinyOAuth",
+    "shinyOAuthDB",
+    "DBI",
+    "httr2",
+    "brickster",
+    "fabricQueryR",
+    "odbc",
+    "RPostgres",
+    "RTrino"
+  )
+)
+jsonlite::write_json(
+  success,
+  "tests/integration/results/live.json",
+  auto_unbox = TRUE,
+  pretty = TRUE
+)
 
 message(
   "Live A/B transport, authorization replacement and cleanup checks passed."

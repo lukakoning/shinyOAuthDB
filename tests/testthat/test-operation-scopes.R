@@ -1,13 +1,28 @@
 test_that("operation permission changes notify only consumers of those permissions", {
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session, scopes = c("base", "read", "write", "admin"))
+    auth <- odb_test_authorization(
+      session,
+      scopes = c("base", "read", "write", "admin")
+    )
     auth$token(auth$make_token("initial", c("base", "read")))
     reads <- writes <- opened <- 0L
-    client <- .odb_bind(auth$connection, function(token) {
-      opened <<- opened + 1L
-      list(read = function() { reads <<- reads + 1L; token(scopes = "read") },
-        write = function() { writes <<- writes + 1L; token(scopes = "write") })
-    }, required_scopes = "base")
+    client <- .odb_bind(
+      auth$connection,
+      function(token) {
+        opened <<- opened + 1L
+        list(
+          read = function() {
+            reads <<- reads + 1L
+            token(scopes = "read")
+          },
+          write = function() {
+            writes <<- writes + 1L
+            token(scopes = "write")
+          }
+        )
+      },
+      required_scopes = "base"
+    )
     session$flushReact()
     read <- shiny::reactive(client()$read())
     write <- shiny::reactive(client()$write())
@@ -34,7 +49,10 @@ test_that("operation permission changes notify only consumers of those permissio
     session$flushReact()
     expect_identical(read(), "read-restored")
     expect_identical(write(), "write-granted")
-    auth$token(auth$make_token("unrelated-grant", c("base", "read", "write", "admin")))
+    auth$token(auth$make_token(
+      "unrelated-grant",
+      c("base", "read", "write", "admin")
+    ))
     session$flushReact()
     expect_identical(read(), "read-restored")
     expect_identical(write(), "write-granted")

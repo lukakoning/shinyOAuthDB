@@ -57,19 +57,35 @@
 #' @family platform API clients
 #' @export
 oauth_db_postgrest_api <- function(
-  authorization, url, schema = NULL, target = NULL, required_scopes = character(),
-  min_valid_for = 60, timeout = 30, ca_bundle = NULL,
+  authorization,
+  url,
+  schema = NULL,
+  target = NULL,
+  required_scopes = character(),
+  min_valid_for = 60,
+  timeout = 30,
+  ca_bundle = NULL,
   session = shiny::getDefaultReactiveDomain()
 ) {
   url <- .odb_http_url(url)
   .odb_string(schema, "schema", optional = TRUE)
-  if (!is.null(schema) && grepl("[[:cntrl:]]", schema)) .odb_abort("schema cannot contain control characters.")
+  if (!is.null(schema) && grepl("[[:cntrl:]]", schema)) {
+    .odb_abort("schema cannot contain control characters.")
+  }
   .odb_http_options(timeout, ca_bundle)
-  provider <- .odb_http_provider(authorization, target, required_scopes, min_valid_for, session)
+  provider <- .odb_http_provider(
+    authorization,
+    target,
+    required_scopes,
+    min_valid_for,
+    session
+  )
   .odb_postgrest_api$new(provider, url, schema, timeout, ca_bundle)
 }
 
-.odb_postgrest_api <- R6::R6Class("OAuthPostgRESTAPI", cloneable = FALSE,
+.odb_postgrest_api <- R6::R6Class(
+  "OAuthPostgRESTAPI",
+  cloneable = FALSE,
   public = list(
     initialize = function(provider, url, schema, timeout, ca_bundle) {
       private$provider <- provider
@@ -78,68 +94,141 @@ oauth_db_postgrest_api <- function(
       private$timeout <- timeout
       private$ca_bundle <- ca_bundle
     },
-    select = function(table, select = "*", filters = list(), order = NULL,
-                      limit = NULL, offset = NULL, count = NULL, raw = FALSE) {
+    select = function(
+      table,
+      select = "*",
+      filters = list(),
+      order = NULL,
+      limit = NULL,
+      offset = NULL,
+      count = NULL,
+      raw = FALSE
+    ) {
       .odb_string(table, "table")
       .odb_string(select, "select")
       .odb_string(order, "order", optional = TRUE)
       filters <- .odb_http_query(filters)
       if (any(names(filters) %in% c("select", "order", "limit", "offset"))) {
-        .odb_abort("Use the select, order, limit, and offset arguments for those query options.")
+        .odb_abort(
+          "Use the select, order, limit, and offset arguments for those query options."
+        )
       }
       query <- c(list(select = select), filters)
-      if (!is.null(order)) query$order <- order
+      if (!is.null(order)) {
+        query$order <- order
+      }
       for (name in c("limit", "offset")) {
         value <- get(name)
-        if (is.null(value)) next
-        if (!is.numeric(value) || length(value) != 1L || !is.finite(value) ||
-            value < 0 || value != floor(value)) .odb_abort(paste0(name, " must be a non-negative integer."))
+        if (is.null(value)) {
+          next
+        }
+        if (
+          !is.numeric(value) ||
+            length(value) != 1L ||
+            !is.finite(value) ||
+            value < 0 ||
+            value != floor(value)
+        ) {
+          .odb_abort(paste0(name, " must be a non-negative integer."))
+        }
         query[[name]] <- value
       }
-      prefer <- if (is.null(count)) NULL else {
+      prefer <- if (is.null(count)) {
+        NULL
+      } else {
         .odb_string(count, "count")
-        if (!count %in% c("exact", "planned", "estimated")) .odb_abort("Invalid PostgREST count method.")
+        if (!count %in% c("exact", "planned", "estimated")) {
+          .odb_abort("Invalid PostgREST count method.")
+        }
         paste0("count=", count)
       }
       value <- self$request(table, query = query, prefer = prefer, raw = raw)
-      if (raw) return(value)
-      if (identical(value, list())) return(data.frame())
-      if (!is.data.frame(value)) .odb_abort("PostgREST returned a non-tabular selection.", "invalid_response")
+      if (raw) {
+        return(value)
+      }
+      if (identical(value, list())) {
+        return(data.frame())
+      }
+      if (!is.data.frame(value)) {
+        .odb_abort(
+          "PostgREST returned a non-tabular selection.",
+          "invalid_response"
+        )
+      }
       value
     },
     rpc = function(name, args = list(), raw = FALSE) {
       .odb_string(name, "name")
-      if (!is.list(args)) .odb_abort("args must be a named list of function arguments.")
+      if (!is.list(args)) {
+        .odb_abort("args must be a named list of function arguments.")
+      }
       .odb_named_args(args, "args")
       # An argument-free function still expects an object, rather than [].
-      if (!length(args)) args <- stats::setNames(list(), character())
+      if (!length(args)) {
+        args <- stats::setNames(list(), character())
+      }
       self$request(c("rpc", name), method = "POST", body = args, raw = raw)
     },
-    request = function(path, method = "GET", query = list(), body = NULL,
-                       prefer = NULL, raw = FALSE) {
+    request = function(
+      path,
+      method = "GET",
+      query = list(),
+      body = NULL,
+      prefer = NULL,
+      raw = FALSE
+    ) {
       path <- .odb_http_path(path)
       .odb_string(method, "method")
       method <- toupper(method)
-      if (!method %in% c("GET", "HEAD", "POST", "PATCH", "PUT", "DELETE")) .odb_abort("Unsupported PostgREST method.")
+      if (!method %in% c("GET", "HEAD", "POST", "PATCH", "PUT", "DELETE")) {
+        .odb_abort("Unsupported PostgREST method.")
+      }
       query <- .odb_http_query(query)
       .odb_string(prefer, "prefer", optional = TRUE)
-      if (!is.null(prefer) && grepl("[[:cntrl:]]", prefer)) .odb_abort("prefer cannot contain control characters.")
+      if (!is.null(prefer) && grepl("[[:cntrl:]]", prefer)) {
+        .odb_abort("prefer cannot contain control characters.")
+      }
       .odb_flag(raw, "raw")
-      if (method %in% c("GET", "HEAD") && !is.null(body)) .odb_abort("GET and HEAD requests cannot have a body.")
+      if (method %in% c("GET", "HEAD") && !is.null(body)) {
+        .odb_abort("GET and HEAD requests cannot have a body.")
+      }
       req <- httr2::request(paste0(private$url, "/", path))
       req <- httr2::req_method(req, method)
       req <- httr2::req_headers(req, Accept = "application/json")
-      if (length(query)) req <- do.call(httr2::req_url_query, c(list(req), query))
-      if (!is.null(body)) req <- httr2::req_body_json(req, body, auto_unbox = TRUE)
-      if (!is.null(prefer)) req <- httr2::req_headers(req, Prefer = prefer)
-      if (!is.null(private$schema)) {
-        header <- if (method %in% c("GET", "HEAD")) "Accept-Profile" else "Content-Profile"
-        req <- do.call(httr2::req_headers, c(list(req), stats::setNames(list(private$schema), header)))
+      if (length(query)) {
+        req <- do.call(httr2::req_url_query, c(list(req), query))
       }
-      resp <- .odb_http_request(private$provider(), req, "PostgREST", private$timeout,
-        private$ca_bundle, retry_401 = method %in% c("GET", "HEAD"))
-      if (raw || method == "HEAD") return(resp)
-      if (!httr2::resp_has_body(resp)) return(invisible(NULL))
+      if (!is.null(body)) {
+        req <- httr2::req_body_json(req, body, auto_unbox = TRUE)
+      }
+      if (!is.null(prefer)) {
+        req <- httr2::req_headers(req, Prefer = prefer)
+      }
+      if (!is.null(private$schema)) {
+        header <- if (method %in% c("GET", "HEAD")) {
+          "Accept-Profile"
+        } else {
+          "Content-Profile"
+        }
+        req <- do.call(
+          httr2::req_headers,
+          c(list(req), stats::setNames(list(private$schema), header))
+        )
+      }
+      resp <- .odb_http_request(
+        private$provider(),
+        req,
+        "PostgREST",
+        private$timeout,
+        private$ca_bundle,
+        retry_401 = method %in% c("GET", "HEAD")
+      )
+      if (raw || method == "HEAD") {
+        return(resp)
+      }
+      if (!httr2::resp_has_body(resp)) {
+        return(invisible(NULL))
+      }
       .odb_http_json(resp, "PostgREST", simplify = TRUE)
     },
     print = function(...) {
@@ -147,5 +236,11 @@ oauth_db_postgrest_api <- function(
       invisible(self)
     }
   ),
-  private = list(provider = NULL, url = NULL, schema = NULL, timeout = NULL, ca_bundle = NULL)
+  private = list(
+    provider = NULL,
+    url = NULL,
+    schema = NULL,
+    timeout = NULL,
+    ca_bundle = NULL
+  )
 )

@@ -76,10 +76,15 @@ package to check that the demo doesn't depend on repository-only files.
 `Rscript --vanilla tools/check-demos.R postgres` automates the installed-package
 and browser check; substitute another demo name to check it too.
 
-Keep the README's app identical to `inst/docker/postgres/app.R`. Each backend
-guide should introduce the source, show where settings come from, present
-one complete app and then explain server setup and advanced options. Put
-shared registration terminology in `vignettes/oauth-setup.Rmd`.
+Keep the README's app identical to `inst/examples/postgres/app.R`. Displayed
+app examples should focus on sign-in, a database helper and a query. Keep
+the styled layouts and diagnostic panels in the runnable demo templates
+under `inst/docker/` and `inst/cloud-demo/`.
+
+Each backend guide should introduce the source, show where settings come
+from, present one small complete app and then explain server setup and
+advanced options. Put shared registration terminology in
+`vignettes/oauth-setup.Rmd`.
 
 ## Selected mutation checks
 

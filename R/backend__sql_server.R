@@ -41,30 +41,77 @@
 #' @family database connections
 #' @export
 oauth_db_azure_sql <- function(
-  authorization, server, database, ...,
-  target = "sql", required_scopes = character(),
-  driver = "ODBC Driver 18 for SQL Server", port = 1433L,
-  min_valid_for = 60, session = shiny::getDefaultReactiveDomain()
+  authorization,
+  server,
+  database,
+  ...,
+  target = "sql",
+  required_scopes = character(),
+  driver = "ODBC Driver 18 for SQL Server",
+  port = 1433L,
+  min_valid_for = 60,
+  session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("odbc", version = "1.4.2")
   .odb_string(server, "server")
   .odb_string(database, "database")
   .odb_string(driver, "driver")
-  if (length(port) != 1L || is.na(port) || !grepl("^[0-9]+$", port) ||
-      as.numeric(port) < 1 || as.numeric(port) > 65535) {
+  if (
+    length(port) != 1L ||
+      is.na(port) ||
+      !grepl("^[0-9]+$", port) ||
+      as.numeric(port) < 1 ||
+      as.numeric(port) > 65535
+  ) {
     .odb_abort("port must be an integer from 1 to 65535.")
   }
   .odb_odbc_values(list(server, database, driver, port))
-  options <- .odb_options(list(...), blocked = c(
-    "server", "addr", "address", "database", "driver", "port", "drv", "dsn",
-    "filedsn", "savefile", "failover_partner", ".connection_string",
-    "connection_string", "attributes", "token", "access_token", "user", "uid",
-    "pwd", "password", "authentication", "authenticator", "trusted_connection",
-    "integrated_security", "encrypt", "trust_server_certificate"), partial = "dsn")
+  options <- .odb_options(
+    list(...),
+    blocked = c(
+      "server",
+      "addr",
+      "address",
+      "database",
+      "driver",
+      "port",
+      "drv",
+      "dsn",
+      "filedsn",
+      "savefile",
+      "failover_partner",
+      ".connection_string",
+      "connection_string",
+      "attributes",
+      "token",
+      "access_token",
+      "user",
+      "uid",
+      "pwd",
+      "password",
+      "authentication",
+      "authenticator",
+      "trusted_connection",
+      "integrated_security",
+      "encrypt",
+      "trust_server_certificate"
+    ),
+    partial = "dsn"
+  )
   .odb_odbc_values(options)
-  .odb_bind(authorization, .odb_backend_sql, server = server, database = database,
-    driver = driver, port = port, options = options, target = target,
-    required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)
+  .odb_bind(
+    authorization,
+    .odb_backend_sql,
+    server = server,
+    database = database,
+    driver = driver,
+    port = port,
+    options = options,
+    target = target,
+    required_scopes = .odb_microsoft_scopes(required_scopes),
+    min_valid_for = min_valid_for,
+    session = session
+  )
 }
 
 #' Query SQL Server as the signed-in user
@@ -86,15 +133,41 @@ oauth_db_sql_server <- oauth_db_azure_sql
 
 .odb_backend_sql <- function(token, server, database, driver, port, options) {
   address <- paste0(server, ",", port)
-  if (is.character(server) && length(server) == 1L && .odb_odbc_quoted(server)) {
+  if (
+    is.character(server) && length(server) == 1L && .odb_odbc_quoted(server)
+  ) {
     quote <- substr(server, 1L, 1L)
-    address <- I(paste0(quote, substr(server, 2L, nchar(server) - 1L), ",", port, quote))
+    address <- I(paste0(
+      quote,
+      substr(server, 2L, nchar(server) - 1L),
+      ",",
+      port,
+      quote
+    ))
   }
-  do.call(DBI::dbConnect, c(list(drv = odbc::odbc(), driver = driver,
-    server = address, database = database, Encrypt = "yes",
-    TrustServerCertificate = "no", attributes = list(azure_token = token())), options))
+  do.call(
+    DBI::dbConnect,
+    c(
+      list(
+        drv = odbc::odbc(),
+        driver = driver,
+        server = address,
+        database = database,
+        Encrypt = "yes",
+        TrustServerCertificate = "no",
+        attributes = list(azure_token = token())
+      ),
+      options
+    )
+  )
 }
 
 .odb_sql_server_profiles <- function() {
-  list(sql = .odb_microsoft_profile("sql", "https://database.windows.net/", "user_impersonation"))
+  list(
+    sql = .odb_microsoft_profile(
+      "sql",
+      "https://database.windows.net/",
+      "user_impersonation"
+    )
+  )
 }

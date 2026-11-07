@@ -1,44 +1,75 @@
 postgres_test_settings <- function(...) {
-  c(list(host = "postgres.example.org", dbname = "reporting", user = "alice",
-    issuer = "https://login.example.org/realms/reporting", scope = "database.read"), list(...))
+  c(
+    list(
+      host = "postgres.example.org",
+      dbname = "reporting",
+      user = "alice",
+      issuer = "https://login.example.org/realms/reporting",
+      scope = "database.read"
+    ),
+    list(...)
+  )
 }
 
 test_that("PostgreSQL rejects ambiguous identities and authentication overrides before login", {
   local_mocked_bindings(.odb_postgres_runtime = function() TRUE)
   base <- postgres_test_settings()
   invalid <- list(
-    list(host = "host,other"), list(host = "/tmp"), list(host = "@socket"),
-    list(host = "host\nother"), list(issuer = "http://login.example.org"),
+    list(host = "host,other"),
+    list(host = "/tmp"),
+    list(host = "@socket"),
+    list(host = "host\nother"),
+    list(issuer = "http://login.example.org"),
     list(issuer = "https://user@login.example.org"),
     list(issuer = "https://login.example.org/.well-known/openid-configuration"),
-    list(scope = "database.read  other"), list(scope = "database.read "),
-    list(scope = " database.read"), list(scope = "database.read database.read"),
-    list(scope = "database.read\tother"), list(port = 5432.5), list(port = "5432"),
-    list(port = 0), list(port = 65536), list(connect_timeout = 1),
-    list(connect_timeout = Inf), list(connect_timeout = 1e50), list(user = "alice\nbob"),
-    list(password = "secret"), list(token = "other"), list(service = "ambient"),
-    list(sslmode = "disable"), list(oauth_client_secret = "secret"),
-    list(hostaddr = "192.0.2.1"), list(require_auth = "password"),
-    list(SSLMode = "disable"), list(oauth_issuer = "https://other.example.org")
+    list(scope = "database.read  other"),
+    list(scope = "database.read "),
+    list(scope = " database.read"),
+    list(scope = "database.read database.read"),
+    list(scope = "database.read\tother"),
+    list(port = 5432.5),
+    list(port = "5432"),
+    list(port = 0),
+    list(port = 65536),
+    list(connect_timeout = 1),
+    list(connect_timeout = Inf),
+    list(connect_timeout = 1e50),
+    list(user = "alice\nbob"),
+    list(password = "secret"),
+    list(token = "other"),
+    list(service = "ambient"),
+    list(sslmode = "disable"),
+    list(oauth_client_secret = "secret"),
+    list(hostaddr = "192.0.2.1"),
+    list(require_auth = "password"),
+    list(SSLMode = "disable"),
+    list(oauth_issuer = "https://other.example.org")
   )
   for (replacement in invalid) {
     args <- utils::modifyList(base, replacement)
-    error <- expect_error(do.call(oauth_db_postgres, c(list(NULL), args)),
-      class = "shinyOAuthDB_invalid_configuration")
+    error <- expect_error(
+      do.call(oauth_db_postgres, c(list(NULL), args)),
+      class = "shinyOAuthDB_invalid_configuration"
+    )
     expect_false(grepl("secret", conditionMessage(error), fixed = TRUE))
   }
 })
 
 test_that("PostgreSQL preserves trailing slashes in trusted issuer identifiers", {
   captured <- NULL
-  local_mocked_bindings(.odb_postgres_runtime = function() TRUE,
+  local_mocked_bindings(
+    .odb_postgres_runtime = function() TRUE,
     .odb_postgres_connect_bearer = function(token, user, ...) {
       captured <<- list(...)
       "native"
-    })
+    }
+  )
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "database.read")
-    for (issuer in c("https://login.example.org/", "https://login.example.org/realms/reporting/")) {
+    for (issuer in c(
+      "https://login.example.org/",
+      "https://login.example.org/realms/reporting/"
+    )) {
       args <- postgres_test_settings()
       args$issuer <- issuer
       con <- do.call(oauth_db_postgres, c(list(auth$connection), args))
@@ -57,19 +88,29 @@ test_that("PostgreSQL connections follow roles, permissions and the owning sessi
     .odb_postgres_connection_valid = DBI::dbIsValid,
     .odb_postgres_connect_bearer = function(token, user, ...) {
       native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
-      DBI::dbWriteTable(native, "identity", data.frame(role = user, credential = token))
+      DBI::dbWriteTable(
+        native,
+        "identity",
+        data.frame(role = user, credential = token)
+      )
       opened[[length(opened) + 1L]] <<- native
       native
     }
   )
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session, scopes = c("database.read", "extra.read"))
+    auth <- odb_test_authorization(
+      session,
+      scopes = c("database.read", "extra.read")
+    )
     role <- shiny::reactiveVal("alice")
     args <- postgres_test_settings(required_scopes = "extra.read")
     args$user <- role
     con <- do.call(oauth_db_postgres, c(list(auth$connection), args))
     first <- con()
-    expect_identical(DBI::dbGetQuery(first, "SELECT role FROM identity")$role, "alice")
+    expect_identical(
+      DBI::dbGetQuery(first, "SELECT role FROM identity")$role,
+      "alice"
+    )
     expect_identical(con(), first)
     expect_length(opened, 1L)
 
@@ -78,8 +119,10 @@ test_that("PostgreSQL connections follow roles, permissions and the owning sessi
     role("bob")
     second <- con()
     expect_false(DBI::dbIsValid(first))
-    expect_identical(DBI::dbGetQuery(second, "SELECT * FROM identity"),
-      data.frame(role = "bob", credential = "refreshed-A"))
+    expect_identical(
+      DBI::dbGetQuery(second, "SELECT * FROM identity"),
+      data.frame(role = "bob", credential = "refreshed-A")
+    )
 
     DBI::dbDisconnect(second)
     third <- con()
@@ -100,7 +143,11 @@ test_that("PostgreSQL connections follow roles, permissions and the owning sessi
     expect_true(DBI::dbIsValid(live_at_session_end))
   })
   expect_false(DBI::dbIsValid(live_at_session_end))
-  expect_true(all(vapply(opened, function(con) !DBI::dbIsValid(con), logical(1))))
+  expect_true(all(vapply(
+    opened,
+    function(con) !DBI::dbIsValid(con),
+    logical(1)
+  )))
 })
 
 test_that("PostgreSQL checks the server scope and never resolves a role before authorization", {
@@ -109,7 +156,10 @@ test_that("PostgreSQL checks the server scope and never resolves a role before a
     auth <- odb_test_authorization(session, scopes = "openid")
     role_calls <- 0L
     args <- postgres_test_settings()
-    args$user <- function() { role_calls <<- role_calls + 1L; "alice" }
+    args$user <- function() {
+      role_calls <<- role_calls + 1L
+      "alice"
+    }
     con <- do.call(oauth_db_postgres, c(list(auth$connection), args))
     expect_error(con(), class = "shiny.silent.error")
     expect_identical(role_calls, 0L)
@@ -120,15 +170,26 @@ test_that("PostgreSQL refuses ambient OAuth service configuration without openin
   args <- postgres_test_settings()
   for (variable in c("PGSERVICE", "PGSERVICEFILE", "PGOAUTHDEBUG")) {
     withr::with_envvar(stats::setNames("ambient", variable), {
-      expect_error(do.call(.odb_postgres_connect_bearer,
-        c(list(token = "fixture-A"), args)), "Unset PGSERVICE", fixed = TRUE)
+      expect_error(
+        do.call(
+          .odb_postgres_connect_bearer,
+          c(list(token = "fixture-A"), args)
+        ),
+        "Unset PGSERVICE",
+        fixed = TRUE
+      )
     })
   }
 })
 
 test_that("unsupported builds explain how to run native PostgreSQL OAuth", {
-  if (isTRUE(.Call(C_pg_bearer_available))) return(invisible(NULL))
+  if (isTRUE(.Call(C_pg_bearer_available))) {
+    return(invisible(NULL))
+  }
   expect_error(.odb_postgres_runtime(), "Linux", fixed = TRUE)
-  expect_error(do.call(oauth_db_postgres, c(list(NULL), postgres_test_settings())),
-    "Docker playground", fixed = TRUE)
+  expect_error(
+    do.call(oauth_db_postgres, c(list(NULL), postgres_test_settings())),
+    "Docker playground",
+    fixed = TRUE
+  )
 })

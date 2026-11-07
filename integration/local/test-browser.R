@@ -7,34 +7,59 @@ testthat::test_that("real browser users receive only their server-enforced rows"
   testthat::expect_false(before$authorized)
   testthat::expect_null(before$result)
   testthat::expect_identical(before$calls, 0L)
-  for (entry in list(list(browser = a, user = "alice"), list(browser = b, user = "bob"))) {
+  for (entry in list(
+    list(browser = a, user = "alice"),
+    list(browser = b, user = "bob")
+  )) {
     login <- fixture_login(entry$browser, entry$user, fixture$config)
     testthat::expect_identical(login$metadata$response_type, "code")
     testthat::expect_identical(login$metadata$pkce_method, "S256")
     testthat::expect_true(login$metadata$challenge_valid)
-    snapshot <- fixture_wait(entry$browser, function(x) !is.null(x$result) || !is.null(x$error))
+    snapshot <- fixture_wait(entry$browser, function(x) {
+      !is.null(x$result) || !is.null(x$error)
+    })
     testthat::expect_null(snapshot$error)
-    testthat::expect_identical(vapply(snapshot$result, `[[`, "", "database_user"), rep(entry$user, 2L))
-    testthat::expect_identical(vapply(snapshot$result, `[[`, "", "marker"), paste0(entry$user, "-visible-", 1:2))
+    testthat::expect_identical(
+      vapply(snapshot$result, `[[`, "", "database_user"),
+      rep(entry$user, 2L)
+    )
+    testthat::expect_identical(
+      vapply(snapshot$result, `[[`, "", "marker"),
+      paste0(entry$user, "-visible-", 1:2)
+    )
     fixture_click(entry$browser, "probe")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$denied))
-    testthat::expect_true(integration_require_checks(check$denied,
-      integration_check_names(fixture$config$backend, "denied"), "Permission checks"))
+    testthat::expect_true(integration_require_checks(
+      check$denied,
+      integration_check_names(fixture$config$backend, "denied"),
+      "Permission checks"
+    ))
     fixture_click(entry$browser, "tamper")
-    check <- fixture_wait(entry$browser, function(x) !is.null(x$tampered_denied))
+    check <- fixture_wait(entry$browser, function(x) {
+      !is.null(x$tampered_denied)
+    })
     testthat::expect_true(check$tampered_denied)
     fixture_click(entry$browser, "tls")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$tls_checks))
-    testthat::expect_true(integration_require_checks(check$tls_checks,
-      integration_check_names(fixture$config$backend, "tls"), "TLS checks"))
+    testthat::expect_true(integration_require_checks(
+      check$tls_checks,
+      integration_check_names(fixture$config$backend, "tls"),
+      "TLS checks"
+    ))
     fixture_click(entry$browser, "data")
     check <- fixture_wait(entry$browser, function(x) !is.null(x$data_checks))
     testthat::expect_null(check$data_error)
-    testthat::expect_true(integration_require_checks(check$data_checks,
-      integration_check_names(fixture$config$backend, "data"), "Data checks"))
+    testthat::expect_true(integration_require_checks(
+      check$data_checks,
+      integration_check_names(fixture$config$backend, "data"),
+      "Data checks"
+    ))
   }
   initial <- fixture_snapshot(a)
-  testthat::expect_false(identical(initial$authorization_id, fixture_snapshot(b)$authorization_id))
+  testthat::expect_false(identical(
+    initial$authorization_id,
+    fixture_snapshot(b)$authorization_id
+  ))
   fixture_click(a, "load")
   reused <- fixture_wait(a, function(x) x$calls > initial$calls)
   testthat::expect_identical(reused$openings, initial$openings)
@@ -58,21 +83,38 @@ testthat::test_that("real browser users receive only their server-enforced rows"
   }
 
   fixture_login(a, "bob", fixture$config)
-  replacement <- fixture_wait(a, function(x) !identical(x$authorization_id, initial$authorization_id) &&
-    !is.null(x$result) && identical(x$result[[1L]]$database_user, "bob"))
-  testthat::expect_identical(vapply(replacement$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
-  testthat::expect_identical(vapply(replacement$result, `[[`, "", "database_user"), rep("bob", 2L))
+  replacement <- fixture_wait(a, function(x) {
+    !identical(x$authorization_id, initial$authorization_id) &&
+      !is.null(x$result) &&
+      identical(x$result[[1L]]$database_user, "bob")
+  })
+  testthat::expect_identical(
+    vapply(replacement$result, `[[`, "", "marker"),
+    paste0("bob-visible-", 1:2)
+  )
+  testthat::expect_identical(
+    vapply(replacement$result, `[[`, "", "database_user"),
+    rep("bob", 2L)
+  )
   testthat::expect_true(fixture_snapshot(b)$authorized)
 
   fixture_click(a, "logout")
   logged_out <- fixture_wait(a, function(x) !isTRUE(x$authorized))
   testthat::expect_null(logged_out$result)
-  if (fixture_backend$dbi) testthat::expect_false(logged_out$held_valid)
+  if (fixture_backend$dbi) {
+    testthat::expect_false(logged_out$held_valid)
+  }
   testthat::expect_true(fixture_snapshot(b)$authorized)
   fixture_login(a, "bob", fixture$config)
   switched <- fixture_wait(a, function(x) !is.null(x$result))
-  testthat::expect_false(identical(switched$authorization_id, initial$authorization_id))
-  testthat::expect_identical(vapply(switched$result, `[[`, "", "marker"), paste0("bob-visible-", 1:2))
+  testthat::expect_false(identical(
+    switched$authorization_id,
+    initial$authorization_id
+  ))
+  testthat::expect_identical(
+    vapply(switched$result, `[[`, "", "marker"),
+    paste0("bob-visible-", 1:2)
+  )
 
   ending_id <- fixture_snapshot(b)$authorization_id
   unlink(fixture$config$ended)
@@ -81,9 +123,16 @@ testthat::test_that("real browser users receive only their server-enforced rows"
   ended <- NULL
   repeat {
     ended <- if (file.exists(fixture$config$ended)) {
-      tryCatch(jsonlite::read_json(fixture$config$ended, simplifyVector = TRUE), error = function(e) NULL)
-    } else NULL
-    if (identical(ended$authorization_id, ending_id) || Sys.time() > deadline) break
+      tryCatch(
+        jsonlite::read_json(fixture$config$ended, simplifyVector = TRUE),
+        error = function(e) NULL
+      )
+    } else {
+      NULL
+    }
+    if (identical(ended$authorization_id, ending_id) || Sys.time() > deadline) {
+      break
+    }
     Sys.sleep(0.1)
   }
   testthat::expect_true(file.exists(fixture$config$ended))
@@ -117,7 +166,9 @@ testthat::test_that("missing operation scope blocks fixture read attempts", {
   testthat::expect_identical(value$calls, 0L)
   if (fixture$config$backend == "postgrest") {
     testthat::expect_identical(value$remote_read_attempts, 0L)
-  } else testthat::expect_identical(value$read_attempts, 0L)
+  } else {
+    testthat::expect_identical(value$read_attempts, 0L)
+  }
 })
 
 testthat::test_that("the service rejects an expired browser-issued token independently of local access", {
@@ -125,11 +176,18 @@ testthat::test_that("the service rejects an expired browser-issued token indepen
   on.exit(fixture$close(), add = TRUE)
   browser <- fixture$new_browser()
   fixture_login(browser, "alice", fixture$config)
-  initial <- fixture_wait(browser, function(x) !is.null(x$result) || !is.null(x$error))
+  initial <- fixture_wait(browser, function(x) {
+    !is.null(x$result) || !is.null(x$error)
+  })
   testthat::expect_null(initial$error)
   testthat::expect_false(is.null(initial$original_expiry))
-  remaining <- initial$original_expiry + fixture_backend$expiry_leeway + 3 - as.numeric(Sys.time())
-  if (remaining > 0) Sys.sleep(remaining)
+  remaining <- initial$original_expiry +
+    fixture_backend$expiry_leeway +
+    3 -
+    as.numeric(Sys.time())
+  if (remaining > 0) {
+    Sys.sleep(remaining)
+  }
   fixture_click(browser, "expired")
   value <- fixture_wait(browser, function(x) !is.null(x$expired_denied))
   testthat::expect_true(value$expired_denied)

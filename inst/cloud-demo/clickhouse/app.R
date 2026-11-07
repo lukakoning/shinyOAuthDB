@@ -4,10 +4,17 @@ library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
 client <- oauth_db_microsoft_client(
-  tenant_id = settings$tenant_id, client_id = settings$client_id,
-  client_secret = if (settings$client_type == "confidential") Sys.getenv("OAUTHDB_CLICKHOUSE_CLIENT_SECRET") else NULL,
+  tenant_id = settings$tenant_id,
+  client_id = settings$client_id,
+  client_secret = if (settings$client_type == "confidential") {
+    Sys.getenv("OAUTHDB_CLICKHOUSE_CLIENT_SECRET")
+  } else {
+    NULL
+  },
   redirect_uri = paste0("http://localhost:", settings$port),
-  token_targets = list(clickhouse = list(resource = settings$resource, scopes = settings$scope))
+  token_targets = list(
+    clickhouse = list(resource = settings$resource, scopes = settings$scope)
+  )
 )
 
 demo_title <- "ClickHouse Cloud Shiny demo"
@@ -27,8 +34,13 @@ query_notice <- "The service must trust your Entra access token and map its role
 query_help <- "Couldn't run the query. Check the HTTPS endpoint, trusted JWT issuer/audience/JWKS, role claims and ClickHouse grants. Retry explicitly when ready."
 
 make_access <- function(authorization) {
-  oauth_db_clickhouse_api(authorization, url = settings$url, database = settings$database,
-    target = "clickhouse", required_scopes = settings$scope)
+  oauth_db_clickhouse_api(
+    authorization,
+    url = settings$url,
+    database = settings$database,
+    target = "clickhouse",
+    required_scopes = settings$scope
+  )
 }
 run_query <- function(access) access$query(example_query)
 

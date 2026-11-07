@@ -6,12 +6,22 @@ test_that("dbplyr consumers follow the selected authorization and recover after 
     a <- odb_test_authorization(session, "alice")
     b <- odb_test_authorization(session, "bob")
     selected <- shiny::reactiveVal(a$connection)
-    con <- oauth_db_connect(selected, function(token) {
-      native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
-      DBI::dbWriteTable(native, "quoted table", data.frame(id = 1:2,
-        marker = c(paste0(token, " café 雪"), NA_character_)))
-      native
-    }, required_scopes = "read")
+    con <- oauth_db_connect(
+      selected,
+      function(token) {
+        native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+        DBI::dbWriteTable(
+          native,
+          "quoted table",
+          data.frame(
+            id = 1:2,
+            marker = c(paste0(token, " café 雪"), NA_character_)
+          )
+        )
+        native
+      },
+      required_scopes = "read"
+    )
     rows <- shiny::reactive({
       table <- dplyr::tbl(con(), DBI::Id(table = "quoted table"))
       dplyr::collect(dplyr::filter(table, .data$id == 1L))

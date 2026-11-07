@@ -11,15 +11,23 @@ client <- oauth_client(
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = Sys.getenv("OAUTHDB_REDIRECT_URI", "http://localhost:8100"),
-  scopes = c("openid", "profile", strsplit(database_scope, " ", fixed = TRUE)[[1L]])
+  scopes = c(
+    "openid",
+    "profile",
+    strsplit(database_scope, " ", fixed = TRUE)[[1L]]
+  )
 )
 
-ui <- oauth_ui(fluidPage(
-  titlePanel("Self-hosted PostgreSQL"),
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    titlePanel("Self-hosted PostgreSQL"),
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -34,18 +42,27 @@ server <- function(input, output, session) {
       identity <- reference$identity(claims = "preferred_username")
       req(identity$id_token_claims$preferred_username)
     },
-    issuer = issuer, scope = database_scope,
+    issuer = issuer,
+    scope = database_scope,
     sslrootcert = Sys.getenv("OAUTHDB_POSTGRES_SSLROOTCERT")
   )
   output$rows <- renderTable({
     connection <- con()
-    DBI::dbGetQuery(connection, paste(
-      "SELECT current_user::text AS database_user, table_schema, table_name",
-      "FROM information_schema.tables ORDER BY table_schema, table_name LIMIT 20"
-    ))
+    DBI::dbGetQuery(
+      connection,
+      paste(
+        "SELECT current_user::text AS database_user, table_schema, table_name",
+        "FROM information_schema.tables ORDER BY table_schema, table_name LIMIT 20"
+      )
+    )
   })
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*")
-if (interactive()) runApp(app, port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
-  launch.browser = FALSE)
+if (interactive()) {
+  runApp(
+    app,
+    port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
+    launch.browser = FALSE
+  )
+}

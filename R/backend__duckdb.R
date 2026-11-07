@@ -52,36 +52,72 @@
 #' @family database connections
 #' @export
 oauth_db_duckdb <- function(
-  authorization, host, port = 9494L, schema = "main", ca_bundle = NULL,
+  authorization,
+  host,
+  port = 9494L,
+  schema = "main",
+  ca_bundle = NULL,
   allow_local_http = FALSE,
-  target = NULL, required_scopes = character(), min_valid_for = 60,
+  target = NULL,
+  required_scopes = character(),
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("duckdb", version = "1.5.3")
   .odb_string(host, "host")
-  if (!grepl("^([A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?|\\[[0-9A-Fa-f:]+\\])$", host)) {
-    .odb_abort("host must be one TCP hostname or address, without a scheme, port, path or credentials.")
+  if (
+    !grepl(
+      "^([A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?|\\[[0-9A-Fa-f:]+\\])$",
+      host
+    )
+  ) {
+    .odb_abort(
+      "host must be one TCP hostname or address, without a scheme, port, path or credentials."
+    )
   }
-  if (!is.numeric(port) || length(port) != 1L || !is.finite(port) ||
-      port < 1 || port > 65535 || port != floor(port)) {
+  if (
+    !is.numeric(port) ||
+      length(port) != 1L ||
+      !is.finite(port) ||
+      port < 1 ||
+      port > 65535 ||
+      port != floor(port)
+  ) {
     .odb_abort("port must be an integer from 1 to 65535.")
   }
   .odb_string(schema, "schema")
   .odb_string(ca_bundle, "ca_bundle", optional = TRUE)
   .odb_flag(allow_local_http, "allow_local_http")
-  if (allow_local_http && !tolower(host) %in% c("localhost", "127.0.0.1", "[::1]")) {
-    .odb_abort("allow_local_http is restricted to localhost, 127.0.0.1 or [::1].")
+  if (
+    allow_local_http && !tolower(host) %in% c("localhost", "127.0.0.1", "[::1]")
+  ) {
+    .odb_abort(
+      "allow_local_http is restricted to localhost, 127.0.0.1 or [::1]."
+    )
   }
-  .odb_bind(authorization, .odb_backend_duckdb,
-    uri = paste0("quack:", host, ":", as.integer(port)), schema = schema,
+  .odb_bind(
+    authorization,
+    .odb_backend_duckdb,
+    uri = paste0("quack:", host, ":", as.integer(port)),
+    schema = schema,
     ca_bundle = ca_bundle,
-    allow_local_http = allow_local_http, target = target,
-    required_scopes = required_scopes, min_valid_for = min_valid_for,
+    allow_local_http = allow_local_http,
+    target = target,
+    required_scopes = required_scopes,
+    min_valid_for = min_valid_for,
     cache_key = function(token) openssl::sha256(charToRaw(token())),
-    disconnect = .odb_duckdb_disconnect, session = session)
+    disconnect = .odb_duckdb_disconnect,
+    session = session
+  )
 }
 
-.odb_backend_duckdb <- function(token, uri, schema, allow_local_http, ca_bundle = NULL) {
+.odb_backend_duckdb <- function(
+  token,
+  uri,
+  schema,
+  allow_local_http,
+  ca_bundle = NULL
+) {
   bearer <- token()
   connection <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
   opened <- FALSE
@@ -90,34 +126,67 @@ oauth_db_duckdb <- function(
   DBI::dbExecute(connection, "LOAD httpfs")
   DBI::dbExecute(connection, "SET enable_server_cert_verification = true")
   # Older httpfs releases have a separate switch for the curl transport.
-  settings <- DBI::dbGetQuery(connection,
-    "SELECT name FROM duckdb_settings() WHERE name = 'enable_curl_server_cert_verification'")
+  settings <- DBI::dbGetQuery(
+    connection,
+    "SELECT name FROM duckdb_settings() WHERE name = 'enable_curl_server_cert_verification'"
+  )
   if (nrow(settings)) {
-    DBI::dbExecute(connection, "SET enable_curl_server_cert_verification = true")
+    DBI::dbExecute(
+      connection,
+      "SET enable_curl_server_cert_verification = true"
+    )
   }
   DBI::dbExecute(connection, "SET http_retries = 0")
   if (!is.null(ca_bundle)) {
-    DBI::dbExecute(connection, paste0("SET ca_cert_file = ", DBI::dbQuoteString(connection, ca_bundle)))
+    DBI::dbExecute(
+      connection,
+      paste0("SET ca_cert_file = ", DBI::dbQuoteString(connection, ca_bundle))
+    )
   }
   # DuckDB includes SQL text in errors. Do not expose the credential-bearing
   # ATTACH statement or its native condition through a parent error.
-  tryCatch({
-    DBI::dbExecute(connection, paste0(
-      "ATTACH ", DBI::dbQuoteString(connection, uri), " AS oauth_remote (TYPE quack, TOKEN ",
-      DBI::dbQuoteString(connection, bearer), ", DISABLE_SSL ",
-      if (allow_local_http) "true" else "false", ")"
-    ))
-    DBI::dbExecute(connection, paste0("USE ", DBI::dbQuoteIdentifier(connection,
-      DBI::Id(catalog = "oauth_remote", schema = schema))))
-  }, error = function(error) {
-    .odb_abort(paste0("Could not open the DuckDB Quack connection. Check the endpoint, ",
-      "TLS certificate, server OAuth policy and schema."), "connection_failed")
-  })
+  tryCatch(
+    {
+      DBI::dbExecute(
+        connection,
+        paste0(
+          "ATTACH ",
+          DBI::dbQuoteString(connection, uri),
+          " AS oauth_remote (TYPE quack, TOKEN ",
+          DBI::dbQuoteString(connection, bearer),
+          ", DISABLE_SSL ",
+          if (allow_local_http) "true" else "false",
+          ")"
+        )
+      )
+      DBI::dbExecute(
+        connection,
+        paste0(
+          "USE ",
+          DBI::dbQuoteIdentifier(
+            connection,
+            DBI::Id(catalog = "oauth_remote", schema = schema)
+          )
+        )
+      )
+    },
+    error = function(error) {
+      .odb_abort(
+        paste0(
+          "Could not open the DuckDB Quack connection. Check the endpoint, ",
+          "TLS certificate, server OAuth policy and schema."
+        ),
+        "connection_failed"
+      )
+    }
+  )
   opened <- TRUE
   connection
 }
 
 .odb_duckdb_disconnect <- function(connection) {
-  if (isTRUE(DBI::dbIsValid(connection))) DBI::dbDisconnect(connection, shutdown = TRUE)
+  if (isTRUE(DBI::dbIsValid(connection))) {
+    DBI::dbDisconnect(connection, shutdown = TRUE)
+  }
   invisible(NULL)
 }

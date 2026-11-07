@@ -46,6 +46,29 @@ Your browser may ask you to accept its generated local test certificate.
 The app trusts this demo's CA; the launcher doesn't change your
 computer's certificate store.
 
+## Run the minimal example
+
+The [README](https://lukakoning.github.io/shinyOAuthDB/) shows a smaller app
+with just sign-in, sign-out and a query. Its code is included in the package
+as `examples/postgres/app.R`. To run it with the PostgreSQL demo's database,
+driver and certificates, copy it into a fresh Docker setup:
+
+```{r minimal-app}
+path <- shinyOAuthDB::oauth_db_demo("postgres", action = "files",
+                                  path = "postgres-minimal")
+file.copy(
+  system.file("examples", "postgres", "app.R", package = "shinyOAuthDB"),
+  file.path(path, "postgres", "app.R"), overwrite = TRUE
+)
+shinyOAuthDB::oauth_db_demo("postgres", path = path)
+```
+
+Choose a new empty directory for `path` so the copy doesn't replace an app
+you have edited. Open `http://localhost:18100` and use the same accounts
+shown above. Interrupt the R call to stop the app and its Docker services.
+To edit this version before starting it, open
+`file.edit(file.path(path, "postgres", "app.R"))` after copying it.
+
 ## Run and edit Shiny in local R
 
 The default `app = "docker"` runs everything in containers, including R and

@@ -41,39 +41,93 @@
 #' @family database connections
 #' @export
 oauth_db_databricks <- function(
-  authorization, host, warehouse_id = NULL, ..., http_path = NULL,
+  authorization,
+  host,
+  warehouse_id = NULL,
+  ...,
+  http_path = NULL,
   auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
-  required_scopes = character(), min_valid_for = 60,
+  required_scopes = character(),
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   auth_mode <- match.arg(auth_mode)
-  if (auth_mode == "entra") required_scopes <- .odb_microsoft_scopes(required_scopes)
-  if (missing(host)) .odb_abort("Supply host for a Databricks DBI connection. Use oauth_db_token() for REST calls.")
+  if (auth_mode == "entra") {
+    required_scopes <- .odb_microsoft_scopes(required_scopes)
+  }
+  if (missing(host)) {
+    .odb_abort(
+      "Supply host for a Databricks DBI connection. Use oauth_db_token() for REST calls."
+    )
+  }
   host <- .odb_databricks_host(host)
   if (is.null(warehouse_id) && is.null(http_path)) {
-    .odb_abort("Supply warehouse_id or http_path for a Databricks DBI connection. Use oauth_db_token() for REST calls.")
+    .odb_abort(
+      "Supply warehouse_id or http_path for a Databricks DBI connection. Use oauth_db_token() for REST calls."
+    )
   }
   if (!is.null(warehouse_id) && !is.null(http_path)) {
     .odb_abort("Supply only one of warehouse_id or http_path.")
   }
   .odb_string(warehouse_id, "warehouse_id", optional = TRUE)
   .odb_string(http_path, "http_path", optional = TRUE)
-  options <- .odb_options(list(...), blocked = c(
-    "host", "warehouse_id", "http_path", "drv", "token", "access_token",
-    "token_provider", "auth_args", "authentication", "authenticator", "user",
-    "password", "client_id", "client_secret"))
+  options <- .odb_options(
+    list(...),
+    blocked = c(
+      "host",
+      "warehouse_id",
+      "http_path",
+      "drv",
+      "token",
+      "access_token",
+      "token_provider",
+      "auth_args",
+      "authentication",
+      "authenticator",
+      "user",
+      "password",
+      "client_id",
+      "client_secret"
+    )
+  )
   .odb_require("brickster", version = "0.2.14")
   # brickster stores a fixed bearer string, so rebuild when that token changes.
-  .odb_bind(authorization, .odb_backend_databricks, host = host,
-    warehouse_id = warehouse_id, http_path = http_path, options = options, target = target,
-    required_scopes = required_scopes, cache_key = function(token) token(),
-    min_valid_for = min_valid_for, session = session)
+  .odb_bind(
+    authorization,
+    .odb_backend_databricks,
+    host = host,
+    warehouse_id = warehouse_id,
+    http_path = http_path,
+    options = options,
+    target = target,
+    required_scopes = required_scopes,
+    cache_key = function(token) token(),
+    min_valid_for = min_valid_for,
+    session = session
+  )
 }
 
-.odb_backend_databricks <- function(token, host, warehouse_id, http_path, options) {
-  do.call(DBI::dbConnect, c(list(drv = brickster::DatabricksSQL(), host = host,
-    warehouse_id = warehouse_id, http_path = http_path, token = token()), options))
+.odb_backend_databricks <- function(
+  token,
+  host,
+  warehouse_id,
+  http_path,
+  options
+) {
+  do.call(
+    DBI::dbConnect,
+    c(
+      list(
+        drv = brickster::DatabricksSQL(),
+        host = host,
+        warehouse_id = warehouse_id,
+        http_path = http_path,
+        token = token()
+      ),
+      options
+    )
+  )
 }
 
 #' Call Databricks functions as the signed-in user
@@ -112,22 +166,40 @@ oauth_db_databricks <- function(
 #' @family platform API clients
 #' @export
 oauth_db_databricks_api <- function(
-  authorization, host, auth_mode = c("databricks_oauth", "entra"),
+  authorization,
+  host,
+  auth_mode = c("databricks_oauth", "entra"),
   target = if (auth_mode[[1L]] == "entra") "databricks" else NULL,
-  required_scopes = character(), min_valid_for = 60,
+  required_scopes = character(),
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   auth_mode <- match.arg(auth_mode)
   host <- .odb_databricks_host(host)
-  if (auth_mode == "entra") required_scopes <- .odb_microsoft_scopes(required_scopes)
+  if (auth_mode == "entra") {
+    required_scopes <- .odb_microsoft_scopes(required_scopes)
+  }
   .odb_require("brickster", version = "0.2.14")
-  bearer <- oauth_db_token(authorization, target = target,
-    required_scopes = required_scopes, min_valid_for = min_valid_for, session = session)
-  provider <- .odb_http_provider(authorization, target, required_scopes, min_valid_for, session)
+  bearer <- oauth_db_token(
+    authorization,
+    target = target,
+    required_scopes = required_scopes,
+    min_valid_for = min_valid_for,
+    session = session
+  )
+  provider <- .odb_http_provider(
+    authorization,
+    target,
+    required_scopes,
+    min_valid_for,
+    session
+  )
   .odb_databricks_api$new(bearer, host, provider)
 }
 
-.odb_databricks_api <- R6::R6Class("OAuthDatabricksAPI", cloneable = FALSE,
+.odb_databricks_api <- R6::R6Class(
+  "OAuthDatabricksAPI",
+  cloneable = FALSE,
   public = list(
     initialize = function(bearer, host, provider) {
       private$bearer <- bearer
@@ -138,10 +210,24 @@ oauth_db_databricks_api <- function(
       .odb_databricks_warehouses(private$provider(), private$host, timeout)
     },
     call = function(.fn, ...) {
-      args <- .odb_api_arguments(.fn, list(...), blocked = c(
-        "host", "token", "access_token", "token_provider", "auth_args",
-        "authentication", "authenticator", "user", "password", "client_id", "client_secret"),
-        injected = c("host", "token"))
+      args <- .odb_api_arguments(
+        .fn,
+        list(...),
+        blocked = c(
+          "host",
+          "token",
+          "access_token",
+          "token_provider",
+          "auth_args",
+          "authentication",
+          "authenticator",
+          "user",
+          "password",
+          "client_id",
+          "client_secret"
+        ),
+        injected = c("host", "token")
+      )
       token <- private$bearer()
       do.call(.fn, c(args, list(host = private$host, token = token)))
     },
@@ -160,34 +246,68 @@ oauth_db_databricks_api <- function(
   page <- NULL
   seen <- character()
   rows <- list()
-  scalar <- function(value) is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+  scalar <- function(value) {
+    is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+  }
   repeat {
     req <- httr2::request(paste0("https://", host, "/api/2.0/sql/warehouses"))
     req <- httr2::req_url_query(req, page_size = 100L)
-    if (!is.null(page)) req <- httr2::req_url_query(req, page_token = page)
+    if (!is.null(page)) {
+      req <- httr2::req_url_query(req, page_token = page)
+    }
     remaining <- deadline - .odb_http_time()
-    if (remaining <= 0) .odb_abort("Databricks warehouse listing timed out.", "timeout")
+    if (remaining <= 0) {
+      .odb_abort("Databricks warehouse listing timed out.", "timeout")
+    }
     resp <- .odb_http_request(token, req, "Databricks", remaining)
     data <- .odb_http_json(resp, "Databricks")
-    if (!is.list(data) || !is.null(data$warehouses) && !is.list(data$warehouses)) {
-      .odb_abort("Databricks returned an invalid warehouse list.", "invalid_response")
+    if (
+      !is.list(data) || !is.null(data$warehouses) && !is.list(data$warehouses)
+    ) {
+      .odb_abort(
+        "Databricks returned an invalid warehouse list.",
+        "invalid_response"
+      )
     }
     for (warehouse in data$warehouses) {
-      if (!is.list(warehouse) || !scalar(warehouse$id) || !scalar(warehouse$name) || !scalar(warehouse$state)) {
-        .odb_abort("Databricks returned invalid warehouse details.", "invalid_response")
+      if (
+        !is.list(warehouse) ||
+          !scalar(warehouse$id) ||
+          !scalar(warehouse$name) ||
+          !scalar(warehouse$state)
+      ) {
+        .odb_abort(
+          "Databricks returned invalid warehouse details.",
+          "invalid_response"
+        )
       }
-      rows[[length(rows) + 1L]] <- data.frame(id = warehouse$id, name = warehouse$name,
-        state = warehouse$state, stringsAsFactors = FALSE)
+      rows[[length(rows) + 1L]] <- data.frame(
+        id = warehouse$id,
+        name = warehouse$name,
+        state = warehouse$state,
+        stringsAsFactors = FALSE
+      )
     }
     page <- data$next_page_token
-    if (is.null(page) || identical(page, "")) break
+    if (is.null(page) || identical(page, "")) {
+      break
+    }
     if (!scalar(page) || page %in% seen || length(seen) >= 100L) {
-      .odb_abort("Databricks returned invalid warehouse pagination.", "invalid_response")
+      .odb_abort(
+        "Databricks returned invalid warehouse pagination.",
+        "invalid_response"
+      )
     }
     seen <- c(seen, page)
   }
   token(.check_only = TRUE)
-  if (!length(rows)) return(data.frame(id = character(), name = character(), state = character()))
+  if (!length(rows)) {
+    return(data.frame(
+      id = character(),
+      name = character(),
+      state = character()
+    ))
+  }
   result <- do.call(rbind, rows)
   result[!duplicated(result$id), , drop = FALSE]
 }
@@ -224,18 +344,37 @@ oauth_db_databricks_api <- function(
 #' @family sign-in configuration
 #' @export
 oauth_db_databricks_client <- function(
-  host, client_id, redirect_uri, client_secret = NULL, ...,
+  host,
+  client_id,
+  redirect_uri,
+  client_secret = NULL,
+  ...,
   provider = .odb_databricks_provider(host, client_secret),
   scopes = c("openid", "profile", "email", "offline_access", "all-apis")
 ) {
-  .odb_oauth_client(provider, client_id, redirect_uri, client_secret,
-    scopes = scopes, ...)
+  .odb_oauth_client(
+    provider,
+    client_id,
+    redirect_uri,
+    client_secret,
+    scopes = scopes,
+    ...
+  )
 }
 
 .odb_databricks_provider <- function(host, client_secret) {
-  oauth_db_databricks_provider(host,
-    token_auth_style = if (is.null(client_secret) || !length(client_secret) ||
-      identical(client_secret, "")) "public" else "header")
+  oauth_db_databricks_provider(
+    host,
+    token_auth_style = if (
+      is.null(client_secret) ||
+        !length(client_secret) ||
+        identical(client_secret, "")
+    ) {
+      "public"
+    } else {
+      "header"
+    }
+  )
 }
 
 #' Create a Databricks OAuth provider
@@ -258,11 +397,21 @@ oauth_db_databricks_client <- function(
 #'   and a complete app.
 #' @family sign-in configuration
 #' @export
-oauth_db_databricks_provider <- function(host, token_auth_style = c("header", "public"), ...) {
+oauth_db_databricks_provider <- function(
+  host,
+  token_auth_style = c("header", "public"),
+  ...
+) {
   host <- .odb_databricks_host(host)
-  defaults <- list(issuer = paste0("https://", host, "/oidc/.well-known/openid-configuration"),
-    name = "databricks", token_auth_style = match.arg(token_auth_style),
-    use_pkce = TRUE, use_nonce = TRUE, id_token_validation = TRUE, userinfo_required = FALSE)
+  defaults <- list(
+    issuer = paste0("https://", host, "/oidc/.well-known/openid-configuration"),
+    name = "databricks",
+    token_auth_style = match.arg(token_auth_style),
+    use_pkce = TRUE,
+    use_nonce = TRUE,
+    id_token_validation = TRUE,
+    userinfo_required = FALSE
+  )
   overrides <- list(...)
   .odb_named_args(overrides, "Provider settings in ...")
   defaults[names(overrides)] <- overrides
@@ -273,12 +422,19 @@ oauth_db_databricks_provider <- function(host, token_auth_style = c("header", "p
   .odb_string(host, "host")
   host <- sub("/$", "", sub("^https://", "", host))
   if (!grepl("^[A-Za-z0-9][A-Za-z0-9.-]*$", host)) {
-    .odb_abort("host must be a Databricks hostname or HTTPS origin without a path.")
+    .odb_abort(
+      "host must be a Databricks hostname or HTTPS origin without a path."
+    )
   }
   tolower(host)
 }
 
 .odb_databricks_profiles <- function() {
-  list(databricks_entra = .odb_microsoft_profile(
-    "databricks", "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d", "user_impersonation"))
+  list(
+    databricks_entra = .odb_microsoft_profile(
+      "databricks",
+      "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d",
+      "user_impersonation"
+    )
+  )
 }

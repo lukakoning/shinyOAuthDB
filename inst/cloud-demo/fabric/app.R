@@ -4,9 +4,14 @@ library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
 client <- oauth_db_microsoft_client(
-  services = "sql", tenant_id = settings$tenant_id,
+  services = "sql",
+  tenant_id = settings$tenant_id,
   client_id = settings$client_id,
-  client_secret = if (settings$client_type == "confidential") Sys.getenv("OAUTHDB_FABRIC_CLIENT_SECRET") else NULL,
+  client_secret = if (settings$client_type == "confidential") {
+    Sys.getenv("OAUTHDB_FABRIC_CLIENT_SECRET")
+  } else {
+    NULL
+  },
   redirect_uri = paste0("http://localhost:", settings$port)
 )
 
@@ -27,8 +32,12 @@ query_notice <- "Running SQL uses your Fabric capacity. The local demo doesn't c
 query_help <- "Couldn't run the query. Check the SQL server/database, item permissions, tenant and network access. Retry explicitly when ready."
 
 make_access <- function(authorization) {
-  oauth_db_fabric_sql(authorization, server = settings$server,
-    database = settings$database, driver = settings$driver)
+  oauth_db_fabric_sql(
+    authorization,
+    server = settings$server,
+    database = settings$database,
+    driver = settings$driver
+  )
 }
 run_query <- function(access) DBI::dbGetQuery(access(), example_query)
 

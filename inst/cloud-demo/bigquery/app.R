@@ -21,15 +21,26 @@ example_query <- "SELECT SESSION_USER() AS signed_in_user"
 result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."
 query_target <- NULL
 query_scopes <- "https://www.googleapis.com/auth/bigquery"
-query_notice <- paste0("Maximum bytes billed: ", settings$maximum_bytes_billed,
-  ". Running SQL creates a query job. Stopping this app does not cancel a submitted job.")
+query_notice <- paste0(
+  "Maximum bytes billed: ",
+  settings$maximum_bytes_billed,
+  ". Running SQL creates a query job. Stopping this app does not cancel a submitted job."
+)
 query_help <- "Couldn't run the query. Check that the BigQuery API is enabled, the user has BigQuery Job User, and the project/location and byte limit fit the query. Retry explicitly when ready."
 
 make_access <- function(authorization) {
-  oauth_db_bigquery_api(authorization, project = settings$project,
-    location = settings$location, required_scopes = query_scopes)
+  oauth_db_bigquery_api(
+    authorization,
+    project = settings$project,
+    location = settings$location,
+    required_scopes = query_scopes
+  )
 }
-run_query <- function(access) access$query(example_query,
-  maximum_bytes_billed = settings$maximum_bytes_billed)
+run_query <- function(access) {
+  access$query(
+    example_query,
+    maximum_bytes_billed = settings$maximum_bytes_billed
+  )
+}
 
 source("demo-ui.R", local = TRUE)$value

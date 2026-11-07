@@ -44,9 +44,17 @@
 #' @family database connections
 #' @export
 oauth_db_snowflake <- function(
-  authorization, server, database = NULL, schema = NULL, warehouse = NULL, role, ...,
+  authorization,
+  server,
+  database = NULL,
+  schema = NULL,
+  warehouse = NULL,
+  role,
+  ...,
   required_scopes = paste0("session:role:", role),
-  target = NULL, driver = "SnowflakeDSIIDriver", min_valid_for = 60,
+  target = NULL,
+  driver = "SnowflakeDSIIDriver",
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("odbc", version = "1.4.2")
@@ -57,25 +65,87 @@ oauth_db_snowflake <- function(
   .odb_string(warehouse, "warehouse", optional = TRUE)
   .odb_string(role, "role")
   .odb_odbc_values(list(server, database, schema, warehouse, role, driver))
-  options <- .odb_options(list(...), blocked = c(
-    "server", "database", "schema", "warehouse", "role", "driver", "drv", "dsn", "filedsn", "savefile",
-    ".connection_string", "connection_string", "attributes", "user", "uid", "pwd",
-    "password", "token", "access_token", "authentication", "authenticator",
-    "token_file_path", "client_secret", "oauth_client_id", "oauth_client_secret",
-    "oauth_scope", "insecure_mode", "disable_saml_url_check", "encrypt",
-    "trust_server_certificate"), partial = "dsn")
+  options <- .odb_options(
+    list(...),
+    blocked = c(
+      "server",
+      "database",
+      "schema",
+      "warehouse",
+      "role",
+      "driver",
+      "drv",
+      "dsn",
+      "filedsn",
+      "savefile",
+      ".connection_string",
+      "connection_string",
+      "attributes",
+      "user",
+      "uid",
+      "pwd",
+      "password",
+      "token",
+      "access_token",
+      "authentication",
+      "authenticator",
+      "token_file_path",
+      "client_secret",
+      "oauth_client_id",
+      "oauth_client_secret",
+      "oauth_scope",
+      "insecure_mode",
+      "disable_saml_url_check",
+      "encrypt",
+      "trust_server_certificate"
+    ),
+    partial = "dsn"
+  )
   .odb_odbc_values(options)
-  .odb_bind(authorization, .odb_backend_snowflake, server = server,
-    database = database, schema = schema, warehouse = warehouse, role = role,
-    driver = driver, options = options, target = target, required_scopes = required_scopes,
-    min_valid_for = min_valid_for, session = session)
+  .odb_bind(
+    authorization,
+    .odb_backend_snowflake,
+    server = server,
+    database = database,
+    schema = schema,
+    warehouse = warehouse,
+    role = role,
+    driver = driver,
+    options = options,
+    target = target,
+    required_scopes = required_scopes,
+    min_valid_for = min_valid_for,
+    session = session
+  )
 }
 
-.odb_backend_snowflake <- function(token, server, database, schema, warehouse, role, driver, options) {
+.odb_backend_snowflake <- function(
+  token,
+  server,
+  database,
+  schema,
+  warehouse,
+  role,
+  driver,
+  options
+) {
   context <- list(database = database, schema = schema, warehouse = warehouse)
   context <- context[!vapply(context, is.null, logical(1))]
-  do.call(DBI::dbConnect, c(list(drv = odbc::odbc(), driver = driver, server = server,
-    role = role, authenticator = "oauth", token = token()), context, options))
+  do.call(
+    DBI::dbConnect,
+    c(
+      list(
+        drv = odbc::odbc(),
+        driver = driver,
+        server = server,
+        role = role,
+        authenticator = "oauth",
+        token = token()
+      ),
+      context,
+      options
+    )
+  )
 }
 
 #' Set up Snowflake OAuth sign-in
@@ -109,12 +179,26 @@ oauth_db_snowflake <- function(
 #' @family sign-in configuration
 #' @export
 oauth_db_snowflake_client <- function(
-  server, client_id, client_secret, redirect_uri, role, ...,
+  server,
+  client_id,
+  client_secret,
+  redirect_uri,
+  role,
+  ...,
   provider = oauth_db_snowflake_provider(server),
   scopes = c(paste0("session:role:", role), "refresh_token")
 ) {
-  if (missing(scopes)) .odb_string(role, "role")
-  .odb_oauth_client(provider, client_id, redirect_uri, client_secret, scopes = scopes, ...)
+  if (missing(scopes)) {
+    .odb_string(role, "role")
+  }
+  .odb_oauth_client(
+    provider,
+    client_id,
+    redirect_uri,
+    client_secret,
+    scopes = scopes,
+    ...
+  )
 }
 
 #' Create a Snowflake OAuth provider
@@ -135,12 +219,21 @@ oauth_db_snowflake_client <- function(
 #' @export
 oauth_db_snowflake_provider <- function(server, ...) {
   .odb_string(server, "server")
-  if (!grepl("^[A-Za-z0-9.-]+$", server)) .odb_abort("server must be a Snowflake hostname.")
+  if (!grepl("^[A-Za-z0-9.-]+$", server)) {
+    .odb_abort("server must be a Snowflake hostname.")
+  }
   base <- paste0("https://", server)
-  defaults <- list(name = "snowflake",
-    auth_url = paste0(base, "/oauth/authorize"), token_url = paste0(base, "/oauth/token-request"),
-    userinfo_required = FALSE, id_token_required = FALSE, id_token_validation = FALSE,
-    use_nonce = FALSE, use_pkce = TRUE, token_auth_style = "header")
+  defaults <- list(
+    name = "snowflake",
+    auth_url = paste0(base, "/oauth/authorize"),
+    token_url = paste0(base, "/oauth/token-request"),
+    userinfo_required = FALSE,
+    id_token_required = FALSE,
+    id_token_validation = FALSE,
+    use_nonce = FALSE,
+    use_pkce = TRUE,
+    token_auth_style = "header"
+  )
   overrides <- list(...)
   .odb_named_args(overrides, "Provider settings in ...")
   defaults[names(overrides)] <- overrides

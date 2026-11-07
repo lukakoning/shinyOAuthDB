@@ -10,5 +10,7 @@
 ^\.gitignore$
 ^\.git$
 ^\.gitattributes$
+^air\.toml$
+^jarl\.toml$
 ^.*\.Rcheck$
 ^.*\.tar\.gz$

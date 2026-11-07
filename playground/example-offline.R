@@ -33,9 +33,14 @@ server <- function(input, output, session) {
   con <- oauth_db_connect(authorization, connect = function(token) {
     user <- sub("^fixture-", "", token)
     con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
-    DBI::dbWriteTable(con, "example", data.frame(
-      user = user, message = c("First row", "Second row")
-    ))
+    DBI::dbWriteTable(
+      con,
+      "example",
+      data.frame(
+        user = user,
+        message = c("First row", "Second row")
+      )
+    )
     con
   })
   output$rows <- renderTable({
@@ -45,5 +50,10 @@ server <- function(input, output, session) {
 }
 
 app <- shinyApp(ui, server)
-if (interactive()) runApp(app, port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
-                          launch.browser = FALSE)
+if (interactive()) {
+  runApp(
+    app,
+    port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
+    launch.browser = FALSE
+  )
+}

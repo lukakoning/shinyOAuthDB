@@ -45,21 +45,23 @@ odb_test_authorization <- function(
     )
   }
 
-  if (is.null(client)) client <- shinyOAuth::oauth_client(
-    provider,
-    client_id = "test",
-    redirect_uri = "http://localhost:8100",
-    scopes = if (unacquired) c(primary_scope, declared) else declared,
-    required_scopes = client_required_scopes,
-    token_targets = targets,
-    token_target_default = if (unacquired) {
-      "primary"
-    } else if (is.null(target)) {
-      character()
-    } else {
-      target
-    }
-  )
+  if (is.null(client)) {
+    client <- shinyOAuth::oauth_client(
+      provider,
+      client_id = "test",
+      redirect_uri = "http://localhost:8100",
+      scopes = if (unacquired) c(primary_scope, declared) else declared,
+      required_scopes = client_required_scopes,
+      token_targets = targets,
+      token_target_default = if (unacquired) {
+        "primary"
+      } else if (is.null(target)) {
+        character()
+      } else {
+        target
+      }
+    )
+  }
 
   make_token <- function(value, permissions = declared, lifetime = 3600) {
     shinyOAuth::OAuthToken(
@@ -106,7 +108,9 @@ odb_test_authorization <- function(
           !identical(domain$rootScope(), session$rootScope()) ||
           !current()
       ) {
-        getFromNamespace("connection_access_error", "shinyOAuth")("authorization_unavailable")
+        getFromNamespace("connection_access_error", "shinyOAuth")(
+          "authorization_unavailable"
+        )
       }
 
       list(
@@ -123,7 +127,9 @@ odb_test_authorization <- function(
 
     acquire = function(async = FALSE, ...) {
       calls$acquire <- calls$acquire + 1L
-      if (is.function(acquire)) return(acquire(async = async, ...))
+      if (is.function(acquire)) {
+        return(acquire(async = async, ...))
+      }
       token(make_token(paste0("fixture-", id, "-acquired")))
       stopifnot(!async)
       TRUE

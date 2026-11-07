@@ -8,17 +8,23 @@ client <- oauth_db_microsoft_client(
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = Sys.getenv("OAUTHDB_REDIRECT_URI", "http://localhost:8100"),
-  token_targets = list(redshift = list(
-    resource = Sys.getenv("OAUTHDB_REDSHIFT_RESOURCE"),
-    scopes = Sys.getenv("OAUTHDB_REDSHIFT_SCOPE")
-  ))
+  token_targets = list(
+    redshift = list(
+      resource = Sys.getenv("OAUTHDB_REDSHIFT_RESOURCE"),
+      scopes = Sys.getenv("OAUTHDB_REDSHIFT_SCOPE")
+    )
+  )
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -39,5 +45,10 @@ server <- function(input, output, session) {
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*")
-if (interactive()) runApp(app, port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
-                          launch.browser = FALSE)
+if (interactive()) {
+  runApp(
+    app,
+    port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
+    launch.browser = FALSE
+  )
+}

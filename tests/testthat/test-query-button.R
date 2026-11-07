@@ -8,27 +8,55 @@ test_that("button queries clear stored results on authorization and permission c
   calls$fail <- FALSE
   app$oauth_module_server <- function(id, client, ...) {
     session <- shiny::getDefaultReactiveDomain()
-    calls$a <- odb_test_authorization(session, "A", "user_impersonation", "sql",
-      resource = "https://database.windows.net/")
-    calls$b <- odb_test_authorization(session, "B", "user_impersonation", "sql",
-      resource = "https://database.windows.net/")
+    calls$a <- odb_test_authorization(
+      session,
+      "A",
+      "user_impersonation",
+      "sql",
+      resource = "https://database.windows.net/"
+    )
+    calls$b <- odb_test_authorization(
+      session,
+      "B",
+      "user_impersonation",
+      "sql",
+      resource = "https://database.windows.net/"
+    )
     selected <- shiny::reactiveVal(NULL)
     calls$select <- selected
-    list(connection = selected, request_login = function() NULL, logout = function() selected(NULL))
+    list(
+      connection = selected,
+      request_login = function() NULL,
+      logout = function() selected(NULL)
+    )
   }
   app$oauth_db_azure_sql <- function(authorization, required_scopes, ...) {
-    oauth_db_connect(authorization, required_scopes = required_scopes, target = "sql", connect = function(token) {
-      con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
-      DBI::dbWriteTable(con, "identity", data.frame(user = sub("^fixture-", "", token)))
-      con
-    })
+    oauth_db_connect(
+      authorization,
+      required_scopes = required_scopes,
+      target = "sql",
+      connect = function(token) {
+        con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+        DBI::dbWriteTable(
+          con,
+          "identity",
+          data.frame(user = sub("^fixture-", "", token))
+        )
+        con
+      }
+    )
   }
   native_query <- DBI::dbGetQuery
-  local_mocked_bindings(dbGetQuery = function(conn, statement, ...) {
-    calls$queries <- calls$queries + 1L
-    if (calls$fail) stop("Query failed")
-    native_query(conn, "SELECT * FROM identity")
-  }, .package = "DBI")
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, ...) {
+      calls$queries <- calls$queries + 1L
+      if (calls$fail) {
+        stop("Query failed")
+      }
+      native_query(conn, "SELECT * FROM identity")
+    },
+    .package = "DBI"
+  )
   saved <- NULL
   shiny::testServer(app$server, {
     expect_error(output$rows, class = "shiny.silent.error")

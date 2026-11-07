@@ -68,15 +68,34 @@
 #' @family database connections
 #' @export
 oauth_db_postgres <- function(
-  authorization, host, dbname, user, issuer, scope, ..., port = 5432L,
-  sslrootcert = NULL, connect_timeout = 5L, target = NULL,
-  required_scopes = character(), min_valid_for = 60,
+  authorization,
+  host,
+  dbname,
+  user,
+  issuer,
+  scope,
+  ...,
+  port = 5432L,
+  sslrootcert = NULL,
+  connect_timeout = 5L,
+  target = NULL,
+  required_scopes = character(),
+  min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   settings <- .odb_postgres_settings(
-    host, dbname, issuer, scope, port, sslrootcert, connect_timeout, list(...)
+    host,
+    dbname,
+    issuer,
+    scope,
+    port,
+    sslrootcert,
+    connect_timeout,
+    list(...)
   )
-  if (!is.function(user)) .odb_postgres_string(user, "user")
+  if (!is.function(user)) {
+    .odb_postgres_string(user, "user")
+  }
   username <- function() {
     value <- if (is.function(user)) user() else user
     .odb_postgres_string(value, "user")
@@ -85,9 +104,15 @@ oauth_db_postgres <- function(
   .odb_postgres_runtime()
   scopes <- strsplit(scope, " ", fixed = TRUE)[[1L]]
   .odb_bind(
-    authorization, .odb_backend_postgres_oauth, settings = settings, user = username,
-    target = target, required_scopes = union(scopes, .odb_scopes(required_scopes)),
-    identity_key = username, min_valid_for = min_valid_for, session = session,
+    authorization,
+    .odb_backend_postgres_oauth,
+    settings = settings,
+    user = username,
+    target = target,
+    required_scopes = union(scopes, .odb_scopes(required_scopes)),
+    identity_key = username,
+    min_valid_for = min_valid_for,
+    session = session,
     is_valid = .odb_postgres_connection_valid
   )
 }
@@ -100,54 +125,110 @@ oauth_db_postgres <- function(
   invisible(value)
 }
 
-.odb_postgres_settings <- function(host, dbname, issuer, scope, port,
-                                  sslrootcert, connect_timeout, options) {
+.odb_postgres_settings <- function(
+  host,
+  dbname,
+  issuer,
+  scope,
+  port,
+  sslrootcert,
+  connect_timeout,
+  options
+) {
   .odb_postgres_string(host, "host")
-  if (grepl(",", host, fixed = TRUE) || startsWith(host, "/") ||
-      startsWith(host, "@") || grepl("[[:space:]]|=", host)) {
+  if (
+    grepl(",", host, fixed = TRUE) ||
+      startsWith(host, "/") ||
+      startsWith(host, "@") ||
+      grepl("[[:space:]]|=", host)
+  ) {
     .odb_abort("host must be one TCP hostname or address.")
   }
   .odb_postgres_string(dbname, "dbname")
   .odb_postgres_string(issuer, "issuer")
-  if (!grepl("^https://[^/?#@[:space:]]+(/[^?#[:space:]]*)?$", issuer) ||
-      grepl("/\\.well-known/", issuer)) {
-    .odb_abort("issuer must be an HTTPS issuer identifier without a discovery suffix.")
+  if (
+    !grepl("^https://[^/?#@[:space:]]+(/[^?#[:space:]]*)?$", issuer) ||
+      grepl("/\\.well-known/", issuer)
+  ) {
+    .odb_abort(
+      "issuer must be an HTTPS issuer identifier without a discovery suffix."
+    )
   }
   .odb_postgres_string(scope, "scope")
   scopes <- strsplit(scope, " ", fixed = TRUE)[[1L]]
-  if (startsWith(scope, " ") || endsWith(scope, " ") ||
-      any(!nzchar(scopes)) || anyDuplicated(scopes) ||
-      grepl("[\t\r\n]", scope)) {
+  if (
+    startsWith(scope, " ") ||
+      endsWith(scope, " ") ||
+      any(!nzchar(scopes)) ||
+      anyDuplicated(scopes) ||
+      grepl("[\t\r\n]", scope)
+  ) {
     .odb_abort("scope must contain distinct scopes separated by single spaces.")
   }
-  if (!is.numeric(port) || length(port) != 1L || !is.finite(port) ||
-      port < 1 || port > 65535 || port != floor(port)) {
+  if (
+    !is.numeric(port) ||
+      length(port) != 1L ||
+      !is.finite(port) ||
+      port < 1 ||
+      port > 65535 ||
+      port != floor(port)
+  ) {
     .odb_abort("port must be one valid TCP port.")
   }
-  if (!is.null(sslrootcert)) .odb_postgres_string(sslrootcert, "sslrootcert")
-  if (!is.numeric(connect_timeout) || length(connect_timeout) != 1L ||
-      !is.finite(connect_timeout) || connect_timeout < 2 ||
-      connect_timeout > .Machine$integer.max ||
-      connect_timeout != floor(connect_timeout)) {
-    .odb_abort("connect_timeout must be a whole number of at least two seconds.")
+  if (!is.null(sslrootcert)) {
+    .odb_postgres_string(sslrootcert, "sslrootcert")
   }
-  allowed <- c("bigint", "check_interrupts", "timezone", "timezone_out",
-    "application_name", "keepalives", "keepalives_idle", "keepalives_interval",
-    "keepalives_count", "tcp_user_timeout")
+  if (
+    !is.numeric(connect_timeout) ||
+      length(connect_timeout) != 1L ||
+      !is.finite(connect_timeout) ||
+      connect_timeout < 2 ||
+      connect_timeout > .Machine$integer.max ||
+      connect_timeout != floor(connect_timeout)
+  ) {
+    .odb_abort(
+      "connect_timeout must be a whole number of at least two seconds."
+    )
+  }
+  allowed <- c(
+    "bigint",
+    "check_interrupts",
+    "timezone",
+    "timezone_out",
+    "application_name",
+    "keepalives",
+    "keepalives_idle",
+    "keepalives_interval",
+    "keepalives_count",
+    "tcp_user_timeout"
+  )
   .odb_named_args(options, "PostgreSQL options in ...")
   if (length(setdiff(names(options), allowed))) {
-    .odb_abort("Only RPostgres result, application_name and TCP keepalive options are accepted in ...; authentication, connection identity and TLS settings cannot be overridden.")
+    .odb_abort(
+      "Only RPostgres result, application_name and TCP keepalive options are accepted in ...; authentication, connection identity and TLS settings cannot be overridden."
+    )
   }
-  list(host = host, dbname = dbname, issuer = issuer, scope = scope,
-    port = as.integer(port), sslrootcert = sslrootcert,
-    connect_timeout = as.integer(connect_timeout), options = options)
+  list(
+    host = host,
+    dbname = dbname,
+    issuer = issuer,
+    scope = scope,
+    port = as.integer(port),
+    sslrootcert = sslrootcert,
+    connect_timeout = as.integer(connect_timeout),
+    options = options
+  )
 }
 
 .odb_postgres_runtime <- function() {
-  if (!.Call(C_pg_bearer_available)) return(.Call(C_pg_bearer_runtime, ""))
+  if (!.Call(C_pg_bearer_available)) {
+    return(.Call(C_pg_bearer_runtime, ""))
+  }
   .odb_require("RPostgres")
   dll <- getLoadedDLLs()[["RPostgres"]]
-  if (is.null(dll)) .odb_abort("RPostgres's native library is not loaded.")
+  if (is.null(dll)) {
+    .odb_abort("RPostgres's native library is not loaded.")
+  }
   runtime <- .Call(C_pg_bearer_runtime, dll[["path"]])
   if (!isTRUE(runtime$default_hook)) {
     .odb_abort("Another libpq OAuth hook is installed; refusing to replace it.")
@@ -156,40 +237,84 @@ oauth_db_postgres <- function(
 }
 
 .odb_backend_postgres_oauth <- function(token, settings, user) {
-  do.call(.odb_postgres_connect_bearer,
-    c(list(token = token(), user = user()), settings))
+  do.call(
+    .odb_postgres_connect_bearer,
+    c(list(token = token(), user = user()), settings)
+  )
 }
 
 .odb_postgres_connection_valid <- function(connection) {
-  isTRUE(DBI::dbIsValid(connection)) && isTRUE(.Call(C_pg_connection_valid, connection))
+  isTRUE(DBI::dbIsValid(connection)) &&
+    isTRUE(.Call(C_pg_connection_valid, connection))
 }
 
-.odb_postgres_connect_bearer <- function(token, user, host, dbname, issuer,
-                                        scope, port = 5432L, sslrootcert = NULL,
-                                        connect_timeout = 5L, options = list()) {
+.odb_postgres_connect_bearer <- function(
+  token,
+  user,
+  host,
+  dbname,
+  issuer,
+  scope,
+  port = 5432L,
+  sslrootcert = NULL,
+  connect_timeout = 5L,
+  options = list()
+) {
   settings <- .odb_postgres_settings(
-    host, dbname, issuer, scope, port, sslrootcert, connect_timeout, options
+    host,
+    dbname,
+    issuer,
+    scope,
+    port,
+    sslrootcert,
+    connect_timeout,
+    options
   )
   .odb_postgres_string(user, "user")
   .odb_string(token, "token")
   if (!grepl("^[A-Za-z0-9._~+/-]+=*$", token)) {
     .odb_abort("token must be a raw bearer token without whitespace.")
   }
-  if (any(nzchar(Sys.getenv(c("PGSERVICE", "PGSERVICEFILE", "PGOAUTHDEBUG"))))) {
-    .odb_abort("Unset PGSERVICE, PGSERVICEFILE and PGOAUTHDEBUG for native PostgreSQL OAuth.")
+  if (
+    any(nzchar(Sys.getenv(c("PGSERVICE", "PGSERVICEFILE", "PGOAUTHDEBUG"))))
+  ) {
+    .odb_abort(
+      "Unset PGSERVICE, PGSERVICEFILE and PGOAUTHDEBUG for native PostgreSQL OAuth."
+    )
   }
   .odb_postgres_runtime()
   client_id <- "shinyOAuthDB-external-bearer-only"
-  params <- c(list(
-    host = host, dbname = dbname, user = user, port = as.character(settings$port),
-    sslmode = "verify-full", sslrootcert = sslrootcert,
-    connect_timeout = as.character(settings$connect_timeout), require_auth = "oauth",
-    gssencmode = "disable", password = "shinyOAuthDB-password-disabled",
-    passfile = "/dev/null", oauth_issuer = issuer, oauth_scope = scope,
-    oauth_client_id = client_id
-  ), options)
-  open <- function() do.call(DBI::dbConnect, c(list(RPostgres::Postgres()), params))
-  expected <- c(issuer, scope, host, as.character(settings$port), dbname, user, client_id)
+  params <- c(
+    list(
+      host = host,
+      dbname = dbname,
+      user = user,
+      port = as.character(settings$port),
+      sslmode = "verify-full",
+      sslrootcert = sslrootcert,
+      connect_timeout = as.character(settings$connect_timeout),
+      require_auth = "oauth",
+      gssencmode = "disable",
+      password = "shinyOAuthDB-password-disabled",
+      passfile = "/dev/null",
+      oauth_issuer = issuer,
+      oauth_scope = scope,
+      oauth_client_id = client_id
+    ),
+    options
+  )
+  open <- function() {
+    do.call(DBI::dbConnect, c(list(RPostgres::Postgres()), params))
+  }
+  expected <- c(
+    issuer,
+    scope,
+    host,
+    as.character(settings$port),
+    dbname,
+    user,
+    client_id
+  )
   .Call(C_pg_with_bearer, token, expected, open)
 }
 
@@ -234,29 +359,84 @@ oauth_db_postgres <- function(
 #' @family database connections
 #' @export
 oauth_db_azure_postgres <- function(
-  authorization, host, dbname, user, ..., port = 5432L, sslrootcert = NULL,
-  target = "postgres", required_scopes = character(),
-  min_valid_for = 60, session = shiny::getDefaultReactiveDomain()
+  authorization,
+  host,
+  dbname,
+  user,
+  ...,
+  port = 5432L,
+  sslrootcert = NULL,
+  target = "postgres",
+  required_scopes = character(),
+  min_valid_for = 60,
+  session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("RPostgres")
   .odb_string(host, "host")
   .odb_string(dbname, "dbname")
   .odb_string(user, "user")
-  options <- .odb_options(list(...), blocked = c(
-    "host", "dbname", "port", "sslrootcert", "service", "passfile", "drv",
-    "user", "password", "sslmode"), partial = "service")
-  .odb_bind(authorization, .odb_backend_postgres, host = host, dbname = dbname,
-    user = user, port = port, sslrootcert = sslrootcert, options = options,
-    target = target, required_scopes = .odb_microsoft_scopes(required_scopes), min_valid_for = min_valid_for, session = session)
+  options <- .odb_options(
+    list(...),
+    blocked = c(
+      "host",
+      "dbname",
+      "port",
+      "sslrootcert",
+      "service",
+      "passfile",
+      "drv",
+      "user",
+      "password",
+      "sslmode"
+    ),
+    partial = "service"
+  )
+  .odb_bind(
+    authorization,
+    .odb_backend_postgres,
+    host = host,
+    dbname = dbname,
+    user = user,
+    port = port,
+    sslrootcert = sslrootcert,
+    options = options,
+    target = target,
+    required_scopes = .odb_microsoft_scopes(required_scopes),
+    min_valid_for = min_valid_for,
+    session = session
+  )
 }
 
-.odb_backend_postgres <- function(token, host, dbname, user, port, sslrootcert, options) {
-  args <- list(drv = RPostgres::Postgres(), host = host, dbname = dbname,
-    user = user, port = port, password = token(), sslmode = "verify-full")
-  if (!is.null(sslrootcert)) args$sslrootcert <- sslrootcert
+.odb_backend_postgres <- function(
+  token,
+  host,
+  dbname,
+  user,
+  port,
+  sslrootcert,
+  options
+) {
+  args <- list(
+    drv = RPostgres::Postgres(),
+    host = host,
+    dbname = dbname,
+    user = user,
+    port = port,
+    password = token(),
+    sslmode = "verify-full"
+  )
+  if (!is.null(sslrootcert)) {
+    args$sslrootcert <- sslrootcert
+  }
   do.call(DBI::dbConnect, c(args, options))
 }
 
 .odb_postgres_profiles <- function() {
-  list(postgres = .odb_microsoft_profile("postgres", "https://ossrdbms-aad.database.windows.net", ".default"))
+  list(
+    postgres = .odb_microsoft_profile(
+      "postgres",
+      "https://ossrdbms-aad.database.windows.net",
+      ".default"
+    )
+  )
 }

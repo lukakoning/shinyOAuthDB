@@ -7,8 +7,11 @@ playground_load_example <- function(filename) {
   envir <- new.env(parent = globalenv())
   for (expr in parse(path)) {
     eval(expr, envir = envir)
-    if (is.call(expr) && identical(expr[[1L]], as.name("<-")) &&
-        identical(expr[[2L]], as.name("app"))) {
+    if (
+      is.call(expr) &&
+        identical(expr[[1L]], as.name("<-")) &&
+        identical(expr[[2L]], as.name("app"))
+    ) {
       stopifnot(inherits(envir$app, "shiny.appobj"))
       return(envir)
     }
@@ -70,23 +73,33 @@ playground_env <- function() {
 }
 
 playground_request <- function() {
-  list(REQUEST_METHOD = "GET", PATH_INFO = "/", QUERY_STRING = "",
-       HTTP_HOST = "localhost:8100", SERVER_NAME = "localhost",
-       SERVER_PORT = "8100", rook.url_scheme = "http")
+  list(
+    REQUEST_METHOD = "GET",
+    PATH_INFO = "/",
+    QUERY_STRING = "",
+    HTTP_HOST = "localhost:8100",
+    SERVER_NAME = "localhost",
+    SERVER_PORT = "8100",
+    rook.url_scheme = "http"
+  )
 }
 
 playground_databricks_provider <- function(host, token_auth_style = "public") {
   host <- paste0("https://", sub("^https://", "", host))
   shinyOAuth::oauth_provider(
-    name = "databricks", auth_url = paste0(host, "/oidc/v1/authorize"),
+    name = "databricks",
+    auth_url = paste0(host, "/oidc/v1/authorize"),
     token_url = paste0(host, "/oidc/v1/token"),
-    token_auth_style = token_auth_style, use_pkce = TRUE
+    token_auth_style = token_auth_style,
+    use_pkce = TRUE
   )
 }
 
 playground_fabric_app <- function() {
   path <- testthat::test_path("..", "..", "playground", "fabric")
-  if (!dir.exists(path)) testthat::skip("Fabric example requires a source checkout.")
+  if (!dir.exists(path)) {
+    testthat::skip("Fabric example requires a source checkout.")
+  }
   withr::local_dir(path)
   envir <- new.env(parent = globalenv())
   sys.source("app.R", envir = envir)
@@ -99,11 +112,15 @@ playground_spy <- function(original, handler) {
   body(spy) <- quote({
     argument_names <- setdiff(names(formals(sys.function())), "...")
     args <- mget(argument_names, envir = environment(), inherits = FALSE)
-    if ("..." %in% names(formals(sys.function()))) args <- c(args, list(...))
+    if ("..." %in% names(formals(sys.function()))) {
+      args <- c(args, list(...))
+    }
     .handler(args)
   })
-  environment(spy) <- list2env(list(.handler = handler),
-                               parent = environment(original))
+  environment(spy) <- list2env(
+    list(.handler = handler),
+    parent = environment(original)
+  )
   spy
 }
 
@@ -123,9 +140,15 @@ playground_module <- function(calls) {
         has_scopes = function(...) identical(selected()$id, grant_id),
         identity = function(claims = c("iss", "sub"), userinfo = character()) {
           stopifnot(identical(selected()$id, grant_id))
-          values <- list(iss = "https://issuer.example.org", sub = paste0("subject-", user),
-            preferred_username = user)
-          list(id_token_claims = values[intersect(claims, names(values))], userinfo = list())
+          values <- list(
+            iss = "https://issuer.example.org",
+            sub = paste0("subject-", user),
+            preferred_username = user
+          )
+          list(
+            id_token_claims = values[intersect(claims, names(values))],
+            userinfo = list()
+          )
         }
       ))
     }

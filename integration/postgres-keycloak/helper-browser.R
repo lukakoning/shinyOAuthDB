@@ -81,8 +81,11 @@ postgres_browser_setup <- function(
       source(file.path(dirname(script), "playground-ui.R"), local = TRUE)
 
       stop_when_requested <- function() {
-        if (file.exists(config$stop_file)) shiny::stopApp()
-        else later::later(stop_when_requested, 0.1)
+        if (file.exists(config$stop_file)) {
+          shiny::stopApp()
+        } else {
+          later::later(stop_when_requested, 0.1)
+        }
       }
       later::later(stop_when_requested, 0.1)
       postgres_browser_run_app(config)
@@ -110,7 +113,10 @@ postgres_browser_setup <- function(
       process$wait(timeout = 10000)
       if (process$is_alive()) {
         process$kill()
-        stop("Browser app did not exit normally; native coverage would be incomplete.", call. = FALSE)
+        stop(
+          "Browser app did not exit normally; native coverage would be incomplete.",
+          call. = FALSE
+        )
       }
       if (!identical(process$get_exit_status(), 0L)) {
         stop("Browser app exited unsuccessfully.", call. = FALSE)
@@ -184,8 +190,13 @@ postgres_browser_setup <- function(
     browser <- chromote::ChromoteSession$new(parent = chrome, targetId = target)
     browser$Page$enable()
     browser$go_to(config$origin)
-    postgres_browser_wait(browser, function(snapshot) isTRUE(snapshot$ready) &&
-      isTRUE(postgres_browser_value(browser, "!document.querySelector('#login').disabled")))
+    postgres_browser_wait(browser, function(snapshot) {
+      isTRUE(snapshot$ready) &&
+        isTRUE(postgres_browser_value(
+          browser,
+          "!document.querySelector('#login').disabled"
+        ))
+    })
 
     browser
   }
@@ -255,14 +266,26 @@ postgres_browser_wait <- function(browser, predicate, timeout = 25) {
 
 postgres_browser_click <- function(browser, id) {
   selector <- jsonlite::toJSON(paste0("#", id), auto_unbox = TRUE)
-  postgres_browser_wait(browser, function(value) isTRUE(postgres_browser_value(
-    browser, paste0("Boolean(document.querySelector(", selector,
-      ") && !document.querySelector(", selector, ").disabled)"))))
+  postgres_browser_wait(browser, function(value) {
+    isTRUE(postgres_browser_value(
+      browser,
+      paste0(
+        "Boolean(document.querySelector(",
+        selector,
+        ") && !document.querySelector(",
+        selector,
+        ").disabled)"
+      )
+    ))
+  })
   clicked <- postgres_browser_value(
     browser,
-    paste0("(() => { const button=document.querySelector(", selector,
+    paste0(
+      "(() => { const button=document.querySelector(",
+      selector,
       "); button.click(); return {message:document.querySelector('#action_status')?.textContent,",
-      "disabled:button.disabled}; })()")
+      "disabled:button.disabled}; })()"
+    )
   )
 
   invisible(clicked)
@@ -278,9 +301,17 @@ postgres_browser_login <- function(
   }
 
   if (isTRUE(postgres_browser_snapshot(browser)$authorized)) {
-    cookies <- browser$Network$getCookies(urls = list(paste0(config$issuer, "/")))$cookies
-    for (cookie in cookies) if (startsWith(cookie$name, "KEYCLOAK_")) {
-      browser$Network$deleteCookies(name = cookie$name, domain = cookie$domain, path = cookie$path)
+    cookies <- browser$Network$getCookies(
+      urls = list(paste0(config$issuer, "/"))
+    )$cookies
+    for (cookie in cookies) {
+      if (startsWith(cookie$name, "KEYCLOAK_")) {
+        browser$Network$deleteCookies(
+          name = cookie$name,
+          domain = cookie$domain,
+          path = cookie$path
+        )
+      }
     }
   }
 
@@ -304,20 +335,40 @@ postgres_browser_login <- function(
     if (isTRUE(form)) {
       break
     }
-    restart <- tryCatch(postgres_browser_value(browser,
-      "Boolean(document.querySelector('#reset-login') && !document.querySelector('#username'))"),
-      error = function(e) FALSE)
-    if (isTRUE(restart)) postgres_browser_value(browser, "document.querySelector('#reset-login').click()")
+    restart <- tryCatch(
+      postgres_browser_value(
+        browser,
+        "Boolean(document.querySelector('#reset-login') && !document.querySelector('#username'))"
+      ),
+      error = function(e) FALSE
+    )
+    if (isTRUE(restart)) {
+      postgres_browser_value(
+        browser,
+        "document.querySelector('#reset-login').click()"
+      )
+    }
     if (Sys.time() > deadline) {
-      page <- postgres_browser_value(browser, paste0(
-        "({origin:location.origin,path:location.pathname,",
-        "message:document.querySelector('#action_status')?.textContent,",
-        "loginDisabled:document.querySelector('#login')?.disabled,",
-        "pageText:document.body.innerText.slice(0,600)})"
-      ))
-      stop("Browser did not reach the fixture login form. Safe state: ",
-        jsonlite::toJSON(postgres_browser_snapshot(browser), auto_unbox = TRUE, null = "null"),
-        "; page: ", jsonlite::toJSON(page, auto_unbox = TRUE), call. = FALSE)
+      page <- postgres_browser_value(
+        browser,
+        paste0(
+          "({origin:location.origin,path:location.pathname,",
+          "message:document.querySelector('#action_status')?.textContent,",
+          "loginDisabled:document.querySelector('#login')?.disabled,",
+          "pageText:document.body.innerText.slice(0,600)})"
+        )
+      )
+      stop(
+        "Browser did not reach the fixture login form. Safe state: ",
+        jsonlite::toJSON(
+          postgres_browser_snapshot(browser),
+          auto_unbox = TRUE,
+          null = "null"
+        ),
+        "; page: ",
+        jsonlite::toJSON(page, auto_unbox = TRUE),
+        call. = FALSE
+      )
     }
 
     Sys.sleep(0.1)

@@ -1,7 +1,9 @@
 # Repository validation without installing into the user's normal library.
 # Run from the repository root: Rscript --vanilla tools/check-package.R
 arguments <- commandArgs(trailingOnly = TRUE)
-if (length(arguments)) .libPaths(c(arguments, .libPaths()))
+if (length(arguments)) {
+  .libPaths(c(arguments, .libPaths()))
+}
 Sys.setenv(LC_ALL = "C", LANG = "C", LANGUAGE = "en")
 needed <- c("pkgbuild", "pkgload", "testthat", "rcmdcheck", "jsonlite")
 missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
@@ -48,8 +50,12 @@ check <- rcmdcheck::rcmdcheck(
   args = "--no-manual",
   error_on = "never"
 )
-jsonlite::write_json(list(errors = check$errors, warnings = check$warnings, notes = check$notes),
-  file.path(output, "package-check.json"), auto_unbox = TRUE, pretty = TRUE)
+jsonlite::write_json(
+  list(errors = check$errors, warnings = check$warnings, notes = check$notes),
+  file.path(output, "package-check.json"),
+  auto_unbox = TRUE,
+  pretty = TRUE
+)
 cat(
   "\nR CMD check:",
   length(check$errors),

@@ -14,11 +14,15 @@ client <- oauth_client(
   scopes = c("openid", "profile", "email", "offline_access")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -39,5 +43,10 @@ server <- function(input, output, session) {
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*")
-if (interactive()) runApp(app, port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
-                          launch.browser = FALSE)
+if (interactive()) {
+  runApp(
+    app,
+    port = as.integer(Sys.getenv("OAUTHDB_PORT", "8100")),
+    launch.browser = FALSE
+  )
+}

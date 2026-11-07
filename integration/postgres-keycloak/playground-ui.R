@@ -1,16 +1,20 @@
 # Keep the data table prominent; secondary checks have their own results.
 postgres_playground_ui <- function(config) {
   button <- function(id, label, pending, primary = FALSE) {
-    shiny::actionButton(id, label,
+    shiny::actionButton(
+      id,
+      label,
       class = if (primary) "btn-primary" else "btn-default",
       disabled = if (id != "stop_playground") "disabled" else NULL,
-      `data-pending` = pending)
+      `data-pending` = pending
+    )
   }
   shiny::fluidPage(
     title = "PostgreSQL OAuth playground",
     lang = "en",
     shiny::tags$head(
-      shiny::tags$style(shiny::HTML("
+      shiny::tags$style(shiny::HTML(
+        "
         .pg-playground { max-width: 1120px; margin: 0 auto; padding: 12px 8px 40px; }
         .pg-playground h1 { font-size: 28px; margin-bottom: 12px; }
         .pg-playground h2 { font-size: 21px; margin-top: 28px; }
@@ -29,8 +33,10 @@ postgres_playground_ui <- function(config) {
         .pg-playground .shiny-output-error { color: #8b1c1c; }
         #action_status { min-height: 64px; }
         #rows { overflow-x: auto; min-height: 110px; }
-      ")),
-      shiny::tags$script(shiny::HTML(r"(
+      "
+      )),
+      shiny::tags$script(shiny::HTML(
+        r"(
         (() => {
           document.documentElement.lang = 'en';
           window.pgErrors = [];
@@ -63,70 +69,147 @@ postgres_playground_ui <- function(config) {
             if (status) status.textContent = 'The app disconnected. Reload the page to reconnect.';
           });
         })();
-      )"))
+      )"
+      ))
     ),
-    shiny::tags$main(class = "pg-playground",
+    shiny::tags$main(
+      class = "pg-playground",
       shiny::h1("PostgreSQL OAuth playground"),
-      shiny::p("Sign in as Alice or Bob. The same SQL runs for both accounts; PostgreSQL decides which rows each can read."),
+      shiny::p(
+        "Sign in as Alice or Bob. The same SQL runs for both accounts; PostgreSQL decides which rows each can read."
+      ),
       shiny::tags$details(
         shiny::tags$summary("Local demo accounts"),
         shiny::tags$dl(
-          shiny::tags$dt("Alice"), shiny::tags$dd(shiny::tags$code("alice"), " / ", shiny::tags$code("alice")),
-          shiny::tags$dt("Bob"), shiny::tags$dd(shiny::tags$code("bob"), " / ", shiny::tags$code("bob"))
+          shiny::tags$dt("Alice"),
+          shiny::tags$dd(
+            shiny::tags$code("alice"),
+            " / ",
+            shiny::tags$code("alice")
+          ),
+          shiny::tags$dt("Bob"),
+          shiny::tags$dd(
+            shiny::tags$code("bob"),
+            " / ",
+            shiny::tags$code("bob")
+          )
         )
       ),
-      shiny::div(class = "pg-actions",
+      shiny::div(
+        class = "pg-actions",
         button("login", "Sign in", "Opening Keycloak sign-in...", TRUE),
-        button("logout", "Sign out", "Signing out and closing the connection..."),
-        if (isTRUE(config$playground)) button("stop_playground", "Stop playground", "Stopping the app and removing its containers...")
+        button(
+          "logout",
+          "Sign out",
+          "Signing out and closing the connection..."
+        ),
+        if (isTRUE(config$playground)) {
+          button(
+            "stop_playground",
+            "Stop playground",
+            "Stopping the app and removing its containers..."
+          )
+        }
       ),
-      shiny::div(role = "status", `aria-live` = "polite", shiny::uiOutput("action_status")),
+      shiny::div(
+        role = "status",
+        `aria-live` = "polite",
+        shiny::uiOutput("action_status")
+      ),
       shiny::fluidRow(
-        shiny::column(8,
+        shiny::column(
+          8,
           shiny::h2("Database rows"),
-          shiny::div(class = "pg-actions",
-            button("load", "Reload rows", "Reading your rows from PostgreSQL...", TRUE),
-            button("refresh", "Refresh token", "Refreshing your token in the background...")
+          shiny::div(
+            class = "pg-actions",
+            button(
+              "load",
+              "Reload rows",
+              "Reading your rows from PostgreSQL...",
+              TRUE
+            ),
+            button(
+              "refresh",
+              "Refresh token",
+              "Refreshing your token in the background..."
+            )
           ),
-          shiny::uiOutput("data_status"), shiny::tableOutput("rows"),
+          shiny::uiOutput("data_status"),
+          shiny::tableOutput("rows"),
           shiny::h2("Permission checks"),
           shiny::tags$fieldset(
             shiny::tags$legend("Database role"),
-            shiny::p("Try to connect as the other account using your own token."),
-            button("request_other_role", "Try the other role", "Checking whether PostgreSQL rejects the other role..."),
+            shiny::p(
+              "Try to connect as the other account using your own token."
+            ),
+            button(
+              "request_other_role",
+              "Try the other role",
+              "Checking whether PostgreSQL rejects the other role..."
+            ),
             shiny::textOutput("role_status")
           ),
           shiny::tags$fieldset(
             shiny::tags$legend("Table access"),
-            shiny::p("Read your account's private table, then try the other account's table."),
-            button("probe_table_grants", "Check table access", "Checking your table grants..."),
+            shiny::p(
+              "Read your account's private table, then try the other account's table."
+            ),
+            button(
+              "probe_table_grants",
+              "Check table access",
+              "Checking your table grants..."
+            ),
             shiny::textOutput("grants_status")
           ),
           shiny::tags$fieldset(
             shiny::tags$legend("Token scope"),
-            shiny::p("Ask PostgreSQL to check this token for the required database.read scope."),
-            button("probe_native_scope", "Check token scope", "Checking the token scope with PostgreSQL..."),
+            shiny::p(
+              "Ask PostgreSQL to check this token for the required database.read scope."
+            ),
+            button(
+              "probe_native_scope",
+              "Check token scope",
+              "Checking the token scope with PostgreSQL..."
+            ),
             shiny::textOutput("scope_status")
           )
         ),
-        shiny::column(4,
-          shiny::h2("Current session"), shiny::uiOutput("session_status"),
+        shiny::column(
+          4,
+          shiny::h2("Current session"),
+          shiny::uiOutput("session_status"),
           shiny::tags$details(
-            shiny::tags$summary("Connection details"), shiny::uiOutput("connection_status")
+            shiny::tags$summary("Connection details"),
+            shiny::uiOutput("connection_status")
           ),
           shiny::tags$details(
             shiny::tags$summary("Test connection recovery"),
-            shiny::p("Break this session's connection. The next read detects the failure; another reload opens a fresh connection."),
-            shiny::div(class = "pg-actions",
-              button("reset_backend", "Break connection", "Terminating this session's database connection..."),
-              button("retry_native", "Try the old connection", "Checking that the old connection cannot recover on its own...")
+            shiny::p(
+              "Break this session's connection. The next read detects the failure; another reload opens a fresh connection."
+            ),
+            shiny::div(
+              class = "pg-actions",
+              button(
+                "reset_backend",
+                "Break connection",
+                "Terminating this session's database connection..."
+              ),
+              button(
+                "retry_native",
+                "Try the old connection",
+                "Checking that the old connection cannot recover on its own..."
+              )
             ),
             shiny::textOutput("recovery_status")
           )
         )
       ),
       # Machine-readable state stays available to browser tests, outside the UI.
-      shiny::tags$div(hidden = "hidden", `aria-hidden` = "true", shiny::textOutput("snapshot"))
+      shiny::tags$div(
+        hidden = "hidden",
+        `aria-hidden` = "true",
+        shiny::textOutput("snapshot")
+      )
     )
   )
 }

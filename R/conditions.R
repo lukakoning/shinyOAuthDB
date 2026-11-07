@@ -10,10 +10,17 @@
 # Conditions can be recreated on every read, with fresh traces. Notify Shiny
 # only when the failure itself changes, not when its condition object changes.
 .odb_failure_key <- function(error) {
-  if (is.null(error)) return(NULL)
+  if (is.null(error)) {
+    return(NULL)
+  }
   reason <- error$context$reason
-  if (is.null(reason)) reason <- error$reason
-  list(class = class(error), detail = if (is.null(reason)) conditionMessage(error) else reason)
+  if (is.null(reason)) {
+    reason <- error$reason
+  }
+  list(
+    class = class(error),
+    detail = if (is.null(reason)) conditionMessage(error) else reason
+  )
 }
 
 .odb_string <- function(value, name, optional = FALSE) {

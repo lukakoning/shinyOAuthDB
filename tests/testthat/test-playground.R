@@ -45,7 +45,16 @@ test_that("separate offline sessions cannot reuse another user's connection", {
 
 test_that("all complete playground examples parse", {
   root <- testthat::test_path("..", "..", "playground")
-  if (!dir.exists(root)) skip("Playground examples require a source checkout.")
-  paths <- list.files(root, pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
-  for (path in paths) expect_error(parse(path), NA, info = basename(path))
+  if (!dir.exists(root)) {
+    skip("Playground examples require a source checkout.")
+  }
+  paths <- list.files(
+    root,
+    pattern = "\\.R$",
+    full.names = TRUE,
+    recursive = TRUE
+  )
+  for (path in paths) {
+    expect_error(parse(path), NA, info = basename(path))
+  }
 })

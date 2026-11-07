@@ -3,19 +3,35 @@ test_that("StarRocks supplies a temporary JWT file to the ODBC plugin and always
   native <- NULL
   path <- NULL
   fail <- FALSE
-  local_mocked_bindings(dbConnect = function(drv, ...) {
-    native <<- c(list(drv = drv), list(...))
-    path <<- native[["openid-token-file"]]
-    expect_true(file.exists(path))
-    expect_identical(readLines(path, warn = FALSE), "header.payload.signature")
-    if (fail) stop("fixture connection failure")
-    structure(list(), class = "starrocks_fixture")
-  }, .package = "DBI")
+  local_mocked_bindings(
+    dbConnect = function(drv, ...) {
+      native <<- c(list(drv = drv), list(...))
+      path <<- native[["openid-token-file"]]
+      expect_true(file.exists(path))
+      expect_identical(
+        readLines(path, warn = FALSE),
+        "header.payload.signature"
+      )
+      if (fail) {
+        stop("fixture connection failure")
+      }
+      structure(list(), class = "starrocks_fixture")
+    },
+    .package = "DBI"
+  )
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session)
     auth$token(auth$make_token("header.payload.signature"))
-    con <- oauth_db_starrocks(auth$connection, "starrocks.example", "reporting", "alice", "MySQL driver",
-      ssl_ca = "ca.pem", plugin_dir = "plugins", timeout = 10L)
+    con <- oauth_db_starrocks(
+      auth$connection,
+      "starrocks.example",
+      "reporting",
+      "alice",
+      "MySQL driver",
+      ssl_ca = "ca.pem",
+      plugin_dir = "plugins",
+      timeout = 10L
+    )
     con()
     expect_false(file.exists(path))
     expect_false(dir.exists(dirname(path)))
@@ -29,7 +45,13 @@ test_that("StarRocks supplies a temporary JWT file to the ODBC plugin and always
     expect_identical(native$NO_SSPS, 1L)
     expect_false(grepl("header|payload|signature", native$PWD))
     fail <<- TRUE
-    other <- oauth_db_starrocks(auth$connection, "starrocks.example", "reporting", "alice", "MySQL driver")
+    other <- oauth_db_starrocks(
+      auth$connection,
+      "starrocks.example",
+      "reporting",
+      "alice",
+      "MySQL driver"
+    )
     expect_error(other(), "fixture connection failure")
     expect_false(file.exists(path))
     expect_false(dir.exists(dirname(path)))
@@ -53,7 +75,13 @@ test_that("StarRocks follows accounts and usernames while preserving valid SQL s
     b <- odb_test_authorization(session, id = "B")
     selected <- shiny::reactiveVal(NULL)
     username <- shiny::reactiveVal("alice")
-    con <- oauth_db_starrocks(selected, "starrocks.example", "reporting", username, "MySQL driver")
+    con <- oauth_db_starrocks(
+      selected,
+      "starrocks.example",
+      "reporting",
+      username,
+      "MySQL driver"
+    )
     expect_error(con(), class = "shiny.silent.error")
     selected(a$connection)
     first <- con()
@@ -74,18 +102,71 @@ test_that("StarRocks follows accounts and usernames while preserving valid SQL s
 
 test_that("StarRocks rejects credential overrides and non-JWT credentials", {
   skip_if_not_installed("odbc")
-  for (name in c("DSN", ".connection_string", "PWD", "USER", "OPTION", "USE_MYCNF", "SSLMODE",
-                 "openid-token-file", "MULTI_HOST", "ENABLE_DNS_SRV", "attributes", "INITSTMT", "PASSWORD2", "NO_SSPS")) {
-    args <- c(list(function() NULL, "server", "reporting", "alice", "MySQL driver"),
-      stats::setNames(list("private-fixture"), name))
-    expect_error(do.call(oauth_db_starrocks, args), class = "shinyOAuthDB_invalid_configuration")
+  for (name in c(
+    "DSN",
+    ".connection_string",
+    "PWD",
+    "USER",
+    "OPTION",
+    "USE_MYCNF",
+    "SSLMODE",
+    "openid-token-file",
+    "MULTI_HOST",
+    "ENABLE_DNS_SRV",
+    "attributes",
+    "INITSTMT",
+    "PASSWORD2",
+    "NO_SSPS"
+  )) {
+    args <- c(
+      list(function() NULL, "server", "reporting", "alice", "MySQL driver"),
+      stats::setNames(list("private-fixture"), name)
+    )
+    expect_error(
+      do.call(oauth_db_starrocks, args),
+      class = "shinyOAuthDB_invalid_configuration"
+    )
   }
-  expect_error(oauth_db_starrocks(function() NULL, "server;PWD=bad", "db", "alice", "MySQL driver"), "Quote ODBC")
-  expect_error(oauth_db_starrocks(function() NULL, "one,two", "db", "alice", "MySQL driver"), "one TCP")
-  expect_error(oauth_db_starrocks(function() NULL, "server", "db", "alice", "MySQL driver", port = -1), "port")
+  expect_error(
+    oauth_db_starrocks(
+      function() NULL,
+      "server;PWD=bad",
+      "db",
+      "alice",
+      "MySQL driver"
+    ),
+    "Quote ODBC"
+  )
+  expect_error(
+    oauth_db_starrocks(
+      function() NULL,
+      "one,two",
+      "db",
+      "alice",
+      "MySQL driver"
+    ),
+    "one TCP"
+  )
+  expect_error(
+    oauth_db_starrocks(
+      function() NULL,
+      "server",
+      "db",
+      "alice",
+      "MySQL driver",
+      port = -1
+    ),
+    "port"
+  )
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session)
-    con <- oauth_db_starrocks(auth$connection, "server", "reporting", "alice", "MySQL driver")
+    con <- oauth_db_starrocks(
+      auth$connection,
+      "server",
+      "reporting",
+      "alice",
+      "MySQL driver"
+    )
     expect_error(con(), class = "shinyOAuthDB_invalid_credential")
   })
 })

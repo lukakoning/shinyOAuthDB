@@ -56,8 +56,19 @@ local({
   native_stage <- tempfile("shinyOAuthDB-postgres-native-")
   dir.create(native_stage)
   on.exit(unlink(native_stage, recursive = TRUE), add = TRUE)
-  package_files <- c("DESCRIPTION", "NAMESPACE", "LICENSE", "LICENSE.md",
-    "R", "man", "src", "configure", "cleanup", "inst", "vignettes")
+  package_files <- c(
+    "DESCRIPTION",
+    "NAMESPACE",
+    "LICENSE",
+    "LICENSE.md",
+    "R",
+    "man",
+    "src",
+    "configure",
+    "cleanup",
+    "inst",
+    "vignettes"
+  )
   package_files <- file.path(repository, package_files)
   package_files <- package_files[file.exists(package_files)]
   if (!all(file.copy(package_files, native_stage, recursive = TRUE))) {
@@ -203,19 +214,40 @@ local({
     # covr installs an instrumented build in its own library, then starts a
     # fresh R process. Browser children inherit that library and exit normally
     # so libgcov can flush the real libpq-hook counters.
-    coverage <- covr::package_coverage(path = native_stage, type = "none",
-      code = sprintf("setwd(%s); source('integration/postgres-keycloak/acceptance.R')",
-        deparse(repository)), quiet = FALSE)
+    coverage <- covr::package_coverage(
+      path = native_stage,
+      type = "none",
+      code = sprintf(
+        "setwd(%s); source('integration/postgres-keycloak/acceptance.R')",
+        deparse(repository)
+      ),
+      quiet = FALSE
+    )
     lines <- covr::tally_coverage(coverage)
-    native <- lines[grepl("(^|/)src/postgres.c$", lines$filename), , drop = FALSE]
+    native <- lines[
+      grepl("(^|/)src/postgres.c$", lines$filename),
+      ,
+      drop = FALSE
+    ]
     hits <- aggregate(native$value, native[c("filename", "line")], sum)
     if (nrow(hits) < 100L || sum(hits$x > 0) < 100L) {
-      stop("Native coverage did not execute the Linux libpq OAuth implementation.", call. = FALSE)
+      stop(
+        "Native coverage did not execute the Linux libpq OAuth implementation.",
+        call. = FALSE
+      )
     }
     saveRDS(coverage, "/results/native-coverage.rds")
     utils::write.csv(lines, "/results/coverage-lines.csv", row.names = FALSE)
-    jsonlite::write_json(list(native_postgres = TRUE,
-      covered = sum(hits$x > 0), total = nrow(hits), percent = 100 * mean(hits$x > 0)),
-      "/results/native-coverage-summary.json", auto_unbox = TRUE, pretty = TRUE)
+    jsonlite::write_json(
+      list(
+        native_postgres = TRUE,
+        covered = sum(hits$x > 0),
+        total = nrow(hits),
+        percent = 100 * mean(hits$x > 0)
+      ),
+      "/results/native-coverage-summary.json",
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
   }
 })

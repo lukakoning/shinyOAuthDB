@@ -1,14 +1,23 @@
 test_that("Redshift supplies explicit tokens through the plain ODBC driver", {
   skip_if_not_installed("odbc")
   native <- list()
-  local_mocked_bindings(dbConnect = function(drv, ...) {
-    native <<- c(list(drv = drv), list(...))
-    structure(list(), class = "redshift_fixture")
-  }, .package = "DBI")
+  local_mocked_bindings(
+    dbConnect = function(drv, ...) {
+      native <<- c(list(drv = drv), list(...))
+      structure(list(), class = "redshift_fixture")
+    },
+    .package = "DBI"
+  )
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session)
-    con <- oauth_db_redshift(auth$connection, "cluster.example", "reporting",
-      driver = "AWS Redshift driver", CaFile = "ca.pem", LoginTimeout = 20L)
+    con <- oauth_db_redshift(
+      auth$connection,
+      "cluster.example",
+      "reporting",
+      driver = "AWS Redshift driver",
+      CaFile = "ca.pem",
+      LoginTimeout = 20L
+    )
     con()
     expect_s4_class(native$drv, "OdbcDriver")
     expect_false(inherits(native$drv, "RedshiftOdbcDriver"))
@@ -74,9 +83,20 @@ test_that("Redshift accepts configured targets and Identity Center access tokens
     structure(list(), class = "redshift_fixture")
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session, scopes = "read", target = "redshift")
-    con <- oauth_db_redshift(auth$connection, "cluster.example", "reporting",
-      target = "redshift", required_scopes = auth$scopes, token_type = "ACCESS_TOKEN", port = 5440)
+    auth <- odb_test_authorization(
+      session,
+      scopes = "read",
+      target = "redshift"
+    )
+    con <- oauth_db_redshift(
+      auth$connection,
+      "cluster.example",
+      "reporting",
+      target = "redshift",
+      required_scopes = auth$scopes,
+      token_type = "ACCESS_TOKEN",
+      port = 5440
+    )
     con()
     expect_identical(saved$token, "fixture-A")
     expect_identical(saved$token_type, "ACCESS_TOKEN")
@@ -86,19 +106,72 @@ test_that("Redshift accepts configured targets and Identity Center access tokens
 
 test_that("Redshift rejects credential, identity, and TLS overrides", {
   skip_if_not_installed("odbc")
-  blocked <- c("DSN", "FileDSN", "Host", "PortNumber", "Plugin_Name", "token", "tokenType",
-    "AccessKeyID", "secretAccessKey", "SessionToken", "IAM", "Profile", "AuthProfile",
-    "InstanceProfile", "uid", "dbUser", "Password", "CLIENT_SECRET", "Web_Identity_Token",
-    "SSLMode", "ssl.insecure", "TrustServerCertificate", ".connection_string")
+  blocked <- c(
+    "DSN",
+    "FileDSN",
+    "Host",
+    "PortNumber",
+    "Plugin_Name",
+    "token",
+    "tokenType",
+    "AccessKeyID",
+    "secretAccessKey",
+    "SessionToken",
+    "IAM",
+    "Profile",
+    "AuthProfile",
+    "InstanceProfile",
+    "uid",
+    "dbUser",
+    "Password",
+    "CLIENT_SECRET",
+    "Web_Identity_Token",
+    "SSLMode",
+    "ssl.insecure",
+    "TrustServerCertificate",
+    ".connection_string"
+  )
   for (name in blocked) {
-    args <- c(list(authorization = function() NULL, server = "cluster.example", database = "reporting"),
-      stats::setNames(list("sensitive-fixture-value"), name))
+    args <- c(
+      list(
+        authorization = function() NULL,
+        server = "cluster.example",
+        database = "reporting"
+      ),
+      stats::setNames(list("sensitive-fixture-value"), name)
+    )
     error <- tryCatch(do.call(oauth_db_redshift, args), error = identity)
     expect_s3_class(error, "shinyOAuthDB_invalid_configuration")
-    expect_false(grepl("sensitive-fixture-value", conditionMessage(error), fixed = TRUE))
+    expect_false(grepl(
+      "sensitive-fixture-value",
+      conditionMessage(error),
+      fixed = TRUE
+    ))
   }
-  expect_error(oauth_db_redshift(function() NULL, "cluster;pwd=bad", "reporting"), "Quote ODBC")
-  expect_error(oauth_db_redshift(function() NULL, "cluster", "reporting", port = "5439;UID=bad"), "port")
-  expect_error(oauth_db_redshift(function() NULL, "cluster", "reporting", token_type = "SUBJECT_TOKEN"), "arg")
-  expect_error(oauth_db_redshift(function() NULL, "cluster", "reporting", 1), "nonempty")
+  expect_error(
+    oauth_db_redshift(function() NULL, "cluster;pwd=bad", "reporting"),
+    "Quote ODBC"
+  )
+  expect_error(
+    oauth_db_redshift(
+      function() NULL,
+      "cluster",
+      "reporting",
+      port = "5439;UID=bad"
+    ),
+    "port"
+  )
+  expect_error(
+    oauth_db_redshift(
+      function() NULL,
+      "cluster",
+      "reporting",
+      token_type = "SUBJECT_TOKEN"
+    ),
+    "arg"
+  )
+  expect_error(
+    oauth_db_redshift(function() NULL, "cluster", "reporting", 1),
+    "nonempty"
+  )
 })

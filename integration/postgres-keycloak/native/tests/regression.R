@@ -71,12 +71,28 @@ local({
   source <- file.path("integration", "postgres-keycloak", "native", "tests")
   build <- function(name, libpq = FALSE) {
     stopifnot(file.copy(file.path(source, paste0(name, ".c")), stage))
-    flags <- if (libpq) c(
-      PKG_CPPFLAGS = trimws(processx::run("pkg-config", c("--cflags", "libpq"))$stdout),
-      PKG_LIBS = trimws(processx::run("pkg-config", c("--libs", "libpq"))$stdout)) else character()
-    result <- processx::run(file.path(R.home("bin"), "R"), c("CMD", "SHLIB", paste0(name, ".c")),
-      wd = stage, env = c("current", flags), error_on_status = FALSE)
-    if (result$status != 0L) stop("Native fixture compilation failed: ", result$stderr, call. = FALSE)
+    flags <- if (libpq) {
+      c(
+        PKG_CPPFLAGS = trimws(
+          processx::run("pkg-config", c("--cflags", "libpq"))$stdout
+        ),
+        PKG_LIBS = trimws(
+          processx::run("pkg-config", c("--libs", "libpq"))$stdout
+        )
+      )
+    } else {
+      character()
+    }
+    result <- processx::run(
+      file.path(R.home("bin"), "R"),
+      c("CMD", "SHLIB", paste0(name, ".c")),
+      wd = stage,
+      env = c("current", flags),
+      error_on_status = FALSE
+    )
+    if (result$status != 0L) {
+      stop("Native fixture compilation failed: ", result$stderr, call. = FALSE)
+    }
     normalizePath(file.path(stage, paste0(name, .Platform$dynlib.ext)))
   }
   foreign_path <- build("foreign-hook", libpq = TRUE)
@@ -89,15 +105,26 @@ local({
     stopifnot(isTRUE(.Call(setter, TRUE)))
     on.exit(.Call(setter, FALSE), add = TRUE)
     callback_ran <- FALSE
-    fail(with_hook(function() { callback_ran <<- TRUE }), "Another libpq OAuth hook")
+    fail(
+      with_hook(function() {
+        callback_ran <<- TRUE
+      }),
+      "Another libpq OAuth hook"
+    )
     fail(pg_bearer_runtime(), "Another libpq OAuth hook")
     stopifnot(!callback_ran, isTRUE(.Call(current)))
   })
   restored()
   mismatch <- dyn.load(mismatch_path, local = TRUE)
   on.exit(dyn.unload(mismatch_path), add = TRUE, after = FALSE)
-  fail(.Call(get("C_pg_bearer_runtime", ns), mismatch_path), "same shared libpq hook")
-  fail(.Call(get("C_pg_bearer_runtime", ns), file.path(stage, "not-loaded.so")), "not already loaded")
+  fail(
+    .Call(get("C_pg_bearer_runtime", ns), mismatch_path),
+    "same shared libpq hook"
+  )
+  fail(
+    .Call(get("C_pg_bearer_runtime", ns), file.path(stage, "not-loaded.so")),
+    "not already loaded"
+  )
   restored()
 })
 stopifnot(identical(with_hook(function() 17L), 17L))
@@ -110,8 +137,12 @@ restored()
 fail(with_hook(function() with_hook(function() NULL)), "Nested bearer-hook")
 restored()
 interrupted <- tryCatch(
-  with_hook(function() stop(structure(list(message = "test interrupt", call = NULL),
-    class = c("interrupt", "condition")))),
+  with_hook(function() {
+    stop(structure(
+      list(message = "test interrupt", call = NULL),
+      class = c("interrupt", "condition")
+    ))
+  }),
   interrupt = identity
 )
 stopifnot(inherits(interrupted, "interrupt"))
@@ -143,9 +174,14 @@ stopifnot(
 restored()
 stopifnot(with_hook(function() probe(scope = "other-scope")) < 0L)
 restored()
-stopifnot(with_hook(function() probe(
-  discovery = "https://localhost:18443/.well-known/oauth-authorization-server/realms/shinyoauthdb"
-)) == 1L)
+stopifnot(
+  with_hook(function() {
+    probe(
+      discovery = "https://localhost:18443/.well-known/oauth-authorization-server/realms/shinyoauthdb"
+    )
+  }) ==
+    1L
+)
 restored()
 other_user <- metadata
 other_user[[6L]] <- "bob"
@@ -154,7 +190,10 @@ restored()
 stopifnot(with_hook(function() probe(second = TRUE)) == 1L)
 restored()
 
-for (issuer in c("https://localhost:18443/", "https://localhost:18443/realms/shinyoauthdb/")) {
+for (issuer in c(
+  "https://localhost:18443/",
+  "https://localhost:18443/realms/shinyoauthdb/"
+)) {
   expected <- metadata
   expected[[1L]] <- issuer
   discovery <- paste0(issuer, "/.well-known/openid-configuration")

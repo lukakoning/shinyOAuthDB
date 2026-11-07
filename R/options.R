@@ -4,21 +4,32 @@
   nms <- names(options)
   .odb_named_args(options, "Native options in ...")
   if (anyDuplicated(key(nms))) {
-    .odb_abort("Native options in ... must have unique names, ignoring case and punctuation.")
+    .odb_abort(
+      "Native options in ... must have unique names, ignoring case and punctuation."
+    )
   }
-  native_match <- vapply(nms, function(name) any(startsWith(partial, name)), logical(1))
+  native_match <- vapply(
+    nms,
+    function(name) any(startsWith(partial, name)),
+    logical(1)
+  )
   protected <- nms[key(nms) %in% key(blocked) | native_match]
   if (length(protected)) {
     .odb_abort(paste0(
-      "Options ", paste0("`", protected, "`", collapse = ", "),
-      " cannot be overridden through ... . The helper supplies authentication, connection identity and TLS settings."))
+      "Options ",
+      paste0("`", protected, "`", collapse = ", "),
+      " cannot be overridden through ... . The helper supplies authentication, connection identity and TLS settings."
+    ))
   }
   options
 }
 
 .odb_named_args <- function(args, label = "Native configuration") {
   nms <- names(args)
-  if (length(args) && (is.null(nms) || anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms))) {
+  if (
+    length(args) &&
+      (is.null(nms) || anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms))
+  ) {
     .odb_abort(paste0(label, " must have nonempty, unique names."))
   }
   invisible(args)

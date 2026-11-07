@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Keep the README app focused on sign-in and a PostgreSQL query. Ship that
+  minimal example in the package with Docker run instructions. Runnable
+  demos keep their styled UI.
+
 * Use `alice` / `alice` and `bob` / `bob` for demo sign-in, with explicit
   username/password tables. Remove "Your" from cloud demo titles and keep
   sign-in guidance in sync with completed queries and warehouse selection.

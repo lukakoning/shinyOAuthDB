@@ -10,7 +10,12 @@ if (
 }
 
 paths <- c(
-  list.files("playground", pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
+  list.files(
+    "playground",
+    pattern = "\\.R$",
+    full.names = TRUE,
+    recursive = TRUE
+  )
 )
 
 for (path in paths) {
