@@ -79,7 +79,7 @@ for the supported build and connection lifetime.
 
 The [native regression checks](native/tests/regression.R) exercise cleanup
 and connection isolation against the installed package. The independent
-[GitHub Actions lane](../../.github/workflows/postgres-integration.yaml)
+[GitHub Actions lane](../../.github/workflows/integration.yaml)
 runs the native and browser suites and records sanitized assertion counts
 under `.generated/results.json`; any warning or skipped test fails the lane.
 

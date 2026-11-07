@@ -39,9 +39,9 @@ test_that("OpenSearch preserves search metadata, nested documents and exact inte
     expect_output(print(api), "<OAuthOpenSearchAPI>")
     expect_identical(requests[[1L]]$body$data, body)
   })
-  expect_match(
-    requests[[1L]]$url,
-    "/proxy/orders-%2A%2Carchive/_search\\?track_total_hits=true$"
+  expect_identical(
+    utils::URLdecode(requests[[1L]]$url),
+    "https://search.example/proxy/orders-*,archive/_search?track_total_hits=true"
   )
   expect_identical(requests[[1L]]$method, "POST")
   expect_false(requests[[1L]]$options$followlocation)

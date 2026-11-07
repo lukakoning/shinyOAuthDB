@@ -1,0 +1,14 @@
+[lint.undesirable_operator]
+# Callbacks update enclosing session state and test fixtures with <<-.
+operators = ["->>", ":::"]
+
+[lint.per-file-ignores]
+# These functions are sourced into the live acceptance runner.
+"tests/integration/cloud-credentials.R" = ["unused_function"]
+# These cases exercise rejection of duplicate argument names.
+"tests/testthat/test-api.R" = ["duplicated_arguments"]
+"tests/testthat/test-auth.R" = ["duplicated_arguments"]
+"tests/testthat/test-core.R" = ["duplicated_arguments"]
+"tests/testthat/test-cratedb.R" = ["duplicated_arguments"]
+# ODBC validation deliberately accepts only the exact AsIs class.
+"R/odbc.R" = ["class_equals"]

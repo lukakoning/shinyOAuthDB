@@ -195,6 +195,7 @@ check_demo <- function() {
     )
     stopifnot(!length(containers))
   }
+  options(chromote.timeout = 60)
   chrome <- chromote::Chromote$new()
   value <- function(browser, js) {
     browser$Runtime$evaluate(js, returnByValue = TRUE)$result$value

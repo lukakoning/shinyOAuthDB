@@ -8,7 +8,9 @@ test_that("custom cleanup runs once per native object through replacement, logou
     con <- oauth_db_connect(
       selected,
       connect = function(token) new.env(),
-      disconnect = function(value) cleaned[[length(cleaned) + 1L]] <<- value
+      disconnect = function(value) {
+        cleaned[[length(cleaned) + 1L]] <<- value
+      }
     )
     first <- con()
     expect_identical(con(), first)

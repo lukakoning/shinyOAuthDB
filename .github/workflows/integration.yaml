@@ -1,0 +1,189 @@
+name: Integration
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  keycloak:
+    name: ${{ matrix.database }} / Keycloak / browser
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [postgrest, trino, starrocks, minilake]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: shinyOAuthDB
+      - uses: actions/checkout@v6
+        with:
+          repository: lukakoning/shinyOAuth
+          ref: 42176847f6ab82c2b49095f81a829cdd8ce60260
+          path: shinyOAuth
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: Cache the R and browser test runner
+        uses: docker/build-push-action@v6
+        with:
+          context: shinyOAuthDB/integration/local
+          target: runner
+          tags: shinyoauthdb-local-runner:1
+          load: true
+          cache-from: type=gha,scope=${{ matrix.database }}-runner
+          cache-to: type=gha,mode=max,scope=${{ matrix.database }}-runner
+      - name: Run database and Keycloak browser tests
+        working-directory: shinyOAuthDB
+        env:
+          OAUTHDB_SKIP_BASE_BUILD: "1"
+        run: bash integration/local/run-integration.sh ${{ matrix.database }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.database }}-oauth-results
+          path: shinyOAuthDB/integration/${{ matrix.database }}-keycloak/.generated/results.json
+          include-hidden-files: true
+          if-no-files-found: warn
+
+  postgres-keycloak:
+    name: PostgreSQL 18 / Keycloak / real browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out shinyOAuthDB
+        uses: actions/checkout@v6
+        with:
+          path: shinyOAuthDB
+
+      - name: Check out shinyOAuth
+        uses: actions/checkout@v6
+        with:
+          repository: lukakoning/shinyOAuth
+          ref: 42176847f6ab82c2b49095f81a829cdd8ce60260
+          path: shinyOAuth
+          persist-credentials: false
+
+      - name: Run native and browser integration tests
+        working-directory: shinyOAuthDB
+        shell: bash
+        run: bash integration/postgres-keycloak/run-integration.sh
+
+      - name: Upload sanitized test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-oauth-results
+          path: |
+            shinyOAuthDB/integration/postgres-keycloak/.generated/results.json
+            shinyOAuthDB/integration/postgres-keycloak/.generated/*coverage*
+          include-hidden-files: true
+          if-no-files-found: ignore
+
+  clickhouse-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: shinyOAuthDB
+      - uses: actions/checkout@v6
+        with:
+          repository: lukakoning/shinyOAuth
+          ref: 42176847f6ab82c2b49095f81a829cdd8ce60260
+          path: shinyOAuth
+          persist-credentials: false
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: shinyOAuthDB
+          dependencies: 'FALSE'
+          extra-packages: any::processx
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: shinyOAuthDB/integration/local
+          target: runner
+          tags: shinyoauthdb-local-runner:1
+          load: true
+          cache-from: type=gha,scope=clickhouse-runner
+          cache-to: type=gha,mode=max,scope=clickhouse-runner
+      - name: Build fixture CA initializer
+        working-directory: shinyOAuthDB
+        run: docker build --target tls --tag shinyoauthdb-local-tls:1 integration/local
+      - name: Test public HTTPS queries and non-replayed writes
+        working-directory: shinyOAuthDB
+        env:
+          OAUTHDB_SKIP_BASE_BUILD: '1'
+        run: Rscript --vanilla tools/check-clickhouse-http.R
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clickhouse-http-results
+          path: shinyOAuthDB/integration/clickhouse-http/.generated/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  adapters:
+    name: ${{ matrix.check }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {check: duckdb, os: ubuntu-latest}
+          - {check: duckdb, os: windows-latest}
+          - {check: duckdb-oauth, os: ubuntu-latest}
+          - {check: libsql-oauth, os: ubuntu-latest}
+          - {check: cratedb-oauth, os: ubuntu-latest}
+          - {check: opensearch-oauth, os: ubuntu-latest}
+          - {check: clickhouse-parameters, os: ubuntu-latest}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: 'c("Depends", "Imports", "LinkingTo")'
+          extra-packages: |
+            any::pkgbuild
+            any::pkgload
+            any::testthat
+            any::duckdb
+            any::dbplyr
+            any::dplyr
+            any::jsonlite
+            any::processx
+            any::withr
+            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+          needs: integration
+          install-pandoc: false
+          install-quarto: false
+      - name: Test the real server, authentication and transport
+        run: Rscript --vanilla tools/check-${{ matrix.check }}.R
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adapter-${{ matrix.check }}-${{ matrix.os }}
+          path: |
+            .validation/
+            integration/*/.generated/
+          include-hidden-files: true
+          if-no-files-found: warn

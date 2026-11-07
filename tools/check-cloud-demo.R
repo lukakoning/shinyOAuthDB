@@ -273,6 +273,7 @@ check_cloud_demo <- function(platform) {
     }
     Sys.sleep(0.1)
   }
+  options(chromote.timeout = 60)
   chrome <- chromote::Chromote$new()
   value <- function(browser, js) {
     browser$Runtime$evaluate(js, returnByValue = TRUE)$result$value

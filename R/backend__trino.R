@@ -135,7 +135,7 @@ oauth_db_trino <- function(
     )
     if (
       !is.list(headers) ||
-        any(!grepl("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$", names(headers)))
+        !all(grepl("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$", names(headers)))
     ) {
       .odb_abort(
         "extra.headers must be a named list with valid HTTP header names."

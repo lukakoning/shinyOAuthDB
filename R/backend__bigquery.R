@@ -578,7 +578,7 @@ oauth_db_bigquery_client <- function(
       anyNA(types) ||
       length(types) &&
         (is.null(names(types)) ||
-          any(!nzchar(names(types))) ||
+          !all(nzchar(names(types))) ||
           anyDuplicated(names(types)) ||
           !all(names(types) %in% names(parameters)))
   ) {

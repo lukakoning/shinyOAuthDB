@@ -143,7 +143,7 @@ postgres_browser_setup <- function(
       # Startup precedes every browser login. Retain only the R error condition
       # and its continuation; omit endpoint URLs and all unrelated child logs.
       lines <- process$read_error_lines()
-      index <- which(grepl("^Error([ :]| in )", lines))
+      index <- grep("^Error([ :]| in )", lines)
       diagnostic <- if (length(index)) {
         start <- tail(index, 1L)
         condition_lines <- lines[seq.int(start, min(start + 8L, length(lines)))]

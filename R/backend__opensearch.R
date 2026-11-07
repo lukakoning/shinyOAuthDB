@@ -101,7 +101,7 @@ oauth_db_opensearch_api <- function(
           !is.character(index) ||
             !length(index) ||
             anyNA(index) ||
-            any(!nzchar(index))
+            !all(nzchar(index))
         ) {
           .odb_abort("index must be NULL or nonempty index names or patterns.")
         }

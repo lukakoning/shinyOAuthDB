@@ -209,7 +209,7 @@ oauth_db_libsql_api <- function(
   nms <- names(parameters)
   if (!is.null(nms)) {
     .odb_named_args(parameters, "parameters")
-    if (any(!grepl("^[:@$]?[A-Za-z_][A-Za-z0-9_]*$", nms))) {
+    if (!all(grepl("^[:@$]?[A-Za-z_][A-Za-z0-9_]*$", nms))) {
       .odb_abort("Invalid SQLite parameter name.")
     }
   }

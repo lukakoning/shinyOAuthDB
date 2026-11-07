@@ -9,7 +9,7 @@ live_apply_config <- function(
     !is.list(config) ||
       is.null(names(config)) ||
       anyDuplicated(names(config)) ||
-      any(!grepl("^OAUTHDB_[A-Z][A-Z0-9_]*$", names(config))) ||
+      !all(grepl("^OAUTHDB_[A-Z][A-Z0-9_]*$", names(config))) ||
       any(grepl(
         "TOKEN|SECRET|PASSWORD|LIVE_TESTS|CREDENTIAL_MODE",
         names(config)

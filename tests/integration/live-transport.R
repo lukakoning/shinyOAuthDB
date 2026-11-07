@@ -142,7 +142,7 @@ run_live_transport <- function(fixture) {
       !is.character(fixture$users) ||
       !identical(names(fixture$users), c("A", "B")) ||
       anyNA(fixture$users) ||
-      any(!nzchar(fixture$users)) ||
+      !all(nzchar(fixture$users)) ||
       anyDuplicated(fixture$users)
   ) {
     stop(

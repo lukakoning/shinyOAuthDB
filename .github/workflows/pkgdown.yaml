@@ -12,6 +12,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled
@@ -29,14 +30,14 @@ jobs:
             github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
           needs: website
       - name: Build pkgdown site
-        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
+        run: pkgdown::build_site_github_pages(dest_dir = "_site", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request'
         with:
           path: _site
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     needs: build
     runs-on: ubuntu-latest
     permissions:

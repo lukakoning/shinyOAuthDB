@@ -1,6 +1,8 @@
 # Repository validation without installing into the user's normal library.
 # Run from the repository root: Rscript --vanilla tools/check-package.R
 arguments <- commandArgs(trailingOnly = TRUE)
+tests_only <- "--tests-only" %in% arguments
+arguments <- setdiff(arguments, "--tests-only")
 if (length(arguments)) {
   .libPaths(c(arguments, .libPaths()))
 }
@@ -45,6 +47,9 @@ results <- testthat::test_local(
 )
 counts <- as.data.frame(results)
 validation_check_results(counts, output)
+if (tests_only) {
+  quit(status = 0L)
+}
 check <- rcmdcheck::rcmdcheck(
   root,
   args = "--no-manual",

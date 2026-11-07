@@ -1,4 +1,5 @@
-Run the full package validation from the repository root:
+See the [CI workflow map](../.github/README.md) for job groups, platforms and
+triggers. Run package validation from the repository root:
 
 ```sh
 Rscript --vanilla tools/test-validation.R
@@ -6,7 +7,6 @@ Rscript --vanilla tools/test-docs.R
 Rscript --vanilla tools/test-integration.R
 Rscript --vanilla tools/test-provenance.R
 Rscript --vanilla tools/test-live.R
-Rscript --vanilla tools/test-mutations.R
 Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
@@ -49,7 +49,7 @@ With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a
 real ClickHouse engine. It runs local SQL without a Cloud account or JWT
 configuration. Set `OAUTHDB_CLICKHOUSE_TEST_IMAGE` to use another Docker image.
-The Linux package workflow runs this real-engine parameter check.
+The integration workflow runs this real-engine parameter check on Linux.
 `Rscript tools/check-clickhouse-http.R` additionally checks the public API
 helper, real HTTPS, typed results, local grants and dropped/delayed write
 responses in an isolated [Docker fixture](../integration/clickhouse-http/README.md).
@@ -69,7 +69,7 @@ and the stop button. It needs Docker, Chrome, pkgbuild, callr and chromote.
 Use `postgrest`, `trino`, `starrocks`, `duckdb`, `libsql`, `cratedb` or
 `opensearch` to check another demo; run one at a
 time because they use the same loopback ports. The
-[packaged demo workflow](../.github/workflows/packaged-demos.yaml) runs each
+[demo workflow](../.github/workflows/demos.yaml) runs each
 in a separate job and retains logs under `.validation/demos/`.
 The DuckDB, libSQL and CrateDB examples share a read-only table between
 accounts; OpenSearch filters documents per user. These four checks also
@@ -101,7 +101,7 @@ Cloud SQL/API operations are mocked; OAuth, the installed app and its native
 R process are real. The test verifies no implicit SQL, per-user output,
 sign-out cleanup and credential-free generated files. Native database
 drivers and real cloud registrations remain outside this fixture's scope.
-The dedicated cloud-demo workflow runs all eight without cloud credentials.
+The demo workflow runs all eight without cloud credentials.
 
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty
@@ -116,8 +116,9 @@ and compiled objects are excluded from the manifest.
 SDKs and synthetic authorization, plus the cloud runner's identity, denial,
 replacement and cleanup rules. It makes no cloud requests.
 
-Curated guard mutations run on relevant pull requests. Weekly AST campaigns
-also mutate ClickHouse, PostgREST and Fabric implementations. A new survivor
+Mutation testing is optional local tooling and is not run by GitHub Actions.
+Run `Rscript --vanilla tools/test-mutations.R` to check its policy, or use
+`check-mutations.R` and `check-mutator.R` for local campaigns. A new survivor
 fails the campaign; a timeout remains inconclusive and cannot be allowlisted.
 Only a reviewed equivalent survivor with the exact profile, original-source
 SHA-256, mutant SHA-256 and explanation in `mutation-baseline.csv` is accepted.
@@ -126,7 +127,9 @@ and add a useful regression before considering an equivalence exception.
 
 `check-package.R` checks dependency availability and declared minimum versions,
 then runs the source suite. Any failure, error, warning, skipped scenario or
-empty test run fails validation. The subsequent R CMD check must have zero
+empty test run fails validation. Pass `--tests-only` to stop after that suite;
+CI uses this option before the standard `check-r-package` action. The subsequent
+R CMD check must have zero
 errors, warnings and notes. `test-validation.R` verifies that missing/outdated
 dependencies and incomplete results really are rejected.
 
@@ -138,11 +141,12 @@ Results are retained in the ignored `.validation/` directory:
 - `coverage.rds`, `coverage-lines.csv` and `coverage-summary.json`: coverage
   details with separate R and C line counts.
 
-The package-check workflow uploads these artifacts separately for Windows and
-Linux. Linux also collects coverage. It installs all direct dependencies and
-pins shinyOAuth to the same revision as the local integration workflows.
+The R-CMD-check workflow uploads source-test artifacts for each OS/R combination
+and retains the standard action's check logs. The quality workflow collects
+coverage in an independent Linux job. Both install all direct dependencies and
+pin shinyOAuth to the same revision as the local integration workflows.
 
-The minimum-backends workflow installs brickster 0.2.14, fabricQueryR 1.0.1,
+The compatibility workflow installs brickster 0.2.14, fabricQueryR 1.0.1,
 RTrino 0.1.0, or odbc 1.4.2 in separate jobs and runs the full source suite.
 The odbc job uses R 4.5 because its configure script requires `CXX11`, which
 R 4.6 removed. The other jobs use the current R release.

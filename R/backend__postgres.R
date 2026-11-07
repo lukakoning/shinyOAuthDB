@@ -159,7 +159,7 @@ oauth_db_postgres <- function(
   if (
     startsWith(scope, " ") ||
       endsWith(scope, " ") ||
-      any(!nzchar(scopes)) ||
+      !all(nzchar(scopes)) ||
       anyDuplicated(scopes) ||
       grepl("[\t\r\n]", scope)
   ) {

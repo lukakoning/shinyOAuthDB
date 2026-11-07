@@ -28,7 +28,7 @@
   nms <- names(args)
   if (
     length(args) &&
-      (is.null(nms) || anyNA(nms) || any(!nzchar(nms)) || anyDuplicated(nms))
+      (is.null(nms) || anyNA(nms) || !all(nzchar(nms)) || anyDuplicated(nms))
   ) {
     .odb_abort(paste0(label, " must have nonempty, unique names."))
   }

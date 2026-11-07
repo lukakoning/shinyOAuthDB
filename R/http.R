@@ -36,7 +36,7 @@
     !is.character(path) ||
       !length(path) ||
       anyNA(path) ||
-      any(!nzchar(path)) ||
+      !all(nzchar(path)) ||
       any(path %in% c(".", "..")) ||
       any(grepl("[/\\\\[:cntrl:]]", path))
   ) {
@@ -59,15 +59,13 @@
     .odb_abort("Reserved HTTP query option name.")
   }
   if (
-    any(
-      !vapply(
-        query,
-        function(x) {
-          is.atomic(x) && length(x) == 1L && !is.na(x) && !is.object(x)
-        },
-        logical(1)
-      )
-    )
+    !all(vapply(
+      query,
+      function(x) {
+        is.atomic(x) && length(x) == 1L && !is.na(x) && !is.object(x)
+      },
+      logical(1)
+    ))
   ) {
     .odb_abort(
       "Each query value must be one non-missing string, number, or logical value."

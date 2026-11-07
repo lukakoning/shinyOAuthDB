@@ -264,20 +264,16 @@ oauth_db_cratedb_api <- function(
       !is.list(result$col_types) ||
       !is.list(result$rows) ||
       length(result$cols) != length(result$col_types) ||
-      any(
-        !vapply(
-          result$cols,
-          function(x) is.character(x) && length(x) == 1L && !is.na(x),
-          logical(1)
-        )
-      ) ||
-      any(
-        !vapply(
-          result$rows,
-          function(x) is.list(x) && length(x) == length(result$cols),
-          logical(1)
-        )
-      ) ||
+      !all(vapply(
+        result$cols,
+        function(x) is.character(x) && length(x) == 1L && !is.na(x),
+        logical(1)
+      )) ||
+      !all(vapply(
+        result$rows,
+        function(x) is.list(x) && length(x) == length(result$cols),
+        logical(1)
+      )) ||
       length(result$cols) &&
         result$rowcount >= 0 &&
         result$rowcount != length(result$rows)
@@ -328,19 +324,17 @@ oauth_db_cratedb_api <- function(
     return(values)
   }
   if (type == 0L) {
-    if (any(!vapply(values, is.null, logical(1)))) {
+    if (!all(vapply(values, is.null, logical(1)))) {
       .odb_abort("CrateDB returned a non-null NULL value.", "invalid_response")
     }
     return(rep(NA, length(values)))
   }
   if (
-    any(
-      !vapply(
-        values,
-        function(x) is.null(x) || is.atomic(x) && length(x) == 1L,
-        logical(1)
-      )
-    )
+    !all(vapply(
+      values,
+      function(x) is.null(x) || is.atomic(x) && length(x) == 1L,
+      logical(1)
+    ))
   ) {
     .odb_abort(
       "CrateDB returned a non-scalar value for a scalar column.",
@@ -349,14 +343,14 @@ oauth_db_cratedb_api <- function(
   }
   if (type == 3L) {
     if (
-      any(!vapply(values, function(x) is.null(x) || is.logical(x), logical(1)))
+      !all(vapply(values, function(x) is.null(x) || is.logical(x), logical(1)))
     ) {
       .odb_abort("CrateDB returned an invalid boolean.", "invalid_response")
     }
     return(vapply(values, function(x) if (is.null(x)) NA else x, logical(1)))
   }
   if (
-    any(!vapply(values, function(x) is.null(x) || is.character(x), logical(1)))
+    !all(vapply(values, function(x) is.null(x) || is.character(x), logical(1)))
   ) {
     .odb_abort(
       "CrateDB returned an unexpected scalar type.",

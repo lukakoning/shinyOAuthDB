@@ -5,7 +5,7 @@ mutation_check_baseline <- function(details, baseline, profile) {
       !nrow(details) ||
       !all(fields %in% names(details)) ||
       anyNA(details[fields]) ||
-      any(!details$status %in% c("KILLED", "SURVIVED", "HANG"))
+      !all(details$status %in% c("KILLED", "SURVIVED", "HANG"))
   ) {
     stop("Mutation results must be complete and conclusive.", call. = FALSE)
   }
@@ -15,7 +15,7 @@ mutation_check_baseline <- function(details, baseline, profile) {
       !all(required %in% names(baseline)) ||
       anyNA(baseline[required]) ||
       any(baseline$status != "SURVIVED") ||
-      any(!nzchar(trimws(baseline$reason)))
+      !all(nzchar(trimws(baseline$reason)))
   ) {
     stop(
       "A reviewed baseline permits only explained surviving mutants.",

@@ -190,7 +190,7 @@ oauth_db_clickhouse_api <- function(
   if (!length(parameters)) {
     return(list())
   }
-  if (any(!grepl("^[A-Za-z_][A-Za-z0-9_]*$", names(parameters)))) {
+  if (!all(grepl("^[A-Za-z_][A-Za-z0-9_]*$", names(parameters)))) {
     .odb_abort("Invalid ClickHouse parameter name.")
   }
   values <- lapply(parameters, function(value) {
@@ -327,13 +327,11 @@ oauth_db_clickhouse_api <- function(
     return(values)
   }
   if (
-    any(
-      !vapply(
-        values,
-        function(x) is.null(x) || is.atomic(x) && length(x) == 1L,
-        logical(1)
-      )
-    )
+    !all(vapply(
+      values,
+      function(x) is.null(x) || is.atomic(x) && length(x) == 1L,
+      logical(1)
+    ))
   ) {
     .odb_abort(
       "ClickHouse returned a non-scalar value for a scalar column.",

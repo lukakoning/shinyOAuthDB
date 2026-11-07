@@ -416,7 +416,7 @@ oauth_db_fabric_api <- function(
       !is.character(audience) ||
         !length(audience) ||
         anyNA(audience) ||
-        any(!nzchar(audience)) ||
+        !all(nzchar(audience)) ||
         any(grepl("[[:space:]]", audience))
     ) {
       .odb_abort(

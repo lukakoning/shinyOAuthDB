@@ -193,7 +193,7 @@ fabric_demo_shared_token <- function() {
     "FABRICQUERYR_CLIENT_ID",
     "FABRICQUERYR_CLIENT_SECRET"
   ))
-  if (any(!nzchar(settings))) {
+  if (!all(nzchar(settings))) {
     stop(
       "Set all three FABRICQUERYR_* sandbox credentials or configure delegated sign-in."
     )

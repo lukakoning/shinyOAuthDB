@@ -272,7 +272,7 @@ local({
     !expected ||
       nrow(details) != expected ||
       result$summary$tested != expected ||
-      any(!details$status %in% c("KILLED", "SURVIVED", "HANG"))
+      !all(details$status %in% c("KILLED", "SURVIVED", "HANG"))
   ) {
     stop(
       "The mutation campaign did not produce complete results.",

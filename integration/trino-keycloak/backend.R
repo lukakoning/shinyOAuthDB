@@ -106,9 +106,9 @@ fixture_backend <- list(
           abs(
             as.numeric(rows$time_value) -
               as.numeric(as.POSIXct("2020-02-29 12:34:56", tz = "UTC")) -
-              .123
+              0.123
           ) <
-            .0001,
+            0.0001,
         empty = nrow(empty) == 0L && identical(names(empty), "value")
       )
     )

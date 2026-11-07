@@ -67,7 +67,7 @@
   if (
     !is.character(value) ||
       anyNA(value) ||
-      any(!nzchar(value)) ||
+      !all(nzchar(value)) ||
       any(grepl("[[:space:]]", value))
   ) {
     .odb_abort(paste0(

@@ -23,7 +23,7 @@ readme_example <- function(title) {
   following <- which(seq_along(lines) > start & grepl("^## ", lines))
   end <- if (length(following)) following[[1L]] - 1L else length(lines)
   section <- lines[seq.int(start, end)]
-  fences <- which(grepl("^```", section))
+  fences <- grep("^```", section)
   for (i in seq.int(1L, length(fences), by = 2L)) {
     code <- section[seq.int(fences[[i]] + 1L, fences[[i + 1L]] - 1L)]
     if ("library(shiny)" %in% code) {

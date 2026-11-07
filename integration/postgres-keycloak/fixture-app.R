@@ -298,9 +298,9 @@ postgres_browser_app <- function(config) {
               abs(
                 as.numeric(typed$instant) -
                   as.numeric(as.POSIXct("2020-02-29 12:34:56", tz = "UTC")) -
-                  .125
+                  0.125
               ) <
-                .0001
+                0.0001
           ))
         },
         error = function(e) {

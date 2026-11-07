@@ -1,0 +1,138 @@
+name: Demos
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'R/**'
+      - 'inst/**'
+      - 'src/**'
+      - 'configure*'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - 'tools/check-demos.R'
+      - 'tools/check-cloud-demo.R'
+      - 'tests/testthat/*cloud*'
+      - '.github/workflows/demos.yaml'
+  pull_request:
+    paths:
+      - 'R/**'
+      - 'inst/**'
+      - 'src/**'
+      - 'configure*'
+      - 'DESCRIPTION'
+      - 'NAMESPACE'
+      - 'tools/check-demos.R'
+      - 'tools/check-cloud-demo.R'
+      - 'tests/testthat/*cloud*'
+      - '.github/workflows/demos.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packaged:
+    name: Packaged / ${{ matrix.database }} / ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch]
+        app: [docker]
+        include:
+          - {database: postgrest, app: local}
+          - {database: trino, app: local}
+          - {database: duckdb, app: local}
+          - {database: libsql, app: local}
+          - {database: cratedb, app: local}
+          - {database: opensearch, app: local}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: 'c("Depends", "Imports")'
+          extra-packages: |
+            any::bslib
+            any::pkgbuild
+            any::callr
+            any::chromote
+            any::jsonlite
+            any::RTrino
+            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+      - name: Install the matching local DuckDB client
+        if: matrix.database == 'duckdb' && matrix.app == 'local'
+        run: Rscript --vanilla inst/docker/install-duckdb.R
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: stable
+          install-dependencies: true
+      - name: Test the installed demo and real sign-in
+        env:
+          CHROMOTE_CHROME: ${{ steps.chrome.outputs.chrome-path }}
+        run: Rscript --vanilla tools/check-demos.R ${{ matrix.database }} ${{ matrix.app }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demo-${{ matrix.database }}-${{ matrix.app }}
+          path: .validation/demos/
+          include-hidden-files: true
+          if-no-files-found: error
+
+  cloud:
+    name: Cloud demo / ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [databricks, fabric, bigquery, snowflake, azure-sql, azure-postgres, redshift, clickhouse]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: 'c("Depends", "Imports")'
+          extra-packages: |
+            any::bslib
+            any::brickster
+            any::processx
+            any::callr
+            any::pkgbuild
+            any::testthat
+            any::chromote
+            any::jsonlite
+            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+      - uses: browser-actions/setup-chrome@v2
+        id: chrome
+        with:
+          chrome-version: stable
+          install-dependencies: true
+      - name: Check real browser sign-in with a local OAuth fixture
+        env:
+          CHROMOTE_CHROME: ${{ steps.chrome.outputs.chrome-path }}
+        run: Rscript --vanilla tools/check-cloud-demo.R ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-demo-browser-${{ matrix.platform }}
+          path: .validation/cloud-demo/${{ matrix.platform }}/
+          if-no-files-found: error

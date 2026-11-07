@@ -30,10 +30,13 @@ builds the vignettes, and runs `R CMD check --no-manual`. Supply an extra
 dependency library as a positional argument if needed. These checks use
 mocked cloud responses; they do not start browser sign-in or cloud resources.
 
-The [package-checks workflow](../.github/workflows/package-checks.yaml) runs
-both commands on Windows and Linux with the current R release. It runs for
-pull requests and pushes to `main` or `master`; you can also start it manually
-from GitHub Actions.
+The [R-CMD-check workflow](../.github/workflows/R-CMD-check.yaml) runs the source
+suite and the standard R package check action on Windows, macOS and Linux.
+Linux also checks R devel and oldrel-1. The
+[quality workflow](../.github/workflows/quality.yaml) checks documentation and
+validation tools on Windows and Linux, runs Air and Jarl, and collects coverage
+in a separate Linux job. Both run for pull requests and pushes to `main` or
+`master`, and support manual dispatch. See the [workflow map](../.github/README.md).
 
 After editing roxygen comments, regenerate help pages:
 
@@ -100,12 +103,11 @@ failed assertions in its named regression test. An error, skipped scenario,
 invalid patch or passing mutant fails validation. Warnings caused by a mutant
 are recorded; they cannot substitute for a failed assertion.
 
-The independent [mutation workflow](../.github/workflows/mutation-checks.yaml)
-runs weekly and on manual dispatch. Results are retained under
+Mutation testing does not run in GitHub Actions. Local results are retained under
 `.validation/mutations/`. This checks four specific protections; it is not a
 package-wide mutation score. Your checkout is never modified by the runner.
 
-The same workflow also runs generated AST mutations using
+You can also run generated AST mutations locally using
 [`mutator`](https://prl-prg.github.io/mutator/) 0.3.0. Install it in your
 development library, then choose a campaign:
 
@@ -135,14 +137,11 @@ source hashes, tool version, selected tests and sampling settings.
 | `OAUTHDB_MUTATOR_TIMEOUT` | `240` | Seconds allowed per mutant |
 | `OAUTHDB_MUTATOR_OUTPUT` | `.validation/mutator` | Report parent directory |
 
-The five focused CI campaigns run independently. Transport, BigQuery and
-Trino sample 60 mutants each; lifecycle samples 20 and ODBC samples 40 to
-limit the cost of their broader test suites. Each job has a 60-minute cap.
-Artifacts include baseline assertion counts, mutation summaries, individual
-outcomes, original R files and the sampled mutant sources. A missing baseline,
-failed/skipped baseline test or incomplete campaign fails the job. Survivors
+Local campaign reports include baseline assertion counts, mutation summaries,
+individual outcomes, original R files and the sampled mutant sources. A missing
+baseline, failed/skipped baseline test or incomplete campaign fails the run. Survivors
 remain in the report for review; there is no perfect-score gate or blanket
-exclusion of surviving lines. The four named guard checks remain mandatory.
+exclusion of surviving lines. The curated runner requires its named guard checks.
 
 Mutator's `KILLED` category includes execution errors as well as test failures;
 `HANG` is reported separately. Inspect a survivor's edit and add a behavioral
@@ -160,7 +159,7 @@ behavior.
 
 ## Compatibility lanes
 
-The [minimum workflow](../.github/workflows/minimum-compatibility.yaml) runs
+The [compatibility workflow](../.github/workflows/compatibility.yaml) runs
 the core authorization, lifecycle, SQLite and HTTP API tests on R 4.1.0 and
 the current R release. It requires exactly DBI 1.2.0, httr2 1.2.0, Shiny 1.8.1
 and curl 6.4.0. The R 4.1.0 job uses testthat 3.2.0; the current R job uses
@@ -168,7 +167,7 @@ the current testthat release. It fails if the pinned dependency
 versions drift, if tests are skipped, or if any assertion, error or warning
 fails validation. Versions and counts are retained in `.validation/minimum/`.
 
-The [minimum backend workflow](../.github/workflows/minimum-backends.yaml)
+The same workflow's minimum backend matrix
 tests actual SDK releases in four separate jobs: brickster 0.2.14,
 fabricQueryR 1.0.1, RTrino 0.1.0, and odbc 1.4.2. The odbc job uses R 4.5
 because its configure script requires `CXX11`, which R 4.6 removed; the other
@@ -185,8 +184,7 @@ to reproduce a backend job locally. These jobs test one SDK minimum at a time;
 they use newer core dependencies than the R 4.1.0 lane when an SDK needs them.
 
 Routine package and Docker workflows use the same pinned shinyOAuth revision.
-The independent [upstream workflow](../.github/workflows/upstream-compatibility.yaml)
-runs the full tests and R CMD check weekly against shinyOAuth's current master
-and updated CRAN packages. Its failures identify upstream changes separately
-from the reproducible pull-request lanes. All of these workflows can run in
+Its independent upstream job runs the full tests and R CMD check weekly against
+shinyOAuth's current master and updated CRAN packages. Its failures identify upstream changes separately
+from the reproducible pull-request lanes. All of these jobs can run in
 parallel, and none provisions cloud resources.

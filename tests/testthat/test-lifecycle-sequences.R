@@ -151,7 +151,9 @@ test_that("NULL connectors fail without caching a handle and can recover", {
         opened <<- opened + 1L
         if (ready) list(token = token) else NULL
       },
-      disconnect = function(native) cleaned <<- cleaned + 1L
+      disconnect = function(native) {
+        cleaned <<- cleaned + 1L
+      }
     )
     expect_error(
       con(),

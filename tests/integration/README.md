@@ -22,7 +22,7 @@ use `oauth_db_azure_postgres()` for Entra authentication.
 
 The [PostgREST fixture](../../integration/postgrest-keycloak/README.md) runs real
 browser sign-in, HTTPS API calls, PostgreSQL row-level security and table grants.
-Its [separate workflow](../../.github/workflows/postgrest-integration.yaml) runs
+Its [integration job](../../.github/workflows/integration.yaml) runs
 independently of PostgreSQL integration. From the repository root:
 
 ```sh
@@ -36,7 +36,7 @@ On Windows, use `powershell -NoProfile -File integration/local/run-integration.p
 The [Trino fixture](../../integration/trino-keycloak/README.md) runs real OAuth2
 authentication, RTrino DBI queries and fetching, server-enforced row filters,
 denied impersonation, refresh and cleanup. Its
-[separate workflow](../../.github/workflows/trino-integration.yaml) runs
+[integration job](../../.github/workflows/integration.yaml) runs
 independently of the other integrations:
 
 ```sh
@@ -50,7 +50,7 @@ On Windows, use `powershell -NoProfile -File integration/local/run-integration.p
 The [StarRocks fixture](../../integration/starrocks-keycloak/README.md) exercises
 native JWT authentication through MySQL Connector/ODBC, verified TLS, per-user
 database grants and protected views, refresh, and connection cleanup. Its
-[separate workflow](../../.github/workflows/starrocks-integration.yaml) runs
+[integration job](../../.github/workflows/integration.yaml) runs
 independently of the other integrations:
 
 ```sh
@@ -70,7 +70,7 @@ bash integration/local/run-integration.sh minilake
 ```
 
 On Windows, use `integration/local/run-integration.ps1 -Backend minilake`.
-Its [independent workflow](../../.github/workflows/minilake-integration.yaml)
+Its [matrix job](../../.github/workflows/integration.yaml)
 runs alongside the other local suites. MiniLake accepts all tokens, does not
 enforce grants, uses DuckDB's dialect, and its pinned image ignores named SQL
 parameters. This lane tests client compatibility and bridge lifecycle behavior;

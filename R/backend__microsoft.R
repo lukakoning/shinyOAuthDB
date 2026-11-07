@@ -87,7 +87,7 @@ oauth_db_microsoft_client <- function(
     !is.character(services) ||
       !length(services) ||
       anyNA(services) ||
-      any(!services %in% names(profiles))
+      !all(services %in% names(profiles))
   ) {
     .odb_abort("Choose one or more supported Microsoft services.")
   }

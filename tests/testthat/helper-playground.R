@@ -155,7 +155,9 @@ playground_module <- function(calls) {
     calls$select("A")
     list(
       connection = selected,
-      request_login = function() calls$login <- calls$login + 1L,
+      request_login = function() {
+        calls$login <- calls$login + 1L
+      },
       logout = function() selected(NULL)
     )
   }
