@@ -1,5 +1,32 @@
 # Validation record
 
+## 7 November 2026: minimal app code in the README
+
+The README now shows 36 lines of R: OAuth client setup, sign-in/sign-out,
+a per-visitor PostgreSQL helper and one DBI query. The same example ships
+in `inst/examples/postgres/app.R`, with instructions for using the packaged
+Docker services. The runnable demos keep their styled layouts. All sixteen
+database guides were reviewed; their complete apps already use simple
+Shiny controls without CSS or layout panels.
+
+| Check | Result |
+| --- | --- |
+| Documented-app tests | 156 assertions across 21 scenarios; zero failures, errors, warnings or skips |
+| README/package consistency | Both parse to identical R expressions; the packaged file uses the repository's R formatting |
+| Installed-package browser check | The minimal app passes real Keycloak sign-in and native PostgreSQL queries for Alice and Bob; each sees only their rows, and sign-out clears the table |
+| Docker cleanup | Demo containers, network and database/TLS volumes are removed |
+| Documentation in the committed snapshot | 86 R blocks parse; 202 local links and 17 section anchors resolve |
+| Website | pkgdown builds; all README website targets, including the minimal-example anchor, exist |
+
+The signed-out tests caught that calling `con()` directly as a DBI argument
+wraps Shiny's wait-for-sign-in signal in a method dispatch error. The
+examples retain `connection <- con()` before the DBI call. Logs for this
+pass use `.validation/simple-examples-*.log`.
+Browser results and service logs are under `.validation/minimal-readme/`.
+
+Documentation was checked from an archive of `faeae61` to keep concurrent
+workflow edits in the working tree out of the link check.
+
 ## 7 November 2026: simpler sign-in and clearer demo names
 
 Demo credentials are now `alice` / `alice` and `bob` / `bob`. All four
