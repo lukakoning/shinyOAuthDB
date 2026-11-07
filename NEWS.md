@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add an Azure PostgreSQL cloud demo with Entra user/group-role mapping,
+  a trusted CA bundle and RPostgres connections.
+
 * Add an Azure SQL cloud demo with Entra database-principal and networking
   guidance, and separate local Shiny and database ports.
 

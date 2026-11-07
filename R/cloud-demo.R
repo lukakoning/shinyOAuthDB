@@ -5,7 +5,7 @@
 #' in through shinyOAuth and use their own cloud data permissions.
 #'
 #' @param platform Cloud platform: `"databricks"`, `"fabric"`, `"bigquery"`
-#'   `"snowflake"` or `"azure-sql"`.
+#'   `"snowflake"`, `"azure-sql"` or `"azure-postgres"`.
 #' @param host Databricks workspace hostname or browser URL. Paths, queries and
 #'   fragments are removed. For other SQL demos, an alias for `server`.
 #' @param client_id Client ID from your custom OAuth app registration.
@@ -31,6 +31,8 @@
 #'   `warehouse` and optionally `database`, `schema`, `driver`.
 #'   Azure SQL uses `server`, `database`, `tenant_id` and optionally `driver`,
 #'   `database_port` (the SQL port, distinct from the local Shiny `port`).
+#'   Azure PostgreSQL uses `server`, `database`, `user`, `sslrootcert`,
+#'   `tenant_id` and optionally `database_port`.
 #'   See the guided cloud demos vignette.
 #' @return Invisibly, the demo directory, including after pausing incomplete
 #'   interactive setup. Noninteractive starts report missing settings as errors.

@@ -1,5 +1,6 @@
 .odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery(),
-  snowflake = .odb_cloud_spec_snowflake(), `azure-sql` = .odb_cloud_spec_azure_sql())
+  snowflake = .odb_cloud_spec_snowflake(), `azure-sql` = .odb_cloud_spec_azure_sql(),
+  `azure-postgres` = .odb_cloud_spec_azure_postgres())
 
 .odb_cloud_field <- function(label, help, type = "text", default = NULL) {
   list(label = label, help = help, type = type, default = default)
@@ -141,6 +142,7 @@
   if (type == "bytes" && !grepl("^[0-9]+$", value)) cli::cli_abort("Supply the maximum billed bytes as a non-negative integer string.")
   if (type == "role" && !grepl("^[A-Za-z_][A-Za-z0-9_$]*$", value)) cli::cli_abort("This demo uses a simple unquoted Snowflake role name. Copy its exact name, without spaces.")
   if (type == "odbc") .odb_odbc_values(list(value))
+  if (type == "path" && file.exists(value)) value <- normalizePath(value, winslash = "/", mustWork = TRUE)
   value
 }
 

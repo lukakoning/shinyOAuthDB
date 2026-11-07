@@ -111,6 +111,21 @@ test_that("Azure SQL separates the database port from the Shiny callback", {
   expect_identical(binding$args$server, "example.database.windows.net")
 })
 
+test_that("Azure PostgreSQL preserves the mapped role, CA and PostgreSQL target", {
+  app <- cloud_platform_app("azure-postgres")
+  expect_named(app$client@token_targets, "postgres")
+  local_mocked_bindings(.odb_bind = capture_backend)
+  binding <- app$make_access(function() NULL)
+  expect_identical(binding$target, "postgres")
+  expect_identical(binding$args$user, "reporting-readers")
+  expect_identical(binding$args$sslrootcert, "fixture-root-ca.pem")
+  expect_identical(binding$args$port, 5432L)
+  path <- tempfile()
+  writeLines("fixture CA placeholder", path)
+  on.exit(unlink(path), add = TRUE)
+  expect_identical(.odb_cloud_value(path, "path"), normalizePath(path, winslash = "/"))
+})
+
 for (cloud_platform in names(cloud_platform_settings())) local({
   platform <- cloud_platform
   test_that(paste(platform, "app constructs its real client and waits for an explicit query"), {

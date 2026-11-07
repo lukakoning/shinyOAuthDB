@@ -16,6 +16,27 @@ for you. Connect a Shiny app to Azure Database for PostgreSQL using each visitor
 Microsoft account. Queries use RPostgres connections, so you can keep your
 usual DBI or dbplyr code.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("azure-postgres")` in your R console.
+The guide asks for `server`, `database`, mapped database `user` role,
+`sslrootcert` (a local trusted CA bundle), Entra `tenant_id` and `client_id`.
+It explains the difference between registering the Shiny app and creating
+the Entra database principal. A group role still requires each visitor's
+own sign-in and valid group membership.
+
+Install `RPostgres`, `processx` and `askpass` first. The local editable app
+opens a verified TLS connection only after **Run example query**. Its first
+query reports the database role and database name, so no table is needed.
+For scripts, supply those settings with `prompt = FALSE`; `database_port`
+defaults to 5432. A confidential app uses masked input or
+`OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET`.
+See [Guided cloud demos](cloud-demos.html) for draft setup and editing.
+
+With no Azure server yet, start with the [service overview](https://learn.microsoft.com/en-us/azure/postgresql/overview).
+Arrange Entra authentication, role grants and network access before trying
+the query. The demo doesn't provision or stop a cloud server.
+
 ## Set up access
 
 In R, run `install.packages("RPostgres")`. Ask your administrator to
