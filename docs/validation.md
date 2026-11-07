@@ -1,5 +1,42 @@
 # Validation record
 
+## 7 November 2026: bslib layouts and database-specific details
+
+All sixteen demo apps now use bslib sidebars and cards. Sign-in controls
+appear beside the query on desktop and above it on phones. Local apps show
+their example SQL or API request, endpoint and table/index; cloud apps show
+their configured target and relevant platform settings. Connection panels
+explain how the database applies permissions without making extra queries.
+
+The Docker images supply bslib 0.9.0 or later. Local-R and cloud launchers
+check for that version before launching. Copied apps stay editable; a new
+empty `path` obtains the refreshed templates without replacing existing edits.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 4,386 assertions across 297 scenarios; zero failures, errors, warnings or skips |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes |
+| Final focused suites | Pass, including rendered cloud connection values, credential omission, lifecycle guards and editable packaged apps |
+| Docker/browser demos | All eight pass with the updated images, including data visibility, four write-rejection checks and stop-button cleanup |
+| Local-R/browser demos | PostgREST, Trino, DuckDB Quack, libSQL, CrateDB and OpenSearch pass, including live app edits and forwarded endpoints |
+| Cloud/browser fixtures | All eight pass real local OAuth sign-in, explicit querying, account-specific results, sign-out clearing and stopping |
+| Responsive layout | All 22 browser variants pass at 390px: no horizontal page overflow, no clipped connection values, and sign-in controls above the results; desktop screenshots use 1440px |
+| Documentation and website | Documentation checks and pkgdown build pass; README keeps one app matching the packaged PostgreSQL source |
+| Compose and workflows | All eight standalone Compose contexts resolve; actionlint passes with bslib declared in browser jobs |
+
+Visual review covers all sixteen apps. Phone previews caught and corrected
+the initial sidebar order and clipped hostnames. Later focused/browser
+checks cover final request-display and stylesheet refinements. Screenshot
+and result artifacts are under `.validation/demos/` and
+`.validation/cloud-demo/`; logs use `.validation/style-*.log`.
+
+Local tests use real databases in Docker Desktop Linux containers on
+Windows. Native PostgreSQL local R requires Linux, and the StarRocks
+Windows ODBC driver isn't installed; both pass with Shiny in Docker.
+Cloud responses and connections remain simulated, with real local Keycloak
+sign-in. Live cloud providers, cloud drivers, other host systems and remote
+Actions remain unverified.
+
 ## 7 November 2026: final review of local and cloud demos
 
 Reviewed all eight Docker demos and eight cloud guides/apps for a clear

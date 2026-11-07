@@ -79,7 +79,7 @@ changes. Save the file and reload the browser to try your edits. Existing
 app files are preserved. Local and Docker modes have separate default
 cache directories.
 
-Local mode requires the optional callr package. Trino also needs RTrino;
+Local mode requires callr and bslib 0.9.0 or later. Trino also needs RTrino;
 StarRocks needs odbc and MySQL Connector/ODBC with its OpenID Connect plugin;
 DuckDB needs a client matching the demo server (DuckDB 1.5.4) and installs
 its matching Quack/httpfs extensions. PostgreSQL's native client requires

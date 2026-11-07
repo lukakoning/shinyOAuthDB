@@ -1,4 +1,5 @@
 library(shiny)
+library(bslib)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
@@ -16,28 +17,61 @@ client <- oauth_db_databricks_client(
 # Change this query to read your own tables after the identity example works.
 example_query <- "SELECT current_user() AS signed_in_user"
 
-ui <- oauth_ui(fluidPage(
-  tags$style(".container-fluid { max-width: 960px; }"),
-  h2("Your Databricks Shiny demo"),
-  p("Sign in with your Databricks account. Your existing data permissions apply."),
-  p(paste("Workspace:", host)),
-  h3("1. Sign in"),
-  actionButton("login", "Sign in", class = "btn-primary"), actionButton("logout", "Sign out"),
-  textOutput("account"),
-  h3("2. Choose a SQL warehouse"),
-  p("A SQL warehouse runs the query for this app. Choose one you normally use in Databricks."),
-  actionButton("refresh", "Refresh warehouse list"),
-  uiOutput("warehouse_controls"),
-  textOutput("warehouse_status"),
-  h3("3. Check your database identity"),
-  pre(example_query),
-  p("Running SQL can start a stopped warehouse and use your normal compute credits."),
-  uiOutput("query_actions"),
-  textOutput("query_status"), tableOutput("rows"),
-  p("This query checks who connects to Databricks. To try data access, edit app.R to query one of your tables, save and reload the browser."),
-  p(a("Databricks setup and query guide", href = "https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html")),
-  p("Back to setup stops the app and returns to the R console to review settings. Stop demo ends the local app; it doesn't stop a shared warehouse."),
-  actionButton("setup", "Back to setup"), actionButton("stop", "Stop demo")
+ui <- oauth_ui(page_sidebar(
+  title = h2("Your Databricks Shiny demo", class = "h3 mb-0"),
+  theme = bs_theme(version = 5, primary = "#17646c", bg = "#f4f6f9", fg = "#23313d", base_font = "system-ui"),
+  fillable = FALSE, lang = "en",
+  sidebar = sidebar(width = 320, bg = "#fff", fg = "#23313d", open = list(desktop = "always", mobile = "always-above"),
+    h3("1. Sign in", class = "h5"),
+    p("Use your Databricks account. Your existing data permissions apply."),
+    div(class = "d-flex gap-2 flex-wrap",
+      actionButton("login", "Sign in", class = "btn-primary"), actionButton("logout", "Sign out")),
+    div(role = "status", textOutput("account")),
+    hr(),
+    tags$dl(class = "demo-details",
+      tags$dt("Workspace"), tags$dd(code(host)),
+      tags$dt("Connection"), tags$dd("DBI / brickster with your OAuth token")),
+    p(a("Databricks setup and query guide", href = "https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html")),
+    actionButton("setup", "Back to setup"),
+    p("Return to the R console to review settings.", class = "demo-note"),
+    actionButton("stop", "Stop demo"),
+    p("Ends this local app. It doesn't stop a shared warehouse.", class = "demo-note")
+  ),
+  tags$style(".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }
+    .demo-details dt { font-size: .9rem; color: #485867; }
+    .demo-details dd { margin: 0; overflow-wrap: anywhere; }
+    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }
+    .sidebar .demo-details dd { margin-bottom: .5rem; }
+    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }
+    .demo-details code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
+    .demo-results { overflow-x: auto; }
+    .demo-note { color: #485867; font-size: .95rem; }
+    .btn { min-height: 44px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .card-header h3 { font-size: 1.1rem; margin: 0; }
+    .card, .sidebar { background: #fff; }
+    .bslib-card { margin-top: 1rem; }
+    .card-body > p { margin-bottom: 0; }"),
+  p("Run SQL from Shiny with your Databricks identity and data permissions.", class = "lead"),
+  card(fill = FALSE,
+    card_header(h3("2. Choose a SQL warehouse")),
+    p("A SQL warehouse runs your query. Choose one you normally use in Databricks."),
+    uiOutput("refresh_actions"), uiOutput("warehouse_controls"),
+    div(role = "status", textOutput("warehouse_status"))
+  ),
+  card(fill = FALSE,
+    card_header(h3("3. Check your database identity")),
+    pre(example_query),
+    p("Running SQL can start a stopped warehouse and use your normal compute credits.", class = "demo-note"),
+    uiOutput("query_actions"),
+    div(role = "status", textOutput("query_status")),
+    div(class = "demo-results", tableOutput("rows")),
+    p("The result shows who connects to Databricks. A visible warehouse still needs CAN USE; your own tables also need catalog/schema access and SELECT permission.")
+  ),
+  tags$details(
+    tags$summary("Try your own query"),
+    p("Edit example_query in app.R to read one of your tables. Save and reload the browser. You can change the app layout in the same file.")
+  )
 ), id = "auth", client = client)
 
 server <- function(input, output, session) {
@@ -83,6 +117,8 @@ server <- function(input, output, session) {
   })
   output$query_actions <- renderUI(actionButton("run", "Run example query", class = "btn-primary",
     disabled = if (is.null(current())) TRUE else NULL))
+  output$refresh_actions <- renderUI(actionButton("refresh", "Refresh warehouse list",
+    disabled = if (is.null(current())) TRUE else NULL))
 
   observeEvent(list(input$refresh, owner()), {
     reference <- req(current())
@@ -104,7 +140,9 @@ server <- function(input, output, session) {
     req(reference$has_scopes("sql"))
     selected <- binding()
     if (!is.null(selected) && identical(selected$owner, reference$id)) {
-      return(tagList(p(paste("Selected warehouse:", selected$id)),
+      return(tagList(tags$dl(class = "demo-details",
+        tags$dt("Selected warehouse"), tags$dd(code(selected$id)),
+        tags$dt("HTTP path"), tags$dd(code(paste0("/sql/1.0/warehouses/", selected$id)))),
         p("Sign out and sign in again to choose another warehouse.")))
     }
     available <- warehouses()

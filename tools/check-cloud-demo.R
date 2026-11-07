@@ -168,6 +168,7 @@ check_cloud_demo <- function(platform) {
     context <- chrome$Target$createBrowserContext()$browserContextId
     target <- chrome$Target$createTarget("about:blank", browserContextId = context)$targetId
     browser <- chromote::ChromoteSession$new(parent = chrome, targetId = target)
+    browser$Emulation$setDeviceMetricsOverride(width = 1440, height = 1100, deviceScaleFactor = 1, mobile = FALSE)
     browser$Security$setIgnoreCertificateErrors(ignore = TRUE)
     browser$go_to("http://localhost:18100")
     wait(browser, "Boolean(window.Shiny && Shiny.shinyapp?.isConnected() && document.querySelector('#login:not(:disabled)'))")
@@ -186,7 +187,15 @@ check_cloud_demo <- function(platform) {
     value(browser, "document.querySelector('#run').click()")
     wait(browser, sprintf("document.querySelector('#rows').textContent.includes('%s')", user))
     stopifnot(sum(events() == paste("query", user)) == 1L)
-    if (user == "alice") screenshot(browser, "signed-in")
+    if (user == "alice") {
+      screenshot(browser, "signed-in")
+      browser$Emulation$setDeviceMetricsOverride(width = 390, height = 844, deviceScaleFactor = 1, mobile = TRUE)
+      stopifnot(isTRUE(value(browser, "document.documentElement.scrollWidth <= innerWidth")))
+      wait(browser, "[...document.querySelectorAll('.demo-details dd')].every(e => e.scrollWidth <= e.clientWidth + 1)")
+      wait(browser, "document.querySelector('.sidebar').getBoundingClientRect().top < document.querySelector('.main').getBoundingClientRect().top")
+      screenshot(browser, "mobile")
+      browser$Emulation$setDeviceMetricsOverride(width = 1440, height = 1100, deviceScaleFactor = 1, mobile = FALSE)
+    }
     if (platform == "databricks") {
       value(browser, "document.querySelector('#refresh').click()")
       wait(browser, "document.querySelector('#query_status').textContent.includes('Query completed')")

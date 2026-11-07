@@ -28,6 +28,7 @@ jobs:
         with:
           dependencies: 'c("Depends", "Imports")'
           extra-packages: |
+            any::bslib
             any::brickster
             any::processx
             any::callr

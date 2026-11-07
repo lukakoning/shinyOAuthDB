@@ -11,7 +11,13 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your Azure SQL Shiny demo"
-demo_context <- paste("Database:", settings$database, "| Server:", settings$server)
+demo_details <- list(
+  "SQL server" = settings$server,
+  "Database" = settings$database,
+  "Database port" = settings$database_port,
+  "ODBC driver" = settings$driver
+)
+platform_note <- "An Entra user or group must exist in this database and hold the needed SQL grants. Successful Microsoft sign-in alone does not grant table access."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html"
 example_query <- "SELECT CURRENT_USER AS signed_in_user"
 result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."

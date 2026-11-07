@@ -230,6 +230,7 @@
 }
 
 .odb_cloud_platform_require <- function(spec, config) {
+  .odb_require("bslib", version = "0.9.0")
   .odb_require("processx")
   for (package in names(spec$packages)) .odb_require(package, version = spec$packages[[package]])
   if (!is.null(config$driver)) {

@@ -37,6 +37,7 @@ jobs:
         with:
           dependencies: 'c("Depends", "Imports")'
           extra-packages: |
+            any::bslib
             any::pkgbuild
             any::callr
             any::chromote

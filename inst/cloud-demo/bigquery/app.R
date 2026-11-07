@@ -10,7 +10,12 @@ client <- oauth_db_bigquery_client(
 )
 
 demo_title <- "Your Google BigQuery Shiny demo"
-demo_context <- paste("Query project:", settings$project, "| Location:", settings$location)
+demo_details <- list(
+  "Query project" = settings$project,
+  "Location" = settings$location,
+  "Maximum bytes billed per query" = settings$maximum_bytes_billed
+)
+platform_note <- "Query jobs belong to this project. Use the location of your dataset when reading tables; the byte limit caps billed bytes, while SQL LIMIT only limits returned rows."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html"
 example_query <- "SELECT SESSION_USER() AS signed_in_user"
 result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."

@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Give all local and cloud demos a responsive bslib layout, with sign-in
+  controls, visible example queries/requests and platform-specific connection
+  details. Local R and cloud apps require bslib 0.9.0 or later.
+
 * Clarify each local demo's purpose, demo accounts and expected data access.
   Show editing and restart commands in the console, and let users retry a
   failed write check without losing the Shiny session.

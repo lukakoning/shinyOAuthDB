@@ -215,6 +215,9 @@ for (cloud_platform in names(cloud_platform_settings())) local({
     app <- cloud_platform_app(platform)
     expect_identical(app$client@client_id, "demo-client")
     expect_identical(app$client@redirect_uri, "http://localhost:8100")
+    content <- app$ui(playground_request())$content
+    for (value in Filter(length, app$demo_details)) expect_true(grepl(value, content, fixed = TRUE))
+    expect_false(grepl("fixture-client-secret", content, fixed = TRUE))
     control <- new.env(parent = emptyenv())
     control$connections <- list()
     control$queries <- 0L

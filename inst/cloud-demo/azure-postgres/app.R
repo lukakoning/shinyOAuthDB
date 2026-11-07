@@ -11,7 +11,14 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your Azure PostgreSQL Shiny demo"
-demo_context <- paste("Database:", settings$database, "| Requested role:", settings$user, "| Server:", settings$server)
+demo_details <- list(
+  "PostgreSQL server" = settings$server,
+  "Database" = settings$database,
+  "Requested role" = settings$user,
+  "Database port" = settings$database_port,
+  "Trusted CA bundle" = settings$sslrootcert
+)
+platform_note <- "Each person signs in individually. PostgreSQL checks that their token matches the requested database user or its mapped group membership."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html"
 example_query <- "SELECT current_user AS database_role, current_database() AS database_name"
 result_explanation <- "The result shows the PostgreSQL role. With a group role, several people can share that role while PostgreSQL checks each signed-in user's membership."

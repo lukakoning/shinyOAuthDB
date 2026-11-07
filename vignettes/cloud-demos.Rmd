@@ -148,6 +148,11 @@ read-only access: the platform still applies the user's actual privileges.
 
 ## Edit the app and resume later
 
+The apps use bslib 0.9.0 or later for the sidebar and result panels. The
+connection panel shows settings relevant to your platform, such as the
+query project and location in BigQuery, or the role and warehouse in
+Snowflake. It shows configuration without making extra cloud requests.
+
 The default directory is in R's user cache, separately for each platform.
 Your draft survives restarting R: call the same demo again to resume.
 The launcher prints its location and a command to open the app code.

@@ -1,21 +1,61 @@
 # Shared app code; edit this file to try a different UI.
-ui <- oauth_ui(fluidPage(
-  tags$style(".container-fluid { max-width: 960px; }"),
-  h2(demo_title),
-  p("Sign in with your own account. The platform applies your existing data permissions."),
-  if (exists("demo_context")) p(demo_context),
-  h3("1. Sign in"),
-  actionButton("login", "Sign in", class = "btn-primary"), actionButton("logout", "Sign out"),
-  textOutput("account"),
-  h3("2. Check your database identity"), pre(example_query), p(query_notice),
-  uiOutput("query_actions"),
-  textOutput("query_status"), tableOutput("rows"),
-  if (exists("result_explanation")) p(result_explanation),
-  h3("3. Try your own query"),
-  p("Edit app.R to read one of your tables, or change the UI in demo-ui.R. Save and reload the browser to try it. SQL syntax and table names must match your platform."),
-  p(a("Setup and query guide", href = if (exists("demo_guide")) demo_guide else "https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html")),
-  p("Back to setup stops the app and returns to the R console to review or change settings. Stop demo ends the local app; cloud services keep their own settings."),
-  actionButton("setup", "Back to setup"), actionButton("stop", "Stop demo")
+library(bslib)
+
+details <- if (exists("demo_details")) Filter(length, demo_details) else list()
+ui <- oauth_ui(page_sidebar(
+  title = h2(demo_title, class = "h3 mb-0"),
+  theme = bs_theme(version = 5, primary = "#17646c", bg = "#f4f6f9", fg = "#23313d", base_font = "system-ui"),
+  fillable = FALSE, lang = "en",
+  sidebar = sidebar(width = 320, bg = "#fff", fg = "#23313d", open = list(desktop = "always", mobile = "always-above"),
+    h3("1. Sign in", class = "h5"),
+    p("Use your own platform account. Your existing data permissions apply."),
+    div(class = "d-flex gap-2 flex-wrap",
+      actionButton("login", "Sign in", class = "btn-primary"), actionButton("logout", "Sign out")),
+    div(role = "status", textOutput("account")),
+    hr(),
+    p(a("Setup and query guide", href = if (exists("demo_guide")) demo_guide else "https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html")),
+    actionButton("setup", "Back to setup"),
+    p("Return to the R console to review or change settings.", class = "demo-note"),
+    actionButton("stop", "Stop demo"),
+    p("Ends this local app. Cloud compute and submitted jobs keep their own settings.", class = "demo-note")
+  ),
+  tags$style(".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }
+    .demo-details dt { font-size: .9rem; color: #485867; }
+    .demo-details dd { margin: 0; overflow-wrap: anywhere; }
+    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }
+    .sidebar .demo-details dd { margin-bottom: .5rem; }
+    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }
+    .demo-details code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
+    .demo-results { overflow-x: auto; }
+    .demo-note { color: #485867; font-size: .95rem; }
+    .btn { min-height: 44px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .card-header h3 { font-size: 1.1rem; margin: 0; }
+    .card, .sidebar { background: #fff; }
+    .bslib-card { margin-top: 1rem; }
+    .card-body > p { margin-bottom: 0; }"),
+  p("Query your data platform from Shiny, using the account of the person who signs in.", class = "lead"),
+  card(fill = FALSE,
+    card_header(h3("2. Check your database identity")),
+    pre(example_query),
+    p(query_notice, class = "demo-note"),
+    uiOutput("query_actions"),
+    div(role = "status", textOutput("query_status")),
+    div(class = "demo-results", tableOutput("rows")),
+    if (exists("result_explanation")) p(result_explanation)
+  ),
+  card(fill = FALSE,
+    card_header(h3("About this connection")),
+    tags$dl(class = "demo-details", Map(function(label, value) tagList(
+      tags$dt(label), tags$dd(code(value))), names(details), details)),
+    if (exists("demo_context")) p(demo_context),
+    if (exists("platform_note")) p(platform_note)
+  ),
+  tags$details(
+    tags$summary("3. Try your own query"),
+    p("Edit example_query in app.R to read one of your tables. Use SQL syntax and table names for your platform. Save and reload the browser to try it."),
+    p("You can also change the app layout in demo-ui.R. Your edits are kept when you restart this demo.")
+  )
 ), id = "auth", client = client)
 
 server <- function(input, output, session) {

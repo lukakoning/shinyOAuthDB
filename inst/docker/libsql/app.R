@@ -1,4 +1,5 @@
 library(shiny)
+library(bslib)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
@@ -10,28 +11,68 @@ client <- oauth_client(
   scopes = c("openid", "profile", "sqlite.read")
 )
 
-ui <- oauth_ui(fluidPage(
-  tags$style(".container-fluid { max-width: 960px; }"),
-  h2("libSQL OAuth demo"),
-  p("Query a remote libSQL database using the signed-in account."),
-  p("Both demo accounts see the same rows and have read-only access. Check write permission below to try an insert."),
-  h3("1. Sign in"),
-  p("Demo accounts: ", code("alice / alice-fixture-password"),
-    " or ", code("bob / bob-fixture-password"), "."),
-  p("Sign-in opens Keycloak, the local sign-in service. Your browser may ask you to allow its local test certificate."),
-  actionButton("login", "Sign in", class = "btn-primary"),
-  actionButton("logout", "Sign out"),
-  textOutput("sign_in_status"),
-  textOutput("account"),
-  h3("2. See your data"),
-  tableOutput("rows"),
-  h3("3. Check write permission"),
-  p("This attempts an insert into the disposable sample data. The demo accounts should be refused by the database."),
-  actionButton("probe", "Check write permission"),
-  textOutput("permission"),
-  p(a("Set up your own libSQL data source", href = "https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html")),
-  p("Stop demo removes the local demo services and sample data. Your copied app code is kept."),
-  actionButton("stop", "Stop demo")
+example_query <- "SELECT marker FROM visible_rows ORDER BY id"
+
+ui <- oauth_ui(page_sidebar(
+  title = h2("libSQL OAuth demo", class = "h3 mb-0"),
+  theme = bs_theme(version = 5, primary = "#17646c", bg = "#f4f6f9", fg = "#23313d", base_font = "system-ui"), fillable = FALSE, lang = "en",
+  sidebar = sidebar(width = 320, bg = "#fff", fg = "#23313d", open = list(desktop = "always", mobile = "always-above"),
+    h3("1. Sign in", class = "h5"),
+    p("Choose a demo account. Sign out before trying the other one."),
+    tags$dl(class = "demo-details",
+      tags$dt("alice"), tags$dd(code("alice-fixture-password")),
+      tags$dt("bob"), tags$dd(code("bob-fixture-password"))
+    ),
+    div(class = "d-flex gap-2 flex-wrap",
+      actionButton("login", "Sign in", class = "btn-primary"),
+      actionButton("logout", "Sign out")),
+    div(role = "status", textOutput("account"), textOutput("sign_in_status")),
+    p("Sign-in opens Keycloak. Your browser may ask you to allow its local test certificate.", class = "demo-note"),
+    hr(),
+    p(a("Set up your own libSQL data source", href = "https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html")),
+    actionButton("stop", "Stop demo"),
+    p("Stopping removes the demo services and sample data. Your copied app code is kept.", class = "demo-note")
+  ),
+  tags$style(".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }
+    .demo-details dt { font-size: .9rem; color: #485867; }
+    .demo-details dd { margin: 0; overflow-wrap: anywhere; }
+    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }
+    .sidebar .demo-details dd { margin-bottom: .5rem; }
+    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }
+    .demo-details code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
+    .demo-results { overflow-x: auto; }
+    .demo-note { color: #485867; font-size: .95rem; }
+    .btn { min-height: 44px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .card-header h3 { font-size: 1.1rem; margin: 0; }
+    .card, .sidebar { background: #fff; }
+    .bslib-card { margin-top: 1rem; }
+    .card-body > p { margin-bottom: 0; }"),
+  p("Query a remote libSQL database using the signed-in account.", class = "lead"),
+  card(fill = FALSE,
+    card_header(h3("2. Query sample data")),
+    pre(example_query),
+    p("Both demo accounts see the same rows and have read-only access. Check write permission below to try an insert."),
+    conditionalPanel("!output.account", p("Sign in to load the sample data.", class = "demo-note")),
+    div(class = "demo-results", tableOutput("rows"))
+  ),
+  card(fill = FALSE,
+    card_header(h3("3. Check write permission")),
+    p("This attempts an insert into the disposable sample table. The database should reject it for both demo accounts."),
+    actionButton("probe", "Check write permission"),
+    div(role = "status", textOutput("permission"))
+  ),
+  card(fill = FALSE,
+    card_header(h3("About this connection")),
+    tags$dl(class = "demo-details",
+      tags$dt("API endpoint"), tags$dd(code("https://localhost:18444")),
+      tags$dt("Table"), tags$dd(code("visible_rows")),
+      tags$dt("Connection"), tags$dd(code("HTTPS / libSQL pipeline API")),
+      tags$dt("Access"), tags$dd(code("Read-only JWT"))
+    ),
+    p("The server accepts the visitor's JWT and permits reads. The shared rows demonstrate read-only access rather than different rows per account."),
+    p("The database connection verifies its server certificate using this demo's local test CA.", class = "demo-note")
+  )
 ), id = "auth", client = client)
 
 server <- function(input, output, session) {
@@ -45,7 +86,7 @@ server <- function(input, output, session) {
       return("Sign-in didn't finish. Check the local test certificate in your browser, then try Sign in again.")
     }
     reference <- tryCatch(auth$connection(), error = function(error) NULL)
-    if (is.null(reference)) "Not signed in. Choose one of the demo accounts above." else "Signed in. Sign out before trying the other account."
+    if (is.null(reference)) "Not signed in. Choose one of the demo accounts above." else "Sign out before trying the other account."
   })
 
   database <- oauth_db_libsql_api(
@@ -57,7 +98,7 @@ server <- function(input, output, session) {
     paste("Signed in as", req(token@userinfo$preferred_username))
   })
   output$rows <- renderTable({
-    database$query("SELECT marker FROM visible_rows ORDER BY id")
+    database$query(example_query)
   })
   check <- reactiveVal(NULL)
   observeEvent(input$probe, {

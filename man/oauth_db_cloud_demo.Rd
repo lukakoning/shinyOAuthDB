@@ -81,7 +81,7 @@ then runs a local Shiny app with your installed R packages. Visitors sign
 in through shinyOAuth and use their own cloud data permissions.
 }
 \details{
-All demos use local R and processx. Install askpass for masked input.
+All demos use local R, bslib and processx. Install askpass for masked input.
 BigQuery and ClickHouse use jsonlite without a native database driver.
 Snowflake, Azure SQL and Redshift use odbc and their native ODBC drivers;
 Azure PostgreSQL uses RPostgres and a trusted CA bundle.

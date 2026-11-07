@@ -53,7 +53,7 @@
 #' app files are preserved. Local and Docker modes have separate default
 #' cache directories.
 #'
-#' Local mode requires the optional callr package. Trino also needs RTrino;
+#' Local mode requires callr and bslib 0.9.0 or later. Trino also needs RTrino;
 #' StarRocks needs odbc and MySQL Connector/ODBC with its OpenID Connect plugin;
 #' DuckDB needs a client matching the demo server (DuckDB 1.5.4) and installs
 #' its matching Quack/httpfs extensions. PostgreSQL's native client requires
@@ -198,6 +198,7 @@ oauth_db_demo <- function(
 }
 
 .odb_demo_local_require <- function(database) {
+  .odb_require("bslib", version = "0.9.0")
   .odb_require("callr")
   if (database %in% c("postgrest", "libsql", "cratedb", "opensearch")) .odb_require("jsonlite")
   if (database == "postgres") {
@@ -253,6 +254,8 @@ oauth_db_demo <- function(
     code <- gsub('"/fixtures/tls/ca-cert.pem"', ca, code, fixed = TRUE)
     code <- gsub("18444", "19444", code, fixed = TRUE)
     code <- gsub("localhost:9200", "localhost:19444", code, fixed = TRUE)
+    code <- gsub("localhost:5432", "localhost:19444", code, fixed = TRUE)
+    code <- gsub("localhost:9030", "localhost:19444", code, fixed = TRUE)
     if (database == "postgres") code <- sub('host = "localhost", dbname =',
       'host = "localhost", port = 19444L, dbname =', code, fixed = TRUE)
     if (database == "starrocks") {

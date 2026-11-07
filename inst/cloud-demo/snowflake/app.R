@@ -11,7 +11,15 @@ client <- oauth_db_snowflake_client(
 )
 
 demo_title <- "Your Snowflake Shiny demo"
-demo_context <- paste("Account:", settings$server, "| Role:", settings$role, "| Warehouse:", settings$warehouse)
+demo_details <- list(
+  "Account server" = settings$server,
+  "Role" = settings$role,
+  "Warehouse" = settings$warehouse,
+  "Database" = settings$database,
+  "Schema" = settings$schema,
+  "ODBC driver" = settings$driver
+)
+platform_note <- "The OAuth role and SQL role match. Table queries also need database/schema USAGE and SELECT; warehouse visibility alone does not grant those permissions."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html"
 example_query <- "SELECT CURRENT_USER() AS signed_in_user, CURRENT_ROLE() AS database_role"
 result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."

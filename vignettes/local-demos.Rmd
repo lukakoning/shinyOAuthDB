@@ -16,6 +16,11 @@ The package includes Docker files, a Shiny app, demo accounts and sample data.
 You need R with shinyOAuthDB installed and Docker running with Linux containers
 and Compose v2. You can use Windows, macOS or Linux.
 
+The apps use bslib for the layout. Sign-in controls stay beside the query
+and results on a wide screen, and move above them on a phone. The connection
+panel explains the selected database, endpoint, table or index and access
+policy. Docker supplies bslib; local R mode needs bslib 0.9.0 or later.
+
 ## Start a demo
 
 ```{r launch}

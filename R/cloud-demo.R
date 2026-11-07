@@ -44,7 +44,7 @@
 #' @return Invisibly, the demo directory, including after pausing incomplete
 #'   interactive setup. Noninteractive starts report missing settings as errors.
 #' @details
-#' All demos use local R and processx. Install askpass for masked input.
+#' All demos use local R, bslib and processx. Install askpass for masked input.
 #' BigQuery and ClickHouse use jsonlite without a native database driver.
 #' Snowflake, Azure SQL and Redshift use odbc and their native ODBC drivers;
 #' Azure PostgreSQL uses RPostgres and a trusted CA bundle.
@@ -178,6 +178,7 @@ oauth_db_cloud_demo <- function(
   .odb_require("brickster", version = "0.2.14")
   .odb_require("jsonlite")
   .odb_require("processx")
+  .odb_require("bslib", version = "0.9.0")
   .odb_cloud_check_workspace(config)
   secret <- if (config$client_type == "confidential") .odb_cloud_secret(prompt) else NULL
   cli::cli_alert_success("App ready: {.path {file.path(path, 'app.R')}}", wrap = TRUE)

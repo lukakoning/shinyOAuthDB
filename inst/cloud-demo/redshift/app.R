@@ -11,7 +11,15 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your Amazon Redshift Shiny demo"
-demo_context <- paste("Database:", settings$database, "| Endpoint:", settings$server)
+demo_details <- list(
+  "Endpoint" = settings$server,
+  "Database" = settings$database,
+  "Database port" = settings$database_port,
+  "Accepted API resource" = settings$resource,
+  "Delegated scope" = settings$scope,
+  "ODBC driver" = settings$driver
+)
+platform_note <- "This connection uses IdpTokenAuthPlugin with an external JWT. IAM Identity Center must trust the issuer and audience and map the user to Redshift privileges."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html"
 example_query <- "SELECT current_user AS signed_in_user"
 result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."

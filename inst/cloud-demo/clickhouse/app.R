@@ -11,7 +11,13 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your ClickHouse Cloud Shiny demo"
-demo_context <- paste("HTTPS query endpoint:", settings$url)
+demo_details <- list(
+  "HTTPS query endpoint" = settings$url,
+  "Database" = settings$database,
+  "Accepted API resource" = settings$resource,
+  "Delegated scope" = settings$scope
+)
+platform_note <- "The query endpoint accepts the visitor's JWT. The service must trust its issuer and audience and map the token's role claims to existing ClickHouse roles."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html"
 example_query <- "SELECT currentUser() AS signed_in_user, version() AS server_version"
 result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."
