@@ -1,5 +1,13 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Clarify each local demo's purpose, demo accounts and expected data access.
+  Show editing and restart commands in the console, and let users retry a
+  failed write check without losing the Shiny session.
+
+* Keep cloud drafts in a persistent directory per platform. Back to setup
+  now offers a settings menu without discarding the client registration.
+  Cloud apps explain their identity query and guide sign-in and query errors.
+
 * Add a ClickHouse Cloud demo for a qualifying JWT service with Entra role
   mapping, an early readiness check and HTTPS SQL requests.
 

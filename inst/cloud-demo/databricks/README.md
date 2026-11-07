@@ -15,3 +15,7 @@ Stopping this local app doesn't stop or change your shared warehouse.
 
 The [cloud demo guide](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html)
 explains registration, Free Edition limits and common setup problems.
+
+**Back to setup** opens a console menu of saved settings. Choose a setting
+by number, `0` to continue, or `cancel` to save and return to R. Your other
+settings and app edits are kept. Use a new empty `path` for fresh templates.

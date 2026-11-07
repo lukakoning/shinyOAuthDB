@@ -48,8 +48,9 @@ test_that("platform starts route secrets only through their own environment vari
   settings$client_type <- "confidential"
   path <- cloud_demo_path()
   do.call(oauth_db_cloud_demo, c(list(platform = "fabric", prompt = FALSE, path = path), settings))
-  expect_null(.odb_cloud_load(path)$client_id)
-  expect_null(.odb_cloud_load(path)$client_type)
+  expect_identical(.odb_cloud_load(path)$client_id, settings$client_id)
+  expect_identical(.odb_cloud_load(path)$client_type, "confidential")
+  expect_true(file.exists(.odb_cloud_edit_marker(path)))
   oauth_db_cloud_demo("fabric", path = path, action = "files", prompt = FALSE,
     client_id = "new-id", server = "other.fabric.example")
   expect_identical(.odb_cloud_load(path)$server, "other.fabric.example")
@@ -228,8 +229,10 @@ for (cloud_platform in names(cloud_platform_settings())) local({
         a$current(id == "A"); b$current(id == "B")
         reference(if (id == "A") a$connection else b$connection)
       }
-      list(connection = reference, request_login = function() control$choose("A"),
+      control$auth <- shiny::reactiveValues(error = NULL, connection = reference,
+        request_login = function() { control$auth$error <- NULL; control$choose("A") },
         logout = function() { a$current(FALSE); b$current(FALSE); reference(NULL) })
+      control$auth
     }
     app$make_access <- function(authorization) oauth_db_connect(authorization,
       target = app$query_target, connect = function(token) {
@@ -248,7 +251,14 @@ for (cloud_platform in names(cloud_platform_settings())) local({
       session$flushReact()
       expect_length(control$connections, 0L)
       expect_error(output$rows, class = "shiny.silent.error")
+      expect_match(output$account, "Not signed in")
+      expect_match(output$query_actions$html, "disabled")
+      control$auth$error <- "invalid_client private-auth-error"
+      session$flushReact()
+      expect_match(output$account, "Sign-in didn't finish")
+      expect_false(grepl("private-auth-error", output$account, fixed = TRUE))
       session$setInputs(login = 1L)
+      expect_false(grepl("disabled", output$query_actions$html, fixed = TRUE))
       expect_length(control$connections, 0L)
       expect_identical(control$queries, 0L)
       session$setInputs(run = 1L)

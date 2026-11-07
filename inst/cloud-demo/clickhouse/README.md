@@ -15,3 +15,7 @@ A confidential registration uses masked input or
 `OAUTHDB_CLICKHOUSE_CLIENT_SECRET`. Keep secrets and tokens out of files.
 See the [ClickHouse guide](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
 for availability, JWT configuration and provider/role requirements.
+
+**Back to setup** opens a console menu of saved settings. Choose a setting
+by number, `0` to continue, or `cancel` to save and return to R. Your other
+settings and app edits are kept. Use a new empty `path` for fresh templates.

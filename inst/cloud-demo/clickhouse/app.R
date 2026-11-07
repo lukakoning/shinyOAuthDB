@@ -11,7 +11,10 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your ClickHouse Cloud Shiny demo"
+demo_context <- paste("HTTPS query endpoint:", settings$url)
+demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html"
 example_query <- "SELECT currentUser() AS signed_in_user, version() AS server_version"
+result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."
 query_target <- "clickhouse"
 query_scopes <- character()
 query_notice <- "The service must trust your Entra access token and map its role claims to ClickHouse grants. Queries use normal service compute."

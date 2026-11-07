@@ -1,5 +1,42 @@
 # Validation record
 
+## 7 November 2026: final review of local and cloud demos
+
+Reviewed all eight Docker demos and eight cloud guides/apps for a clear
+purpose, understandable setup and useful feedback. Local apps now explain
+their data policy and show the demo accounts, certificate help and setup
+guide. Cloud apps show their configured data source, explain the identity
+query and guide users through sign-in, querying and editing the app.
+
+Cloud drafts now survive restarting R. Back to setup opens a numbered
+settings menu, keeping unrelated settings and app edits. Tests cover invalid
+input, cancelling, returning later, changing the OAuth issuer and API scope,
+and confirming a previously unfinished Redshift or ClickHouse integration.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 4,345 assertions across 296 scenarios; zero failures, errors, warnings or skips |
+| Focused setup regression checks | Pass, including persistent defaults for all eight platforms and integration-readiness recovery |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes |
+| Docker/browser demos | All eight pass Alice/Bob sign-in, expected data visibility, sign-out clearing and stop-button cleanup; the four write-check demos also confirm rejection |
+| Local-R/browser demos | PostgREST, Trino, DuckDB Quack, libSQL, CrateDB and OpenSearch pass, including editing the copied app while it runs |
+| Cloud/browser fixtures | All eight pass disabled querying before sign-in, explicit query execution, account-specific output, sign-out clearing and stop-button exit |
+| Visual review | Captured browser screenshots for every app; reviewed purpose, instructions, data-source context, result explanation and layout |
+| Documentation and website | 85 R blocks parse; 202 local links and 17 anchors resolve; pkgdown builds; README retains exactly one app matching the packaged PostgreSQL source |
+| Compose and workflows | Eight standalone Docker configurations resolve; actionlint 1.7.12 passes |
+
+Browser checks use Chrome and Docker Desktop Linux containers on Windows.
+The local demos use their real databases. Native PostgreSQL local R requires
+Linux; StarRocks local R wasn't run because its Windows ODBC driver isn't
+installed. Both pass with their apps in Docker.
+
+Cloud fixtures use real local Keycloak sign-in and native R, with simulated
+cloud responses and connections. No cloud accounts or resources were used;
+cloud identity providers, native cloud drivers and cloud-side authorization
+remain unverified. Other host systems and remote Actions were not tested.
+Artifacts are under `.validation/demos/`, `.validation/cloud-demo/`,
+`.validation/review-*.log` and `.validation/package-check.json`.
+
 ## 7 November 2026: guides for all eight cloud platforms
 
 `oauth_db_cloud_demo()` now includes Fabric, BigQuery, Snowflake, Azure SQL,

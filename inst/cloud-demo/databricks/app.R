@@ -17,21 +17,26 @@ client <- oauth_db_databricks_client(
 example_query <- "SELECT current_user() AS signed_in_user"
 
 ui <- oauth_ui(fluidPage(
+  tags$style(".container-fluid { max-width: 960px; }"),
   h2("Your Databricks Shiny demo"),
   p("Sign in with your Databricks account. Your existing data permissions apply."),
-  actionButton("login", "Sign in"), actionButton("logout", "Sign out"),
+  p(paste("Workspace:", host)),
+  h3("1. Sign in"),
+  actionButton("login", "Sign in", class = "btn-primary"), actionButton("logout", "Sign out"),
   textOutput("account"),
-  h3("Choose a SQL warehouse"),
+  h3("2. Choose a SQL warehouse"),
   p("A SQL warehouse runs the query for this app. Choose one you normally use in Databricks."),
   actionButton("refresh", "Refresh warehouse list"),
   uiOutput("warehouse_controls"),
   textOutput("warehouse_status"),
-  h3("Run the example"),
+  h3("3. Check your database identity"),
   pre(example_query),
   p("Running SQL can start a stopped warehouse and use your normal compute credits."),
-  actionButton("run", "Run example query"),
+  uiOutput("query_actions"),
   textOutput("query_status"), tableOutput("rows"),
-  p("Edit app.R, save and reload the browser to change the query or UI."),
+  p("This query checks who connects to Databricks. To try data access, edit app.R to query one of your tables, save and reload the browser."),
+  p(a("Databricks setup and query guide", href = "https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html")),
+  p("Back to setup stops the app and returns to the R console to review settings. Stop demo ends the local app; it doesn't stop a shared warehouse."),
   actionButton("setup", "Back to setup"), actionButton("stop", "Stop demo")
 ), id = "auth", client = client)
 
@@ -68,9 +73,16 @@ server <- function(input, output, session) {
   }, priority = 100)
 
   output$account <- renderText({
-    req(current())
+    if (!is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")) {
+      return("Sign-in didn't finish. Check the workspace, registered return address and OAuth registration using the guide below, then try again.")
+    }
+    reference <- tryCatch(auth$connection(), error = function(error) NULL)
+    if (is.null(reference)) return("Not signed in. Click Sign in to use your Databricks account.")
+    if (is.null(current())) return("Your sign-in needs SQL access. Check the SQL scope in the OAuth registration, or use Back to setup.")
     "Signed in. Select a warehouse, then run the query to see your database identity."
   })
+  output$query_actions <- renderUI(actionButton("run", "Run example query", class = "btn-primary",
+    disabled = if (is.null(current())) TRUE else NULL))
 
   observeEvent(list(input$refresh, owner()), {
     reference <- req(current())
@@ -126,7 +138,7 @@ server <- function(input, output, session) {
       connection <- selected$get()
       DBI::dbGetQuery(connection, example_query)
     }, error = function(error) {
-      query_status("Couldn't run the query. Check CAN USE on this warehouse. Queries against your own tables also need catalog/schema access and SELECT permission. Retry explicitly when ready.")
+      query_status("Couldn't run the query. Check CAN USE on this warehouse. Queries against your own tables also need catalog/schema access and SELECT permission; check SQL syntax if you edited the query. Retry explicitly when ready.")
       NULL
     })
     now <- current()

@@ -12,3 +12,7 @@ Use the masked prompt or `OAUTHDB_SNOWFLAKE_CLIENT_SECRET` for the custom
 OAuth integration's secret. Keep secrets and tokens out of these files.
 The [Snowflake guide](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html)
 contains registration SQL, driver instructions and role/warehouse grants.
+
+**Back to setup** opens a console menu of saved settings. Choose a setting
+by number, `0` to continue, or `cancel` to save and return to R. Your other
+settings and app edits are kept. Use a new empty `path` for fresh templates.

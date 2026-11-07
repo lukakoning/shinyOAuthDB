@@ -37,8 +37,10 @@ where supported. BigQuery and Snowflake demos use confidential registrations.}
 
 \item{http_path}{Optional Databricks warehouse HTTP path, instead of \code{warehouse_id}.}
 
-\item{path}{Empty or existing cloud-demo directory. The default is a temporary
-directory. Existing app edits are preserved. Supply a path to resume later.}
+\item{path}{Empty or existing cloud-demo directory. The default is a
+platform-specific directory in R's user cache, so drafts survive restarting
+R. Existing settings and app edits are preserved. Use a new empty path for
+a separate setup or fresh templates.}
 
 \item{port}{Local Shiny port, default 8100 or the saved setting. Register
 \verb{http://localhost:<port>} exactly as the OAuth callback.}

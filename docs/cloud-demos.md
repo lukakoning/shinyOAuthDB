@@ -173,9 +173,12 @@ available, offer an environment-variable route instead of visible input.
 ## Files and credentials
 
 Generate a readable `app.R`, a small non-secret settings file and a short
-README with restart instructions. Use a temporary directory by default;
-an explicit `path` preserves the project. Keep existing user edits and
-refuse unrelated nonempty directories.
+README with restart instructions. Use a persistent, platform-specific
+directory in R's user cache by default, so pausing survives restarting R.
+An explicit `path` supports separate projects. Keep existing user edits
+and refuse unrelated nonempty directories. Back to setup offers a numbered
+menu of saved values; changing one value preserves unrelated settings.
+Changing the OAuth issuer requires a matching client registration.
 
 Keep access tokens in shinyOAuth's session lifecycle. Do not use saved
 Databricks CLI tokens, request passwords or PATs, or substitute a shared

@@ -13,3 +13,7 @@ A confidential registration uses masked input or
 `OAUTHDB_AZURE_SQL_CLIENT_SECRET`. Keep secrets out of these files.
 Stopping the app leaves your Azure database running under its own settings.
 See the [Azure SQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html).
+
+**Back to setup** opens a console menu of saved settings. Choose a setting
+by number, `0` to continue, or `cancel` to save and return to R. Your other
+settings and app edits are kept. Use a new empty `path` for fresh templates.

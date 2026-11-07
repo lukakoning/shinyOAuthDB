@@ -20,7 +20,7 @@
     if (!is.logical(flag) || length(flag) != 1L || is.na(flag)) cli::cli_abort("{.arg prompt} and {.arg launch_browser} must be TRUE or FALSE.")
   }
   if (prompt && !.odb_cloud_interactive()) cli::cli_abort("Interactive setup needs an R console. Use {.code prompt = FALSE} in scripts.")
-  if (is.null(path)) path <- tempfile(paste0("shinyOAuthDB-", platform, "-"))
+  if (is.null(path)) path <- .odb_cloud_default_path(platform)
   .odb_string(path, "path")
   marker <- file.path(path, ".shinyOAuthDB-cloud-demo")
   if (dir.exists(path) && !file.exists(marker) && length(list.files(path, all.files = TRUE, no.. = TRUE))) {
@@ -42,7 +42,7 @@
   allowed <- c(names(spec$fields), "client_id", "client_type", "port")
   if (length(setdiff(names(supplied), allowed))) cli::cli_abort("Unknown {spec$title} settings: {.field {setdiff(names(supplied), allowed)}}.")
   config <- .odb_cloud_load(path)
-  context <- intersect(c("server", "tenant_id", "issuer", "url", "project", "resource", "scope", "role"), names(supplied))
+  context <- intersect(.odb_cloud_identity_fields(platform), names(supplied))
   changed <- any(vapply(context, function(name) !is.null(config[[name]]) &&
     !identical(.odb_cloud_value(supplied[[name]], spec$fields[[name]]$type), config[[name]]), logical(1)))
   if (changed) config$client_id <- config$client_type <- NULL
@@ -57,12 +57,17 @@
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   cli::cli_h1("{spec$title} Shiny demo")
   cli::cli_text("{spec$purpose}")
-  cli::cli_text("No account yet? Setup and trial information: {.url {spec$account_url}}. You can save a draft while arranging access.")
+  if (is.null(config$client_id)) cli::cli_text("No account yet? Setup and trial information: {.url {spec$account_url}}. You can save a draft while arranging access.")
+  if (action == "start" && prompt && file.exists(.odb_cloud_edit_marker(path))) {
+    config <- .odb_cloud_edit_setup(config, path, platform)
+    if (!isTRUE(attr(config, "paused"))) unlink(.odb_cloud_edit_marker(path))
+  }
   if (action == "start" && prompt) {
-    .odb_cloud_port_available(config$port)
-    if (!is.null(spec$readiness) && identical(config[[spec$readiness]], "no")) {
-      attr(config, "paused") <- TRUE
-    } else config <- .odb_cloud_platform_collect(config, spec, platform, path)
+    if (!isTRUE(attr(config, "paused"))) {
+      .odb_cloud_port_available(config$port)
+      if (!is.null(spec$readiness) && identical(config[[spec$readiness]], "no")) config[[spec$readiness]] <- NULL
+      config <- .odb_cloud_platform_collect(config, spec, platform, path)
+    }
   }
   paused <- isTRUE(attr(config, "paused"))
   attr(config, "paused") <- NULL
@@ -71,7 +76,7 @@
   .odb_cloud_save(config, path, platform)
   .odb_cloud_files(path, platform)
   if (action == "files") {
-    cli::cli_alert_success("Editable draft: {.path {path}}")
+    .odb_cloud_files_message(platform, path)
     return(invisible(path))
   }
   missing <- spec$required[vapply(spec$required, function(name) is.null(config[[name]]), logical(1))]
@@ -80,7 +85,9 @@
     cli::cli_alert_info("The platform's sign-in integration must be configured first. Save this draft and resume with {.field {spec$readiness}} set to {.val yes} when ready.")
   }
   if (length(missing) || paused) {
-    .odb_cloud_platform_help(spec, config)
+    if (!prompt || !is.null(spec$readiness) && !identical(config[[spec$readiness]], "yes")) .odb_cloud_platform_help(spec, config)
+    cli::cli_alert_info("Setup saved at {.path {path}}. Your app files and settings will be here when you return.", wrap = TRUE)
+    if (length(missing)) cli::cli_text("Still needed: {.field {missing}}. Enter ? at a setup prompt for registration help.")
     .odb_cloud_resume(platform, path)
     if (prompt) return(invisible(path))
     cli::cli_abort("Supply {.field {missing}} to start, or use {.code action = 'files'} for an incomplete draft.")
@@ -94,10 +101,9 @@
   cli::cli_text("{spec$cost}")
   status <- .odb_cloud_run(path, config$port, launch_browser, secret, secret_env = secret_env)
   if (identical(status, 10L)) {
-    config$client_id <- config$client_type <- NULL
-    .odb_cloud_save(config, path, platform)
+    writeLines("review saved settings", .odb_cloud_edit_marker(path))
     rm(secret)
-    cli::cli_alert_info("Returned to setup. Your app edits are preserved.")
+    cli::cli_alert_info("Returned to setup. Your saved settings and app edits are preserved.")
     if (prompt) return(oauth_db_cloud_demo(platform, path = path, prompt = TRUE, launch_browser = launch_browser))
     .odb_cloud_resume(platform, path)
   }

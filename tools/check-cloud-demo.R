@@ -157,6 +157,12 @@ check_cloud_demo <- function(platform) {
     }
   }
   events <- function() if (file.exists(file.path(path, "events.txt"))) readLines(file.path(path, "events.txt")) else character()
+  screenshot <- function(browser, name) {
+    size <- browser$Page$getLayoutMetrics()$cssContentSize
+    capture <- browser$Page$captureScreenshot(format = "png", captureBeyondViewport = TRUE,
+      clip = list(x = 0, y = 0, width = size$width, height = size$height, scale = 1))
+    writeBin(openssl::base64_decode(capture$data), file.path(output, paste0(name, ".png")))
+  }
   for (user in c("alice", "bob")) {
     cat("Checking cloud app as", user, "\n")
     context <- chrome$Target$createBrowserContext()$browserContextId
@@ -166,17 +172,21 @@ check_cloud_demo <- function(platform) {
     browser$go_to("http://localhost:18100")
     wait(browser, "Boolean(window.Shiny && Shiny.shinyapp?.isConnected() && document.querySelector('#login:not(:disabled)'))")
     stopifnot(identical(trimws(value(browser, "document.querySelector('#rows').textContent")), ""))
+    wait(browser, "document.querySelector('#account').textContent.includes('Not signed in') && Boolean(document.querySelector('#run:disabled'))")
+    if (user == "alice") screenshot(browser, "signed-out")
     value(browser, "document.querySelector('#login').click()")
     wait(browser, "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")
     value(browser, sprintf("document.querySelector('#username').value='%s'; document.querySelector('#password').value='%s-fixture-password'; document.querySelector('#kc-login').click()", user, user))
     if (platform == "databricks") {
       wait(browser, "Boolean(document.querySelector('#warehouse')?.selectize?.options['demo-warehouse'])")
     } else wait(browser, "document.querySelector('#account').textContent.includes('Signed in')")
+    wait(browser, "Boolean(document.querySelector('#run:not(:disabled)'))")
     stopifnot(!any(grepl(paste0("^(query|connect) ", user, "$"), events())))
     if (platform == "databricks") value(browser, "document.querySelector('#warehouse').selectize.setValue('demo-warehouse')")
     value(browser, "document.querySelector('#run').click()")
     wait(browser, sprintf("document.querySelector('#rows').textContent.includes('%s')", user))
     stopifnot(sum(events() == paste("query", user)) == 1L)
+    if (user == "alice") screenshot(browser, "signed-in")
     if (platform == "databricks") {
       value(browser, "document.querySelector('#refresh').click()")
       wait(browser, "document.querySelector('#query_status').textContent.includes('Query completed')")
@@ -184,6 +194,7 @@ check_cloud_demo <- function(platform) {
     }
     value(browser, "document.querySelector('#logout').click()")
     wait(browser, "document.querySelector('#rows').textContent.trim() === ''")
+    wait(browser, "document.querySelector('#account').textContent.includes('Not signed in') && Boolean(document.querySelector('#run:disabled'))")
     if (!platform %in% c("bigquery", "clickhouse")) stopifnot(any(events() == paste("disconnect", user)))
     if (user == "bob") {
       value(browser, "document.querySelector('#stop').click()")

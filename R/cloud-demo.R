@@ -14,8 +14,10 @@
 #'   where supported. BigQuery and Snowflake demos use confidential registrations.
 #' @param warehouse_id Optional default Databricks SQL warehouse ID.
 #' @param http_path Optional Databricks warehouse HTTP path, instead of `warehouse_id`.
-#' @param path Empty or existing cloud-demo directory. The default is a temporary
-#'   directory. Existing app edits are preserved. Supply a path to resume later.
+#' @param path Empty or existing cloud-demo directory. The default is a
+#'   platform-specific directory in R's user cache, so drafts survive restarting
+#'   R. Existing settings and app edits are preserved. Use a new empty path for
+#'   a separate setup or fresh templates.
 #' @param port Local Shiny port, default 8100 or the saved setting. Register
 #'   `http://localhost:<port>` exactly as the OAuth callback.
 #' @param edition Databricks only: `"workspace"`, `"trial"`, `"free"`, or `"unknown"`. Free
@@ -110,14 +112,12 @@ oauth_db_cloud_demo <- function(
     if (!is.logical(flag) || length(flag) != 1L || is.na(flag)) cli::cli_abort("{.arg prompt} and {.arg launch_browser} must be TRUE or FALSE.")
   }
   if (prompt && !.odb_cloud_interactive()) cli::cli_abort("Interactive setup needs an R console. Use {.code prompt = FALSE} in scripts.")
-  if (is.null(path)) path <- tempfile("shinyOAuthDB-databricks-")
+  if (is.null(path)) path <- .odb_cloud_default_path(platform)
   .odb_string(path, "path")
   marker <- file.path(path, ".shinyOAuthDB-cloud-demo")
   if (dir.exists(path) && !file.exists(marker) && length(list.files(path, all.files = TRUE, no.. = TRUE))) {
     cli::cli_abort("{.arg path} must be empty or contain a shinyOAuthDB cloud demo.")
   }
-  dir.create(path, recursive = TRUE, showWarnings = FALSE)
-  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   .odb_cloud_check_marker(path, platform)
   config <- .odb_cloud_load(path)
   if (!is.null(host) && !is.null(config$host) && !identical(.odb_cloud_host(host), .odb_cloud_host(config$host))) {
@@ -137,16 +137,22 @@ oauth_db_cloud_demo <- function(
     config$warehouse_id <- sub("^/sql/1[.]0/warehouses/", "", http_path)
   }
   config <- .odb_cloud_validate(config)
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   cli::cli_h1("Databricks Shiny demo")
   cli::cli_text("Use your existing workspace and data permissions in an editable local Shiny app.")
+  if (action == "start" && prompt && file.exists(.odb_cloud_edit_marker(path))) {
+    config <- .odb_cloud_edit_setup(config, path, platform)
+    if (!isTRUE(attr(config, "paused"))) unlink(.odb_cloud_edit_marker(path))
+  }
   if (action == "start" && identical(config$edition, "free")) {
     .odb_cloud_save(config, path)
     .odb_cloud_files(path)
     .odb_cloud_free()
   }
   if (action == "start" && prompt) {
-    .odb_cloud_port_available(config$port)
-    config <- .odb_cloud_collect(config, path)
+    if (!isTRUE(attr(config, "paused"))) .odb_cloud_port_available(config$port)
+    if (!isTRUE(attr(config, "paused"))) config <- .odb_cloud_collect(config, path)
   }
   paused <- isTRUE(attr(config, "paused"))
   attr(config, "paused") <- NULL
@@ -154,13 +160,13 @@ oauth_db_cloud_demo <- function(
   .odb_cloud_save(config, path)
   .odb_cloud_files(path)
   if (action == "files") {
-    cli::cli_alert_success("Editable draft: {.path {path}}")
+    .odb_cloud_files_message(platform, path)
     return(invisible(path))
   }
   if (identical(config$edition, "free")) .odb_cloud_free()
   missing <- c("host", "client_id")[vapply(c("host", "client_id"), function(name) is.null(config[[name]]), logical(1))]
   if (length(missing) || paused) {
-    .odb_cloud_registration(config)
+    if (!prompt) .odb_cloud_registration(config)
     if (prompt) {
       cli::cli_alert_info("Setup paused. Your draft is at {.path {path}}.", wrap = TRUE)
       cli::cli_code(paste0("shinyOAuthDB::oauth_db_cloud_demo('databricks', path = ", deparse(path), ")"))
@@ -179,10 +185,9 @@ oauth_db_cloud_demo <- function(
   cli::cli_text("Save edits to {.file app.R} and reload the browser to try them. Stop demo ends the local app; the shared cloud warehouse keeps its own settings.")
   status <- .odb_cloud_run(path, config$port, launch_browser, secret)
   if (identical(status, 10L)) {
-    config$client_id <- config$client_type <- NULL
-    .odb_cloud_save(config, path)
+    writeLines("review saved settings", .odb_cloud_edit_marker(path))
     rm(secret)
-    cli::cli_alert_info("Returned to setup. Your app edits are preserved.")
+    cli::cli_alert_info("Returned to setup. Your saved settings and app edits are preserved.")
     if (prompt) return(oauth_db_cloud_demo(platform, path = path, prompt = TRUE, launch_browser = launch_browser))
     cli::cli_code(paste0("shinyOAuthDB::oauth_db_cloud_demo('databricks', path = ", deparse(path), ")"))
   }
@@ -290,6 +295,7 @@ oauth_db_cloud_demo <- function(
     }
     cli::cli_h2(switch(field, edition = "1. Choose your workspace edition", host = "2. Find your workspace",
       client_id = "3. Connect your Shiny app", client_type = "4. Check the registration type"))
+    if (field == "client_id") .odb_cloud_registration(config)
     label <- switch(field, edition = "1: Full workspace or trial; 2: Free Edition; 3: Not sure",
       host = "Open your workspace and paste its browser URL",
       client_id = "OAuth app client ID (Enter to pause; ? for registration steps)",

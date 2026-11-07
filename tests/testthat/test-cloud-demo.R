@@ -96,7 +96,7 @@ test_that("masked secrets and process launch don't print or serialize the creden
   expect_identical(Sys.getenv("OAUTHDB_DATABRICKS_CLIENT_SECRET", unset = NA_character_), before)
 })
 
-test_that("Back to setup preserves edits and clears the old client registration", {
+test_that("Back to setup preserves edits and registration for the settings editor", {
   path <- cloud_demo_path()
   local_mocked_bindings(.odb_cloud_port_available = function(...) NULL,
     .odb_cloud_check_workspace = function(...) NULL,
@@ -105,7 +105,8 @@ test_that("Back to setup preserves edits and clears the old client registration"
     action = "files", prompt = FALSE)
   writeLines("# edited app", file.path(path, "app.R"))
   oauth_db_cloud_demo(path = path, prompt = FALSE)
-  expect_null(.odb_cloud_load(path)$client_id)
-  expect_null(.odb_cloud_load(path)$client_type)
+  expect_identical(.odb_cloud_load(path)$client_id, "old-client")
+  expect_identical(.odb_cloud_load(path)$client_type, "public")
+  expect_true(file.exists(.odb_cloud_edit_marker(path)))
   expect_identical(readLines(file.path(path, "app.R")), "# edited app")
 })

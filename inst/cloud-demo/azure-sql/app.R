@@ -11,7 +11,10 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your Azure SQL Shiny demo"
+demo_context <- paste("Database:", settings$database, "| Server:", settings$server)
+demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html"
 example_query <- "SELECT CURRENT_USER AS signed_in_user"
+result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."
 query_target <- "sql"
 query_scopes <- character()
 query_notice <- "SQL uses your Azure database. Stopping this app does not pause or delete the database."

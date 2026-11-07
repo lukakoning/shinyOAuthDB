@@ -10,12 +10,14 @@ client <- oauth_db_bigquery_client(
 )
 
 demo_title <- "Your Google BigQuery Shiny demo"
+demo_context <- paste("Query project:", settings$project, "| Location:", settings$location)
+demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html"
 example_query <- "SELECT SESSION_USER() AS signed_in_user"
+result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."
 query_target <- NULL
 query_scopes <- "https://www.googleapis.com/auth/bigquery"
-query_notice <- paste("Query project:", settings$project, "| Location:", settings$location,
-  "| Maximum bytes billed:", settings$maximum_bytes_billed,
-  "| Running SQL creates a query job. Stopping this app does not cancel a submitted job.")
+query_notice <- paste0("Maximum bytes billed: ", settings$maximum_bytes_billed,
+  ". Running SQL creates a query job. Stopping this app does not cancel a submitted job.")
 query_help <- "Couldn't run the query. Check that the BigQuery API is enabled, the user has BigQuery Job User, and the project/location and byte limit fit the query. Retry explicitly when ready."
 
 make_access <- function(authorization) {

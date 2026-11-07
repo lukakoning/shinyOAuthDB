@@ -11,7 +11,10 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Your Amazon Redshift Shiny demo"
+demo_context <- paste("Database:", settings$database, "| Endpoint:", settings$server)
+demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html"
 example_query <- "SELECT current_user AS signed_in_user"
+result_explanation <- "This first query checks your database identity. To try data access, replace it with SQL for a table you can read; the platform applies your existing permissions."
 query_target <- "redshift"
 query_scopes <- character()
 query_notice <- "This demo needs Redshift/IAM Identity Center trusted identity propagation for Entra JWTs. Queries use normal Redshift compute; stopping this app does not pause a cluster."

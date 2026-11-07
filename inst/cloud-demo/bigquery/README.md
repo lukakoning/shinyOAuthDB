@@ -14,3 +14,7 @@ Enter the Web OAuth client's secret through the masked guide or
 `OAUTHDB_BIGQUERY_CLIENT_SECRET`. Keep secrets and tokens out of these files.
 The [BigQuery guide](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html)
 explains Web OAuth registration, consent test users and IAM permissions.
+
+**Back to setup** opens a console menu of saved settings. Choose a setting
+by number, `0` to continue, or `cancel` to save and return to R. Your other
+settings and app edits are kept. Use a new empty `path` for fresh templates.

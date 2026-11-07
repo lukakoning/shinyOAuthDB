@@ -1,13 +1,20 @@
 # Shared app code; edit this file to try a different UI.
 ui <- oauth_ui(fluidPage(
+  tags$style(".container-fluid { max-width: 960px; }"),
   h2(demo_title),
   p("Sign in with your own account. The platform applies your existing data permissions."),
-  actionButton("login", "Sign in"), actionButton("logout", "Sign out"),
+  if (exists("demo_context")) p(demo_context),
+  h3("1. Sign in"),
+  actionButton("login", "Sign in", class = "btn-primary"), actionButton("logout", "Sign out"),
   textOutput("account"),
-  h3("Run the example"), pre(example_query), p(query_notice),
-  actionButton("run", "Run example query"),
+  h3("2. Check your database identity"), pre(example_query), p(query_notice),
+  uiOutput("query_actions"),
   textOutput("query_status"), tableOutput("rows"),
-  p("Edit app.R to change the SQL or connection code. Save and reload the browser to try it."),
+  if (exists("result_explanation")) p(result_explanation),
+  h3("3. Try your own query"),
+  p("Edit app.R to read one of your tables, or change the UI in demo-ui.R. Save and reload the browser to try it. SQL syntax and table names must match your platform."),
+  p(a("Setup and query guide", href = if (exists("demo_guide")) demo_guide else "https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html")),
+  p("Back to setup stops the app and returns to the R console to review or change settings. Stop demo ends the local app; cloud services keep their own settings."),
   actionButton("setup", "Back to setup"), actionButton("stop", "Stop demo")
 ), id = "auth", client = client)
 
@@ -43,7 +50,17 @@ server <- function(input, output, session) {
       query_status("")
     }
   }, priority = 100)
-  output$account <- renderText({ req(current()); "Signed in. Click Run example query to check your database identity." })
+  output$account <- renderText({
+    if (!is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")) {
+      return("Sign-in didn't finish. Check the registered return address and app registration using the setup guide below, then try again.")
+    }
+    reference <- tryCatch(auth$connection(), error = function(error) NULL)
+    if (is.null(reference)) return("Not signed in. Click Sign in to use your own platform account.")
+    if (is.null(current())) return("Your sign-in needs query access. Check the app's requested permissions, or use Back to setup to correct the registration.")
+    "Signed in. Click Run example query to check your database identity."
+  })
+  output$query_actions <- renderUI(actionButton("run", "Run example query", class = "btn-primary",
+    disabled = if (is.null(current())) TRUE else NULL))
   observeEvent(input$run, {
     reference <- req(current())
     id <- reference$id
@@ -56,7 +73,7 @@ server <- function(input, output, session) {
       }
       run_query(selected$value)
     }, error = function(error) {
-      query_status(query_help)
+      query_status(paste(query_help, "If you edited the SQL, check its syntax and table names too."))
       NULL
     })
     now <- current()

@@ -148,8 +148,10 @@ read-only access: the platform still applies the user's actual privileges.
 
 ## Edit the app and resume later
 
-Choose a directory to keep the example, or use the temporary directory
-printed by the launcher:
+The default directory is in R's user cache, separately for each platform.
+Your draft survives restarting R: call the same demo again to resume.
+The launcher prints its location and a command to open the app code.
+You can also choose a directory:
 
 ```{r files}
 path <- shinyOAuthDB::oauth_db_cloud_demo("databricks",
@@ -162,7 +164,13 @@ shinyOAuthDB::oauth_db_cloud_demo("databricks", path = path)
 `settings.dcf` stores non-secret settings. Existing `app.R` edits survive
 later launches. Change `example_query` to SQL for your own tables, save
 the file and reload the browser to try it. **Back to setup** closes the
-app and returns to configuration; **Stop demo** ends the local process.
+app and opens a console menu of your saved settings. Change a setting by
+number, enter `0` to continue, or `cancel` to save and return to R. Your
+other settings and app edits stay in place. A new workspace or tenant
+needs its own app registration. **Stop demo** ends the local process.
+
+To try a fresh copy of the package's templates, supply a new empty `path`.
+The launcher keeps existing files so it won't overwrite your code.
 
 The launcher passes a confidential secret directly through the child
 process environment. It doesn't write it to the project, R command
