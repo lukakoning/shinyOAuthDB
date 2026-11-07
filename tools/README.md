@@ -1,4 +1,4 @@
-See the [CI workflow map](../.github/README.md) for job groups, platforms and
+See the [CI workflow map](../.github/CI.md) for job groups, platforms and
 triggers. Run package validation from the repository root:
 
 ```sh
