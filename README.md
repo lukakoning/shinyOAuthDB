@@ -5,46 +5,46 @@ platform using each app user's own account. People sign in with the account
 they already use for that data source, and your app queries data on their
 behalf.
 
-This is useful when your organization already manages accounts and data
-permissions in a database or data platform. Your Shiny app can reuse those
-permissions, so you don't have to maintain a separate set of user accounts
-and data-access rules in the app. For example, if your database limits an
-analyst to sales data for their region, a Shiny dashboard can query as that
-analyst and use the same restriction.
+This is useful when you or your organization already manage accounts and data
+permissions in a database or data platform. Your Shiny app can reuse those permissions, 
+so you don't have to maintain a separate set of user accounts and data-access rules in the Shiny app. 
+For example, if your database limits an analyst to sales data for their region, 
+your Shiny dashboard can query the data as that analyst and automatically use the same restriction.
 
 The OAuth sign-in and data access work like this:
 
-1. A user clicks **Sign in** in your Shiny app.
-   [shinyOAuth](https://github.com/lukakoning/shinyOAuth) sends their browser
-   to the platform's sign-in page, or to a sign-in service that your database
-   trusts, such as your organization's login service.
-2. They sign in with their existing account and, if asked, approve the
+1. A user navigates to your Shiny app. Your Shiny app shows a **Sign in** button. 
+   When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow. 
+   The user is sent to the sign-in page of the database or data platform, 
+   or to a trusted sign-in service (like your organization's login service).
+2. The user signs in with their existing account and, if asked, approve the
    access your app requests.
-3. They return to your Shiny app. shinyOAuth obtains an **access token**,
-   a temporary credential that lets the app request data on their behalf.
-4. Your app uses shinyOAuthDB to send that token with its data requests.
-   The database or platform checks the token and applies that user's
+3. They return to your Shiny app and shinyOAuth obtains an **access token**, 
+   a temporary credential that lets your Shiny app request data on their behalf.
+4. Your Shiny app uses shinyOAuthDB to send that token with its data requests.
+   The database or data platform checks the token and applies that user's
    permissions before returning data.
 
-shinyOAuthDB provides R functions to open database connections, run queries
-and make API calls. Depending on the data source, you can work with familiar
-tools such as DBI and dbplyr, or use the package's query and API helpers.
-shinyOAuth handles sign-in and token renewal.
+shinyOAuthDB provides R functions to streamline the above steps,
+with configurations for various databases and data platforms.
+It also helps you open database connections, run queries, and make API calls.
+Depending on the data source, you can work with familiar tools such as DBI and dbplyr,
+or use the a supporting package's query and API helpers.
 
-Supported databases and platforms (links open their setup guides):
+Supported databases and data platforms (links open their setup guides):
 
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) ·
-[DuckDB](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html) ·
-[Trino and Starburst Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·
+[PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) ·
+[DuckDB (over Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html) ·
+[Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html) ·
-[Microsoft Fabric](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
+[Microsoft Fabric and PowerBi](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
 [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html) ·
 [Google BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html) ·
 [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html) ·
 [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html) ·
 [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html) ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html) ·
-[PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) ·
 [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html) ·
 [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
@@ -61,36 +61,29 @@ install.packages("remotes")
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
-## Try PostgreSQL locally
+## Example usage with PostgreSQL
 
-Install and start [Docker](https://docs.docker.com/get-started/get-docker/)
-with Linux containers. In R, run:
+A demo app is included to show the sign-in and query code. 
+It runs PostgreSQL inside a Docker container, with Keycloak for sign-in. 
+The demo uses a small dataset and a simple query to show how each signed-in user sees only their own rows.
+
+Install and start [Docker](https://docs.docker.com/get-started/get-docker/).
+In R, run:
 
 ```r
 shinyOAuthDB::oauth_db_demo()
 ```
 
-This starts PostgreSQL 18, Keycloak sign-in and a Shiny app. The package
-includes the configuration and sample data. The first build downloads its
-dependencies and compiles PostgreSQL; allow several minutes.
+Then, open the Shiny app at <http://localhost:18100>.
+Sign in as `alice` with password `alice`, or as `bob` with password `bob`.
+(Your browser may ask you to accept the local test certificate for Keycloak.)
 
-Open <http://localhost:18100> once the app is ready. Sign in as `alice` with
-password `alice`, or `bob` with `bob`.
-Your browser may ask you to accept the local test certificate for Keycloak.
-Each account sees its own rows from the same query.
+### Shiny app code
 
-Click **Stop demo**, or interrupt R, to remove the containers and demo data.
-After a forced exit, use `oauth_db_demo(action = "stop")`.
+This minimal app shows the sign-in and query code. 
 
-## The Shiny app
-
-This minimal app shows the sign-in and query code. Pass `auth$connection`
-to `oauth_db_postgres()`, then call `con()` before querying. PostgreSQL applies
-the signed-in user's permissions.
-
-The values below use the packaged Docker setup, including its database
-driver and certificates. The app launched by `oauth_db_demo()` adds the
-styled layout and setup guidance.
+It passes `auth$connection` to `oauth_db_postgres()`, then calls `con()` before querying. 
+The PostgreSQL database applies the signed-in user's permissions.
 
 ```r
 library(shiny)
