@@ -1,0 +1,176 @@
+# Google BigQuery
+
+BigQuery is Google’s hosted analytics database. You submit SQL query
+jobs without managing a database server. Run GoogleSQL in a Shiny app
+using each visitor’s Google account. `bigquery$query()` returns a data
+frame you can display with
+[`renderTable()`](https://rdrr.io/pkg/shiny/man/renderTable.html).
+
+The first app checks which Google account is signed in. You can then use
+the same client to query your tables.
+
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("bigquery")` in your R console.
+The guide asks for the query `project` ID and OAuth `client_id`,
+explains the consent screen and test users, then asks for the Web
+client’s secret through masked input. Install `processx`, `jsonlite` and
+`askpass` first. No database driver is needed. You can save a draft
+while arranging access.
+
+The editable app runs `SELECT SESSION_USER()` only after you click **Run
+example query**. Its default `location = "US"` suits the identity query;
+set it to your dataset’s location before querying tables. The default
+`maximum_bytes_billed = "10000000"` limits bytes a query may bill. For
+scripts, supply `project`, `client_id` and optionally those settings,
+set `OAUTHDB_BIGQUERY_CLIENT_SECRET`, and use `prompt = FALSE`. See
+[Guided cloud
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
+for editing and resuming.
+
+With no account yet, [BigQuery
+sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox) offers a
+starting point without a billing account. You still need to enable the
+API, configure your Web OAuth client and have permission to run jobs.
+The full OAuth demo has not been verified against a sandbox account.
+
+## Google Cloud setup
+
+Create a [Web OAuth
+client](https://developers.google.com/identity/protocols/oauth2/web-server)
+in Google Cloud and configure its consent screen. Register
+`http://localhost:8100` as the redirect URI and enable the BigQuery API
+for the query project.
+
+Users need permission to run query jobs in that project and read the
+data. BigQuery bills queries to this project. Set `location` to match
+your datasets; this example uses `"EU"`.
+
+Save the client ID and secret in a local `.Renviron` file and restart R:
+
+``` text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+In Google Cloud Console, select the app project and open **Google Auth
+Platform**. Configure **Branding** and **Audience**; if the app is in
+testing, add the Google accounts that will try it. Under **Clients**,
+create a **Web application** and add `http://localhost:8100` to
+authorized redirect URIs. Copy its client ID and secret. Google’s
+[web-app OAuth
+guide](https://developers.google.com/identity/protocols/oauth2/web-server)
+explains consent and deployment requirements.
+
+| Setting | Where to find it |
+|----|----|
+| `project` | Cloud Console project selector: copy the project **ID**, not its display name or number |
+| `location` | BigQuery Explorer: open the dataset’s details and copy its location |
+| Client ID and secret | Google Auth Platform **Clients**, the Web application |
+
+Ask the administrator for **BigQuery Job User** on the query project and
+**BigQuery Data Viewer** on the relevant datasets, or equivalent
+narrower permissions. See [BigQuery IAM
+roles](https://docs.cloud.google.com/bigquery/docs/access-control). The
+initial identity query still creates a job and needs a query project.
+
+## A complete app
+
+Save this as `app.R`, replacing `"billing-project"` with your project
+ID:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_bigquery_client(
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  bigquery <- oauth_db_bigquery_api(
+    auth$connection,
+    project = "billing-project",
+    location = "EU"
+  )
+  output$rows <- renderTable({
+    bigquery$query("SELECT SESSION_USER() AS signed_in_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears
+the output.
+
+## Query your data
+
+Replace the identity query with SQL for your tables. Use
+`project.dataset.table` names when the data is in another project.
+
+For values entered by a user, pass named R values in `parameters`. This
+example assumes a `reporting.Orders` table with a `country` column:
+
+``` r
+
+output$rows <- renderTable({
+  bigquery$query(
+    "SELECT * FROM reporting.Orders WHERE country = @country LIMIT 20",
+    parameters = list(country = "NL")
+  )
+})
+```
+
+## Find datasets and tables
+
+`$datasets()` lists dataset IDs in the project; `$tables("reporting")`
+lists the table IDs in that dataset. Add these outputs inside
+`server()`:
+
+``` r
+
+output$datasets <- renderPrint(bigquery$datasets())
+output$tables <- renderPrint(bigquery$tables("reporting"))
+```
+
+Add `verbatimTextOutput("datasets")` and `verbatimTextOutput("tables")`
+to the UI. To use `reporting` as the default dataset in SQL, set
+`dataset = "reporting"` when creating the BigQuery client.
+
+## Query costs and larger results
+
+Set `maximum_bytes_billed = "1000000000"` on `$query()` to limit the
+bytes a query may bill. `LIMIT` restricts the rows returned, but doesn’t
+provide the same cost limit.
+
+Queries run synchronously and collect all result pages into R memory.
+Choose queries whose results fit in memory. A timeout or sign-out stops
+fetching results; it doesn’t cancel a submitted BigQuery job.
+
+## Result types
+
+INT64 and decimal columns remain strings to preserve precision. Dates
+become `Date`, timestamps become UTC `POSIXct`, and nested or repeated
+fields use list columns.
+
+Use `raw = TRUE` to inspect the REST result and schema.
+[`?oauth_db_bigquery_api`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md)
+describes parameter types and other options. For saved results or
+background work, see [Authentication and
+sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).

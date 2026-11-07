@@ -1,0 +1,161 @@
+# Trino and Starburst Enterprise
+
+Trino is an open-source SQL query engine that connects to other data
+stores. Starburst Enterprise builds on Trino. Use a self-hosted Trino
+cluster or Starburst Enterprise as a data source for Shiny. People sign
+in with the cluster’s identity provider and query using their own
+database permissions.
+
+You can run Trino and its trusted OAuth identity provider on your own
+infrastructure. The installed package includes a local Trino and
+Keycloak demo, described below.
+
+The connection uses RTrino, so you can write queries with DBI or dbplyr.
+
+## Set up sign-in
+
+Run `install.packages("RTrino")` in R (version 0.1.0 or later). Ask the
+cluster administrator for an OAuth app registration the cluster accepts,
+with `http://localhost:8100` as its redirect URI.
+
+You’ll need the registration’s client ID and secret, and the sign-in
+provider’s issuer URL. This example uses the person’s profile email as
+the Trino username; check that this matches the cluster’s user mapping.
+
+Save these values in a local `.Renviron` file and restart R:
+
+``` text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_TRINO_ISSUER=https://your-identity-provider.example.org
+```
+
+Try `shinyOAuthDB::oauth_db_demo("trino")` for a local cluster, sign-in
+and sample data. See [Local Docker
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+for accounts and cleanup.
+
+| Setting | Where to get it |
+|----|----|
+| `host` | The coordinator’s HTTPS URL and port from your cluster administrator |
+| `catalog` | The data source name shown by Trino’s `SHOW CATALOGS` |
+| `schema` | A schema listed by `SHOW SCHEMAS FROM your_catalog` |
+| Issuer, client ID, secret | The cluster’s trusted provider and your [Shiny client registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| User field | The profile claim selected by the cluster’s principal mapping |
+
+Ask the administrator to check OAuth and impersonation rules as
+described after the app example. A cluster’s own Web UI registration may
+have a different audience from the Shiny app.
+
+## A complete app
+
+Save this as `app.R`. Replace the cluster URL, catalog, and schema, and
+use the scopes your registration allows:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_TRINO_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_trino(
+    auth$connection,
+    host = "https://trino.example.org",
+    catalog = "lakehouse",
+    schema = "reporting",
+    user = function() req(auth$token@userinfo$email)
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears
+the output.
+
+The query shows the Trino user. Replace it with SQL for your data.
+`con()` returns the DBI connection; call it inside the render or
+reactive expression before using DBI or dbplyr.
+
+## Prepare the coordinator and identity provider
+
+The local demo contains `trino/etc/config.properties` and an
+access-control policy you can inspect with
+`oauth_db_demo("trino", action = "files")`. For your coordinator,
+configure HTTPS and its OAuth provider. The relevant settings include:
+
+``` text
+http-server.authentication.type=oauth2
+http-server.authentication.oauth2.issuer=https://login.example.org/realms/reporting
+http-server.authentication.oauth2.client-id=your-coordinator-client
+http-server.authentication.oauth2.client-secret=your-coordinator-secret
+http-server.authentication.oauth2.additional-audiences=your-shiny-api-audience
+http-server.authentication.oauth2.principal-field=email
+```
+
+The coordinator’s OAuth client is separate from the app’s registration.
+Both must agree on the access-token issuer and accepted audience. The
+app uses the profile email for `user`; change both sides if your
+deployment uses a different claim. With locally verifiable JWTs, check
+whether
+`http-server.authentication.oauth2.oidc.use-userinfo-endpoint=false` is
+appropriate for your issuer. See [Trino OAuth
+configuration](https://trino.io/docs/current/security/oauth2). Configure
+access control to restrict impersonation, catalogs and tables;
+authentication alone doesn’t define data permissions.
+
+## Connection settings
+
+Include the HTTPS port in `host`, or pass `port` separately. Set
+`ca_bundle` if the cluster uses a private CA. Other options, such as
+`timeout` and `query_max_run_time`, go to RTrino; see
+[`?oauth_db_trino`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md).
+
+RTrino gets a current token for each request, including result pages.
+The connection stays open through ordinary token refresh and closes on
+account changes, sign-out, or session end.
+
+## Match the cluster’s sign-in configuration
+
+The cluster must trust access tokens from your app’s issuer and
+audience, and map the token’s principal to a Trino user. A successful
+sign-in to the cluster’s web UI alone doesn’t establish this for your
+Shiny app. See [Trino’s OAuth
+configuration](https://trino.io/docs/current/security/oauth2.html) for
+the server settings.
+
+The `user` argument must match that mapping. Use a function to read the
+username from the selected account, as in the app above. If your
+provider uses another verified profile field, replace `email` with that
+field. The helper creates a new connection when the username changes.
+
+Starburst Galaxy needs its own OAuth registration and endpoint setup.
+For saved query results, see [Authentication and
+sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).

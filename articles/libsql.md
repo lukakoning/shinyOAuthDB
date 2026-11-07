@@ -1,0 +1,238 @@
+# Remote libSQL and Turso
+
+libSQL is based on SQLite and can run as a remote database server. Turso
+offers hosted endpoints with compatible SQL APIs. Use
+[`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md)
+to run SQLite SQL against a remote libSQL or compatible Turso endpoint.
+shinyOAuth manages the visitor’s sign-in and token renewal; the database
+endpoint checks their token and permissions. This helper uses the Hrana
+HTTP API, without an additional R database driver.
+
+A local SQLite file has no OAuth login. The endpoint must be a server
+configured to accept the access tokens issued to your app.
+
+## Try self-hosted libSQL locally
+
+Start Docker and run:
+
+``` r
+
+shinyOAuthDB::oauth_db_demo("libsql")
+```
+
+The package includes libSQL 0.24.33, a Shiny app and a Keycloak
+configuration that issues compatible Ed25519-signed access tokens. Alice
+and Bob both receive `id=default` and `a=ro`, with no access-token
+audience. They can read the shared sample table; **Try a write**
+confirms that libSQL refuses writes. See [Local Docker
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+for passwords and cleanup.
+
+Use `oauth_db_demo("libsql", action = "files")` to inspect
+`realm-extended.json` and `libsql/server.py`. A separate provisioning
+client seeds the table; the Shiny client requests read-only tokens. This
+example runs self-hosted libSQL; Turso Cloud uses the different setup
+below.
+
+## Before running the app
+
+The endpoint must accept visitor access tokens from your provider. Turso
+Cloud’s external-provider setup and self-hosted libSQL use different
+token formats; the compatibility section after the app explains both.
+
+| Setting | Where to get it |
+|----|----|
+| `OAUTHDB_LIBSQL_URL` | Turso database details or `turso db show your-database --url`; for self-hosting, your server’s HTTPS URL |
+| `OAUTHDB_LIBSQL_ISSUER` | The provider configured to issue compatible database tokens |
+| Client ID and secret | Your [OAuth app registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| `OAUTHDB_LIBSQL_AUDIENCE` | The provider’s API audience, if required; leave empty for the self-hosted format below |
+| `sqlite.read` | An example scope your provider must define or replace |
+
+Save these values in `.Renviron` and restart R. The client uses the HTTP
+API and needs no extra R database driver. A local SQLite file has no
+OAuth login.
+
+## A complete app
+
+Replace the table name and scopes for your database. The provider’s
+token configuration must satisfy the requirements above before running
+the app.
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+audience <- Sys.getenv("OAUTHDB_LIBSQL_AUDIENCE")
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_LIBSQL_ISSUER"),
+  extra_auth_params = if (nzchar(audience)) list(audience = audience) else list()
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "sqlite.read")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  libsql <- oauth_db_libsql_api(
+    auth$connection, url = Sys.getenv("OAUTHDB_LIBSQL_URL"),
+    required_scopes = "sqlite.read"
+  )
+  output$rows <- renderTable({
+    libsql$query("SELECT id, total FROM orders WHERE country = :country LIMIT 20",
+      parameters = list(country = "NL"))
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)`. The app waits for sign-in before
+sending SQL and clears the output on sign-out. Request `offline_access`
+too if your provider requires it to renew tokens.
+
+## Configure a compatible token issuer
+
+### Self-hosted libSQL
+
+The tested open-source libSQL server, version 0.24.33, verifies Ed25519
+signatures using `SQLD_AUTH_JWT_KEY_FILE` or `SQLD_AUTH_JWT_KEY`.
+Configure the public verification key using the server’s [Docker
+authentication
+instructions](https://github.com/tursodatabase/libsql/blob/main/docs/DOCKER.md#authentication).
+The app must obtain compatible database access tokens from its issuer.
+
+Issue an explicit database namespace in `id`, permissions in `a` (`"ro"`
+for read-only or `"rw"` for read/write), and an `exp` expiry. Do not
+rely on omitted claims: the tested server defaults missing permissions
+to write access and permits tokens without an expiry. Its newer `p`
+permission format is another option; see the [server token
+implementation](https://github.com/tursodatabase/libsql/blob/main/libsql-server/src/auth/user_auth_strategies/jwt.rs).
+
+This configuration is not a general OIDC resource server. It has no
+issuer/audience discovery settings or JWKS URL configuration like the
+DuckDB quack_oauth server. The tested version rejects tokens with an
+`aud` claim because no accepted audience is configured. Use a dedicated
+signing key and restrict token issuance to this database and the
+intended users. The issuer must support Ed25519 signing and the required
+database claims. Existing Entra, Google or default Auth0 tokens cannot
+simply be reused.
+
+If your identity provider cannot issue compatible database access
+tokens, you need a separate authorization gateway or token-exchange
+service. This helper does not mint database tokens or implement token
+exchange.
+
+Put the server behind HTTPS. Pass `ca_bundle` for a private CA. On
+Windows, the Docker acceptance test uses curl’s OpenSSL backend for its
+temporary CA bundle. If your curl/Schannel build rejects a supplied
+private CA, set `CURL_SSL_BACKEND=openssl` before loading curl or
+shinyOAuthDB and restart R. Keep certificate and hostname verification
+enabled.
+
+### Turso Cloud external providers
+
+Turso Cloud has a separate [external authentication
+setup](https://docs.turso.tech/sdk/authorization/jwks). Its current
+documentation lists Clerk and Auth0 as supported providers. Register the
+provider’s JWKS endpoint and use the Turso CLI to generate a
+database-specific JWT claims template, then configure the provider to
+issue those claims. Restrict the template to the required database and
+operations.
+
+The resulting provider-issued access token goes directly to the database
+endpoint. A Turso platform-management API token, a shared database
+token, or an OIDC ID token does not represent the visitor’s database
+authorization. Confirm the selected provider flow supplies the
+compatible database access token through shinyOAuth’s `auth$connection`.
+
+## Configure the app
+
+Register an OAuth client with redirect URI `http://localhost:8100`.
+Request the database’s configured permissions and any provider-specific
+audience parameter. `sqlite.read` below is an example OAuth scope that
+your issuer must define; libSQL’s `a` or `p` claims enforce database
+permissions. Remove or replace that scope if your registration uses
+another scheme.
+
+Save the following values in `.Renviron` and restart R:
+
+``` text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_LIBSQL_ISSUER=https://your-provider.example.org/
+OAUTHDB_LIBSQL_URL=libsql://your-database-your-org.turso.io
+OAUTHDB_LIBSQL_AUDIENCE=your-provider-api-audience
+```
+
+The audience setting is for provider configurations such as Auth0 with
+Turso Cloud. Leave it empty for a self-hosted issuer configured to issue
+database tokens without an audience claim.
+
+## Parameters and result types
+
+Use an unnamed list for positional `?` parameters, or a fully named list
+for named parameters. Values travel separately from SQL; no
+interpolation is needed.
+
+``` r
+
+libsql$query("SELECT * FROM orders WHERE country = ?", list("NL"))
+libsql$execute("INSERT INTO events(value) VALUES (:value)", list(value = "signed in"))
+libsql$query("SELECT ? AS exact_integer", list(I("9223372036854775807")))
+libsql$query("SELECT ? AS bytes, ? AS missing", list(as.raw(c(0, 255)), NULL))
+```
+
+Ordinary character values bind as text. Logical values bind as integers
+`1` or `0`, and `NULL` or scalar `NA` bind as SQL NULL. Numeric values
+must be finite. Format dates and timestamps as strings in your
+database’s format.
+
+SQLite integers return as strings so all 64 bits survive. Floating-point
+values remain numeric. Blobs are raw vectors in list columns. A column
+containing different non-null SQLite types remains a list, including
+nulls. All-null and empty columns use logical missing values and retain
+their names.
+
+`query(..., raw = TRUE)` returns the validated Hrana statement result,
+including column declarations, affected-row count and last inserted row
+ID. `execute()` returns this metadata invisibly, without collecting
+result rows.
+
+## Request lifetime
+
+Each operation obtains a current token, opens a new stream, executes one
+statement and closes the stream in the same HTTPS request. Calls do not
+share transactions, temporary tables, pragmas or other connection state.
+`BEGIN` and `COMMIT` across separate calls cannot form a transaction.
+This helper does not expose a DBI connection, batch transactions,
+cursors or embedded replicas.
+
+Results arriving after an account change, lost required permissions,
+sign-out or session end are discarded. SQL requests are never replayed,
+including HTTP 401, timeouts and lost write responses. After an
+ambiguous write failure, check the database before deciding whether to
+submit again. A submitted statement may finish even if the Shiny session
+has ended.
+
+The source checkout includes a [libSQL Docker
+fixture](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/libsql-oauth).
+Run `Rscript --vanilla tools/check-libsql-oauth.R` from the repository
+root with Docker running and the test dependencies installed to check
+signed tokens, permissions, TLS, bound values and lost write responses
+locally. The fixture uses synthetic Shiny authorizations and does not
+test browser sign-in or Turso Cloud.

@@ -1,0 +1,180 @@
+# Databricks
+
+Databricks is a hosted data and analytics platform. Its SQL warehouses
+run queries against your tables. Query a Databricks SQL warehouse from
+Shiny using each visitor’s Databricks account.
+[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md)
+gives you a DBI connection for SQL or dbplyr queries.
+
+The same sign-in works with brickster’s API functions, including
+warehouse listing and query submission.
+
+For guided setup and an editable app, run
+`shinyOAuthDB::oauth_db_cloud_demo("databricks")`. The [cloud demo
+guide](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
+explains the console prompts, warehouse selection and Free Edition’s
+registration limitation.
+
+## Register the app
+
+In R, run `install.packages("brickster")` and ask your administrator to
+[register a Databricks OAuth
+application](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth)
+with a client secret and `http://localhost:8100` as its redirect URI.
+Allow the scopes requested by the preset, including `all-apis` and
+`offline_access`. Users need access to the workspace, warehouse, and
+data.
+
+Save the client ID and secret in a local `.Renviron` file and restart R:
+
+``` text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+In the Databricks **account console**, an administrator opens **Settings
+\> App connections \> Add connection**. Register
+`http://localhost:8100`, allow **All APIs** for this preset and generate
+a client secret. Copy the ID and secret from the result; the secret
+can’t be retrieved later. These are [custom OAuth
+connections](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth),
+separate from service-principal machine credentials.
+
+| App value | Where to find it |
+|----|----|
+| `host` | Your workspace browser address, e.g. `example.cloud.databricks.com` |
+| `warehouse_id` | Workspace **SQL Warehouses \> your warehouse \> Connection details**; also the last part of its HTTP path |
+| Client ID and secret | The account console’s custom app connection |
+
+Give users **CAN USE** on the warehouse and the appropriate catalog,
+schema and table privileges. The cloud service can’t be reproduced by a
+local Docker demo.
+
+## A complete app
+
+Save this as `app.R`. Replace the workspace host and copy the warehouse
+ID from the warehouse’s connection details:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+host <- "example.cloud.databricks.com"
+client <- oauth_db_databricks_client(
+  host = host,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_databricks(
+    auth$connection,
+    host = host,
+    warehouse_id = "warehouse-id"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT current_user()")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears
+the output.
+
+The query shows the Databricks user. Replace it with SQL for your
+tables. For dbplyr, get `connection <- con()` first, then pass it to
+[`dplyr::tbl()`](https://dplyr.tidyverse.org/reference/tbl.html).
+
+## Call brickster functions
+
+To list warehouses, add `verbatimTextOutput("warehouses")` to the UI and
+this code inside `server()`:
+
+``` r
+
+databricks <- oauth_db_databricks_api(auth$connection, host = host)
+
+output$warehouses <- renderPrint({
+  databricks$call(brickster::db_sql_warehouse_list)
+})
+```
+
+Pass the function and its usual arguments to `$call()`. The client
+supplies the workspace host and the user’s current token.
+
+For example, to use brickster’s query API, replace the table output with
+`verbatimTextOutput("rows")` and the render expression with:
+
+``` r
+
+output$rows <- renderPrint({
+  databricks$call(
+    brickster::db_sql_query,
+    warehouse_id = "warehouse-id",
+    statement = "SELECT current_user()",
+    disposition = "INLINE",
+    show_progress = FALSE
+  )
+})
+```
+
+This returns brickster’s query result. Use the DBI helper above when you
+want
+[`DBI::dbGetQuery()`](https://dbi.r-dbi.org/reference/dbGetQuery.html)
+to return a data frame.
+
+## Connection options
+
+Supply `http_path = "/sql/1.0/warehouses/warehouse-id"` instead of
+`warehouse_id` if you have the HTTP path. Set `catalog` and `schema` to
+choose SQL defaults; other connection options go to brickster.
+
+Call `con()` before each operation. When its token changes, the helper
+replaces the connection. On sign-out or session end, `con()` stops
+returning the connection and calls the driver’s cleanup method. The
+brickster driver doesn’t invalidate retained native handles: a saved
+connection can still submit requests with its copied token. Keep using
+`con()` for each operation. See [Authentication and
+sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+for results saved in the app.
+
+## Azure Databricks with Entra sign-in
+
+For a workspace that accepts Microsoft Entra tokens, use an Entra Web
+app registration with delegated Databricks access. Set
+`OAUTHDB_TENANT_ID` and replace the client with:
+
+``` r
+
+client <- oauth_db_microsoft_client(
+  services = "databricks_entra",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+```
+
+Change `host` to the Azure workspace hostname and set
+`auth_mode = "entra"` on both
+[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md)
+and
+[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md).

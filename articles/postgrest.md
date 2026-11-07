@@ -1,0 +1,194 @@
+# PostgREST
+
+PostgREST turns PostgreSQL tables and functions into an HTTP API. Read
+PostgreSQL tables and views through PostgREST using each visitor’s
+account. PostgREST validates the visitor’s JWT and PostgreSQL applies
+the role’s grants and row-level security policies. The R client uses
+HTTP and does not need RPostgres or PostgreSQL 18’s native OAuth
+support.
+
+The app passes the signed-in visitor’s access token on every request.
+There is no separate username argument: PostgREST extracts the database
+role from the verified JWT’s configured role claim. A deployment can use
+one role per person, or a shared role with row policies that use the
+token’s user ID (usually `sub`). The role claim and the user ID are
+configured in the identity provider and database, so the same app query
+can return different rows for different logins.
+
+## Set up the server and sign-in
+
+Configure PostgREST to trust your identity provider’s signing keys and
+the token audience intended for this API. Configure its JWT role
+extraction and allow the authenticator role to switch into the database
+roles you expose. Give those roles the necessary schema, table, view,
+and function permissions. See PostgREST’s [authentication
+guide](https://docs.postgrest.org/en/stable/references/auth.html) and
+[database authorization
+guide](https://docs.postgrest.org/en/stable/explanations/db_authz.html).
+
+Register your Shiny app with that identity provider, using
+`http://localhost:8100` as the redirect URI for this example. Request
+the audience and scopes that your deployment expects. An identity token
+or a token intended for another API is not a substitute for this API’s
+access token. The example assumes the registration issues the right JWT
+access token through its ordinary authorization-code flow.
+
+Set `OAUTHDB_POSTGREST_ISSUER`, `OAUTHDB_POSTGREST_URL`,
+`OAUTHDB_CLIENT_ID`, and `OAUTHDB_CLIENT_SECRET` in your environment.
+The API URL must use HTTPS; it may include a reverse proxy prefix such
+as `/rest/v1`. For a private CA, pass `ca_bundle` to
+[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md).
+
+For a configured local example, run
+`shinyOAuthDB::oauth_db_demo("postgrest")`. It includes PostgreSQL,
+PostgREST, Keycloak and an app. The [local demo
+guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+lists the accounts and cleanup command.
+
+| Setting | Where to get it |
+|----|----|
+| `OAUTHDB_POSTGREST_URL` | Your HTTPS PostgREST endpoint, including any proxy path such as `/rest/v1` |
+| `schema`, table | The schema exposed by PostgREST and a table the user can read |
+| Issuer, client ID, secret | The [OIDC registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#use-keycloak-with-a-self-hosted-database) with the API’s trusted provider |
+
+Store the `OAUTHDB_*` values in `.Renviron` and restart R. See the
+server recipe after the app if your PostgreSQL database doesn’t yet
+expose an API.
+
+## Complete Shiny app
+
+Replace the schema, table, and column names with your own. Save the
+example as `app.R` and run it with `shiny::runApp(port = 8100)`.
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_POSTGREST_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "email", "offline_access")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  postgrest <- oauth_db_postgrest_api(
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_POSTGREST_URL"),
+    schema = "reporting"
+  )
+  output$rows <- renderTable({
+    postgrest$select("orders", order = "id.asc", limit = 20L)
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Create the client inside `server()`. Its requests wait quietly before
+sign-in and use a current access token for the selected authorization.
+Use `target` if your shinyOAuth client has named token targets.
+
+## Prepare PostgreSQL, PostgREST and Keycloak
+
+Copy a working configuration with
+`oauth_db_demo("postgrest", action = "files")`. In that directory,
+`postgrest/fixture.sql` creates an `authenticator` login, database roles
+and a row policy. `realm.json` adds the verified token’s `role` claim;
+PostgREST switches to that role when executing SQL.
+
+For your deployment, create a restricted login for PostgREST and let it
+assume only the roles the API exposes. For example:
+
+``` sql
+CREATE ROLE reporting_reader NOLOGIN;
+GRANT reporting_reader TO authenticator;
+GRANT USAGE ON SCHEMA reporting TO reporting_reader;
+GRANT SELECT ON reporting.orders TO reporting_reader;
+```
+
+Configure the issuer’s access-token mapper to emit
+`role=reporting_reader` and the API’s audience. Set `PGRST_DB_SCHEMAS`
+to the exposed schema, `PGRST_JWT_SECRET` to its public JWK/JWKS
+material, and `PGRST_JWT_AUD` to that audience. The default role claim
+is `role`; configure a different claim path only if your tokens use one.
+Plan how to update signing keys when the provider rotates them; the demo
+takes a snapshot at startup. Terminate HTTPS at your API or reverse
+proxy.
+
+PostgREST’s [authentication
+guide](https://docs.postgrest.org/en/v14/references/auth.html) explains
+key formats and role extraction. PostgreSQL table grants and row
+policies still control which rows the role can access.
+
+## Filters, embedded resources, and pagination
+
+`filters` contains native PostgREST expressions. Values are URL-encoded;
+they are not SQL fragments interpolated by this package. `select` can
+include related resources configured through foreign keys.
+
+``` r
+
+rows <- postgrest$select(
+  "orders", select = "id,total,customers(name)",
+  filters = list(total = "gte.100", country = "eq.NL"),
+  order = "id.asc", limit = 20L, offset = 20L
+)
+response <- postgrest$select("orders", order = "id.asc", limit = 20L,
+  count = "exact", raw = TRUE)
+httr2::resp_header(response, "Content-Range")
+```
+
+Selections return one page. The server can impose a smaller page size;
+use its Content-Range header to inspect the returned range. Exact counts
+can be expensive for large tables. See [pagination and
+count](https://docs.postgrest.org/en/stable/references/api/pagination_count.html).
+
+JSON results become data frames where possible. Large integer literals
+remain strings; decimal precision depends on how the server serializes
+the value. Cast exact decimal values to text in a view or function when
+necessary. Embedded resources may become nested data frames or list
+columns. Empty selections have no column metadata and return a
+zero-column data frame. Dates keep their JSON representation.
+
+## Functions and native API requests
+
+Call an exposed PostgreSQL function through its RPC endpoint. The keys
+in `args` are its argument names; the result may be a scalar, object, or
+table.
+
+``` r
+
+total <- postgrest$rpc("order_total", list(order_id = 42L))
+
+# A GET function call runs in a read-only transaction on PostgREST.
+total <- postgrest$request(c("rpc", "order_total"),
+  query = list(order_id = 42L))
+
+# Native writes use the same visitor's token and database permissions.
+response <- postgrest$request("orders", method = "PATCH",
+  query = list(id = "eq.42"), body = list(status = "reviewed"),
+  prefer = "return=representation", raw = TRUE)
+```
+
+GET and HEAD requests retry once after HTTP 401 using a renewed token.
+Other methods never retry automatically: a function or write may already
+have changed data. Redirects are rejected. Each operation stays with the
+authorization that started it and discards a response if the visitor
+signs out, changes accounts, or loses access while it runs.

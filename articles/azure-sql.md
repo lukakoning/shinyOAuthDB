@@ -1,0 +1,173 @@
+# Azure SQL and SQL Server
+
+Azure SQL is Microsoft’s hosted SQL database; SQL Server can also run on
+your own infrastructure. Let people sign in with their Microsoft account
+and query Azure SQL from your Shiny app. Their database permissions
+determine which data they can see.
+
+[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md)
+provides a connection for ordinary DBI or dbplyr queries. The app below
+starts by listing the tables the user can access.
+
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("azure-sql")` in your R console.
+The guide asks for `server`, `database`, Entra `tenant_id` and
+`client_id`, then your registration type. It explains the database
+user/group setup, firewall access and delegated SQL permission
+separately from app consent. You can save a draft while an administrator
+arranges access.
+
+Install `odbc`, `processx`, `askpass` and Microsoft ODBC Driver 18
+first. The editable local app waits for **Run example query** before
+connecting. For scripts, supply the settings above; optional `driver`
+and `database_port` configure the native connection. The Shiny
+callback’s `port` is separate. A confidential registration uses
+`OAUTHDB_AZURE_SQL_CLIENT_SECRET` or masked input. See [Guided cloud
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md).
+
+If you need an account and database, check the [Azure SQL free
+offer](https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer).
+Availability and allowances depend on your subscription; stopping the
+local app does not stop Azure billing or pause its database.
+
+## Set up access
+
+In R, run `install.packages("odbc")`, then install [Microsoft ODBC
+Driver
+18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
+for your operating system. Your database administrator must [enable
+Microsoft Entra
+authentication](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
+and give users or their groups access to the database.
+
+Create a Microsoft Entra Web app registration with permission to access
+SQL on a user’s behalf. Register `http://localhost:8100` as its redirect
+URI, then save these values in a local `.Renviron` file and restart R:
+
+``` text
+OAUTHDB_TENANT_ID=your-tenant-id
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+Follow [Microsoft app
+registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app)
+to find the IDs and secret. Add the **Azure SQL Database** delegated
+`user_impersonation` permission and obtain consent as your tenant
+requires.
+
+| Value in the app | Where to find it |
+|----|----|
+| `server` | Azure portal: SQL database overview, **Server name** |
+| `database` | The database’s name in Azure, not the logical server name |
+| Tenant ID and client ID | Entra app registration overview |
+| Client secret | Registration’s **Certificates & secrets**, secret **Value** |
+
+In Azure, allow the app server’s IP or private network to reach SQL.
+Creating an app registration doesn’t open the database firewall.
+
+## A complete app
+
+Save this as `app.R`, replacing the server and database:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_microsoft_client(
+  services = "sql",
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_azure_sql(
+    auth$connection,
+    server = "example.database.windows.net",
+    database = "Reporting"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT TOP (20) name FROM sys.tables")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears
+the output.
+
+## Give users database access
+
+An administrator first sets an Entra administrator on the Azure SQL
+logical server. Connect to the target database with that administrator
+and create an external user or group, then grant the intended access.
+For example:
+
+``` sql
+CREATE USER [reporting-readers] FROM EXTERNAL PROVIDER;
+GRANT SELECT ON OBJECT::dbo.Orders TO [reporting-readers];
+```
+
+Use an existing Entra group name and your actual table. This establishes
+database permissions for its members; OAuth registration alone doesn’t.
+Microsoft’s [Entra configuration
+guide](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql)
+covers administrator setup and external users.
+
+## Query with dbplyr
+
+In the app, `con` is a function. Calling `con()` inside
+[`renderTable()`](https://rdrr.io/pkg/shiny/man/renderTable.html) gets
+the signed-in user’s DBI connection.
+
+To read an `Orders` table with dbplyr, install `dbplyr` and `dplyr`,
+then replace the output expression with:
+
+``` r
+
+output$rows <- renderTable({
+  connection <- con()
+  dplyr::tbl(connection, "Orders") |>
+    dplyr::filter(amount > 100) |>
+    dplyr::collect()
+})
+```
+
+For SQL queries that include values entered by a user, use DBI parameter
+binding.
+
+## Other SQL Server deployments
+
+Use the same
+[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md)
+helper for SQL Managed Instance or Synapse SQL, with that deployment’s
+server and database. For SQL Server configured to accept Entra tokens,
+use
+[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md)
+with the same arguments and client.
+
+See
+[`?oauth_db_azure_sql`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md)
+for driver settings such as `driver`, `port`, and `timeout`.
+[Authentication and
+sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+covers custom permissions and existing logins.

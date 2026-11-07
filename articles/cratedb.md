@@ -1,0 +1,198 @@
+# CrateDB with visitor JWTs
+
+CrateDB is a distributed SQL database for analytics and operational
+data. Use
+[`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md)
+to run SQL through CrateDB’s HTTPS interface with each visitor’s JWT
+access token. CrateDB maps the token to a database user and enforces
+that user’s privileges. This is an HTTP query client; CrateDB’s JWT
+authentication does not work through its PostgreSQL interface.
+
+## Try CrateDB locally
+
+With Docker running:
+
+``` r
+
+shinyOAuthDB::oauth_db_demo("cratedb")
+```
+
+The demo includes CrateDB 6.4.3, Keycloak, a Shiny app and read-only
+database users. Alice and Bob can read a shared table; **Try a write**
+checks that CrateDB rejects their writes. See [Local Docker
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+for accounts and cleanup.
+
+CrateDB expects the token’s issuer URL to serve its public signing keys.
+The demo’s HTTPS gateway supplies those keys at Keycloak’s issuer URL
+while forwarding normal browser sign-in to Keycloak. It passes the
+original access token to CrateDB. Inspect `cratedb/server.py` and
+`realm-extended.json` with `oauth_db_demo("cratedb", action = "files")`
+for the complete setup.
+
+## Collect the connection settings
+
+Your server must enable JWT authentication for its HTTP SQL interface.
+The required user claims and configuration follow the app example.
+
+| Setting | Where to get it |
+|----|----|
+| `url` | CrateDB’s HTTP endpoint with `/_sql`, exposed through HTTPS |
+| `schema` and table | Your database’s schema and table names, often `doc` |
+| `OAUTHDB_CRATEDB_ISSUER` | Your compatible OAuth provider’s issuer URL |
+| Client ID and secret | The [Shiny app registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) in that provider |
+
+Put the `OAUTHDB_*` values in `.Renviron` and restart R. CrateDB needs a
+`username` claim and specific signing-key discovery; check the setup
+section before reusing tokens from an existing provider.
+
+## A complete app
+
+This example assumes an OIDC provider configured to issue compatible JWT
+access tokens. Replace the SQL endpoint and table for your deployment.
+Add the provider’s API scopes, resource or named token target to the
+client as needed. Pass `target` and `required_scopes` to the helper when
+using them. CrateDB’s user grants remain the authority for data access.
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_CRATEDB_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile")
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  crate <- oauth_db_cratedb_api(
+    auth$connection, url = "https://crate.example.org:4200/_sql", schema = "doc"
+  )
+  output$rows <- renderTable({
+    crate$query("SELECT id, total FROM orders WHERE country = $1 LIMIT 20",
+      parameters = list("NL"))
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)`. The app waits for sign-in before
+querying and clears the output on sign-out. Use `ca_bundle` for a
+private CA.
+
+## Configure CrateDB and compatible token claims
+
+Enable host-based authentication and configure `method: jwt` rules with
+`protocol: http` for the intended users. Expose `/_sql` through verified
+TLS, either directly on CrateDB or through a reverse proxy. For example,
+an HTTP rule for Alice in `crate.yml` looks like this:
+
+``` yaml
+auth.host_based.enabled: true
+auth.host_based.config:
+  alice:
+    user: alice
+    method: jwt
+    protocol: http
+```
+
+Keep separate administrative authentication rules appropriate to your
+deployment. Create the database user and grant only the privileges
+needed:
+
+``` sql
+CREATE USER alice WITH (jwt = {
+  "iss" = 'https://identity.example.org/',
+  "username" = 'alice',
+  "aud" = 'reporting-api'
+});
+GRANT DQL ON TABLE doc.orders TO alice;
+```
+
+The access token must have matching `iss`, `username` and `aud` claims,
+a `kid` header and a signing key CrateDB can obtain from the provider’s
+JWK endpoint. Configure token expiry with `exp`. In particular, CrateDB
+expects `username`; a provider returning only `sub` or
+`preferred_username` needs a suitable claim mapping. Its JWT
+documentation describes `iss` as the JWK endpoint. Verify key discovery
+with your provider and CrateDB version before using the app; the helper
+does not rewrite token claims or exchange an incompatible token.
+
+Global `auth.host_based.jwt.iss` settings override per-user JWT
+properties. See the server’s [JWT authentication
+documentation](https://cratedb.com/docs/crate/reference/en/latest/admin/auth/methods.html#jwt-authentication-method)
+and [user
+settings](https://cratedb.com/docs/crate/reference/en/latest/sql/statements/create-user.html).
+
+Register an OAuth client with the identity provider. Allow
+`http://localhost:8100` as its development redirect URI, and configure
+the access-token audience and claims required above. Save your
+registration in `.Renviron` and restart R:
+
+``` text
+OAUTHDB_CRATEDB_ISSUER=https://identity.example.org/
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+## Parameters, results and lifetime
+
+Use `$1`, `$2`, … or `?` placeholders with an unnamed list of
+parameters. Values are sent as JSON separately from SQL; named lists
+inside a parameter represent objects, and unnamed lists or atomic
+vectors represent arrays. Missing values become JSON null. Dates and
+POSIXct timestamps become ISO strings, with timestamps expressed in UTC.
+Cast the placeholders to the desired SQL types. For exact numbers, pass
+strings and cast them explicitly:
+
+``` r
+
+crate$query("SELECT * FROM orders WHERE id = $1::bigint",
+  parameters = list("9007199254740993"))
+```
+
+BIGINT and NUMERIC results remain strings, preserving their exact
+digits. Smaller numeric columns become R numbers and booleans become
+logical. Timestamps and dates retain epoch-millisecond strings. Arrays,
+objects and other complex types remain list columns with numbers
+represented as strings. Empty results keep their types; duplicate column
+names stay unchanged. Use `$query(..., raw = TRUE)` for column metadata
+and the original row layout. `$execute()` invisibly returns the affected
+row count, or `-1` when unknown.
+
+shinyOAuth obtains or renews a token before each request. Account
+changes, lost required scopes, sign-out and session end stop local
+access. A response arriving after its authorization changes is
+discarded. The helper never replays SQL after a 401, redirect, timeout
+or other failure. A statement may already have changed data even if its
+response was lost, so check the server outcome before manually
+resubmitting a write.
+
+## Run the real-server checks
+
+The source repository includes a [CrateDB Docker
+fixture](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/cratedb-oauth)
+with signed visitor tokens, native CrateDB JWT validation and a TLS
+proxy. From the checkout root, run `Rscript tools/check-cratedb-oauth.R`
+with Docker running and the test dependencies installed. No production
+credentials are needed. The checks cover user privileges, exact types,
+token changes, rejected credentials, TLS verification and lost write
+responses.

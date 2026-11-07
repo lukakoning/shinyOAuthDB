@@ -1,0 +1,182 @@
+# Snowflake
+
+Snowflake is a hosted SQL data platform. A warehouse supplies the
+compute for queries; database roles control access. Add Snowflake data
+to a Shiny app using each visitor’s own account and role. Query through
+a DBI connection, or use dbplyr to work with tables.
+
+The example first shows the signed-in user’s Snowflake username and
+role, so you can check the connection before querying your data.
+
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("snowflake")` in your R console.
+The guide asks for `server`, `role`, `warehouse` and the custom OAuth
+`client_id`; it explains how an administrator registers the exact local
+callback and where to obtain the client secret. It uses a confidential
+integration and masked secret input, or
+`OAUTHDB_SNOWFLAKE_CLIENT_SECRET`. Install `odbc`, `processx`, `askpass`
+and the Snowflake ODBC driver first.
+
+The editable local app requests the same role at sign-in and connection,
+then waits for **Run example query**. Queries may resume a warehouse and
+consume credits; stopping the app doesn’t suspend a shared warehouse.
+Optional `database`, `schema` and `driver` arguments customize the
+setup. See [Guided cloud
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
+for pausing, editing and resuming.
+
+Without an account, check [Snowflake trial
+accounts](https://docs.snowflake.com/en/user-guide/admin-trial-account).
+You still need permission to create the OAuth integration and a usable
+role/warehouse. Live trial compatibility remains unverified here.
+
+## Snowflake setup
+
+In R, run `install.packages("odbc")`, then install the [Snowflake ODBC
+driver](https://docs.snowflake.com/en/developer-guide/odbc/odbc) for
+your operating system. Ask your administrator for a [custom-client OAuth
+integration](https://docs.snowflake.com/en/user-guide/oauth-custom) with
+`http://localhost:8100` as its redirect URI. Users need a role with
+access to the warehouse and data.
+
+For this local HTTP callback, the development integration needs
+`OAUTH_ALLOW_NON_TLS_REDIRECT_URI = TRUE`. Use an HTTPS callback when
+deploying. The [integration
+settings](https://docs.snowflake.com/en/sql-reference/sql/create-security-integration-oauth-snowflake)
+describe this option and refresh-token settings.
+
+Save the integration’s client ID and secret in a local `.Renviron` file,
+then restart R:
+
+``` text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+| Setting | Where to get it |
+|----|----|
+| `server` | Your account’s connection details; use its `.snowflakecomputing.com` hostname |
+| `warehouse`, `database`, `role` | Names your Snowflake administrator grants to the users |
+| Client ID and secret | The custom-client security integration, shown below |
+
+If the integration doesn’t exist yet, follow **Create the OAuth
+integration** after the app example. Snowflake runs as a cloud service;
+this guide needs an account rather than a Docker container.
+
+## A complete app
+
+Save this as `app.R`. Replace the connection settings, keeping the
+server and role the same in the sign-in client and connection helper:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_snowflake_client(
+  server = "organization-account.snowflakecomputing.com",
+  role = "REPORTING_READER",
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(fluidPage(
+  actionButton("login", "Sign in"),
+  actionButton("logout", "Sign out"),
+  tableOutput("rows")
+), id = "auth", client = client)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_snowflake(
+    auth$connection,
+    server = "organization-account.snowflakecomputing.com",
+    role = "REPORTING_READER",
+    warehouse = "REPORTING_WH",
+    database = "ANALYTICS"
+  )
+
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT CURRENT_USER(), CURRENT_ROLE()")
+  })
+}
+
+shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+```
+
+Run `shiny::runApp(port = 8100)` from the app directory and open
+`http://localhost:8100`. Sign in to run the query; signing out clears
+the output.
+
+## Create the OAuth integration
+
+A Snowflake administrator can run this in a SQL worksheet to register a
+local development app:
+
+``` sql
+CREATE SECURITY INTEGRATION shiny_reporting
+  TYPE = OAUTH
+  ENABLED = TRUE
+  OAUTH_CLIENT = CUSTOM
+  OAUTH_CLIENT_TYPE = 'CONFIDENTIAL'
+  OAUTH_REDIRECT_URI = 'http://localhost:8100'
+  OAUTH_ALLOW_NON_TLS_REDIRECT_URI = TRUE
+  OAUTH_ENFORCE_PKCE = TRUE
+  OAUTH_ISSUE_REFRESH_TOKENS = TRUE;
+
+SELECT SYSTEM$SHOW_OAUTH_CLIENT_SECRETS('SHINY_REPORTING');
+```
+
+Copy `OAUTH_CLIENT_ID` and `OAUTH_CLIENT_SECRET` into `.Renviron` as
+`OAUTHDB_CLIENT_ID` and `OAUTHDB_CLIENT_SECRET`. The integration
+registers the app; grant users the reporting role and that role’s
+warehouse/table permissions separately. Use HTTPS and disable the
+non-TLS redirect exception when deploying. Snowflake’s [custom-client
+guide](https://docs.snowflake.com/en/user-guide/oauth-custom) covers
+integration privileges and role restrictions.
+
+## Query a table
+
+Replace the output expression with SQL for your data. For example, if
+your table is `ANALYTICS.PUBLIC.ORDERS`:
+
+``` r
+
+output$rows <- renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20")
+})
+```
+
+`con()` gets the current user’s connection. Call it inside the render or
+reactive expression before using DBI or dbplyr.
+
+## Connection defaults
+
+Set `schema = "PUBLIC"` on the helper to choose a default schema. Omit
+`warehouse`, `database`, or `schema` to use the account’s defaults. If
+the installed ODBC driver has a different name, set `driver`. See
+[`?oauth_db_snowflake`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md)
+for the full arguments.
+
+## External OAuth
+
+If Snowflake uses Entra, Okta, or another external provider for OAuth,
+configure a shinyOAuth client for that provider. Request the audience
+and role scopes accepted by your Snowflake integration.
+
+Connect with
+[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md)
+as above. Set `target` if your client uses named token targets, and
+`required_scopes` to the integration’s role scope. For native Snowflake
+OAuth, the helper derives that scope from `role`; external providers may
+use different scope names. [Authentication and
+sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+explains custom targets.
