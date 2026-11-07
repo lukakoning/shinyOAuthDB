@@ -9,7 +9,7 @@ client <- oauth_db_bigquery_client(
   redirect_uri = paste0("http://localhost:", settings$port)
 )
 
-demo_title <- "Your Google BigQuery Shiny demo"
+demo_title <- "Google BigQuery Shiny demo"
 demo_details <- list(
   "Query project" = settings$project,
   "Location" = settings$location,

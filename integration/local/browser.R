@@ -117,7 +117,7 @@ fixture_login <- function(browser, username, config) {
   }
   fixture_value(browser, paste0("document.querySelector('#username').value=",
     jsonlite::toJSON(username, auto_unbox = TRUE), ";document.querySelector('#password').value=",
-    jsonlite::toJSON(paste0(username, "-fixture-password"), auto_unbox = TRUE),
+    jsonlite::toJSON(username, auto_unbox = TRUE),
     ";HTMLFormElement.prototype.submit.call(document.querySelector('#kc-login').form); true"))
   value <- fixture_wait(browser, function(snapshot) isTRUE(snapshot$authorized) || !is.null(snapshot$auth_error))
   list(metadata = metadata, snapshot = value)

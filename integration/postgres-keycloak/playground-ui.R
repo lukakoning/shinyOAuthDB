@@ -71,8 +71,8 @@ postgres_playground_ui <- function(config) {
       shiny::tags$details(
         shiny::tags$summary("Local demo accounts"),
         shiny::tags$dl(
-          shiny::tags$dt("Alice"), shiny::tags$dd(shiny::tags$code("alice"), " / ", shiny::tags$code("alice-fixture-password")),
-          shiny::tags$dt("Bob"), shiny::tags$dd(shiny::tags$code("bob"), " / ", shiny::tags$code("bob-fixture-password"))
+          shiny::tags$dt("Alice"), shiny::tags$dd(shiny::tags$code("alice"), " / ", shiny::tags$code("alice")),
+          shiny::tags$dt("Bob"), shiny::tags$dd(shiny::tags$code("bob"), " / ", shiny::tags$code("bob"))
         )
       ),
       shiny::div(class = "pg-actions",
@@ -83,7 +83,7 @@ postgres_playground_ui <- function(config) {
       shiny::div(role = "status", `aria-live` = "polite", shiny::uiOutput("action_status")),
       shiny::fluidRow(
         shiny::column(8,
-          shiny::h2("Your database rows"),
+          shiny::h2("Database rows"),
           shiny::div(class = "pg-actions",
             button("load", "Reload rows", "Reading your rows from PostgreSQL...", TRUE),
             button("refresh", "Refresh token", "Refreshing your token in the background...")

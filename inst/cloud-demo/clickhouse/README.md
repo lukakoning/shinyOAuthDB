@@ -1,4 +1,4 @@
-# Your ClickHouse Cloud Shiny demo
+# ClickHouse Cloud Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("clickhouse", path = ".")`.
 This example uses Microsoft Entra as a custom JWT issuer. The Cloud service

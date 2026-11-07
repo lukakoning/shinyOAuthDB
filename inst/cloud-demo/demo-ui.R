@@ -97,6 +97,7 @@ server <- function(input, output, session) {
     reference <- tryCatch(auth$connection(), error = function(error) NULL)
     if (is.null(reference)) return("Not signed in. Click Sign in to use your own platform account.")
     if (is.null(current())) return("Your sign-in needs query access. Check the app's requested permissions, or use Back to setup to correct the registration.")
+    if (!is.null(result())) return("Signed in. Sign out to switch accounts.")
     "Signed in. Click Run example query to check your database identity."
   })
   output$query_actions <- renderUI(actionButton("run", "Run example query", class = "btn-primary",

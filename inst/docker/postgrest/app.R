@@ -21,9 +21,12 @@ ui <- oauth_ui(page_sidebar(
   sidebar = sidebar(width = 320, bg = "#fff", fg = "#23313d", open = list(desktop = "always", mobile = "always-above"),
     h3("1. Sign in", class = "h5"),
     p("Choose a demo account. Sign out before trying the other one."),
-    tags$dl(class = "demo-details",
-      tags$dt("alice"), tags$dd(code("alice-fixture-password")),
-      tags$dt("bob"), tags$dd(code("bob-fixture-password"))
+    tags$table(id = "demo-accounts", class = "table table-sm",
+      tags$thead(tags$tr(tags$th("Username"), tags$th("Password"))),
+      tags$tbody(
+        tags$tr(tags$td(code("alice")), tags$td(code("alice"))),
+        tags$tr(tags$td(code("bob")), tags$td(code("bob")))
+      )
     ),
     div(class = "d-flex gap-2 flex-wrap",
       actionButton("login", "Sign in", class = "btn-primary"),
@@ -41,7 +44,7 @@ ui <- oauth_ui(page_sidebar(
     .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }
     .sidebar .demo-details dd { margin-bottom: .5rem; }
     @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }
-    .demo-details code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
+    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
     .demo-results { overflow-x: auto; }
     .demo-note { color: #485867; font-size: .95rem; }
     .btn { min-height: 44px; }

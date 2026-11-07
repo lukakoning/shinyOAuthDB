@@ -34,8 +34,8 @@ access and several GB of disk space. Later starts reuse Docker's cache.
 
 | Account | Password | Rows shown by the app |
 | --- | --- | --- |
-| `alice` | `alice-fixture-password` | `alice-visible-1`, `alice-visible-2` |
-| `bob` | `bob-fixture-password` | `bob-visible-1`, `bob-visible-2` |
+| `alice` | `alice` | `alice-visible-1`, `alice-visible-2` |
+| `bob` | `bob` | `bob-visible-1`, `bob-visible-2` |
 
 Click **Sign in** and use either account. In the default PostgreSQL demo,
 signing in with the other account changes the rows you can see. The database

@@ -1,4 +1,4 @@
-# Your Azure SQL Shiny demo
+# Azure SQL Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("azure-sql", path = ".")`.
 Edit `app.R` for SQL and connection settings, or `demo-ui.R` for the UI;

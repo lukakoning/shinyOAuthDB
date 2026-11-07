@@ -195,7 +195,7 @@ local({
     message(
       "PostgreSQL OAuth playground: ",
       config$origin,
-      "; users alice / bob, passwords alice-fixture-password / bob-fixture-password."
+      "; users alice / bob, passwords alice / bob."
     )
 
     app$postgres_browser_run_app(config)

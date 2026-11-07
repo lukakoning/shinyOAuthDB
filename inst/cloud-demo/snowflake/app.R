@@ -10,7 +10,7 @@ client <- oauth_db_snowflake_client(
   redirect_uri = paste0("http://localhost:", settings$port)
 )
 
-demo_title <- "Your Snowflake Shiny demo"
+demo_title <- "Snowflake Shiny demo"
 demo_details <- list(
   "Account server" = settings$server,
   "Role" = settings$role,

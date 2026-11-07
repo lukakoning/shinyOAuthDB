@@ -7,9 +7,9 @@ shinyOAuthDB::oauth_db_demo("postgres")
 ```
 
 The installed package includes the app, Docker configuration and demo
-accounts. Open `http://localhost:18100` when ready. Sign in as `alice` with
-`alice-fixture-password` or `bob` with `bob-fixture-password`; each sees
-their own rows. Your browser may ask you to accept Keycloak's local test
+accounts. Open `http://localhost:18100` when ready. Sign in with `alice` /
+`alice` or `bob` / `bob` (username / password); each sees their own rows.
+Your browser may ask you to accept Keycloak's local test
 certificate.
 
 Click **Stop demo** or interrupt R to remove containers and data. After a

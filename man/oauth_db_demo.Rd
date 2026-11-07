@@ -56,7 +56,7 @@ compiles from source if a Linux binary isn't available.
 OpenSearch needs about 2 GB of Docker memory for its database container.
 
 Open \verb{http://localhost:18100} and sign in as \code{alice} with password
-\code{alice-fixture-password}, or \code{bob} with password \code{bob-fixture-password}.
+\code{alice}, or \code{bob} with password \code{bob}.
 Keycloak uses a generated test certificate at \verb{https://localhost:18443};
 your browser may ask you to accept it for this local demo.
 

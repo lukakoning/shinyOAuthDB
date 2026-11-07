@@ -24,7 +24,7 @@ shinyOAuthDB::oauth_db_demo("postgres")
 ```
 
 Open `http://localhost:18100` once the launcher says it is ready. Sign in
-as `alice` / `alice-fixture-password` or `bob` / `bob-fixture-password`.
+as `alice` / `alice` or `bob` / `bob`.
 The same query returns only that person's rows. Click **Stop demo** or
 interrupt R to remove the containers and data.
 

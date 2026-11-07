@@ -49,8 +49,8 @@ inspection, printing a cleanup command.
 ## Explore the app
 
 Add `-Playground` on Windows, or set `OAUTHDB_PLAYGROUND=1` for the shell
-runner. Open `http://localhost:18100` and sign in as `alice` or `bob`.
-Their passwords are `alice-fixture-password` and `bob-fixture-password`.
+runner. Open `http://localhost:18100` and sign in with `alice` / `alice`
+or `bob` / `bob` (username / password).
 Your browser may ask you to trust the fixture's local Keycloak certificate.
 
 Use the app's controls to refresh tokens, sign out, change permissions, or

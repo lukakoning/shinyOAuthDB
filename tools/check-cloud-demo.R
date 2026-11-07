@@ -177,7 +177,7 @@ check_cloud_demo <- function(platform) {
     if (user == "alice") screenshot(browser, "signed-out")
     value(browser, "document.querySelector('#login').click()")
     wait(browser, "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")
-    value(browser, sprintf("document.querySelector('#username').value='%s'; document.querySelector('#password').value='%s-fixture-password'; document.querySelector('#kc-login').click()", user, user))
+    value(browser, sprintf("document.querySelector('#username').value='%s'; document.querySelector('#password').value='%s'; document.querySelector('#kc-login').click()", user, user))
     if (platform == "databricks") {
       wait(browser, "Boolean(document.querySelector('#warehouse')?.selectize?.options['demo-warehouse'])")
     } else wait(browser, "document.querySelector('#account').textContent.includes('Signed in')")

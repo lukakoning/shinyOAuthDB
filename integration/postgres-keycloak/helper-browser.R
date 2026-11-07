@@ -344,7 +344,7 @@ postgres_browser_login <- function(
 
   user_json <- jsonlite::toJSON(username, auto_unbox = TRUE)
   password_json <- jsonlite::toJSON(
-    paste0(username, "-fixture-password"),
+    username,
     auto_unbox = TRUE
   )
   postgres_browser_value(

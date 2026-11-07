@@ -161,7 +161,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "alice-fixture-password",
+          "value": "alice",
           "temporary": false
         }
       ]
@@ -178,7 +178,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "bob-fixture-password",
+          "value": "bob",
           "temporary": false
         }
       ]

@@ -1,4 +1,4 @@
-# Your Amazon Redshift Shiny demo
+# Amazon Redshift Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("redshift", path = ".")`.
 This example signs users in through Microsoft Entra and presents the external

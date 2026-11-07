@@ -32,7 +32,7 @@
 #' OpenSearch needs about 2 GB of Docker memory for its database container.
 #'
 #' Open `http://localhost:18100` and sign in as `alice` with password
-#' `alice-fixture-password`, or `bob` with password `bob-fixture-password`.
+#' `alice`, or `bob` with password `bob`.
 #' Keycloak uses a generated test certificate at `https://localhost:18443`;
 #' your browser may ask you to accept it for this local demo.
 #'
@@ -163,8 +163,8 @@ oauth_db_demo <- function(
     run(c("logs", "--tail", "50"), check = FALSE)
     stop("Docker could not start the demo; see its logs above.", call. = FALSE)
   }
-  cli::cli_h2("Ready to sign in")
-  cli::cli_text("Open {.url http://localhost:18100}. Use {.code alice / alice-fixture-password} or {.code bob / bob-fixture-password}.")
+  cli::cli_h2(if (app == "local") "Starting Shiny in local R" else "Ready to sign in")
+  cli::cli_text("Open {.url http://localhost:18100}. Use the username and password shown in the app's sign-in panel.")
   cli::cli_text("Your browser may ask you to allow the local sign-in service's test certificate. Click Stop demo or interrupt R to remove the demo services and sample data.")
   if (app == "local") {
     dir.create(file.path(path, "tls"), showWarnings = FALSE)

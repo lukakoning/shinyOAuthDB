@@ -1,4 +1,4 @@
-# Your Databricks Shiny demo
+# Databricks Shiny demo
 
 Run `shinyOAuthDB::oauth_db_cloud_demo("databricks", path = ".")` from this
 directory to resume. `settings.dcf` contains non-secret settings. Edit

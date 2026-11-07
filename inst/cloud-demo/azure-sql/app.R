@@ -10,7 +10,7 @@ client <- oauth_db_microsoft_client(
   redirect_uri = paste0("http://localhost:", settings$port)
 )
 
-demo_title <- "Your Azure SQL Shiny demo"
+demo_title <- "Azure SQL Shiny demo"
 demo_details <- list(
   "SQL server" = settings$server,
   "Database" = settings$database,

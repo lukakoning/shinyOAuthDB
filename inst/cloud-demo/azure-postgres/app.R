@@ -10,7 +10,7 @@ client <- oauth_db_microsoft_client(
   redirect_uri = paste0("http://localhost:", settings$port)
 )
 
-demo_title <- "Your Azure PostgreSQL Shiny demo"
+demo_title <- "Azure PostgreSQL Shiny demo"
 demo_details <- list(
   "PostgreSQL server" = settings$server,
   "Database" = settings$database,

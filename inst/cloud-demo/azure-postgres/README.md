@@ -1,4 +1,4 @@
-# Your Azure PostgreSQL Shiny demo
+# Azure PostgreSQL Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("azure-postgres", path = ".")`.
 Edit `app.R` for SQL or connection settings and `demo-ui.R` for the UI.

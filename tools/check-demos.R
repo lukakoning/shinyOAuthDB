@@ -110,14 +110,14 @@ check_demo <- function() {
       if (user == "alice") "Local R editable app" else "Local R edited app"))
     stopifnot(identical(trimws(value(browser, "document.querySelector('#rows').textContent")), ""))
     wait(browser, "document.querySelector('#sign_in_status').textContent.includes('Not signed in')")
-    stopifnot(isTRUE(value(browser, "document.body.innerText.includes('alice-fixture-password')")))
+    stopifnot(identical(value(browser, "Array.from(document.querySelectorAll('#demo-accounts tbody tr'), tr => Array.from(tr.cells, td => td.textContent.trim()).join('/')).join(',')"), "alice/alice,bob/bob"))
     stopifnot(isTRUE(value(browser, if (shared) "document.body.innerText.includes('same rows')" else "document.body.innerText.includes('different rows')")))
     if (user == "alice") screenshot(browser, "signed-out")
     if (permission_demo) stopifnot(identical(trimws(value(browser, "document.querySelector('#account').textContent")), ""))
     value(browser, "document.querySelector('#login').click()")
     wait(browser, "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")
     value(browser, sprintf(paste0("document.querySelector('#username').value='%s';",
-      "document.querySelector('#password').value='%s-fixture-password';",
+      "document.querySelector('#password').value='%s';",
       "document.querySelector('#kc-login').click()"), user, user))
     prefix <- if (shared) "shared" else user
     wait(browser, sprintf("Boolean(document.querySelector('#rows')?.textContent.includes('%s-visible-1'))", prefix))

@@ -1,4 +1,4 @@
-# Your Google BigQuery Shiny demo
+# Google BigQuery Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("bigquery", path = ".")`.
 Edit `app.R` to change SQL or connection code and `demo-ui.R` for the UI.

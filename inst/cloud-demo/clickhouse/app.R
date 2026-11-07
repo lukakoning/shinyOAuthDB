@@ -10,7 +10,7 @@ client <- oauth_db_microsoft_client(
   token_targets = list(clickhouse = list(resource = settings$resource, scopes = settings$scope))
 )
 
-demo_title <- "Your ClickHouse Cloud Shiny demo"
+demo_title <- "ClickHouse Cloud Shiny demo"
 demo_details <- list(
   "HTTPS query endpoint" = settings$url,
   "Database" = settings$database,

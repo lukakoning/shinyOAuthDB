@@ -1,4 +1,4 @@
-# Your Microsoft Fabric Shiny demo
+# Microsoft Fabric Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("fabric", path = ".")`.
 `settings.dcf` stores non-secret settings; edit `app.R` to change SQL or

@@ -18,7 +18,7 @@ client <- oauth_db_databricks_client(
 example_query <- "SELECT current_user() AS signed_in_user"
 
 ui <- oauth_ui(page_sidebar(
-  title = h2("Your Databricks Shiny demo", class = "h3 mb-0"),
+  title = h2("Databricks Shiny demo", class = "h3 mb-0"),
   theme = bs_theme(version = 5, primary = "#17646c", bg = "#f4f6f9", fg = "#23313d", base_font = "system-ui"),
   fillable = FALSE, lang = "en",
   sidebar = sidebar(width = 320, bg = "#fff", fg = "#23313d", open = list(desktop = "always", mobile = "always-above"),
@@ -113,6 +113,8 @@ server <- function(input, output, session) {
     reference <- tryCatch(auth$connection(), error = function(error) NULL)
     if (is.null(reference)) return("Not signed in. Click Sign in to use your Databricks account.")
     if (is.null(current())) return("Your sign-in needs SQL access. Check the SQL scope in the OAuth registration, or use Back to setup.")
+    if (!is.null(result())) return("Signed in. The result uses this account and the selected warehouse.")
+    if (!is.null(binding())) return("Signed in. Run the query using the selected warehouse.")
     "Signed in. Select a warehouse, then run the query to see your database identity."
   })
   output$query_actions <- renderUI(actionButton("run", "Run example query", class = "btn-primary",

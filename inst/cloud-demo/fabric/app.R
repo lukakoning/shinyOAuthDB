@@ -11,7 +11,7 @@ client <- oauth_db_microsoft_client(
 )
 
 # Change the SQL here after the identity query works.
-demo_title <- "Your Microsoft Fabric Shiny demo"
+demo_title <- "Microsoft Fabric Shiny demo"
 demo_details <- list(
   "SQL server" = settings$server,
   "Database" = settings$database,

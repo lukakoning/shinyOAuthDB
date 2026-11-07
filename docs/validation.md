@@ -1,5 +1,33 @@
 # Validation record
 
+## 7 November 2026: simpler sign-in and clearer demo names
+
+Demo credentials are now `alice` / `alice` and `bob` / `bob`. All four
+Keycloak realm imports, app instructions, documentation and browser helpers
+agree. Packaged apps show an explicit username/password table. Cloud app
+titles and copied README headings no longer start with "Your".
+
+The local launcher points to the sign-in details in the copied app, so an
+older saved copy doesn't receive contradictory console instructions. It
+also says when local Shiny is still starting. Cloud sign-in guidance now
+reflects completed queries and a selected Databricks warehouse.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 4,386 assertions across 297 scenarios; zero failures, errors, warnings or skips |
+| Focused demo and cloud suites | Pass after the final changes |
+| Credential audit | All four tracked realm imports use the matching username/password pairs; no old password format remains in tracked files |
+| Fresh real-database browser checks | PostgreSQL in Docker, PostgREST in local R, OpenSearch in Docker and DuckDB Quack in local R pass Alice/Bob sign-in, expected data, sign-out, responsive layouts and cleanup; read-only checks also pass |
+| Fresh cloud browser fixtures | Fabric and Databricks pass real local OAuth sign-in, explicit querying, result clearing and stopping; updated titles and status messages reviewed |
+| Documentation and website | 85 R blocks parse; 202 links and 17 anchors resolve; pkgdown builds; the single README app matches the packaged PostgreSQL source |
+| `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes |
+
+These six fresh browser checks supplement the earlier full 22-variant
+layout pass. Cloud responses and connections are simulated; no cloud
+accounts were used. Other host systems and remote Actions weren't run.
+Current logs use `.validation/signin-*.log`; screenshots are under
+`.validation/demos/` and `.validation/cloud-demo/`.
+
 ## 7 November 2026: bslib layouts and database-specific details
 
 All sixteen demo apps now use bslib sidebars and cards. Sign-in controls

@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Use `alice` / `alice` and `bob` / `bob` for demo sign-in, with explicit
+  username/password tables. Remove "Your" from cloud demo titles and keep
+  sign-in guidance in sync with completed queries and warehouse selection.
+
 * Give all local and cloud demos a responsive bslib layout, with sign-in
   controls, visible example queries/requests and platform-specific connection
   details. Local R and cloud apps require bslib 0.9.0 or later.

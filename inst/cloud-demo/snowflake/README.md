@@ -1,4 +1,4 @@
-# Your Snowflake Shiny demo
+# Snowflake Shiny demo
 
 Resume with `shinyOAuthDB::oauth_db_cloud_demo("snowflake", path = ".")`.
 Edit `app.R` to change the SQL or connection settings and `demo-ui.R` for the

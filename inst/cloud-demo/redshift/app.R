@@ -10,7 +10,7 @@ client <- oauth_db_microsoft_client(
   token_targets = list(redshift = list(resource = settings$resource, scopes = settings$scope))
 )
 
-demo_title <- "Your Amazon Redshift Shiny demo"
+demo_title <- "Amazon Redshift Shiny demo"
 demo_details <- list(
   "Endpoint" = settings$server,
   "Database" = settings$database,
