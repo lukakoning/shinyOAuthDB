@@ -1,5 +1,5 @@
 .odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery(),
-  snowflake = .odb_cloud_spec_snowflake())
+  snowflake = .odb_cloud_spec_snowflake(), `azure-sql` = .odb_cloud_spec_azure_sql())
 
 .odb_cloud_field <- function(label, help, type = "text", default = NULL) {
   list(label = label, help = help, type = type, default = default)
@@ -117,6 +117,7 @@
 }
 
 .odb_cloud_value <- function(value, type = "text") {
+  if (type == "port" && is.numeric(value) && length(value) == 1L) value <- as.character(value)
   .odb_string(value, "setting")
   if (grepl("[[:cntrl:]]", value)) cli::cli_abort("Settings must not contain control characters.")
   value <- trimws(value)

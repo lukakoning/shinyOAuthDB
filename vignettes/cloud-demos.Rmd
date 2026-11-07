@@ -25,6 +25,7 @@ don't need to create tables or upload data.
 | `"fabric"` | [Microsoft Fabric](fabric.html): SQL server/database and an Entra registration; install fabricQueryR, odbc and Microsoft ODBC Driver 18 |
 | `"bigquery"` | [BigQuery](bigquery.html): query project ID and a Google Web OAuth client; no database driver needed |
 | `"snowflake"` | [Snowflake](snowflake.html): account server, role, warehouse and a confidential custom OAuth integration; install odbc and the Snowflake ODBC driver |
+| `"azure-sql"` | [Azure SQL](azure-sql.html): Entra-enabled server/database and app registration; install odbc and Microsoft ODBC Driver 18 |
 
 For example, start the Fabric guide with:
 

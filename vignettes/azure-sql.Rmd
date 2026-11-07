@@ -18,6 +18,25 @@ your Shiny app. Their database permissions determine which data they can see.
 `oauth_db_azure_sql()` provides a connection for ordinary DBI or dbplyr
 queries. The app below starts by listing the tables the user can access.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("azure-sql")` in your R console.
+The guide asks for `server`, `database`, Entra `tenant_id` and `client_id`,
+then your registration type. It explains the database user/group setup,
+firewall access and delegated SQL permission separately from app consent.
+You can save a draft while an administrator arranges access.
+
+Install `odbc`, `processx`, `askpass` and Microsoft ODBC Driver 18 first.
+The editable local app waits for **Run example query** before connecting.
+For scripts, supply the settings above; optional `driver` and `database_port`
+configure the native connection. The Shiny callback's `port` is separate.
+A confidential registration uses `OAUTHDB_AZURE_SQL_CLIENT_SECRET` or masked
+input. See [Guided cloud demos](cloud-demos.html).
+
+If you need an account and database, check the [Azure SQL free offer](https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer).
+Availability and allowances depend on your subscription; stopping the local
+app does not stop Azure billing or pause its database.
+
 ## Set up access
 
 In R, run `install.packages("odbc")`, then install

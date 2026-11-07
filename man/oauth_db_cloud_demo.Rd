@@ -22,7 +22,7 @@ oauth_db_cloud_demo(
 }
 \arguments{
 \item{platform}{Cloud platform: \code{"databricks"}, \code{"fabric"}, \code{"bigquery"}
-or \code{"snowflake"}.}
+\code{"snowflake"} or \code{"azure-sql"}.}
 
 \item{host}{Databricks workspace hostname or browser URL. Paths, queries and
 fragments are removed. For other SQL demos, an alias for \code{server}.}
@@ -58,6 +58,8 @@ editable draft without network calls or asking for a secret.}
 and requested interactively. BigQuery uses \code{project} and optionally
 \code{location} and \code{maximum_bytes_billed}. Snowflake uses \code{server}, \code{role},
 \code{warehouse} and optionally \code{database}, \code{schema}, \code{driver}.
+Azure SQL uses \code{server}, \code{database}, \code{tenant_id} and optionally \code{driver},
+\code{database_port} (the SQL port, distinct from the local Shiny \code{port}).
 See the guided cloud demos vignette.}
 }
 \value{

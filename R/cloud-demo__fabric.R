@@ -25,5 +25,5 @@
   "Share the database or item with the people using the app. Consent to OAuth permissions does not itself grant access to data."
 )
 
-.odb_cloud_tenant_field <- function() .odb_cloud_field("Find your Microsoft tenant", "Open Entra admin center > App registrations > your app > Overview. Copy Directory (tenant) ID. A personal Microsoft account alone does not create a Fabric workspace or database permissions.", "uuid")
+.odb_cloud_tenant_field <- function() .odb_cloud_field("Find your Microsoft tenant", "Open Entra admin center > App registrations > your app > Overview. Copy Directory (tenant) ID. A personal Microsoft account alone does not grant access to your organization's data.", "uuid")
 .odb_cloud_sql_driver_field <- function() .odb_cloud_field("SQL Server ODBC driver", "Install Microsoft ODBC Driver 18 for SQL Server on this computer. If its registered name differs, supply driver when resuming.", "odbc", "ODBC Driver 18 for SQL Server")

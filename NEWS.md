@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add an Azure SQL cloud demo with Entra database-principal and networking
+  guidance, and separate local Shiny and database ports.
+
 * Add a Snowflake cloud demo with custom integration instructions, matching
   OAuth/SQL roles and explicit warehouse selection.
 

@@ -100,6 +100,17 @@ test_that("Snowflake demo binds its OAuth role and warehouse to the SQL connecti
   expect_null(binding$args$database)
 })
 
+test_that("Azure SQL separates the database port from the Shiny callback", {
+  app <- cloud_platform_app("azure-sql")
+  expect_named(app$client@token_targets, "sql")
+  expect_identical(.odb_cloud_value(1433L, "port"), "1433")
+  local_mocked_bindings(.odb_bind = capture_backend)
+  binding <- app$make_access(function() NULL)
+  expect_identical(binding$target, "sql")
+  expect_identical(binding$args$port, 1433L)
+  expect_identical(binding$args$server, "example.database.windows.net")
+})
+
 for (cloud_platform in names(cloud_platform_settings())) local({
   platform <- cloud_platform
   test_that(paste(platform, "app constructs its real client and waits for an explicit query"), {
