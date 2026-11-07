@@ -63,20 +63,23 @@ remotes::install_github("lukakoning/shinyOAuthDB")
 
 ## Example usage with PostgreSQL
 
-Pass `auth$connection` to `oauth_db_postgres()`, then call `con()` before
-querying. PostgreSQL applies the signed-in user's permissions.
+Start [Docker](https://docs.docker.com/get-started/get-docker/) with Linux
+containers, then run this app in R. The setup call starts PostgreSQL,
+Keycloak sign-in and PostgREST, which lets R read PostgreSQL over HTTP
+without installing a database driver. PostgreSQL applies each user's permissions.
 
-The settings below use the packaged Docker demo's database, sign-in service
-and certificates.
+Pass `auth$connection` to `oauth_db_postgrest_api()`, then use `$select()`
+to read a table as the signed-in user.
 
 ```r
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-issuer <- "https://localhost:18443/realms/shinyoauthdb"
+demo <- oauth_db_demo("postgrest", action = "services")
+
 client <- oauth_client(
-  oauth_provider_oidc_discover(issuer),
+  demo$provider,
   client_id = "shiny-db", client_secret = "demo-client-secret",
   redirect_uri = "http://localhost:18100",
   scopes = c("openid", "profile", "database.read")
@@ -93,25 +96,27 @@ server <- function(input, output, session) {
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
-  con <- oauth_db_postgres(
-    auth$connection, host = "localhost", dbname = "oauthdb_fixture",
-    user = function() req(auth$token@userinfo$preferred_username),
-    issuer = issuer, scope = "database.read",
-    sslrootcert = "/fixtures/tls/ca-cert.pem"
+  postgres <- oauth_db_postgrest_api(
+    auth$connection, url = demo$url
   )
   output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT marker FROM visible_rows ORDER BY row_id")
+    postgres$select("visible_rows", order = "row_id.asc")
   })
 }
 
-shinyApp(ui, server, uiPattern = ".*")
+shinyApp(ui, server, options = list(port = 18100), uiPattern = ".*",
+         onStart = function() onStop(demo$stop))
 ```
 
-The package includes this small example as `examples/postgres/app.R`.
-See [Run the minimal example](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
-to run it with the Docker services. For your own database, follow the
-[PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
+Sign in as `alice` / `alice` or `bob` / `bob` (username / password).
+The first build takes a few minutes; your browser may ask you to accept the
+local sign-in certificate. Stopping the app removes its Docker services.
+Call `demo$stop()` to stop the services manually.
+
+The package includes this example as `examples/postgres/app.R`;
+[run it directly](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
+or edit a copy. For your own server, follow the [PostgREST guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html).
+For native PostgreSQL connections with DBI, see the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
 ## Try the demo
 
