@@ -22,8 +22,8 @@ use `oauth_db_azure_postgres()` for Entra authentication.
 
 The [PostgREST fixture](../../integration/postgrest-keycloak/README.md) runs real
 browser sign-in, HTTPS API calls, PostgreSQL row-level security and table grants.
-Its [integration job](../../.github/workflows/integration.yaml) runs
-independently of PostgreSQL integration. From the repository root:
+Its [integration job](../../.github/workflows/integration.yaml) runs all local
+suites sequentially. From the repository root:
 
 ```sh
 bash integration/local/run-integration.sh postgrest
@@ -36,8 +36,8 @@ On Windows, use `powershell -NoProfile -File integration/local/run-integration.p
 The [Trino fixture](../../integration/trino-keycloak/README.md) runs real OAuth2
 authentication, RTrino DBI queries and fetching, server-enforced row filters,
 denied impersonation, refresh and cleanup. Its
-[integration job](../../.github/workflows/integration.yaml) runs
-independently of the other integrations:
+[integration job](../../.github/workflows/integration.yaml) runs this suite
+sequentially with the other integrations:
 
 ```sh
 bash integration/local/run-integration.sh trino
@@ -50,8 +50,8 @@ On Windows, use `powershell -NoProfile -File integration/local/run-integration.p
 The [StarRocks fixture](../../integration/starrocks-keycloak/README.md) exercises
 native JWT authentication through MySQL Connector/ODBC, verified TLS, per-user
 database grants and protected views, refresh, and connection cleanup. Its
-[integration job](../../.github/workflows/integration.yaml) runs
-independently of the other integrations:
+[integration job](../../.github/workflows/integration.yaml) runs this suite
+sequentially with the other integrations:
 
 ```sh
 bash integration/local/run-integration.sh starrocks
@@ -70,8 +70,8 @@ bash integration/local/run-integration.sh minilake
 ```
 
 On Windows, use `integration/local/run-integration.ps1 -Backend minilake`.
-Its [matrix job](../../.github/workflows/integration.yaml)
-runs alongside the other local suites. MiniLake accepts all tokens, does not
+The [integration job](../../.github/workflows/integration.yaml)
+runs these local suites sequentially. MiniLake accepts all tokens, does not
 enforce grants, uses DuckDB's dialect, and its pinned image ignores named SQL
 parameters. This lane tests client compatibility and bridge lifecycle behavior;
 it does not establish production Databricks security or parameter support.
@@ -94,8 +94,8 @@ Test visitor sign-in separately.
 For real Google API, IAM, pagination and typed-value acceptance, use the
 [BigQuery fixture](bigquery.md). It runs tiny capped queries against an
 operator-prepared project and makes no cloud provisioning calls.
-The [cloud CI setup](cloud-ci.md) provides an opt-in weekly/prerelease BigQuery
-lane with fresh delegated credentials and manual acceptance for other routes.
+The [manual cloud setup](cloud-ci.md) covers BigQuery delegated credentials
+and acceptance checks for other routes. These checks do not run in CI.
 
 `run-live.R` uses two existing user tokens to check queries, account
 changes, sign-out, and connection reuse where applicable. It supports

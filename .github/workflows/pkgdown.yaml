@@ -1,27 +1,28 @@
-name: Documentation website
+# From usethis::use_github_action("pkgdown").
+name: pkgdown
 on:
   push:
     branches: [main, master]
   pull_request:
+  release:
+    types: [published]
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: pkgdown-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
-  build:
+  pkgdown:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    concurrency:
+      group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       SHINYOAUTHDB_POSTGRES_OAUTH: disabled
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
       - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
@@ -29,24 +30,14 @@ jobs:
             local::.
             github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
           needs: website
-      - name: Build pkgdown site
+      - name: Build site
+        # docs/ contains maintained guides, so use the configured _site directory.
         run: pkgdown::build_site_github_pages(dest_dir = "_site", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
-      - uses: actions/upload-pages-artifact@v4
+      - name: Deploy to GitHub pages
         if: github.event_name != 'pull_request'
+        uses: JamesIves/github-pages-deploy-action@d92aa235d04922e8f08b40ce78cc5442fcfbfa2f # v4.8.0
         with:
-          path: _site
-  deploy:
-    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          clean: false
+          branch: gh-pages
+          folder: _site

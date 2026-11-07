@@ -69,8 +69,8 @@ and the stop button. It needs Docker, Chrome, pkgbuild, callr and chromote.
 Use `postgrest`, `trino`, `starrocks`, `duckdb`, `libsql`, `cratedb` or
 `opensearch` to check another demo; run one at a
 time because they use the same loopback ports. The
-[demo workflow](../.github/workflows/demos.yaml) runs each
-in a separate job and retains logs under `.validation/demos/`.
+[integration workflow](../.github/workflows/integration.yaml) runs them
+sequentially on one runner and retains logs under `.validation/demos/`.
 The DuckDB, libSQL and CrateDB examples share a read-only table between
 accounts; OpenSearch filters documents per user. These four checks also
 verify the current account display and database rejection of writes.
@@ -101,7 +101,7 @@ Cloud SQL/API operations are mocked; OAuth, the installed app and its native
 R process are real. The test verifies no implicit SQL, per-user output,
 sign-out cleanup and credential-free generated files. Native database
 drivers and real cloud registrations remain outside this fixture's scope.
-The demo workflow runs all eight without cloud credentials.
+The integration workflow runs all eight without cloud credentials.
 
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty
@@ -127,9 +127,8 @@ and add a useful regression before considering an equivalence exception.
 
 `check-package.R` checks dependency availability and declared minimum versions,
 then runs the source suite. Any failure, error, warning, skipped scenario or
-empty test run fails validation. Pass `--tests-only` to stop after that suite;
-CI uses this option before the standard `check-r-package` action. The subsequent
-R CMD check must have zero
+empty test run fails validation. Pass `--tests-only` to stop after that suite.
+The subsequent local R CMD check must have zero
 errors, warnings and notes. `test-validation.R` verifies that missing/outdated
 dependencies and incomplete results really are rejected.
 
@@ -141,28 +140,11 @@ Results are retained in the ignored `.validation/` directory:
 - `coverage.rds`, `coverage-lines.csv` and `coverage-summary.json`: coverage
   details with separate R and C line counts.
 
-The R-CMD-check workflow uploads source-test artifacts for each OS/R combination
-and retains the standard action's check logs. The quality workflow collects
-coverage in an independent Linux job. Both install all direct dependencies and
-pin shinyOAuth to the same revision as the local integration workflows.
-
-The compatibility workflow installs brickster 0.2.14, fabricQueryR 1.0.1,
-RTrino 0.1.0, or odbc 1.4.2 in separate jobs and runs the full source suite.
-The odbc job uses R 4.5 because its configure script requires `CXX11`, which
-R 4.6 removed. The other jobs use the current R release.
-To reproduce a job with that SDK installed in an isolated library, run:
-
-```sh
-Rscript --vanilla tools/check-backend-minimum.R brickster path/to/minimum-sdk-library
-```
-
-The script requires the exact version declared in `DESCRIPTION` and all other
-test dependencies. It rejects skips, warnings, errors, and failed assertions.
-Counts and installed versions are retained under
-`.validation/minimum-backends/<package>/`.
+CI uses the standard R CMD check action and collects coverage in its Linux
+release job. Compatibility campaigns and validation-tool tests are local only.
 
 Coverage runs installed-package tests. Repository-only example checks can skip
-in that context; the required source suite already checks them without skips.
+in that context; run `check-package.R` locally to include those source checks.
 The package-check lane disables native PostgreSQL OAuth. Its C coverage is the
 unsupported-platform branch, not evidence for the working libpq hook. Use the
 PostgreSQL Docker integration for that implementation.

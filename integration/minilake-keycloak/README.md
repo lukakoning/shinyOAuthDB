@@ -40,7 +40,7 @@ does not test Databricks OAuth, Entra, Spark SQL, workspace grants, ODBC or
 production warehouse behavior. Those still need a real workspace.
 See the upstream [known gaps](https://github.com/dmux/minilake#known-gaps).
 
-Its matrix job in the [integration workflow](../../.github/workflows/integration.yaml)
-runs alongside the other local integration jobs. Sanitized assertion
+The [integration workflow](../../.github/workflows/integration.yaml)
+runs it sequentially with the other local suites. Sanitized assertion
 counts and the emulator/brickster versions are retained in
 `.generated/results.json`. Errors, warnings, skips or zero assertions fail it.

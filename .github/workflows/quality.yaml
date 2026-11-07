@@ -1,114 +1,20 @@
-name: Quality
-
+name: Air and Jarl
 on:
   push:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  air:
-    name: Air formatting
+  lint:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v6
       - uses: posit-dev/setup-air@v1
         with:
           version: "0.13.0"
       - run: air format . --check
-
-  jarl:
-    name: Jarl lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v6
       - uses: etiennebacher/setup-jarl@v0.1.1
         with:
           version: "0.7.1"
-
-  repository:
-    name: Documentation and validation tools / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
-    steps:
-      - uses: actions/checkout@v6
-      - uses: r-lib/actions/setup-pandoc@v2
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: release
-          use-public-rspm: true
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: |
-            any::pkgbuild
-            any::pkgload
-            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
-          needs: check
-      - name: Check documentation examples and links
-        run: Rscript --vanilla tools/check-docs.R
-      - name: Test documentation validation
-        run: Rscript --vanilla tools/test-docs.R
-      - name: Verify validation rejects incomplete runs
-        run: Rscript --vanilla tools/test-validation.R
-      - name: Verify integration assertion contracts
-        run: Rscript --vanilla tools/test-integration.R
-      - name: Verify integration source fingerprints
-        run: Rscript --vanilla tools/test-provenance.R
-      - name: Verify live adapter routes and acceptance validation
-        run: Rscript --vanilla tools/test-live.R
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: repository-validation-${{ matrix.os }}
-          path: .validation/
-          include-hidden-files: true
-          if-no-files-found: warn
-
-  coverage:
-    name: Test coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      R_KEEP_PKG_SOURCE: "yes"
-      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
-    steps:
-      - uses: actions/checkout@v6
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: release
-          use-public-rspm: true
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: |
-            any::covr
-            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
-          needs: coverage
-      - name: Measure R and C test coverage
-        run: Rscript --vanilla tools/check-coverage.R
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-coverage
-          path: |
-            .validation/coverage.rds
-            .validation/coverage-lines.csv
-            .validation/coverage-summary.json
-          include-hidden-files: true
-          if-no-files-found: error

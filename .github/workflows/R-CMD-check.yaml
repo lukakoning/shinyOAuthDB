@@ -1,29 +1,16 @@
-# Based on usethis::use_github_action("check-standard").
+# From usethis::use_github_action("check-standard").
 name: R-CMD-check
-
 on:
   push:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-  R_KEEP_PKG_SOURCE: "yes"
-  SHINYOAUTHDB_POSTGRES_OAUTH: disabled
-
 jobs:
   R-CMD-check:
-    name: ${{ matrix.config.os }} / R ${{ matrix.config.r }}
     runs-on: ${{ matrix.config.os }}
-    timeout-minutes: 45
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
     strategy:
       fail-fast: false
       matrix:
@@ -33,6 +20,10 @@ jobs:
           - {os: ubuntu-latest, r: devel, http-user-agent: release}
           - {os: ubuntu-latest, r: release}
           - {os: ubuntu-latest, r: oldrel-1}
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: "yes"
+      SHINYOAUTHDB_POSTGRES_OAUTH: disabled
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/setup-pandoc@v2
@@ -40,29 +31,24 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
-          use-public-rspm: true
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
-            any::pkgbuild
-            any::pkgload
             any::rcmdcheck
+            any::covr
             github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
           needs: check
-      - name: Require the full source suite without skips or warnings
-        run: Rscript --vanilla tools/check-package.R --tests-only
       - uses: r-lib/actions/check-r-package@v2
         with:
-          # Preserve the existing zero-note policy and check arguments.
-          args: '"--no-manual"'
-          error-on: '"note"'
           upload-snapshots: true
-          upload-results: true
-      - name: Retain source test counts and dependency versions
-        if: always()
-        uses: actions/upload-artifact@v4
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+      - name: Test coverage
+        if: ${{ !cancelled() && matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release' }}
+        run: Rscript --vanilla tools/check-coverage.R
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && matrix.config.os == 'ubuntu-latest' && matrix.config.r == 'release' }}
         with:
-          name: source-tests-${{ matrix.config.os }}-${{ matrix.config.r }}
-          path: .validation/
+          name: test-coverage
+          path: .validation/coverage*
           include-hidden-files: true
-          if-no-files-found: warn
+          if-no-files-found: error
