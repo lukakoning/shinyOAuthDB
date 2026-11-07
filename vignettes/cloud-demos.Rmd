@@ -28,6 +28,7 @@ don't need to create tables or upload data.
 | `"azure-sql"` | [Azure SQL](azure-sql.html): Entra-enabled server/database and app registration; install odbc and Microsoft ODBC Driver 18 |
 | `"azure-postgres"` | [Azure PostgreSQL](azure-postgres.html): Entra-enabled server, database, mapped user/group role, trusted CA bundle and app registration; install RPostgres |
 | `"redshift"` | [Redshift](redshift.html): IAM Identity Center trusted-token setup with Entra, endpoint/database and delegated API resource/scope; install odbc and AWS Redshift ODBC 2.x |
+| `"clickhouse"` | [ClickHouse Cloud](clickhouse.html): qualifying Enterprise JWT service trusting Entra, HTTPS endpoint and delegated API resource/scope; no database driver needed |
 
 For example, start the Fabric guide with:
 
@@ -36,8 +37,8 @@ shinyOAuthDB::oauth_db_cloud_demo("fabric")
 ```
 
 The guide uses `cli` messages and asks only for missing settings. Enter `?`
-for help, `back` to revisit a setting, or leave an answer blank to save a
-draft for later. It prints a command to resume the same directory.
+for help, `back` to revisit a setting, or `cancel` to save a draft for later.
+It prints a command to resume the same directory.
 Account and trial links explain how to arrange access if you have no account
 yet; eligibility and organization policies still apply. The guide doesn't
 provision cloud resources.

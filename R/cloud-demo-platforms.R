@@ -1,6 +1,7 @@
 .odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery(),
   snowflake = .odb_cloud_spec_snowflake(), `azure-sql` = .odb_cloud_spec_azure_sql(),
-  `azure-postgres` = .odb_cloud_spec_azure_postgres(), redshift = .odb_cloud_spec_redshift())
+  `azure-postgres` = .odb_cloud_spec_azure_postgres(), redshift = .odb_cloud_spec_redshift(),
+  clickhouse = .odb_cloud_spec_clickhouse())
 
 .odb_cloud_field <- function(label, help, type = "text", default = NULL) {
   list(label = label, help = help, type = type, default = default)
@@ -65,6 +66,7 @@
   }
   paused <- isTRUE(attr(config, "paused"))
   attr(config, "paused") <- NULL
+  config <- .odb_cloud_platform_validate(config, spec)
   if (!paused && action == "start" && is.null(config$client_type)) config$client_type <- spec$client_types[[1L]]
   .odb_cloud_save(config, path, platform)
   .odb_cloud_files(path, platform)
@@ -184,7 +186,13 @@
       if (field == "client_type") {
         if (!value %in% c("1", "2")) cli::cli_abort("Choose 1 or 2.")
         c("public", "confidential")[[as.integer(value)]]
-      } else .odb_cloud_value(value, if (field == "client_id") "text" else spec$fields[[field]]$type)
+      } else {
+        candidate <- .odb_cloud_value(value, if (field == "client_id") "text" else spec$fields[[field]]$type)
+        next_config <- config
+        next_config[[field]] <- candidate
+        if (is.function(spec$validate)) spec$validate(next_config)
+        candidate
+      }
     }, error = function(error) { cli::cli_alert_warning(conditionMessage(error), wrap = TRUE); NULL })
     if (is.null(candidate)) next
     config[[field]] <- candidate
@@ -197,7 +205,7 @@
 
 .odb_cloud_resource_scope <- function(config) {
   if (!is.null(config$resource) && !is.null(config$scope)) {
-    if (grepl("[[:space:]]", config$scope) || !startsWith(config$scope, paste0(sub("/$", "", config$resource), "/")) ||
+    if (grepl("[[:space:]]", config$scope) || !startsWith(config$scope, paste0(config$resource, "/")) ||
         endsWith(config$scope, "/.default")) cli::cli_abort("Supply the fully qualified delegated {.arg scope} exposed by {.arg resource}, such as api://application-id/access_as_user. This demo uses an explicit delegated scope rather than .default.")
   }
   config

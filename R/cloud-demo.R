@@ -4,21 +4,21 @@
 #' then runs a local Shiny app with your installed R packages. Visitors sign
 #' in through shinyOAuth and use their own cloud data permissions.
 #'
-#' @param platform Cloud platform: `"databricks"`, `"fabric"`, `"bigquery"`
-#'   `"snowflake"`, `"azure-sql"`, `"azure-postgres"` or `"redshift"`.
+#' @param platform Cloud platform: `"databricks"`, `"fabric"`, `"bigquery"`,
+#'   `"snowflake"`, `"azure-sql"`, `"azure-postgres"`, `"redshift"` or `"clickhouse"`.
 #' @param host Databricks workspace hostname or browser URL. Paths, queries and
 #'   fragments are removed. For other SQL demos, an alias for `server`.
 #' @param client_id Client ID from your custom OAuth app registration.
 #' @param client_type `"public"` for PKCE without a secret, or `"confidential"`.
 #'   The guide asks when needed; noninteractive calls default to `"public"`
 #'   where supported. BigQuery and Snowflake demos use confidential registrations.
-#' @param warehouse_id Optional default SQL warehouse ID.
-#' @param http_path Optional warehouse HTTP path, instead of `warehouse_id`.
+#' @param warehouse_id Optional default Databricks SQL warehouse ID.
+#' @param http_path Optional Databricks warehouse HTTP path, instead of `warehouse_id`.
 #' @param path Empty or existing cloud-demo directory. The default is a temporary
 #'   directory. Existing app edits are preserved. Supply a path to resume later.
 #' @param port Local Shiny port, default 8100 or the saved setting. Register
 #'   `http://localhost:<port>` exactly as the OAuth callback.
-#' @param edition `"workspace"`, `"trial"`, `"free"`, or `"unknown"`. Free
+#' @param edition Databricks only: `"workspace"`, `"trial"`, `"free"`, or `"unknown"`. Free
 #'   Edition lacks the account-level custom registration this example needs.
 #' @param action `"start"` guides setup and runs the app; `"files"` writes an
 #'   editable draft without network calls or asking for a secret.
@@ -35,10 +35,20 @@
 #'   `tenant_id` and optionally `database_port`.
 #'   Redshift uses `identity_center_ready`, `server`, `database`, `tenant_id`,
 #'   `resource`, `scope` and optionally `driver`, `database_port`.
+#'   ClickHouse uses `jwt_ready`, `url`, `tenant_id`, `resource`, `scope` and
+#'   optionally `database`. The Redshift and ClickHouse examples use Entra
+#'   and require an existing trusted-token integration.
 #'   See the guided cloud demos vignette.
 #' @return Invisibly, the demo directory, including after pausing incomplete
 #'   interactive setup. Noninteractive starts report missing settings as errors.
 #' @details
+#' All demos use local R and processx. Install askpass for masked input.
+#' BigQuery and ClickHouse use jsonlite without a native database driver.
+#' Snowflake, Azure SQL and Redshift use odbc and their native ODBC drivers;
+#' Azure PostgreSQL uses RPostgres and a trusted CA bundle.
+#' Each copied app waits for an explicit query-button click. Stopping the
+#' local process does not stop shared cloud compute or cancel submitted jobs.
+#'
 #' Fabric asks for its SQL server/database and an Entra tenant and app
 #' registration. Install fabricQueryR, odbc and Microsoft ODBC Driver 18.
 #' Its confidential secret uses `OAUTHDB_FABRIC_CLIENT_SECRET`. The copied
@@ -56,8 +66,8 @@
 #' resume from `path`. The generated `settings.dcf` contains only non-secret
 #' configuration; `app.R` stays editable.
 #'
-#' Local R needs brickster 0.2.14 or later, jsonlite and processx; masked input
-#' uses askpass. No Docker is needed. The app discovers SQL warehouses after
+#' Databricks additionally needs brickster 0.2.14 or later and jsonlite.
+#' No Docker is needed. Its app discovers SQL warehouses after
 #' sign-in, with a manual-ID fallback. Listing doesn't run SQL. Clicking
 #' **Run example query** opens the DBI connection and runs `SELECT current_user()`.
 #' Queries can start a stopped warehouse and consume compute credits.
@@ -70,6 +80,8 @@
 #' @examples
 #' \dontrun{
 #' oauth_db_cloud_demo("databricks")
+#' oauth_db_cloud_demo("fabric")
+#' oauth_db_cloud_demo("bigquery", action = "files", path = "my-bigquery-demo")
 #' path <- oauth_db_cloud_demo("databricks", action = "files", prompt = FALSE)
 #' file.edit(file.path(path, "app.R"))
 #' oauth_db_cloud_demo("databricks", path = path)

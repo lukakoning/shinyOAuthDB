@@ -12,6 +12,32 @@ configured to accept OAuth JWT access tokens. Run SQL against a JWT-enabled Clic
 account. The client uses ClickHouse's HTTPS interface and returns data
 frames without an ODBC or native ClickHouse driver.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("clickhouse")` in your R console.
+This guided example uses Microsoft Entra as the custom JWT issuer. It first
+asks whether your qualifying Cloud service already trusts that issuer and
+maps its audience and role claims. Choose **Not ready yet** to save a draft
+and get setup links, then resume with `jwt_ready = "yes"` when configured.
+
+The remaining settings are `url` (HTTPS database query endpoint),
+`tenant_id`, accepted API `resource`, full delegated `scope` and Shiny
+`client_id`. The API resource's token version, issuer, audience and role values
+must match the service configuration. With Entra v2 access tokens, configure
+the resource API to issue v2 tokens; its App ID URI and token audience can
+differ. Your administrators should verify the mapping.
+
+Install `processx`, `jsonlite` and `askpass`; no database driver is needed.
+A confidential client uses masked input or `OAUTHDB_CLICKHOUSE_CLIENT_SECRET`.
+The local editable app waits for **Run example query** and leaves the Cloud
+service running when stopped. An optional `database` selects a default for
+later table queries. See [Guided cloud demos](cloud-demos.html).
+
+A standard trial or built-in `clickhouse-client --login` does not establish
+this custom-provider flow. Check the [documented availability](https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud)
+before arranging an account for this demo. Other OIDC providers can use the
+manual example below; their client configuration differs from this guide.
+
 ## Prepare a JWT-enabled service
 
 Custom identity providers need a qualifying **ClickHouse Cloud Enterprise**

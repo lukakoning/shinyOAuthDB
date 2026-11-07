@@ -12,6 +12,10 @@ cloud_platform_settings <- function() list(
   redshift = list(identity_center_ready = "yes", server = "cluster.example.redshift.amazonaws.com",
     database = "dev", tenant_id = "11111111-2222-3333-4444-555555555555",
     resource = "api://redshift-resource", scope = "api://redshift-resource/access_as_user",
+    client_id = "demo-client", client_type = "public"),
+  clickhouse = list(jwt_ready = "yes", url = "https://service.clickhouse.cloud:8443",
+    tenant_id = "11111111-2222-3333-4444-555555555555",
+    resource = "api://clickhouse-resource", scope = "api://clickhouse-resource/access_as_user",
     client_id = "demo-client", client_type = "public")
 )
 

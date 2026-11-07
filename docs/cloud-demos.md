@@ -1,8 +1,11 @@
 # Guided cloud demos
 
-Implementation notes for the Databricks guide. The package now exports
+Implementation notes for the cloud guides. The package exports
 `oauth_db_cloud_demo("databricks")`; see the
-[user guide](../vignettes/cloud-demos.Rmd) for setup and Free Edition limits.
+[user guide](../vignettes/cloud-demos.Rmd) for each platform's settings and limits.
+Fabric, BigQuery, Snowflake, Azure SQL, Azure PostgreSQL, Redshift and
+ClickHouse now use the same saved-draft and console runner, with their own
+field help, registration steps and editable connection/query files.
 The original `cli` design preview remains available:
 
 ```sh
@@ -26,10 +29,10 @@ details. Treat registration as a reusable organization setup. For a local
 demo, prefer a public PKCE registration when policy allows it, so colleagues
 can reuse its client ID without distributing a client secret.
 
-Start with Databricks SQL and Databricks OAuth. Use the same sign-in on
-AWS, Azure and GCP workspaces where that registration is available; select
-the relevant help links from the workspace hostname. A separate Entra
-token setup can follow later, using the existing Microsoft helpers.
+Databricks uses workspace OAuth on AWS, Azure and GCP where custom
+registration is available. Fabric, the Azure databases, Redshift and
+ClickHouse examples use the existing Entra helpers. BigQuery uses a Google
+Web client, and Snowflake uses its own confidential custom-client integration.
 
 ## Entry point
 
@@ -194,11 +197,12 @@ resources or grant permissions.
 
 ## Implementation boundaries and checks
 
-The first implementation keeps field validation, console help, registration
-guidance and app files specific to Databricks. It reuses
-`oauth_db_databricks_client()`, `oauth_db_databricks_api()` and
-`oauth_db_databricks()`, with explicit SQL scopes for this example.
-The existing clients' defaults stay unchanged.
+Platform descriptors supply field validation, console help, registration
+steps, dependencies and readiness checks. The Databricks guide keeps its
+warehouse selector and uses `oauth_db_databricks_client()`,
+`oauth_db_databricks_api()` and `oauth_db_databricks()` with explicit SQL scopes.
+The other templates call their existing public clients and database/API
+helpers. Existing client defaults stay unchanged.
 
 Warehouse discovery follows pagination through a guarded HTTP adapter. The
 [brickster list helper](https://databrickslabs.github.io/brickster/reference/db_sql_warehouse_list.html)
@@ -215,6 +219,13 @@ real Databricks workspace still need validation in an account supplied
 for that test. Local OAuth fixtures and mocked Databricks calls don't
 establish real-workspace compatibility.
 
-This implementation includes Databricks OAuth, SQL warehouse discovery, the fixed
-identity query and an editable local app. Other platforms should get their
-own guided adapters after this flow is proven.
+The Databricks app keeps its warehouse selector. The seven other apps share
+an editable `demo-ui.R`, while `app.R` shows each platform's client, connection
+and query code. Redshift and ClickHouse use Entra as a concrete trusted-token
+example and pause early when the deployment isn't configured. Broader manual
+provider configuration remains in their platform vignettes.
+
+The browser fixture now accepts a platform name and substitutes local Keycloak
+and database responses. Its named token targets exercise the shared UI with
+the real OAuth session lifecycle. It doesn't validate a real cloud account,
+plan eligibility, native cloud drivers or administrative configuration.

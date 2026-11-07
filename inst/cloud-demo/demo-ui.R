@@ -19,7 +19,14 @@ server <- function(input, output, session) {
   observeEvent(input$stop, stopApp())
   current <- reactive({
     reference <- tryCatch(auth$connection(), shiny.silent.error = function(error) NULL)
-    if (is.null(reference) || !isTRUE(reference$has_scopes(query_scopes, target = query_target))) NULL else reference
+    if (is.null(reference)) return(NULL)
+    # Named API tokens can be acquired lazily when the query button is clicked.
+    if (!is.null(query_target)) {
+      status <- tryCatch(reference$summary(target = query_target)$status, error = function(error) NULL)
+      if (is.null(status)) return(NULL)
+      if (identical(status, "not_acquired")) return(reference)
+    }
+    if (isTRUE(reference$has_scopes(query_scopes, target = query_target))) reference else NULL
   })
   owner <- reactiveVal(NULL)
   access <- reactiveVal(NULL)
@@ -28,7 +35,8 @@ server <- function(input, output, session) {
   observe({
     reference <- current()
     id <- if (is.null(reference)) NULL else reference$id
-    if (!identical(id, isolate(owner()))) {
+    allowed <- !is.null(reference) && isTRUE(reference$has_scopes(query_scopes, target = query_target))
+    if (!identical(id, isolate(owner())) || !allowed && !is.null(isolate(result()))) {
       owner(id)
       access(NULL)
       result(NULL)
@@ -59,6 +67,7 @@ server <- function(input, output, session) {
   output$query_status <- renderText({ req(current()); query_status() })
   output$rows <- renderTable({
     reference <- req(current())
+    req(reference$has_scopes(query_scopes, target = query_target))
     value <- req(result())
     req(identical(value$owner, reference$id))
     value$data

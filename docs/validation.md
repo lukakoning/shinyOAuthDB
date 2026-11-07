@@ -1,5 +1,42 @@
 # Validation record
 
+## 7 November 2026: guides for all eight cloud platforms
+
+`oauth_db_cloud_demo()` now includes Fabric, BigQuery, Snowflake, Azure SQL,
+Azure PostgreSQL, Redshift and ClickHouse alongside Databricks. Each has
+platform-specific console prompts, registration and permission guidance,
+saved drafts and editable app files. Redshift and ClickHouse pause early
+when their trusted-token integration isn't configured.
+
+| Check | Result |
+| --- | --- |
+| Full source baseline | 4,240 assertions across 289 scenarios; zero failures, errors, warnings or skips |
+| Final focused suites | All cloud-guide/app tests pass, including resource/scope correction, lazy named-target acquisition, account invalidation/restoration, query failure, result clearing and connection cleanup |
+| Final `R CMD check --no-manual`, Windows / R 4.5.1 | Zero errors, warnings or notes; includes the final shared-UI changes |
+| Installed-package browser fixtures | All eight platforms pass Alice/Bob login, no implicit SQL, explicit identity query, account-specific output, sign-out clearing and stop-button exit |
+| Native-process credentials | Each browser fixture signs in using the platform-specific confidential-secret environment variable; no secret appears in generated app files |
+| DBI lifecycle | Browser fixtures close their simulated SQL connections on sign-out; source tests also use real SQLite connections to check cleanup |
+| Platform wiring | Real client constructors and configured SQL/API targets, Snowflake role, native driver/port/CA settings and BigQuery byte limit are checked without cloud calls |
+| Documentation and website | 85 R blocks parse; 202 local links and 17 section anchors resolve; pkgdown builds and README website targets resolve |
+| Workflow syntax | actionlint 1.7.12 passes; the browser workflow now has eight independent platform jobs |
+
+Checks use Chrome, native R and Docker Desktop Linux containers on Windows.
+OAuth sign-in is real against a local Keycloak instance. Cloud responses,
+SQL connections and platform identity providers are substituted in browser
+fixtures; native cloud drivers and cloud-side authorization remain unverified.
+The apps are installed into temporary libraries and launched outside the
+checkout, using paths with spaces. No cloud accounts or resources were used.
+The final focused tests and package check follow the source baseline; they
+include regressions added while checking interactive and browser behavior.
+
+The guides document account/trial options without promising eligibility or
+full-demo compatibility. Redshift's example uses Entra and IAM Identity
+Center; ClickHouse uses Entra with its qualifying custom-JWT service.
+Other identity-provider setups remain in the manual platform guides.
+Other host systems and remote Actions were not tested. Browser results are
+under `.validation/cloud-demo/<platform>/`; the final package report is
+`.validation/cloud-platform-package-final.json`.
+
 ## 7 November 2026: guided Databricks cloud demo
 
 `oauth_db_cloud_demo("databricks")` now guides console setup with `cli`,

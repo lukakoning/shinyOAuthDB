@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a ClickHouse Cloud demo for a qualifying JWT service with Entra role
+  mapping, an early readiness check and HTTPS SQL requests.
+
 * Add a Redshift cloud demo using Entra JWTs and IAM Identity Center, with
   a readiness check and explicit resource/scope guidance.
 

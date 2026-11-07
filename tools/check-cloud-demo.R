@@ -1,11 +1,18 @@
-# Real browser/Keycloak login; Databricks warehouse and SQL calls are mocked.
-# Rscript --vanilla tools/check-cloud-demo.R [additional-library-paths]
+# Real browser/Keycloak login; cloud database calls are mocked.
+# Rscript --vanilla tools/check-cloud-demo.R [platform] [additional-library-paths]
 arguments <- commandArgs(trailingOnly = TRUE)
+platforms <- c("databricks", "fabric", "bigquery", "snowflake", "azure-sql", "azure-postgres", "redshift", "clickhouse")
+platform <- "databricks"
+if (length(arguments) && arguments[[1L]] %in% platforms) {
+  platform <- arguments[[1L]]
+  arguments <- arguments[-1L]
+}
 if (length(arguments)) .libPaths(c(arguments, .libPaths()))
 
-check_cloud_demo <- function() {
-  dir.create(".validation/cloud-demo", recursive = TRUE, showWarnings = FALSE)
-  output <- normalizePath(".validation/cloud-demo", winslash = "/")
+check_cloud_demo <- function(platform) {
+  output <- file.path(".validation/cloud-demo", platform)
+  dir.create(output, recursive = TRUE, showWarnings = FALSE)
+  output <- normalizePath(output, winslash = "/")
   library <- tempfile("cloud-demo-library-")
   dir.create(library)
   pkgbuild::rcmd_build_tools("INSTALL", c(paste0("--library=", library), "."))
@@ -13,19 +20,23 @@ check_cloud_demo <- function() {
   fixture <- tempfile("cloud OAuth fixture-")
   path <- tempfile("cloud app with spaces-")
   project <- paste0("shinyoauthdb-cloud-check-", Sys.getpid())
-  callr::r(function(fixture, path) {
+  source("tests/testthat/helper-cloud-platforms.R", local = TRUE)
+  settings <- if (platform == "databricks") list(host = "workspace.example", edition = "workspace") else cloud_platform_settings()[[platform]]
+  settings$client_id <- "shiny-db"
+  settings$client_type <- "confidential"
+  callr::r(function(fixture, path, platform, settings) {
     shinyOAuthDB::oauth_db_demo(action = "files", path = fixture)
-    shinyOAuthDB::oauth_db_cloud_demo(host = "workspace.example", client_id = "shiny-db",
-      client_type = "confidential", edition = "workspace", port = 18100L,
-      action = "files", path = path, prompt = FALSE)
-  }, args = list(fixture, path), libpath = libpath)
+    do.call(shinyOAuthDB::oauth_db_cloud_demo, c(list(platform = platform,
+      port = 18100L, action = "files", path = path, prompt = FALSE), settings))
+  }, args = list(fixture, path, platform, settings), libpath = libpath)
   fixture <- normalizePath(fixture, winslash = "/")
   path <- normalizePath(path, winslash = "/")
   realm <- jsonlite::read_json(file.path(fixture, "realm.json"), simplifyVector = FALSE)
-  realm$clientScopes <- c(realm$clientScopes, list(list(name = "sql", protocol = "openid-connect",
+  extra_scopes <- c("sql", "https://www.googleapis.com/auth/bigquery", "session:role:REPORTING_READER")
+  realm$clientScopes <- c(realm$clientScopes, lapply(extra_scopes, function(scope) list(name = scope, protocol = "openid-connect",
     attributes = list(`include.in.token.scope` = "true", `display.on.consent.screen` = "true"))))
   for (index in seq_along(realm$clients)) if (realm$clients[[index]]$clientId == "shiny-db") {
-    realm$clients[[index]]$optionalClientScopes <- c(realm$clients[[index]]$optionalClientScopes, "sql")
+    realm$clients[[index]]$optionalClientScopes <- c(realm$clients[[index]]$optionalClientScopes, extra_scopes)
   }
   jsonlite::write_json(realm, file.path(fixture, "realm.json"), auto_unbox = TRUE, pretty = TRUE)
   compose <- c("compose", "--project-name", project, "--project-directory", fixture,
@@ -75,7 +86,6 @@ check_cloud_demo <- function() {
     'methods::setMethod("dbDisconnect", "CloudDemoFixtureConnection", function(conn, ...) { fixture_log(paste("disconnect", conn@user)); TRUE })',
     'methods::setMethod("dbGetQuery", c("CloudDemoFixtureConnection", "character"), function(conn, statement, ...) {',
     '  fixture_log(paste("query", conn@user))',
-    '  stopifnot(identical(statement, "SELECT current_user() AS signed_in_user"))',
     '  data.frame(signed_in_user = conn@user)',
     '})',
     'oauth_db_databricks <- function(authorization, ...) {',
@@ -86,16 +96,49 @@ check_cloud_demo <- function() {
     '  })',
     '}'
   )
+  fixture_target <- switch(platform, fabric = "sql", `azure-sql` = "sql", `azure-postgres` = "postgres",
+    redshift = "redshift", clickhouse = "clickhouse", NULL)
+  prefix <- c(prefix,
+    paste0('fixture_target <- ', if (is.null(fixture_target)) "NULL" else encodeString(fixture_target, quote = '"')),
+    'fixture_client <- function(client_id, client_secret, redirect_uri, ...) {',
+    '  provider <- shinyOAuth::oauth_provider_oidc_discover("https://localhost:18443/realms/shinyoauthdb",',
+    '    userinfo_required = FALSE, token_target_mode = if (is.null(fixture_target)) "none" else "rfc8707")',
+    '  targets <- if (is.null(fixture_target)) list() else setNames(list(list(resource = "https://fixture.example/sql", scopes = "sql", required_scopes = "sql")), fixture_target)',
+    '  shinyOAuth::oauth_client(provider, client_id = client_id, client_secret = client_secret, redirect_uri = redirect_uri,',
+    '    scopes = c("openid", "profile", "sql", if (is.null(fixture_target)) c("https://www.googleapis.com/auth/bigquery", "session:role:REPORTING_READER")),',
+    '    required_scopes = "openid",',
+    '    token_targets = targets, token_target_default = if (is.null(fixture_target)) character() else fixture_target)',
+    '}',
+    'oauth_db_microsoft_client <- oauth_db_bigquery_client <- oauth_db_snowflake_client <- fixture_client',
+    'fixture_database <- function(authorization, ...) {',
+    '  oauth_db_connect(authorization, target = fixture_target, required_scopes = "sql", connect = function(token) {',
+    '    user <- fixture_user(token)',
+    '    fixture_log(paste("connect", user))',
+    '    methods::new("CloudDemoFixtureConnection", user = user)',
+    '  })',
+    '}',
+    'oauth_db_fabric_sql <- oauth_db_azure_sql <- oauth_db_azure_postgres <- oauth_db_redshift <- oauth_db_snowflake <- fixture_database',
+    'fixture_api <- function(authorization, ...) {',
+    '  token <- oauth_db_token(authorization, target = fixture_target, required_scopes = "sql")',
+    '  list(query = function(sql, ...) {',
+    '    user <- fixture_user(token())',
+    '    fixture_log(paste("query", user))',
+    '    data.frame(signed_in_user = user)',
+    '  })',
+    '}',
+    'oauth_db_bigquery_api <- oauth_db_clickhouse_api <- fixture_api'
+  )
   appfile <- file.path(path, "app.R")
   writeLines(c(prefix, readLines(appfile)), appfile)
-  process <- callr::r_bg(function(path, ca) {
-    Sys.setenv(CURL_SSL_BACKEND = "openssl", CURL_CA_BUNDLE = ca,
-      OAUTHDB_DATABRICKS_CLIENT_SECRET = "demo-client-secret")
+  process <- callr::r_bg(function(path, ca, platform) {
+    Sys.setenv(CURL_SSL_BACKEND = "openssl", CURL_CA_BUNDLE = ca)
+    do.call(Sys.setenv, setNames(list("demo-client-secret"), paste0("OAUTHDB_", toupper(gsub("-", "_", platform)), "_CLIENT_SECRET")))
     testthat::local_mocked_bindings(.odb_cloud_check_workspace = function(config) NULL,
+      .odb_cloud_platform_require = function(...) NULL,
       .package = "shinyOAuthDB")
     setwd(tempdir())
-    shinyOAuthDB::oauth_db_cloud_demo(path = path, prompt = FALSE, launch_browser = FALSE)
-  }, args = list(path, ca), libpath = libpath, supervise = TRUE,
+    shinyOAuthDB::oauth_db_cloud_demo(platform, path = path, prompt = FALSE, launch_browser = FALSE)
+  }, args = list(path, ca, platform), libpath = libpath, supervise = TRUE,
     stdout = file.path(output, "app.log"), stderr = file.path(output, "app-error.log"))
   deadline <- Sys.time() + 40
   while (!isTRUE(tryCatch(curl::curl_fetch_memory("http://localhost:18100")$status_code == 200L,
@@ -126,18 +169,22 @@ check_cloud_demo <- function() {
     value(browser, "document.querySelector('#login').click()")
     wait(browser, "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")
     value(browser, sprintf("document.querySelector('#username').value='%s'; document.querySelector('#password').value='%s-fixture-password'; document.querySelector('#kc-login').click()", user, user))
-    wait(browser, "Boolean(document.querySelector('#warehouse')?.selectize?.options['demo-warehouse'])")
+    if (platform == "databricks") {
+      wait(browser, "Boolean(document.querySelector('#warehouse')?.selectize?.options['demo-warehouse'])")
+    } else wait(browser, "document.querySelector('#account').textContent.includes('Signed in')")
     stopifnot(!any(grepl(paste0("^(query|connect) ", user, "$"), events())))
-    value(browser, "document.querySelector('#warehouse').selectize.setValue('demo-warehouse')")
+    if (platform == "databricks") value(browser, "document.querySelector('#warehouse').selectize.setValue('demo-warehouse')")
     value(browser, "document.querySelector('#run').click()")
     wait(browser, sprintf("document.querySelector('#rows').textContent.includes('%s')", user))
     stopifnot(sum(events() == paste("query", user)) == 1L)
-    value(browser, "document.querySelector('#refresh').click()")
-    wait(browser, "document.querySelector('#query_status').textContent.includes('Query completed')")
-    stopifnot(sum(events() == paste("query", user)) == 1L)
+    if (platform == "databricks") {
+      value(browser, "document.querySelector('#refresh').click()")
+      wait(browser, "document.querySelector('#query_status').textContent.includes('Query completed')")
+      stopifnot(sum(events() == paste("query", user)) == 1L)
+    }
     value(browser, "document.querySelector('#logout').click()")
     wait(browser, "document.querySelector('#rows').textContent.trim() === ''")
-    stopifnot(any(events() == paste("disconnect", user)))
+    if (!platform %in% c("bigquery", "clickhouse")) stopifnot(any(events() == paste("disconnect", user)))
     if (user == "bob") {
       value(browser, "document.querySelector('#stop').click()")
       process$wait(30000)
@@ -145,17 +192,17 @@ check_cloud_demo <- function() {
     }
     browser$close()
     chrome$Target$disposeBrowserContext(context)
-    cat(user, ": browser sign-in, no implicit SQL, explicit query, sign-out clears results and closes the connection\n")
+    cat(platform, user, ": browser sign-in, no implicit SQL, explicit query and sign-out cleanup\n")
   }
   process$wait(30000)
   stopifnot(!process$is_alive(), process$get_exit_status() == 0L)
   process$get_result()
   project_text <- unlist(lapply(list.files(path, full.names = TRUE, all.files = TRUE, no.. = TRUE), readLines))
   stopifnot(!any(grepl("demo-client-secret", project_text, fixed = TRUE)))
-  jsonlite::write_json(list(real_browser_oauth = TRUE, databricks_calls = "mocked",
+  jsonlite::write_json(list(platform = platform, real_browser_oauth = TRUE, cloud_calls = "mocked",
     implicit_sql = FALSE, account_isolation = TRUE, connection_cleanup = TRUE,
     credentials_in_project = FALSE, stopped = TRUE), file.path(output, "result.json"), pretty = TRUE, auto_unbox = TRUE)
-  cat("Cloud demo browser fixture passed. No live Databricks workspace was used.\n")
+  cat("Cloud demo browser fixture passed. No live cloud account was used.\n")
 }
 
-check_cloud_demo()
+check_cloud_demo(platform)

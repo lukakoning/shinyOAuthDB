@@ -91,15 +91,17 @@ StarRocks needs the native MySQL ODBC driver and plugin.
 For the guided cloud demo, run:
 
 ```sh
-Rscript --vanilla tools/check-cloud-demo.R
+Rscript --vanilla tools/check-cloud-demo.R fabric
 ```
 
 This starts Keycloak in Docker and the generated cloud app in native R.
-Chrome signs in as Alice and Bob. Databricks warehouse responses and SQL
-connections are mocked; the test verifies no implicit SQL, per-user output,
-sign-out cleanup and credential-free generated files. It doesn't validate
-a real Databricks registration or workspace. The dedicated cloud-demo
-workflow runs the same fixture without cloud credentials.
+Chrome signs in as Alice and Bob. Select `databricks` (the default), `fabric`,
+`bigquery`, `snowflake`, `azure-sql`, `azure-postgres`, `redshift` or `clickhouse`.
+Cloud SQL/API operations are mocked; OAuth, the installed app and its native
+R process are real. The test verifies no implicit SQL, per-user output,
+sign-out cleanup and credential-free generated files. Native database
+drivers and real cloud registrations remain outside this fixture's scope.
+The dedicated cloud-demo workflow runs all eight without cloud credentials.
 
 The integration harness requires the complete named scenario set and exact
 TLS, permission, and data check names. `test-integration.R` verifies that empty

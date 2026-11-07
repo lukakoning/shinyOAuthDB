@@ -21,8 +21,8 @@ oauth_db_cloud_demo(
 )
 }
 \arguments{
-\item{platform}{Cloud platform: \code{"databricks"}, \code{"fabric"}, \code{"bigquery"}
-\code{"snowflake"}, \code{"azure-sql"}, \code{"azure-postgres"} or \code{"redshift"}.}
+\item{platform}{Cloud platform: \code{"databricks"}, \code{"fabric"}, \code{"bigquery"},
+\code{"snowflake"}, \code{"azure-sql"}, \code{"azure-postgres"}, \code{"redshift"} or \code{"clickhouse"}.}
 
 \item{host}{Databricks workspace hostname or browser URL. Paths, queries and
 fragments are removed. For other SQL demos, an alias for \code{server}.}
@@ -33,9 +33,9 @@ fragments are removed. For other SQL demos, an alias for \code{server}.}
 The guide asks when needed; noninteractive calls default to \code{"public"}
 where supported. BigQuery and Snowflake demos use confidential registrations.}
 
-\item{warehouse_id}{Optional default SQL warehouse ID.}
+\item{warehouse_id}{Optional default Databricks SQL warehouse ID.}
 
-\item{http_path}{Optional warehouse HTTP path, instead of \code{warehouse_id}.}
+\item{http_path}{Optional Databricks warehouse HTTP path, instead of \code{warehouse_id}.}
 
 \item{path}{Empty or existing cloud-demo directory. The default is a temporary
 directory. Existing app edits are preserved. Supply a path to resume later.}
@@ -43,7 +43,7 @@ directory. Existing app edits are preserved. Supply a path to resume later.}
 \item{port}{Local Shiny port, default 8100 or the saved setting. Register
 \verb{http://localhost:<port>} exactly as the OAuth callback.}
 
-\item{edition}{\code{"workspace"}, \code{"trial"}, \code{"free"}, or \code{"unknown"}. Free
+\item{edition}{Databricks only: \code{"workspace"}, \code{"trial"}, \code{"free"}, or \code{"unknown"}. Free
 Edition lacks the account-level custom registration this example needs.}
 
 \item{action}{\code{"start"} guides setup and runs the app; \code{"files"} writes an
@@ -64,6 +64,9 @@ Azure PostgreSQL uses \code{server}, \code{database}, \code{user}, \code{sslroot
 \code{tenant_id} and optionally \code{database_port}.
 Redshift uses \code{identity_center_ready}, \code{server}, \code{database}, \code{tenant_id},
 \code{resource}, \code{scope} and optionally \code{driver}, \code{database_port}.
+ClickHouse uses \code{jwt_ready}, \code{url}, \code{tenant_id}, \code{resource}, \code{scope} and
+optionally \code{database}. The Redshift and ClickHouse examples use Entra
+and require an existing trusted-token integration.
 See the guided cloud demos vignette.}
 }
 \value{
@@ -76,6 +79,13 @@ then runs a local Shiny app with your installed R packages. Visitors sign
 in through shinyOAuth and use their own cloud data permissions.
 }
 \details{
+All demos use local R and processx. Install askpass for masked input.
+BigQuery and ClickHouse use jsonlite without a native database driver.
+Snowflake, Azure SQL and Redshift use odbc and their native ODBC drivers;
+Azure PostgreSQL uses RPostgres and a trusted CA bundle.
+Each copied app waits for an explicit query-button click. Stopping the
+local process does not stop shared cloud compute or cancel submitted jobs.
+
 Fabric asks for its SQL server/database and an Entra tenant and app
 registration. Install fabricQueryR, odbc and Microsoft ODBC Driver 18.
 Its confidential secret uses \code{OAUTHDB_FABRIC_CLIENT_SECRET}. The copied
@@ -93,8 +103,8 @@ Settings can also come from \code{OAUTHDB_DATABRICKS_HOST} and
 resume from \code{path}. The generated \code{settings.dcf} contains only non-secret
 configuration; \code{app.R} stays editable.
 
-Local R needs brickster 0.2.14 or later, jsonlite and processx; masked input
-uses askpass. No Docker is needed. The app discovers SQL warehouses after
+Databricks additionally needs brickster 0.2.14 or later and jsonlite.
+No Docker is needed. Its app discovers SQL warehouses after
 sign-in, with a manual-ID fallback. Listing doesn't run SQL. Clicking
 \strong{Run example query} opens the DBI connection and runs \verb{SELECT current_user()}.
 Queries can start a stopped warehouse and consume compute credits.
@@ -108,6 +118,8 @@ This is distinct from connecting a local R client using a personal token.
 \examples{
 \dontrun{
 oauth_db_cloud_demo("databricks")
+oauth_db_cloud_demo("fabric")
+oauth_db_cloud_demo("bigquery", action = "files", path = "my-bigquery-demo")
 path <- oauth_db_cloud_demo("databricks", action = "files", prompt = FALSE)
 file.edit(file.path(path, "app.R"))
 oauth_db_cloud_demo("databricks", path = path)

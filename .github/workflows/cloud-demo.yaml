@@ -1,15 +1,19 @@
 name: Guided cloud demo
 on:
   pull_request:
-    paths: ['R/cloud-demo*.R', 'R/backend__databricks.R', 'inst/cloud-demo/**', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
+    paths: ['R/cloud-demo*.R', 'R/backend__*.R', 'inst/cloud-demo/**', 'tests/testthat/*cloud*', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
   push:
     branches: [main, master]
-    paths: ['R/cloud-demo*.R', 'R/backend__databricks.R', 'inst/cloud-demo/**', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
+    paths: ['R/cloud-demo*.R', 'R/backend__*.R', 'inst/cloud-demo/**', 'tests/testthat/*cloud*', 'tools/check-cloud-demo.R', 'DESCRIPTION', '.github/workflows/cloud-demo.yaml']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [databricks, fabric, bigquery, snowflake, azure-sql, azure-postgres, redshift, clickhouse]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -33,10 +37,10 @@ jobs:
             any::jsonlite
             github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
       - name: Check real browser sign-in with a local OAuth fixture
-        run: Rscript --vanilla tools/check-cloud-demo.R
+        run: Rscript --vanilla tools/check-cloud-demo.R ${{ matrix.platform }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: cloud-demo-browser
-          path: .validation/cloud-demo/
+          name: cloud-demo-browser-${{ matrix.platform }}
+          path: .validation/cloud-demo/${{ matrix.platform }}/
           if-no-files-found: error

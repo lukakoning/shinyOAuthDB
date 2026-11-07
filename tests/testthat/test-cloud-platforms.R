@@ -150,6 +150,62 @@ test_that("Redshift demo binds the accepted resource, delegated scope and EXT_JW
   expect_identical(binding$args$token_type, "EXT_JWT")
   expect_identical(binding$required_scopes, "api://redshift-resource/access_as_user")
   expect_error(.odb_cloud_resource_scope(list(resource = "api://right", scope = "api://wrong/read")), "fully qualified")
+  expect_identical(.odb_cloud_resource_scope(list(resource = "https://resource.example/", scope = "https://resource.example//read"))$scope,
+    "https://resource.example//read")
+})
+
+test_that("interactive resource/scope validation lets users correct a mismatched scope", {
+  settings <- cloud_platform_settings()$redshift
+  settings$scope <- settings$client_id <- settings$client_type <- NULL
+  answers <- c("api://wrong/read", "api://redshift-resource/access_as_user", "cancel")
+  local_mocked_bindings(.odb_cloud_interactive = function() TRUE,
+    .odb_cloud_port_available = function(...) NULL,
+    .odb_cloud_read = function(...) { value <- answers[[1L]]; answers <<- answers[-1L]; value },
+    .odb_cloud_platform_require = function(...) stop("Should pause"))
+  path <- cloud_demo_path()
+  do.call(oauth_db_cloud_demo, c(list(platform = "redshift", prompt = TRUE, path = path), settings))
+  expect_identical(.odb_cloud_load(path)$scope, "api://redshift-resource/access_as_user")
+  expect_null(.odb_cloud_load(path)$client_id)
+})
+
+test_that("ClickHouse demo uses its custom resource target and rejects unready services", {
+  app <- cloud_platform_app("clickhouse")
+  expect_named(app$client@token_targets, "clickhouse")
+  expect_identical(app$client@token_targets$clickhouse$scopes, "api://clickhouse-resource/access_as_user")
+  local_mocked_bindings(.odb_http_provider = function(authorization, target, required_scopes, ...) {
+    expect_identical(target, "clickhouse")
+    expect_identical(required_scopes, "api://clickhouse-resource/access_as_user")
+    function(...) stop("No request at construction")
+  }, .odb_cloud_secret = function(...) stop("No secret"))
+  expect_s3_class(app$make_access(function() NULL), "OAuthClickHouseAPI")
+  expect_error(oauth_db_cloud_demo("clickhouse", jwt_ready = "no", path = cloud_demo_path(), prompt = FALSE), "Supply")
+  for (url in c("http://service.example", "https://user:secret@service.example", "https://service.example/?token=secret")) {
+    error <- expect_error(.odb_cloud_value(url, "https"))
+    expect_false(grepl("secret", conditionMessage(error), fixed = TRUE))
+  }
+})
+
+test_that("a signed-in user can click Query before a named API token has been acquired", {
+  app <- cloud_platform_app("fabric")
+  calls <- new.env(parent = emptyenv())
+  calls$queries <- 0L
+  app$oauth_module_server <- function(...) {
+    auth <- odb_test_authorization(shiny::getDefaultReactiveDomain(), target = "sql", unacquired = TRUE)
+    calls$auth <- auth
+    list(connection = function() auth$connection, request_login = function() NULL, logout = function() NULL)
+  }
+  app$make_access <- function(authorization) oauth_db_token(authorization, target = "sql")
+  app$run_query <- function(access) { access(); calls$queries <- calls$queries + 1L; data.frame(user = "A") }
+  shiny::testServer(app$server, {
+    session$flushReact()
+    expect_match(output$account, "Signed in")
+    expect_identical(calls$auth$calls$acquire, 0L)
+    expect_identical(calls$queries, 0L)
+    session$setInputs(run = 1L)
+    expect_match(output$rows, ">[[:space:]]*A[[:space:]]*<")
+    expect_identical(calls$auth$calls$acquire, 1L)
+    expect_identical(calls$queries, 1L)
+  })
 })
 
 for (cloud_platform in names(cloud_platform_settings())) local({
@@ -166,6 +222,7 @@ for (cloud_platform in names(cloud_platform_settings())) local({
       scopes <- if (length(app$query_scopes)) app$query_scopes else "demo.read"
       a <- odb_test_authorization(session, id = "A", target = app$query_target, scopes = scopes)
       b <- odb_test_authorization(session, id = "B", target = app$query_target, scopes = scopes)
+      control$a <- a
       reference <- shiny::reactiveVal(NULL)
       control$choose <- function(id) {
         a$current(id == "A"); b$current(id == "B")
@@ -196,6 +253,13 @@ for (cloud_platform in names(cloud_platform_settings())) local({
       expect_identical(control$queries, 0L)
       session$setInputs(run = 1L)
       expect_match(output$rows, ">[[:space:]]*A[[:space:]]*<")
+      expect_identical(control$queries, 1L)
+      control$a$current(FALSE)
+      session$flushReact()
+      expect_error(output$rows, class = "shiny.silent.error")
+      control$a$current(TRUE)
+      session$flushReact()
+      expect_error(output$rows, class = "shiny.silent.error")
       expect_identical(control$queries, 1L)
       control$choose("B")
       session$flushReact()
