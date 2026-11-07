@@ -25,7 +25,7 @@ check_demo <- function() {
     }, args = list(database, path), libpath = libpath)
     local_app <- file.path(path, "local-app", database, "app.R")
     code <- readLines(local_app)
-    code <- sub(paste0('h2("', database, ' demo")'), 'h2("Local R editable app")', code, fixed = TRUE)
+    code <- sub('h2\\("[^"]*"\\)', 'h2("Local R editable app")', code)
     writeLines(code, local_app)
   }
   process <- callr::r_bg(function(database, path, mode) {
@@ -91,6 +91,12 @@ check_demo <- function() {
       Sys.sleep(0.1)
     }
   }
+  screenshot <- function(browser, name) {
+    size <- browser$Page$getLayoutMetrics()$cssContentSize
+    capture <- browser$Page$captureScreenshot(format = "png", captureBeyondViewport = TRUE,
+      clip = list(x = 0, y = 0, width = size$width, height = size$height, scale = 1))
+    writeBin(openssl::base64_decode(capture$data), file.path(output, paste0(name, ".png")))
+  }
   for (user in c("alice", "bob")) {
     context <- chrome$Target$createBrowserContext()$browserContextId
     target <- chrome$Target$createTarget("about:blank", browserContextId = context)$targetId
@@ -102,6 +108,10 @@ check_demo <- function() {
     if (mode == "local") wait(browser, sprintf("document.querySelector('h2')?.textContent === '%s'",
       if (user == "alice") "Local R editable app" else "Local R edited app"))
     stopifnot(identical(trimws(value(browser, "document.querySelector('#rows').textContent")), ""))
+    wait(browser, "document.querySelector('#sign_in_status').textContent.includes('Not signed in')")
+    stopifnot(isTRUE(value(browser, "document.body.innerText.includes('alice-fixture-password')")))
+    stopifnot(isTRUE(value(browser, if (shared) "document.body.innerText.includes('same rows')" else "document.body.innerText.includes('different rows')")))
+    if (user == "alice") screenshot(browser, "signed-out")
     if (permission_demo) stopifnot(identical(trimws(value(browser, "document.querySelector('#account').textContent")), ""))
     value(browser, "document.querySelector('#login').click()")
     wait(browser, "Boolean(document.querySelector('#username') && document.querySelector('#kc-login'))")
@@ -111,6 +121,7 @@ check_demo <- function() {
     prefix <- if (shared) "shared" else user
     wait(browser, sprintf("Boolean(document.querySelector('#rows')?.textContent.includes('%s-visible-1'))", prefix))
     rows <- value(browser, "document.querySelector('#rows').textContent")
+    if (user == "alice") screenshot(browser, "signed-in")
     other <- if (user == "alice") "bob" else "alice"
     stopifnot(grepl(paste0(prefix, "-visible-2"), rows), !grepl(paste0(other, "-visible"), rows))
     if (permission_demo) {

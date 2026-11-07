@@ -74,6 +74,12 @@ from Docker mode. Use the same `app = "local"` and `path` when resuming or
 stopping a local demo. **Stop demo** or an R interrupt stops the local app
 and removes the Docker containers and data.
 
+The app explains what to compare after signing in. Some databases show
+different rows for Alice and Bob; others give both accounts the same
+read-only rows and let you check that the database rejects a write.
+To get fresh package templates without replacing your edits, choose a
+new empty `path`.
+
 | Local app | What you need in local R |
 | --- | --- |
 | PostgREST, libSQL, CrateDB, OpenSearch | callr and jsonlite; no database driver |

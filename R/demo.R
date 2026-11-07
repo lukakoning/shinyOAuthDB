@@ -123,7 +123,10 @@ oauth_db_demo <- function(
   }
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   if (app == "local" && action != "stop") .odb_demo_local_files(path, database)
-  if (action == "files") return(invisible(path))
+  if (action == "files") {
+    .odb_demo_files_message(database, path, app)
+    return(invisible(path))
+  }
   if (app == "local" && action == "start") .odb_demo_local_require(database)
   docker <- .odb_demo_docker()
   project <- paste0("shinyoauthdb-demo-", database, "-",
@@ -139,14 +142,20 @@ oauth_db_demo <- function(
   cleanup <- function() run(c("down", "--volumes", "--remove-orphans"), check = FALSE)
   if (action == "stop") {
     if (cleanup() != 0L) stop("Docker could not stop the demo; see its output above.", call. = FALSE)
+    cli::cli_alert_success("Demo services and sample data removed. Your app files are kept at {.path {path}}.", wrap = TRUE)
     return(invisible(path))
   }
   run(c("config", "--quiet"))
-  message("Demo files: ", path)
-  message("After a forced exit, run oauth_db_demo(\"", database,
-    "\", action = \"stop\", app = \"", app, "\", path = ", deparse(path), ")")
+  title <- .odb_demo_title(database)
+  cli::cli_h1("{title} OAuth demo")
+  cli::cli_text("The database and local sign-in service run in Docker. {if (app == 'local') 'Shiny runs in your local R installation.' else 'Shiny and its database driver also run in Docker.'}")
+  cli::cli_text("Demo files: {.path {path}}. Existing edits are kept; use a new empty {.arg path} for fresh templates.")
+  if (build) cli::cli_alert_info("The first build downloads dependencies and may take several minutes. Later builds reuse Docker's cache.", wrap = TRUE)
+  cli::cli_text("After a forced exit, clean up with:")
+  cli::cli_code(.odb_demo_resume(database, path, app, "stop"))
   on.exit({
     if (cleanup() != 0L) warning("Demo cleanup failed. Use action = 'stop' after Docker is available.", call. = FALSE)
+    else cli::cli_alert_success("Demo services and sample data removed. Your app files are kept.")
   }, add = TRUE)
   started <- run(c("up", "--detach", "--wait", "--wait-timeout", "360",
     if (build) "--build" else "--no-build", if (app == "local") "local" else "app"), check = FALSE)
@@ -154,8 +163,9 @@ oauth_db_demo <- function(
     run(c("logs", "--tail", "50"), check = FALSE)
     stop("Docker could not start the demo; see its logs above.", call. = FALSE)
   }
-  message("Open http://localhost:18100. Sign in as alice / alice-fixture-password",
-    " or bob / bob-fixture-password. Click Stop demo or interrupt R to finish.")
+  cli::cli_h2("Ready to sign in")
+  cli::cli_text("Open {.url http://localhost:18100}. Use {.code alice / alice-fixture-password} or {.code bob / bob-fixture-password}.")
+  cli::cli_text("Your browser may ask you to allow the local sign-in service's test certificate. Click Stop demo or interrupt R to remove the demo services and sample data.")
   if (app == "local") {
     dir.create(file.path(path, "tls"), showWarnings = FALSE)
     run(c("cp", "tls:/fixtures/tls/ca-cert.pem", file.path(path, "tls", "ca-cert.pem")))
@@ -165,6 +175,26 @@ oauth_db_demo <- function(
     run(c("logs", "--follow", "app"))
   }
   invisible(path)
+}
+
+.odb_demo_title <- function(database) {
+  c(postgres = "PostgreSQL", postgrest = "PostgREST", trino = "Trino", starrocks = "StarRocks",
+    duckdb = "DuckDB Quack", libsql = "libSQL", cratedb = "CrateDB", opensearch = "OpenSearch")[[database]]
+}
+
+.odb_demo_resume <- function(database, path, app, action = NULL) {
+  paste0("shinyOAuthDB::oauth_db_demo(", deparse(database), ", app = ", deparse(app),
+    ", path = ", deparse(path), if (!is.null(action)) paste0(", action = ", deparse(action)), ")")
+}
+
+.odb_demo_files_message <- function(database, path, app) {
+  file <- if (app == "local") file.path(path, "local-app", database, "app.R") else file.path(path, database, "app.R")
+  title <- .odb_demo_title(database)
+  cli::cli_alert_success("{title} demo files are ready at {.path {path}}.", wrap = TRUE)
+  cli::cli_text("Edit the app with:")
+  cli::cli_code(paste0("file.edit(", deparse(file), ")"))
+  cli::cli_text("Then start it with:")
+  cli::cli_code(.odb_demo_resume(database, path, app))
 }
 
 .odb_demo_local_require <- function(database) {
