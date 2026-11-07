@@ -34,21 +34,21 @@ shinyOAuth handles sign-in and token renewal.
 Supported databases and platforms (links open their setup guides):
 
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) ·
-[PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) ·
-[Trino and Starburst Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·
-[StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html) ·
 [DuckDB](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html) ·
-[libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
-[CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
-[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html) ·
-[ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html) ·
-[Microsoft Fabric](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
+[Trino and Starburst Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html) ·
+[Microsoft Fabric](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
 [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html) ·
 [Google BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html) ·
+[Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html) ·
 [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html) ·
 [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html) ·
-[Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html).
+[ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html) ·
+[PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) ·
+[StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html) ·
+[libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
+[CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
+[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html).
 
 Your database or data platform must accept OAuth access tokens, and you'll
 need to register your Shiny app with its sign-in service. Each guide explains
@@ -135,8 +135,8 @@ The package includes this small example as `examples/postgres/app.R`.
 See [Run the minimal example](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
 to run it with the same Docker services.
 
-To edit the styled demo, or try the packaged PostgREST, Trino, StarRocks,
-DuckDB Quack, libSQL, CrateDB and OpenSearch setups, follow
+To edit the styled demo, or try the packaged DuckDB Quack, Trino, PostgREST,
+StarRocks, libSQL, CrateDB and OpenSearch setups, follow
 [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
 For editing in local R, `shinyOAuthDB::oauth_db_demo("postgrest", app = "local")` runs
 PostgreSQL, PostgREST and sign-in in Docker while you edit and run the Shiny app on
@@ -146,7 +146,7 @@ For your own server, follow the [PostgreSQL guide](https://lukakoning.github.io/
 
 For a cloud platform, `shinyOAuthDB::oauth_db_cloud_demo("fabric")` guides you
 through sign-in setup and opens an editable local app. The guide also supports
-Databricks, BigQuery, Snowflake, Azure SQL, Azure PostgreSQL, Redshift and
+Databricks, Snowflake, BigQuery, Redshift, Azure SQL, Azure PostgreSQL and
 ClickHouse Cloud. See
 [Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html)
 for each platform's settings, app registration and service requirements.
