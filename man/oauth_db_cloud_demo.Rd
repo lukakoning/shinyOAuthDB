@@ -22,7 +22,7 @@ oauth_db_cloud_demo(
 }
 \arguments{
 \item{platform}{Cloud platform: \code{"databricks"}, \code{"fabric"}, \code{"bigquery"}
-\code{"snowflake"}, \code{"azure-sql"} or \code{"azure-postgres"}.}
+\code{"snowflake"}, \code{"azure-sql"}, \code{"azure-postgres"} or \code{"redshift"}.}
 
 \item{host}{Databricks workspace hostname or browser URL. Paths, queries and
 fragments are removed. For other SQL demos, an alias for \code{server}.}
@@ -62,6 +62,8 @@ Azure SQL uses \code{server}, \code{database}, \code{tenant_id} and optionally \
 \code{database_port} (the SQL port, distinct from the local Shiny \code{port}).
 Azure PostgreSQL uses \code{server}, \code{database}, \code{user}, \code{sslrootcert},
 \code{tenant_id} and optionally \code{database_port}.
+Redshift uses \code{identity_center_ready}, \code{server}, \code{database}, \code{tenant_id},
+\code{resource}, \code{scope} and optionally \code{driver}, \code{database_port}.
 See the guided cloud demos vignette.}
 }
 \value{

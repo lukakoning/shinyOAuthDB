@@ -126,6 +126,32 @@ test_that("Azure PostgreSQL preserves the mapped role, CA and PostgreSQL target"
   expect_identical(.odb_cloud_value(path, "path"), normalizePath(path, winslash = "/"))
 })
 
+test_that("Redshift demo pauses before asking credentials when the integration isn't ready", {
+  answers <- c("2")
+  local_mocked_bindings(.odb_cloud_interactive = function() TRUE,
+    .odb_cloud_port_available = function(...) NULL,
+    .odb_cloud_read = function(...) { value <- answers[[1L]]; answers <<- answers[-1L]; value },
+    .odb_cloud_platform_require = function(...) stop("No dependencies"),
+    .odb_cloud_secret = function(...) stop("No secret"))
+  path <- cloud_demo_path()
+  oauth_db_cloud_demo("redshift", prompt = TRUE, path = path)
+  expect_identical(.odb_cloud_load(path)$identity_center_ready, "no")
+  expect_null(.odb_cloud_load(path)$client_id)
+  expect_error(oauth_db_cloud_demo("redshift", prompt = FALSE, path = path), "Supply")
+})
+
+test_that("Redshift demo binds the accepted resource, delegated scope and EXT_JWT flow", {
+  app <- cloud_platform_app("redshift")
+  expect_named(app$client@token_targets, "redshift")
+  expect_identical(app$client@token_targets$redshift$resource, "api://redshift-resource")
+  local_mocked_bindings(.odb_bind = capture_backend)
+  binding <- app$make_access(function() NULL)
+  expect_identical(binding$target, "redshift")
+  expect_identical(binding$args$token_type, "EXT_JWT")
+  expect_identical(binding$required_scopes, "api://redshift-resource/access_as_user")
+  expect_error(.odb_cloud_resource_scope(list(resource = "api://right", scope = "api://wrong/read")), "fully qualified")
+})
+
 for (cloud_platform in names(cloud_platform_settings())) local({
   platform <- cloud_platform
   test_that(paste(platform, "app constructs its real client and waits for an explicit query"), {

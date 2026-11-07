@@ -8,7 +8,11 @@ cloud_platform_settings <- function() list(
     tenant_id = "11111111-2222-3333-4444-555555555555", client_id = "demo-client", client_type = "public"),
   `azure-postgres` = list(server = "example.postgres.database.azure.com", database = "reporting",
     user = "reporting-readers", sslrootcert = "fixture-root-ca.pem",
-    tenant_id = "11111111-2222-3333-4444-555555555555", client_id = "demo-client", client_type = "public")
+    tenant_id = "11111111-2222-3333-4444-555555555555", client_id = "demo-client", client_type = "public"),
+  redshift = list(identity_center_ready = "yes", server = "cluster.example.redshift.amazonaws.com",
+    database = "dev", tenant_id = "11111111-2222-3333-4444-555555555555",
+    resource = "api://redshift-resource", scope = "api://redshift-resource/access_as_user",
+    client_id = "demo-client", client_type = "public")
 )
 
 cloud_platform_app <- function(platform) {

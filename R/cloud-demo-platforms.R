@@ -1,6 +1,6 @@
 .odb_cloud_specs <- function() list(fabric = .odb_cloud_spec_fabric(), bigquery = .odb_cloud_spec_bigquery(),
   snowflake = .odb_cloud_spec_snowflake(), `azure-sql` = .odb_cloud_spec_azure_sql(),
-  `azure-postgres` = .odb_cloud_spec_azure_postgres())
+  `azure-postgres` = .odb_cloud_spec_azure_postgres(), redshift = .odb_cloud_spec_redshift())
 
 .odb_cloud_field <- function(label, help, type = "text", default = NULL) {
   list(label = label, help = help, type = type, default = default)
@@ -59,7 +59,9 @@
   cli::cli_text("No account yet? Setup and trial information: {.url {spec$account_url}}. You can save a draft while arranging access.")
   if (action == "start" && prompt) {
     .odb_cloud_port_available(config$port)
-    config <- .odb_cloud_platform_collect(config, spec, platform, path)
+    if (!is.null(spec$readiness) && identical(config[[spec$readiness]], "no")) {
+      attr(config, "paused") <- TRUE
+    } else config <- .odb_cloud_platform_collect(config, spec, platform, path)
   }
   paused <- isTRUE(attr(config, "paused"))
   attr(config, "paused") <- NULL
@@ -71,6 +73,10 @@
     return(invisible(path))
   }
   missing <- spec$required[vapply(spec$required, function(name) is.null(config[[name]]), logical(1))]
+  if (!is.null(spec$readiness) && !identical(config[[spec$readiness]], "yes")) {
+    missing <- union(missing, spec$readiness)
+    cli::cli_alert_info("The platform's sign-in integration must be configured first. Save this draft and resume with {.field {spec$readiness}} set to {.val yes} when ready.")
+  }
   if (length(missing) || paused) {
     .odb_cloud_platform_help(spec, config)
     .odb_cloud_resume(platform, path)
@@ -114,6 +120,7 @@
     if (is.null(config[[name]])) config[[name]] <- field$default
     if (!is.null(config[[name]])) config[[name]] <- .odb_cloud_value(config[[name]], field$type)
   }
+  if (is.function(spec$validate)) config <- spec$validate(config)
   config
 }
 
@@ -138,6 +145,10 @@
   }
   if (type == "port" && (!grepl("^[0-9]+$", value) || as.numeric(value) < 1 || as.numeric(value) > 65535)) cli::cli_abort("Choose a database port from 1 to 65535.")
   if (type == "scopes") value <- paste(unique(strsplit(value, "[[:space:]]+")[[1L]]), collapse = " ")
+  if (type == "ready") {
+    if (!tolower(value) %in% c("1", "2", "yes", "no")) cli::cli_abort("Choose 1 (ready) or 2 (not ready yet).")
+    value <- if (tolower(value) %in% c("1", "yes")) "yes" else "no"
+  }
   if (type == "project" && !grepl("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", value)) cli::cli_abort("Copy the Google Cloud project ID, not its name or number.")
   if (type == "bytes" && !grepl("^[0-9]+$", value)) cli::cli_abort("Supply the maximum billed bytes as a non-negative integer string.")
   if (type == "role" && !grepl("^[A-Za-z_][A-Za-z0-9_$]*$", value)) cli::cli_abort("This demo uses a simple unquoted Snowflake role name. Copy its exact name, without spaces.")
@@ -178,10 +189,22 @@
     if (is.null(candidate)) next
     config[[field]] <- candidate
     .odb_cloud_save(config, path, platform)
+    if (identical(field, spec$readiness) && candidate == "no") return(structure(config, paused = TRUE))
     index <- index + 1L
   }
   config
 }
+
+.odb_cloud_resource_scope <- function(config) {
+  if (!is.null(config$resource) && !is.null(config$scope)) {
+    if (grepl("[[:space:]]", config$scope) || !startsWith(config$scope, paste0(sub("/$", "", config$resource), "/")) ||
+        endsWith(config$scope, "/.default")) cli::cli_abort("Supply the fully qualified delegated {.arg scope} exposed by {.arg resource}, such as api://application-id/access_as_user. This demo uses an explicit delegated scope rather than .default.")
+  }
+  config
+}
+
+.odb_cloud_resource_field <- function() .odb_cloud_field("Find the accepted API resource", "Ask the Entra administrator for the API registration's Application ID URI from Expose an API, such as api://application-id. It identifies the API accepted by the database's trusted-token configuration; it is not the database hostname.")
+.odb_cloud_scope_field <- function() .odb_cloud_field("Find the delegated API scope", "In the resource API registration > Expose an API, copy the full delegated scope, such as api://application-id/access_as_user. Add that API permission to the Shiny client and consent. Ask the database administrator to confirm the matching issuer, token audience and user/role mapping.")
 
 .odb_cloud_platform_help <- function(spec, config) {
   cli::cli_h2("Prepare sign-in and database access")

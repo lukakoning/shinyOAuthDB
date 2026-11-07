@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add a Redshift cloud demo using Entra JWTs and IAM Identity Center, with
+  a readiness check and explicit resource/scope guidance.
+
 * Add an Azure PostgreSQL cloud demo with Entra user/group-role mapping,
   a trusted CA bundle and RPostgres connections.
 

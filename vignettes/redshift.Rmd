@@ -17,6 +17,30 @@ The connection works with DBI, so you can use your existing SQL queries.
 This example signs users in through Microsoft Entra. It requires a Redshift
 deployment already linked to AWS IAM Identity Center.
 
+## Try the guided demo
+
+Run `shinyOAuthDB::oauth_db_cloud_demo("redshift")` in your R console.
+The guide first asks whether IAM Identity Center and Entra trusted-token
+integration are ready. Choose **Not ready yet** to save a draft and get
+setup links. An AWS account and SQL endpoint alone don't provide this flow.
+Once configured, resume with `identity_center_ready = "yes"`.
+
+The guide asks for `server`, `database`, `tenant_id`, accepted API `resource`,
+fully qualified delegated `scope` and Shiny OAuth `client_id`. Administrators
+must coordinate the trusted issuer, JWT audience and user mappings; the
+resource and scope are not the Redshift hostname. The generated example uses
+Microsoft Entra and `EXT_JWT` through `IdpTokenAuthPlugin`.
+
+Install `odbc`, `processx`, `askpass` and the Redshift ODBC 2.x driver.
+Optional `driver` and `database_port` adjust its connection settings.
+A confidential client uses `OAUTHDB_REDSHIFT_CLIENT_SECRET` or masked input.
+The editable app waits for **Run example query**; stopping it doesn't stop
+Redshift compute or billing. See [Guided cloud demos](cloud-demos.html).
+
+With no AWS deployment, read [Getting started with Redshift](https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html).
+Trial availability does not establish trusted-identity readiness; this guide
+doesn't provision resources or configure IAM Identity Center.
+
 ## Set up access
 
 In R, run `install.packages("odbc")`. Install the
