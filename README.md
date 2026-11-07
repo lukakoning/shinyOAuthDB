@@ -63,27 +63,11 @@ remotes::install_github("lukakoning/shinyOAuthDB")
 
 ## Example usage with PostgreSQL
 
-A demo app is included to show the sign-in and query code. 
-It runs PostgreSQL inside a Docker container, with Keycloak for sign-in. 
-The demo uses a small dataset and a simple query to show how each signed-in user sees only their own rows.
+Pass `auth$connection` to `oauth_db_postgres()`, then call `con()` before
+querying. PostgreSQL applies the signed-in user's permissions.
 
-Install and start [Docker](https://docs.docker.com/get-started/get-docker/).
-In R, run:
-
-```r
-shinyOAuthDB::oauth_db_demo()
-```
-
-Then, open the Shiny app at <http://localhost:18100>.
-Sign in as `alice` with password `alice`, or as `bob` with password `bob`.
-(Your browser may ask you to accept the local test certificate for Keycloak.)
-
-### Shiny app code
-
-This minimal app shows the sign-in and query code. 
-
-It passes `auth$connection` to `oauth_db_postgres()`, then calls `con()` before querying. 
-The PostgreSQL database applies the signed-in user's permissions.
+The settings below use the packaged Docker demo's database, sign-in service
+and certificates.
 
 ```r
 library(shiny)
@@ -126,23 +110,31 @@ shinyApp(ui, server, uiPattern = ".*")
 
 The package includes this small example as `examples/postgres/app.R`.
 See [Run the minimal example](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
-to run it with the same Docker services.
+to run it with the Docker services. For your own database, follow the
+[PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
-To edit the styled demo, or try the packaged DuckDB Quack, Trino, PostgREST,
-StarRocks, libSQL, CrateDB and OpenSearch setups, follow
-[Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
-For editing in local R, `shinyOAuthDB::oauth_db_demo("postgrest", app = "local")` runs
-PostgreSQL, PostgREST and sign-in in Docker while you edit and run the Shiny app on
-your computer. The [local app guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-and-edit-shiny-in-local-r)
-explains the R packages and drivers needed for each database.
-For your own server, follow the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
+## Try the demo
+
+With [Docker](https://docs.docker.com/get-started/get-docker/) running Linux
+containers, run the following in R. The first build takes several minutes.
+
+```r
+shinyOAuthDB::oauth_db_demo()
+```
+
+This starts PostgreSQL, Keycloak sign-in and a styled version of the app.
+Open <http://localhost:18100> and sign in as `alice` / `alice` or `bob` / `bob`
+(username / password). Each account sees only its own rows.
+Your browser may ask you to accept the local test certificate.
+Click **Stop demo** or interrupt R to remove the containers and sample data.
+
+See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
+for other databases, editing the app in local R and troubleshooting.
 
 For a cloud platform, `shinyOAuthDB::oauth_db_cloud_demo("fabric")` guides you
-through sign-in setup and opens an editable local app. The guide also supports
-Databricks, Snowflake, BigQuery, Redshift, Azure SQL, Azure PostgreSQL and
-ClickHouse Cloud. See
+through sign-in setup and opens an editable local app. See
 [Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html)
-for each platform's settings, app registration and service requirements.
+for the supported platforms and their setup requirements.
 
 [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html) explains the Shiny pattern.
 [OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html) explains app registrations and

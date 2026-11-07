@@ -14,7 +14,7 @@ readme_example <- function(title) {
   start <- which(
     lines ==
       if (title == "Self-hosted PostgreSQL") {
-        "## The Shiny app"
+        "## Example usage with PostgreSQL"
       } else {
         "## Complete Shiny app"
       }
