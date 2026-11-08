@@ -141,7 +141,7 @@
         if (length(httr2::resp_body_raw(resp)) > 65536L) {
           NULL
         } else {
-          httr2::resp_body_json(resp, simplifyVector = FALSE)
+          .odb_http_json(resp, service)
         }
       },
       error = function(e) NULL
@@ -276,11 +276,18 @@
 .odb_http_json <- function(resp, service, simplify = FALSE) {
   force(resp)
   tryCatch(
-    httr2::resp_body_json(
-      resp,
-      simplifyVector = simplify,
-      bigint_as_char = TRUE
-    ),
+    {
+      httr2::resp_check_content_type(
+        resp,
+        valid_types = "application/json",
+        valid_suffix = "json"
+      )
+      jsonlite::parse_json(
+        httr2::resp_body_string(resp, encoding = "UTF-8"),
+        simplifyVector = simplify,
+        bigint_as_char = TRUE
+      )
+    },
     error = function(e) {
       .odb_abort(
         paste0(service, " returned an invalid JSON response."),

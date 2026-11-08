@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Parse API responses and HTTP error diagnostics as literal JSON so response
+  bodies cannot trigger local-file reads or additional HTTP requests.
+
 * Refresh the Docker demo runtime to include the current transport protections,
   corrected local app ports, strict date decoding and exact row-count checks.
 

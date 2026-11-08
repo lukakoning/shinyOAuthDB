@@ -210,7 +210,7 @@ oauth_db_cratedb_api <- function(
         regmatches(body, positions),
         function(x) paste0('"', x, '"')
       )
-      jsonlite::fromJSON(body, simplifyVector = FALSE)
+      jsonlite::parse_json(body, simplifyVector = FALSE)
     },
     error = function(e) {
       .odb_abort(
