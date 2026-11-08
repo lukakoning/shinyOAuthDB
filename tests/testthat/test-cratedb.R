@@ -52,6 +52,71 @@ test_that("CrateDB separates SQL and positional arguments and preserves exact re
   })
 })
 
+test_that("CrateDB byte columns return numbers with nulls and typed empty results", {
+  body <- paste0(
+    '{"cols":["value"],"col_types":[2],',
+    '"rows":[[-128],[0],[127],[null]],"rowcount":4}'
+  )
+  httr2::local_mocked_responses(function(req) odb_http_response(body))
+  odb_test_domain(function(session) {
+    api <- oauth_db_cratedb_api(
+      odb_test_authorization(session)$connection,
+      "https://crate.example/_sql"
+    )
+    expect_identical(
+      api$query('SELECT x::"char"')$value,
+      c(-128, 0, 127, NA_real_)
+    )
+    raw <- api$query('SELECT x::"char"', raw = TRUE)
+    expect_identical(raw$col_types, list(2L))
+    expect_identical(
+      raw$rows,
+      list(list("-128"), list("0"), list("127"), list(NULL))
+    )
+    body <<- '{"cols":["value"],"col_types":[2],"rows":[],"rowcount":0}'
+    expect_identical(api$query('SELECT x::"char" WHERE false')$value, numeric())
+    body <<- '{"cols":["value"],"col_types":[27],"rows":[["42"]],"rowcount":1}'
+    expect_identical(api$query("SELECT CAST('42' AS CHARACTER(2))")$value, "42")
+  })
+})
+
+test_that("CrateDB rejects invalid byte values in scalar and array results", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) odb_http_response(body))
+  odb_test_domain(function(session) {
+    api <- oauth_db_cratedb_api(
+      odb_test_authorization(session)$connection,
+      "https://crate.example/_sql"
+    )
+    operations <- list(
+      function() api$query("SELECT x"),
+      function() api$query("SELECT x", raw = TRUE),
+      function() api$execute("SELECT x")
+    )
+    for (value in c(
+      "-129",
+      "128",
+      "0.5",
+      "127.00000000000000001",
+      '"NaN"',
+      '"bad"'
+    )) {
+      for (array in c(FALSE, TRUE)) {
+        body <<- paste0(
+          '{"cols":["value"],"col_types":[',
+          if (array) "[100,2]" else "2",
+          '],"rows":[[',
+          if (array) paste0("[", value, "]") else value,
+          ']],"rowcount":1}'
+        )
+        for (operation in operations) {
+          expect_error(operation(), class = "shinyOAuthDB_invalid_response")
+        }
+      }
+    }
+  })
+})
+
 test_that("CrateDB handles nested parameters and rejects ambiguous or lossy values before requests", {
   values <- .odb_cratedb_parameters(list(
     "9007199254740993",

@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Return CrateDB's internal byte columns as numbers, including nulls and empty
+  results, and reject values outside the signed byte range in scalar and array
+  responses.
+
 * Decode libSQL REAL values as doubles regardless of JSON number notation,
   while retaining exact integer cells and large affected-row counts.
 

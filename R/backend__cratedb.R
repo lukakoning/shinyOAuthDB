@@ -367,7 +367,7 @@ oauth_db_cratedb_api <- function(
   }
   if (
     type %in%
-      c(10L, 11L, 15L, 22L, 24L) &&
+      c(2L, 10L, 11L, 15L, 22L, 24L) &&
       any(!is.na(text) & !grepl(numeric_pattern, text))
   ) {
     .odb_abort(
@@ -375,18 +375,19 @@ oauth_db_cratedb_api <- function(
       "invalid_response"
     )
   }
-  if (type %in% c(6L, 7L, 8L, 9L)) {
+  if (type %in% c(2L, 6L, 7L, 8L, 9L)) {
     value <- suppressWarnings(as.numeric(text))
+    bounds <- if (type == 2L) c(-128, 127) else c(-2^31, 2^31 - 1)
     if (
       any(!is.na(text) & is.na(value) & !is.nan(value)) ||
         type %in%
-          c(8L, 9L) &&
+          c(2L, 8L, 9L) &&
           any(
             !is.na(value) &
               (!is.finite(value) |
                 value != trunc(value) |
-                value < -2^31 |
-                value > 2^31 - 1)
+                value < bounds[[1L]] |
+                value > bounds[[2L]])
           )
     ) {
       .odb_abort("CrateDB returned an invalid number.", "invalid_response")
