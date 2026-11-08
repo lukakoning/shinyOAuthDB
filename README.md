@@ -50,10 +50,6 @@ Supported databases and data platforms (links open their setup guides):
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
 [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html).
 
-Your database or data platform must accept OAuth access tokens, and you'll
-need to register your Shiny app with its sign-in service. Each guide explains
-the setup and where to find the settings you need.
-
 ## Install
 
 ```r
@@ -78,8 +74,10 @@ library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
+# Start a local demo with PostgreSQL and Keycloak sign-in in Docker
 demo <- oauth_db_demo("postgrest", action = "services")
 
+# Create an OAuth client for the demo Keycloak server
 client <- oauth_client(
   demo$provider,
   client_id = "shiny-db",
@@ -113,9 +111,11 @@ server <- function(input, output, session) {
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
-    onStop(demo$stop)
-  }),
+  shinyApp(
+    ui, server, 
+    uiPattern = ".*", 
+    onStart = function() { onStop(demo$stop) }
+  ),
   port = 18100,
   launch.browser = FALSE
 )
@@ -127,21 +127,22 @@ runApp(
 Sign in as `alice` / `alice` or `bob` / `bob` (username / password).
 The first build takes a few minutes; your browser may ask you to accept the
 local sign-in certificate. Stopping the app removes its Docker services.
-Call `demo$stop()` to stop the services manually.
 
 The package includes this example as `examples/postgres/example.R`;
 [run it directly](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
-or edit a copy. For your own server, follow the [PostgREST guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html).
+or edit a copy. For your own PostgreSQL server, follow the [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
+or [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) guides.
 
 ## Learn more
 
 `oauth_db_demo()` runs local Docker demos for PostgreSQL and other databases.
-`oauth_db_cloud_demo()` guides demos for several cloud platforms using an
-existing account. See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
+`oauth_db_cloud_demo()` guides demos for several cloud platforms, during which
+you will be walked through a setup with your existing platform account.
+See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
 and [Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
 
 [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html)
-explains the app pattern. Use the database links above for platform setup,
+explains the basic Shiny app pattern. Use the links above for setup per database or data platform, and see
 [OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html)
-for app registrations, and [Authentication and sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
+for configuring app registrations, and [Authentication and sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
 for multiple accounts and advanced permissions.
