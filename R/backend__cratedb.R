@@ -223,15 +223,17 @@ oauth_db_cratedb_api <- function(
     .odb_abort("The CrateDB statement failed.", "query_failed")
   }
   count <- result$rowcount
-  if (
-    !is.character(count) ||
-      length(count) != 1L ||
-      is.na(count) ||
-      !grepl("^-?[0-9]+$", count) ||
-      !is.finite(as.numeric(count)) ||
-      as.numeric(count) < -1 ||
-      as.numeric(count) > 2^53
-  ) {
+  valid_count <- is.character(count) &&
+    length(count) == 1L &&
+    !is.na(count) &&
+    grepl("^-?[0-9]+$", count)
+  if (valid_count) {
+    magnitude <- sub("^0+", "", sub("^-", "", count))
+    valid_count <- (!startsWith(count, "-") || magnitude %in% c("", "1")) &&
+      (nchar(magnitude) < 16L ||
+        nchar(magnitude) == 16L && magnitude <= "9007199254740992")
+  }
+  if (!valid_count) {
     .odb_abort("CrateDB returned an invalid row count.", "invalid_response")
   }
   result$rowcount <- as.numeric(count)

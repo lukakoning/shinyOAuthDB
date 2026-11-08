@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Check CrateDB row-count limits before numeric conversion so counts above
+  `2^53` cannot round into the supported range.
+
 * Reject malformed BigQuery and ClickHouse dates, including invalid calendar
   dates and trailing text, while preserving nulls and typed empty results.
 

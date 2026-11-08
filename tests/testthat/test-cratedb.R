@@ -164,6 +164,49 @@ test_that("CrateDB validates complete results, numeric lexemes and typed empty f
   }
 })
 
+test_that("CrateDB validates exact row-count boundaries before numeric conversion", {
+  count <- "0"
+  httr2::local_mocked_responses(function(req) {
+    odb_http_response(paste0(
+      '{"cols":[],"col_types":[],"rows":[],"rowcount":',
+      count,
+      '}'
+    ))
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_cratedb_api(auth$connection, "https://crate.example/_sql")
+    operations <- list(
+      function() api$execute("UPDATE orders SET n = n + 1"),
+      function() api$query("UPDATE orders SET n = n + 1", raw = TRUE)$rowcount
+    )
+    for (value in c(
+      "-1",
+      "-0",
+      "0",
+      "1",
+      "9007199254740991",
+      "9007199254740992"
+    )) {
+      count <<- value
+      for (operation in operations) {
+        expect_identical(operation(), as.numeric(value))
+      }
+    }
+    for (value in c(
+      "-2",
+      "9007199254740993",
+      "9007199254740994",
+      "18446744073709551615"
+    )) {
+      count <<- value
+      for (operation in operations) {
+        expect_error(operation(), class = "shinyOAuthDB_invalid_response")
+      }
+    }
+  })
+})
+
 test_that("CrateDB validates cells for queries, raw results and execution counts", {
   body <- NULL
   httr2::local_mocked_responses(function(req) odb_http_response(body))
