@@ -43,7 +43,10 @@ oauth_db_azure_postgres(
 
 - ...:
 
-  RPostgres connection options, such as `connect_timeout`.
+  RPostgres result options (`bigint`, `check_interrupts`, `timezone`,
+  `timezone_out`), `connect_timeout`, `application_name`, or TCP
+  keepalive options. Authentication and TLS options cannot be
+  overridden.
 
 - port:
 
@@ -79,14 +82,16 @@ A reactive function returning an RPostgres DBI connection.
 
 ## Details
 
-Install RPostgres and use
+Install RPostgres linked to libpq 16 or later. Use
 [`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md)
 with `services = "postgres"`. The server must accept Entra
 authentication, and the database role must already exist.
 
 Create the helper inside `server()` and get `connection <- con()` inside
 a render or reactive expression before querying. The connection uses
-verified TLS.
+verified TLS and requires password authentication with the visitor's
+access token. GSS encryption is disabled, and the server cannot select
+Kerberos, certificate-only, or trust authentication instead.
 
 ## See also
 

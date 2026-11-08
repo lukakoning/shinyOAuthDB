@@ -46,7 +46,8 @@ oauth_db_snowflake(
 
 - ...:
 
-  Named Snowflake ODBC connection options.
+  Named Snowflake ODBC connection options. Authentication and the HTTPS
+  protocol cannot be overridden.
 
 - required_scopes:
 

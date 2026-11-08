@@ -42,7 +42,11 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Launch the documented apps with <code>runApp(..., launch.browser = FALSE)</code> and explain that OAuth sign-in needs a regular browser. Keep the README’s follow-up links in a short Learn more section.</p></li>
+<ul><li><p>Reject Snowflake ODBC protocol overrides before acquiring a token or opening a native connection, preserving the driver’s HTTPS default.</p></li>
+<li><p>Require token-based password authentication over verified TLS for Azure PostgreSQL. Disable GSS encryption and reject native authentication/TLS overrides. This helper now requires RPostgres linked to libpq 16 or later.</p></li>
+<li><p>Reject incomplete BigQuery dataset listings when the API reports unreachable locations, including on later result pages.</p></li>
+<li><p>Restore services-mode OAuth options and revoke its PostgREST HTTP exception when stopping through <code>oauth_db_demo(action = "stop")</code>. Retained handles recognize the shutdown, and failed Docker cleanup remains retryable.</p></li>
+<li><p>Launch the documented apps with <code>runApp(..., launch.browser = FALSE)</code> and explain that OAuth sign-in needs a regular browser. Keep the README’s follow-up links in a short Learn more section.</p></li>
 <li><p>Add <code>oauth_db_demo(action = "services")</code> to start Docker infrastructure and return settings for an app running in the current R session. The README example now starts PostgreSQL and PostgREST itself, works without a native database driver, and stops its services when Shiny stops.</p></li>
 <li><p>Keep the README app focused on sign-in and a PostgreSQL query. Ship that minimal example in the package with Docker run instructions. Runnable demos keep their styled UI.</p></li>
 <li><p>Use <code>alice</code> / <code>alice</code> and <code>bob</code> / <code>bob</code> for demo sign-in, with explicit username/password tables. Remove “Your” from cloud demo titles and keep sign-in guidance in sync with completed queries and warehouse selection.</p></li>

@@ -87,7 +87,9 @@ or reactive expressions. Use
 [`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md)
 for Google sign-in. Users need permission to create query jobs in
 `project` and read the data. The client uses BigQuery's REST API;
-bigrquery and ODBC aren't required.
+bigrquery and ODBC aren't required. Dataset discovery fails if BigQuery
+reports unreachable locations, so a partial listing cannot appear as a
+complete or empty collection.
 
 ## Query parameters
 

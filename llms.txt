@@ -20,8 +20,8 @@ The OAuth sign-in and data access work like this:
     shinyOAuth to start the OAuth sign-in flow. The user is sent to the
     sign-in page of the database or data platform, or to a trusted
     sign-in service (like your organization’s login service).
-2.  The user signs in with their existing account and, if asked, approve
-    the access your app requests.
+2.  The user signs in with their existing account and, if asked,
+    approves the access your app requests.
 3.  They return to your Shiny app and shinyOAuth obtains an **access
     token**, a temporary credential that lets your Shiny app request
     data on their behalf.
@@ -33,7 +33,7 @@ shinyOAuthDB provides R functions to streamline the above steps, with
 configurations for various databases and data platforms. It also helps
 you open database connections, run queries, and make API calls.
 Depending on the data source, you can work with familiar tools such as
-DBI and dbplyr, or use the a supporting package’s query and API helpers.
+DBI and dbplyr, or use a supporting package’s query and API helpers.
 
 Supported databases and data platforms (links open their setup guides):
 
@@ -46,9 +46,8 @@ Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html)
 Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html)
 ·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html)
-· [Microsoft Fabric and
-PowerBi](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html)
-·
+· [Microsoft Fabric and Power
+BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
 [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html)
 · [Google
 BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html)
@@ -77,6 +76,16 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 }
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
+
+This installs the package from source and compiles its C code. On
+Windows, install [Rtools for your R
+version](https://cran.r-project.org/bin/windows/Rtools/) first; on
+macOS, install the Xcode Command Line Tools with
+`xcode-select --install`. Linux needs R’s development tools, including a
+C compiler and `make`. These build tools are needed even when using a
+backend without a database driver. Native PostgreSQL OAuth also needs
+the Linux/libpq 18 setup described in the [PostgreSQL
+guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
 ## Example usage with PostgreSQL
 

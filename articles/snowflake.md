@@ -176,6 +176,10 @@ the installed ODBC driver has a different name, set `driver`. See
 [`?oauth_db_snowflake`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md)
 for the full arguments.
 
+The connection uses the Snowflake driver’s HTTPS transport and the
+visitor’s OAuth token. Protocol and authentication overrides are
+rejected in `...`.
+
 ## External OAuth
 
 If Snowflake uses Entra, Okta, or another external provider for OAuth,

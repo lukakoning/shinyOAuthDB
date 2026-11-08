@@ -182,7 +182,9 @@ its loopback-only OIDC development option is enabled. <code>demo$stop()</code>
 removes the containers and data and restores these options. Register
 it with <code><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">shiny::onStop()</a></code> when your app starts. Services are also stopped
 when the returned object is garbage collected or R exits. Run one demo
-at a time, and stop it before starting another.</p>
+at a time, and stop it before starting another.
+Using <code>action = "stop"</code> with the same database and <code>path</code> also retires
+any services handle in the current R process and restores its options.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

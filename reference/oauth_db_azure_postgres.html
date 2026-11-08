@@ -88,7 +88,9 @@ that calls <code>auth$connection(id)</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>RPostgres connection options, such as <code>connect_timeout</code>.</p></dd>
+<dd><p>RPostgres result options (<code>bigint</code>, <code>check_interrupts</code>,
+<code>timezone</code>, <code>timezone_out</code>), <code>connect_timeout</code>, <code>application_name</code>, or
+TCP keepalive options. Authentication and TLS options cannot be overridden.</p></dd>
 
 
 <dt id="arg-port">port<a class="anchor" aria-label="anchor" href="#arg-port"></a></dt>
@@ -126,12 +128,14 @@ obtaining a token. Use <code>0</code> to accept any unexpired token.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Install RPostgres and use <code><a href="oauth_db_microsoft_client.html">oauth_db_microsoft_client()</a></code> with
+    <p>Install RPostgres linked to libpq 16 or later. Use <code><a href="oauth_db_microsoft_client.html">oauth_db_microsoft_client()</a></code> with
 <code>services = "postgres"</code>. The server must accept Entra authentication,
 and the database role must already exist.</p>
 <p>Create the helper inside <code>server()</code> and get <code>connection &lt;- con()</code>
 inside a render or reactive expression before querying.
-The connection uses verified TLS.</p>
+The connection uses verified TLS and requires password authentication with
+the visitor's access token. GSS encryption is disabled, and the server
+cannot select Kerberos, certificate-only, or trust authentication instead.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

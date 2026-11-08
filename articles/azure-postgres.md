@@ -171,6 +171,12 @@ RPostgres. See
 [`?oauth_db_azure_postgres`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md)
 for the connection arguments.
 
+Use RPostgres linked to libpq 16 or later. The helper requires the
+server to request the visitor’s access token as its password over
+verified TLS; Kerberos, certificate-only and trust authentication cannot
+replace it. Authentication and TLS settings cannot be changed through
+`...`.
+
 For custom sign-in settings or saved query results, see [Authentication
 and
 sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).

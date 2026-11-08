@@ -255,6 +255,11 @@ created for your users.</p>
 correct CA bundle configured. Other options, such as <code>port</code>
 and <code>connect_timeout</code>, go to RPostgres. See
 <code><a href="../reference/oauth_db_azure_postgres.html">?oauth_db_azure_postgres</a></code> for the connection arguments.</p>
+<p>Use RPostgres linked to libpq 16 or later. The helper requires the
+server to request the visitor’s access token as its password over
+verified TLS; Kerberos, certificate-only and trust authentication cannot
+replace it. Authentication and TLS settings cannot be changed through
+<code>...</code>.</p>
 <p>For custom sign-in settings or saved query results, see <a href="authorization.html">Authentication and sessions</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

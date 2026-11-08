@@ -252,6 +252,9 @@ schema. Omit <code>warehouse</code>, <code>database</code>, or
 <code>schema</code> to use the account’s defaults. If the installed ODBC
 driver has a different name, set <code>driver</code>. See
 <code><a href="../reference/oauth_db_snowflake.html">?oauth_db_snowflake</a></code> for the full arguments.</p>
+<p>The connection uses the Snowflake driver’s HTTPS transport and the
+visitor’s OAuth token. Protocol and authentication overrides are
+rejected in <code>...</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="external-oauth">External OAuth<a class="anchor" aria-label="anchor" href="#external-oauth"></a>

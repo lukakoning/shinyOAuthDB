@@ -2,6 +2,22 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Reject Snowflake ODBC protocol overrides before acquiring a token or
+  opening a native connection, preserving the driver’s HTTPS default.
+
+- Require token-based password authentication over verified TLS for
+  Azure PostgreSQL. Disable GSS encryption and reject native
+  authentication/TLS overrides. This helper now requires RPostgres
+  linked to libpq 16 or later.
+
+- Reject incomplete BigQuery dataset listings when the API reports
+  unreachable locations, including on later result pages.
+
+- Restore services-mode OAuth options and revoke its PostgREST HTTP
+  exception when stopping through `oauth_db_demo(action = "stop")`.
+  Retained handles recognize the shutdown, and failed Docker cleanup
+  remains retryable.
+
 - Launch the documented apps with `runApp(..., launch.browser = FALSE)`
   and explain that OAuth sign-in needs a regular browser. Keep the
   README’s follow-up links in a short Learn more section.
