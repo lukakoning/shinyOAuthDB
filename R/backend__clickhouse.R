@@ -349,6 +349,26 @@ oauth_db_clickhouse_api <- function(
     if (any(!is.na(text) & is.na(value) & !is.nan(value))) {
       .odb_abort("ClickHouse returned an invalid number.", "invalid_response")
     }
+    if (grepl("^U?Int", type)) {
+      bits <- as.integer(sub("^U?Int", "", type))
+      unsigned <- startsWith(type, "U")
+      lower <- if (unsigned) 0 else -2^(bits - 1L)
+      upper <- if (unsigned) 2^bits - 1 else 2^(bits - 1L) - 1
+      if (
+        any(
+          !is.na(text) &
+            (!is.finite(value) |
+              value != trunc(value) |
+              value < lower |
+              value > upper)
+        )
+      ) {
+        .odb_abort(
+          "ClickHouse returned an invalid integer.",
+          "invalid_response"
+        )
+      }
+    }
     return(value)
   }
   if (type == "Bool") {

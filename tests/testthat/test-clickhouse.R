@@ -86,6 +86,86 @@ test_that("ClickHouse rejects malformed dates in all date wrappers and result mo
   })
 })
 
+test_that("ClickHouse enforces signedness and width for small integer columns", {
+  for (base in c("Int8", "UInt8", "Int16", "UInt16", "Int32", "UInt32")) {
+    bits <- as.integer(sub("^U?Int", "", base))
+    unsigned <- startsWith(base, "U")
+    lower <- if (unsigned) 0 else -2^(bits - 1L)
+    upper <- if (unsigned) 2^bits - 1 else 2^(bits - 1L) - 1
+    for (type in c(
+      base,
+      paste0("Nullable(", base, ")"),
+      paste0("LowCardinality(", base, ")"),
+      paste0("LowCardinality(Nullable(", base, "))")
+    )) {
+      expect_identical(
+        .odb_clickhouse_column(list(lower, upper, NULL), type),
+        c(lower, upper, NA_real_)
+      )
+      expect_identical(.odb_clickhouse_column(list(), type), numeric())
+      for (invalid in list(
+        lower - 1,
+        upper + 1,
+        0.5,
+        Inf,
+        -Inf,
+        NaN,
+        "invalid"
+      )) {
+        expect_error(
+          .odb_clickhouse_column(list(0, invalid), type),
+          class = "shinyOAuthDB_invalid_response"
+        )
+      }
+    }
+  }
+  for (type in c("Float32", "Float64", "Nullable(Float64)")) {
+    expect_identical(
+      .odb_clickhouse_column(list("-nan", "Inf", "-Infinity", NULL), type),
+      c(NaN, Inf, -Inf, NA_real_)
+    )
+  }
+})
+
+test_that("ClickHouse validates integer cells in queries, raw results and statements", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) {
+    odb_http_response(as.character(jsonlite::toJSON(
+      body,
+      auto_unbox = TRUE
+    )))
+  })
+  odb_test_domain(function(session) {
+    api <- oauth_db_clickhouse_api(
+      odb_test_authorization(session)$connection,
+      "https://clickhouse.example"
+    )
+    operations <- list(
+      function() api$query("SELECT n"),
+      function() api$query("SELECT n", raw = TRUE),
+      function() api$execute("SELECT n")
+    )
+    for (case in list(
+      list(type = "UInt8", value = -1),
+      list(type = "Int8", value = 128),
+      list(type = "Int32", value = 1.5),
+      list(type = "UInt32", value = "Inf")
+    )) {
+      body <<- list(
+        meta = list(list(
+          name = "n",
+          type = paste0("LowCardinality(Nullable(", case$type, "))")
+        )),
+        data = list(list(0), list(case$value)),
+        rows = 2L
+      )
+      for (operation in operations) {
+        expect_error(operation(), class = "shinyOAuthDB_invalid_response")
+      }
+    }
+  })
+})
+
 test_that("ClickHouse sends SQL and parameters separately with per-user bearer authentication", {
   requests <- list()
   httr2::local_mocked_responses(function(req) {
