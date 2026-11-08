@@ -53,9 +53,9 @@ scopes come from \code{services}, which must select one resource. Supply
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a sign-in client for an app that queries Azure or Microsoft Fabric.
-Choose the services the app uses, then pass the client to shinyOAuth's UI
-and server modules.
+Create a Microsoft Entra sign-in client for database and platform access.
+Choose the services or token targets the app uses, then pass the client
+to shinyOAuth's UI and server modules.
 }
 \details{
 The Entra registration needs delegated permissions for the selected services.
@@ -63,6 +63,8 @@ Users also need access to the database or Fabric items.
 
 Custom \code{scopes}, \code{provider}, and \code{token_targets} replace their defaults.
 An existing shinyOAuth client can be used in place of this preset.
+For a deployment-specific resource such as Oracle Database, supply custom
+\code{token_targets}; see \code{vignette("oracle", package = "shinyOAuthDB")}.
 }
 \examples{
 \dontrun{

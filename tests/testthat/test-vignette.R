@@ -25,6 +25,7 @@ vignette_sources <- c(
   redshift = "odbc",
   trino = "RTrino",
   "azure-postgres" = "RPostgres",
+  oracle = "odbc",
   postgrest = NA_character_,
   starrocks = "odbc",
   clickhouse = NA_character_,
@@ -106,4 +107,17 @@ test_that("the Databricks guide's Entra alternative constructs a real client", {
   eval(vignette_chunks("databricks")[["entra-client"]], envir)
   expect_s3_class(envir$client, "shinyOAuth::OAuthClient")
   expect_named(envir$client@token_targets, "databricks")
+})
+
+test_that("the Oracle guide requests its database resource and delegated scope", {
+  withr::local_envvar(playground_env())
+  envir <- new.env(parent = globalenv())
+  envir$runApp <- function(app, ...) app
+  eval(vignette_chunks("oracle")[["app"]], envir)
+  expect_named(envir$client@token_targets, "oracle")
+  oracle <- envir$client@token_targets$oracle
+  expect_identical(oracle$resource, "api://oracle-fixture")
+  expect_identical(oracle$scopes, "api://oracle-fixture/session:scope:connect")
+  expect_identical(oracle$required_scopes, oracle$scopes)
+  expect_identical(envir$client@token_target_default, "oracle")
 })

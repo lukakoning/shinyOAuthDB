@@ -6,8 +6,9 @@ Description: Query databases and data platforms in Shiny using each visitor's
     own OAuth authorization. Provides 'DBI' connections for SQL queries and
     supplies user credentials to 'fabricQueryR' and 'brickster' functions.
     Uses 'shinyOAuth' for sign-in and token renewal, and manages connections
-    within each Shiny session. Supports Azure SQL, Microsoft Fabric, BigQuery,
-    Redshift, Databricks, Snowflake, Trino, and PostgreSQL, including self-hosted
+    within each Shiny session. Supports Oracle Database with Microsoft Entra
+    access tokens through Oracle ODBC. Supports Azure SQL, Microsoft Fabric,
+    BigQuery, Redshift, Databricks, Snowflake, Trino, and PostgreSQL, including self-hosted
     PostgreSQL with native OAuth and Azure PostgreSQL. Reads PostgreSQL tables
     and calls exposed database functions through PostgREST. Supports StarRocks
     JWT authentication through MySQL Connector/ODBC, and ClickHouse queries

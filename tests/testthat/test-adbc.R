@@ -17,11 +17,14 @@ test_that("ADBC cleanup closes outstanding DBI and Arrow results", {
           }
         )
         native <- con()
-        on.exit({
-          if (DBI::dbIsValid(native)) {
-            suppressWarnings(DBI::dbDisconnect(native, force = TRUE))
-          }
-        }, add = TRUE)
+        on.exit(
+          {
+            if (DBI::dbIsValid(native)) {
+              suppressWarnings(DBI::dbDisconnect(native, force = TRUE))
+            }
+          },
+          add = TRUE
+        )
         result <- send(native, "SELECT 42 AS answer")
         expect_true(DBI::dbIsValid(result))
 
@@ -48,7 +51,9 @@ test_that("custom cleanup still owns ADBC connections", {
   native <- DBI::dbConnect(adbi::adbi(duckdb::duckdb_adbc()))
   on.exit(DBI::dbDisconnect(native, force = TRUE), add = TRUE)
   cleaned <- NULL
-  .odb_disconnect(native, function(value) cleaned <<- value)
+  .odb_disconnect(native, function(value) {
+    cleaned <<- value
+  })
   expect_identical(cleaned, native)
   expect_true(DBI::dbIsValid(native))
 })

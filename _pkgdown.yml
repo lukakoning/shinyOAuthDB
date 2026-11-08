@@ -29,7 +29,7 @@ articles:
   - title: Start here
     contents: [getting-started, local-demos, cloud-demos, oauth-setup, authorization]
   - title: Self-hosted databases and APIs
-    contents: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch]
+    contents: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch, oracle]
   - title: Cloud platforms
     contents: [fabric, databricks, snowflake, bigquery, azure-sql, azure-postgres, redshift, clickhouse]
 reference:
@@ -38,7 +38,7 @@ reference:
   - title: Database connections
     contents: [oauth_db_postgres, oauth_db_azure_postgres, oauth_db_azure_sql, oauth_db_sql_server,
       oauth_db_fabric_sql, oauth_db_databricks, oauth_db_snowflake, oauth_db_redshift,
-      oauth_db_trino, oauth_db_starrocks, oauth_db_duckdb, oauth_db_connect]
+      oauth_db_trino, oauth_db_starrocks, oauth_db_duckdb, oauth_db_oracle, oauth_db_connect]
   - title: API clients
     contents: [oauth_db_bigquery_api, oauth_db_clickhouse_api, oauth_db_cratedb_api,
       oauth_db_databricks_api, oauth_db_fabric_api, oauth_db_libsql_api,

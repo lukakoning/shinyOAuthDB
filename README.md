@@ -44,6 +44,7 @@ Supported databases and data platforms (links open their setup guides):
 [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html) ·
 [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html) ·
 [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html) ·
+[Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html) ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html) ·
 [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html) ·
 [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·

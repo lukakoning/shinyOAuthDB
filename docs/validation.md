@@ -1,5 +1,28 @@
 # Validation record
 
+## 8 November 2026: Oracle Database with Entra access tokens
+
+Checked on Windows 11 with R 4.5.1. `oauth_db_oracle()` uses the Oracle
+ODBC token-file interface, an inline TCPS descriptor, certificate matching,
+and a `TOKEN_GLOBAL` authentication check before returning a DBI connection.
+
+| Check | Result |
+| --- | --- |
+| Full source suite | 5,493 passing assertions; zero failures, errors, warnings or skipped scenarios |
+| Oracle connection boundary | Real R odbc connection-string construction; per-connection token files and cleanup after connection errors and interruption |
+| Oracle authorization lifecycle | Current token on reconnect; cleanup after account replacement, permission loss, sign-out and session termination |
+| Authentication verification | Connections are closed when Oracle reports another method, returns an invalid response, or the verification query fails |
+| Source guide | Complete Shiny app constructs, waits for sign-in and requests the database-specific Oracle resource and delegated scope |
+| Air and Jarl | Repository-wide checks pass; two existing ADBC test style issues were corrected |
+| Documentation | R examples parse and local links and anchors resolve; package vignettes build |
+| `R CMD check --no-manual` | Zero errors, warnings or notes; installed-package tests and rebuilt vignettes pass |
+
+No Oracle ODBC driver or Entra-enabled Oracle database was available.
+These checks do not establish live database compatibility. Oracle client
+and server versions, TLS trust, user mappings and per-user grants still
+need validation against a configured Oracle deployment. Research sources
+and the remaining live checks are recorded in `docs/oracle-backend.md`.
+
 ## 8 November 2026: runnable README and consistent example launches
 
 The README starts its Docker services immediately after `library()` and

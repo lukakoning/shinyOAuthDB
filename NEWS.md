@@ -1,5 +1,11 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_oracle()` for Oracle Database configured for Microsoft Entra
+  authentication. Connections use Oracle ODBC, verified TCPS and each visitor's
+  access token. Temporary token files are removed after connection opening;
+  the helper requires Oracle to confirm token authentication. Includes a
+  setup guide for self-hosted and hosted databases.
+
 * Document ODBC as the Fabric backend for dbplyr's SQL Server translations,
   and explain ADBC driver setup, result lifetime and numeric conversion.
 
