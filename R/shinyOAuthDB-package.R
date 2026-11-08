@@ -37,6 +37,14 @@
 #' their platforms' R packages with the visitor's credentials.
 #' [oauth_db_bigquery_api()] runs GoogleSQL and returns data frames.
 #'
+#' @section Cleanup diagnostics:
+#' A failed native disconnect emits a message while local authorization
+#' retirement continues. To send these failures to your application's logger,
+#' set `options(shinyOAuthDB.on_cleanup_error = function(error) { ... })`.
+#' The handler receives a `shinyOAuthDB_cleanup_failed` condition containing
+#' a fixed message and reason, without the original driver error, connection,
+#' or credential. If the handler errors, the default message is emitted.
+#'
 #' @section Sign-in settings:
 #' The source guides create clients with [oauth_db_microsoft_client()],
 #' [oauth_db_bigquery_client()], [oauth_db_databricks_client()], or

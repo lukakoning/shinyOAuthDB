@@ -39,7 +39,9 @@
 .odb_api_result <- function(result, check) {
   checked <- function(value, .visible = TRUE) {
     tryCatch(shiny::isolate(check()), error = function(error) {
-      tryCatch(.odb_disconnect(value), error = function(error) NULL)
+      tryCatch(.odb_disconnect(value), error = function(error) {
+        .odb_cleanup_failure()
+      })
       stop(error)
     })
     if (.visible) value else invisible(value)

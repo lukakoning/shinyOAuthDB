@@ -204,7 +204,9 @@ oauth_db_token <- function(
     native <<- NULL
     native_key <<- NULL
     if (!is.null(value)) {
-      tryCatch(.odb_disconnect(value, disconnect), error = function(e) NULL)
+      tryCatch(.odb_disconnect(value, disconnect), error = function(e) {
+        .odb_cleanup_failure()
+      })
     }
   }
   scope_coverage <- function(scopes) {
@@ -411,7 +413,9 @@ oauth_db_token <- function(
         }
         value <- do.call(connect, c(list(token), args))
         tryCatch(current(captured), error = function(e) {
-          tryCatch(.odb_disconnect(value, disconnect), error = function(e) NULL)
+          tryCatch(.odb_disconnect(value, disconnect), error = function(error) {
+            .odb_cleanup_failure()
+          })
           stop(e)
         })
         if (is.null(value)) {
@@ -467,6 +471,23 @@ oauth_db_token <- function(
     suppressWarnings(DBI::dbDisconnect(native, force = TRUE))
   } else if (inherits(native, "DBIConnection")) {
     suppressWarnings(DBI::dbDisconnect(native))
+  }
+  invisible(NULL)
+}
+
+.odb_cleanup_failure <- function() {
+  condition <- errorCondition(
+    "shinyOAuthDB could not close a native connection.",
+    class = c("shinyOAuthDB_cleanup_failed", "shinyOAuthDB_error"),
+    reason = "cleanup_failed"
+  )
+  handler <- getOption("shinyOAuthDB.on_cleanup_error")
+  if (is.function(handler)) {
+    tryCatch(handler(condition), error = function(error) {
+      message(conditionMessage(condition))
+    })
+  } else {
+    message(conditionMessage(condition))
   }
   invisible(NULL)
 }

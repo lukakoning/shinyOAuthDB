@@ -74,6 +74,85 @@ test_that("cleanup errors cannot revive a retired object or provider", {
   expect_error(retained(), class = "shinyOAuthDB_authorization_unavailable")
 })
 
+test_that("cleanup diagnostics omit native credentials and do not interrupt retirement", {
+  reported <- list()
+  withr::local_options(shinyOAuthDB.on_cleanup_error = function(error) {
+    reported[[length(reported) + 1L]] <<- error
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    selected <- shiny::reactiveVal(auth$connection)
+    con <- .odb_bind(
+      selected,
+      function(token) token,
+      disconnect = function(value) stop("PRIVATE_TOKEN_AND_DRIVER_DETAILS")
+    )
+    provider <- con()
+    selected(NULL)
+    session$flushReact()
+    expect_length(reported, 1L)
+    expect_s3_class(reported[[1L]], "shinyOAuthDB_cleanup_failed")
+    expect_identical(reported[[1L]]$reason, "cleanup_failed")
+    expect_null(reported[[1L]]$parent)
+    expect_null(reported[[1L]]$call)
+    expect_false(grepl(
+      "PRIVATE_",
+      paste(capture.output(dput(reported)), collapse = "")
+    ))
+    expect_error(provider(), class = "shinyOAuthDB_authorization_unavailable")
+    expect_error(con(), class = "shiny.silent.error")
+    selected(auth$connection)
+    con()
+    session$close()
+    expect_length(reported, 2L)
+  })
+})
+
+test_that("default and failing cleanup loggers emit only a fixed diagnostic", {
+  for (handler in list(NULL, function(error) stop("PRIVATE_LOGGER_DETAILS"))) {
+    withr::local_options(shinyOAuthDB.on_cleanup_error = handler)
+    text <- capture.output(
+      odb_test_domain(function(session) {
+        auth <- odb_test_authorization(session)
+        selected <- shiny::reactiveVal(auth$connection)
+        con <- oauth_db_connect(
+          selected,
+          function(token) new.env(),
+          disconnect = function(value) stop("PRIVATE_DRIVER_DETAILS")
+        )
+        con()
+        selected(NULL)
+        session$flushReact()
+        expect_error(con(), class = "shiny.silent.error")
+      }),
+      type = "message"
+    )
+    expect_identical(text, "shinyOAuthDB could not close a native connection.")
+  }
+})
+
+test_that("cleanup failures after an authorization change during opening are reported", {
+  reports <- 0L
+  withr::local_options(shinyOAuthDB.on_cleanup_error = function(error) {
+    reports <<- reports + 1L
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    selected <- shiny::reactiveVal(auth$connection)
+    con <- oauth_db_connect(
+      selected,
+      function(token) {
+        selected(NULL)
+        new.env()
+      },
+      disconnect = function(value) stop("PRIVATE_DRIVER_DETAILS")
+    )
+    expect_error(con(), class = "shinyOAuthDB_authorization_unavailable")
+    expect_identical(reports, 1L)
+    expect_error(con(), class = "shiny.silent.error")
+  })
+})
+
 test_that("an authorization change during opening closes the new handle before returning it", {
   skip_if_not_installed("RSQLite")
   for (transition in c("replace", "logout", "permissions", "session_end")) {
