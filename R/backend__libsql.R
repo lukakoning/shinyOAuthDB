@@ -126,8 +126,6 @@ oauth_db_libsql_api <- function(
       req <- httr2::request(paste0(private$url, "/v2/pipeline"))
       req <- httr2::req_body_json(req, body, auto_unbox = TRUE)
       req <- httr2::req_headers(req, Accept = "application/json")
-      # libcurl can replay a POST when a reused connection loses its response.
-      req <- httr2::req_options(req, fresh_connect = TRUE, forbid_reuse = TRUE)
       resp <- .odb_http_request(
         private$provider(),
         req,

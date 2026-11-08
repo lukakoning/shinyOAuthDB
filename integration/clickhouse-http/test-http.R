@@ -73,11 +73,17 @@ testthat::test_that("ClickHouse public writes execute once after dropped or dela
     )
     api$execute("INSERT INTO writes VALUES ('success')")
     for (fault in c("drop", "delay")) {
+      # Seed curl's connection pool: a dropped response on a reused HTTP/1.1
+      # connection can otherwise cause libcurl to replay the write itself.
+      warm <- httr2::req_perform(httr2::request(
+        "https://localhost:18444/health"
+      ))
+      testthat::expect_identical(httr2::resp_status(warm), 200L)
       faulty <- oauth_db_clickhouse_api(
         auth$connection,
         paste0("https://localhost:18444/", fault),
         database = "reporting",
-        timeout = if (fault == "delay") 0.5 else 5
+        timeout = if (fault == "delay") 2 else 5
       )
       error <- tryCatch(
         faulty$execute(paste0("INSERT INTO writes VALUES ('", fault, "')")),

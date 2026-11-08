@@ -8,9 +8,12 @@ import urllib.parse
 
 
 class Proxy(http.server.BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
     def do_GET(self):
         if self.path == "/health":
             self.send_response(200)
+            self.send_header("Content-Length", "0")
             self.end_headers()
         else:
             self.send_error(404)
@@ -33,7 +36,7 @@ class Proxy(http.server.BaseHTTPRequestHandler):
                 self.connection.shutdown(socket.SHUT_RDWR)
                 return
             if response.status == 200 and address.path.startswith("/delay"):
-                time.sleep(2)
+                time.sleep(5)
             self.send_response(response.status)
             for name, value in response.getheaders():
                 if name.lower() not in {"connection", "transfer-encoding", "content-length"}:

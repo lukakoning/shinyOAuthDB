@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Prevent libcurl from replaying PostgREST, OpenSearch, ClickHouse and CrateDB
+  writes after a reused connection drops its response. Apply the existing
+  libSQL protection through the shared HTTP transport.
+
 * Reject Snowflake ODBC protocol overrides before acquiring a token or opening
   a native connection, preserving the driver's HTTPS default.
 

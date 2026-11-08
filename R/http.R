@@ -225,6 +225,10 @@
 ) {
   deadline <- .odb_http_time() + timeout
   req <- httr2::req_options(req, followlocation = FALSE)
+  if (!httr2::req_get_method(req) %in% c("GET", "HEAD")) {
+    # libcurl can replay a write if a reused connection drops its response.
+    req <- httr2::req_options(req, fresh_connect = TRUE, forbid_reuse = TRUE)
+  }
   if (!is.null(ca_bundle)) {
     req <- httr2::req_options(req, cainfo = ca_bundle)
   }
