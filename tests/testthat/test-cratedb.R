@@ -6,6 +6,30 @@ cratedb_test_response <- function() {
   ))
 }
 
+test_that("CrateDB preserves finite double parameters in serialized JSON", {
+  sent <- NULL
+  httr2::local_mocked_responses(function(req) {
+    render <- getFromNamespace("req_body_render", "httr2")
+    sent <<- jsonlite::parse_json(render(req))
+    cratedb_test_response()
+  })
+  odb_test_domain(function(session) {
+    api <- oauth_db_cratedb_api(
+      odb_test_authorization(session)$connection,
+      "https://crate.example/_sql"
+    )
+    values <- c(
+      1.0000000000000002,
+      1.2345678901234567,
+      9007199254740991,
+      1e-100
+    )
+    api$query("SELECT $1, $2", list(values[[1L]], list(values = values)))
+    expect_identical(sent$args[[1L]], values[[1L]])
+    expect_identical(unlist(sent$args[[2L]]$values), values)
+  })
+})
+
 test_that("CrateDB separates SQL and positional arguments and preserves exact results", {
   requests <- list()
   httr2::local_mocked_responses(function(req) {

@@ -126,8 +126,7 @@ oauth_db_cratedb_api <- function(
       req <- httr2::req_body_json(
         req,
         list(stmt = sql, args = args),
-        auto_unbox = TRUE,
-        digits = NA
+        auto_unbox = TRUE
       )
       resp <- .odb_http_request(
         private$provider(),
