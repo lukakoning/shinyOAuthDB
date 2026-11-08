@@ -134,9 +134,9 @@ For other databases and data platforms, refer to the links above.
 
 ## Learn more
 
-`oauth_db_demo()` runs local Docker demos for PostgreSQL and other databases.
+`oauth_db_demo()` runs local Docker demos for PostgreSQL and other self-hosted databases.
 `oauth_db_cloud_demo()` guides demos for several cloud platforms, during which
-you will be walked through a setup with your existing platform account.
+you will be walked through first setup with your existing platform workspace and account.
 See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
 and [Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
 
