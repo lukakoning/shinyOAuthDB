@@ -146,8 +146,8 @@ oauth_db_salesforce_api <- function(
       .odb_string(soql, "soql")
       .odb_flag(include_deleted, "include_deleted")
       .odb_flag(raw, "raw")
-      token <- private$provider()
       deadline <- .odb_http_time() + private$timeout
+      token <- private$provider()
       result <- private$get(
         token,
         if (include_deleted) "queryAll" else "query",
@@ -236,8 +236,9 @@ oauth_db_salesforce_api <- function(
       )
     },
     read = function(path) {
+      deadline <- .odb_http_time() + private$timeout
       token <- private$provider()
-      result <- private$get(token, path, .odb_http_time() + private$timeout)
+      result <- private$get(token, path, deadline)
       if (!.odb_salesforce_object(result)) {
         .odb_salesforce_invalid()
       }

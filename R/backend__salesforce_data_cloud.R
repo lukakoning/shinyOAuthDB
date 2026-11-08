@@ -127,8 +127,8 @@ oauth_db_salesforce_data_cloud_api <- function(
       if (length(parameters)) {
         body$sqlParameters <- parameters
       }
-      token <- private$provider()
       deadline <- .odb_http_time() + private$timeout
+      token <- private$provider()
       result <- private$request(
         token,
         "",

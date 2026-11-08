@@ -564,6 +564,70 @@ test_that("Salesforce applies one deadline to submission, polling and pagination
   }
 })
 
+test_that("Salesforce credential renewal consumes the operation deadline", {
+  operations <- list(
+    query = function(api) api$query("SELECT Id FROM Account"),
+    query_all = function(api) {
+      api$query("SELECT Id FROM Account", include_deleted = TRUE)
+    },
+    objects = function(api) api$objects(),
+    describe = function(api) api$describe("Account"),
+    cloud = function(api) api$query("SELECT name FROM people")
+  )
+  for (name in names(operations)) {
+    for (delay in c(0.25, 1, 20)) {
+      local({
+        now <- 0
+        requests <- list()
+        local_mocked_bindings(.odb_http_time = function() now)
+        httr2::local_mocked_responses(function(req) {
+          requests[[length(requests) + 1L]] <<- req
+          if (name == "cloud") {
+            salesforce_response(salesforce_fixture())
+          } else if (name %in% c("query", "query_all")) {
+            salesforce_response(list(
+              totalSize = 1L,
+              done = TRUE,
+              records = list(list(Id = "A"))
+            ))
+          } else {
+            salesforce_response(list(name = "Account"))
+          }
+        })
+        odb_test_domain(function(session) {
+          auth <- odb_test_authorization(
+            session,
+            scopes = c("api", "cdp_query_api"),
+            refresh_token = "fixture-refresh",
+            acquire = function(...) {
+              now <<- now + delay
+              auth$token(auth$make_token("renewed"))
+              TRUE
+            }
+          )
+          make <- if (name == "cloud") {
+            oauth_db_salesforce_data_cloud_api
+          } else {
+            oauth_db_salesforce_api
+          }
+          api <- make(auth$connection, "https://org.example", timeout = 1)
+          auth$token(auth$make_token("short-lived", lifetime = 30))
+          operation <- operations[[name]]
+          if (delay >= 1) {
+            expect_error(operation(api), class = "shinyOAuthDB_timeout")
+            expect_length(requests, 0L)
+          } else {
+            expect_no_error(operation(api))
+            expect_length(requests, 1L)
+            expect_equal(requests[[1L]]$options$timeout_ms, 750)
+          }
+          expect_identical(auth$calls$acquire, 1L)
+        })
+      })
+    }
+  }
+})
+
 test_that("Salesforce forwards JWT access tokens and hides no legacy-token workaround", {
   # Synthetic JWT-shaped credential, not an ID token or a signed live token.
   credential <- "eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmaXh0dXJlIn0.c2lnbmF0dXJl"
