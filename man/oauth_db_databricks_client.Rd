@@ -34,17 +34,18 @@ is supplied.}
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a sign-in client for a Databricks workspace. Pass it to shinyOAuth's
-UI and server modules, then use the resulting authorization with
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}} or \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
+Set up sign-in for a Shiny app that uses a Databricks workspace. Pass
+this client to shinyOAuth's UI and server modules, then query with
+\code{\link[=oauth_db_databricks]{oauth_db_databricks()}} or \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}. Each visitor uses
+their own Databricks account and data permissions.
 }
 \details{
-Register the app and redirect URI with Databricks. The defaults request
-\code{all-apis} and refresh access; supply \code{scopes} to change them.
+Register your app and its exact redirect URI with Databricks. The defaults
+request \code{all-apis} and refresh access; use \code{scopes} to replace them.
+Omit \code{client_secret} for a public registration without a secret.
 
-For a public app registration without a secret, omit \code{client_secret}.
-For Azure Databricks with Entra tokens, use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
-with \code{services = "databricks_entra"}.
+For Azure Databricks using Microsoft Entra tokens, use
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with \code{services = "databricks_entra"}.
 }
 \examples{
 \dontrun{
@@ -60,14 +61,4 @@ client <- oauth_db_databricks_client(
 \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}}.
 \code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }
-\concept{sign-in configuration}

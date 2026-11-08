@@ -1,5 +1,22 @@
 # Validation record
 
+## 8 November 2026: roxygen documentation review
+
+Reviewed all 39 help topics in 26 R files. Descriptions now explain the
+purpose and basic usage first, with source requirements and advanced
+options in Details or named sections. Shortened protocol explanations
+and replaced generated cross-platform related-function lists with the
+existing source-specific links. Regenerated all 39 Rd files with roxygen2.
+
+All 42 R files retain identical parsed implementation code, and every
+existing help example parses identically. All help topics pass
+`tools::checkRd()`. The website builds, with 1,596 local links and fragments
+resolving across 69 rendered pages. The reference inventory still contains
+all 38 exported functions and package help, grouped by source. Markdown
+checks parse 87 R blocks and resolve 193 local links and 48 anchors.
+Live database and browser sign-in tests were not rerun for these
+documentation-only changes.
+
 ## 8 November 2026: guide and function-reference navigation
 
 The guide menu now uses **All data source guides**, with **Databases and

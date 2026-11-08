@@ -1,8 +1,8 @@
-#' Query self-hosted PostgreSQL as the signed-in user
+#' Query PostgreSQL as the signed-in user
 #'
-#' Connect to PostgreSQL's native OAuth authentication with the visitor's
-#' existing access token. The server validates the token and database role;
-#' queries use RPostgres, DBI or dbplyr.
+#' Read PostgreSQL data in a Shiny app using each visitor's account and
+#' existing database permissions. This helper uses PostgreSQL's native OAuth
+#' support and opens an RPostgres connection for DBI or dbplyr queries.
 #'
 #' @inheritParams oauth_db_connect
 #' @param host One TCP hostname or address.
@@ -19,32 +19,30 @@
 #' @param ... RPostgres result options (`bigint`, `check_interrupts`,
 #'   `timezone`, `timezone_out`), `application_name`, or TCP keepalive options.
 #'   Authentication and TLS options cannot be overridden.
-#' @return A reactive function returning an RPostgres DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Native OAuth currently requires Linux, PostgreSQL 18, and shinyOAuthDB and
-#' RPostgres built against the same shared libpq 18. Other platforms can run
-#' the Docker playground. Install libpq without its optional device-flow
-#' module; shinyOAuth handles browser sign-in and token renewal.
+#' Native OAuth requires Linux, PostgreSQL 18, and RPostgres and shinyOAuthDB
+#' built against the same shared libpq 18. Install libpq without its optional
+#' device-flow module; shinyOAuth handles browser sign-in and token renewal.
+#' Other platforms can run the Docker demo or use [oauth_db_postgrest_api()].
 #'
-#' Configure a server-side OAuth validator, its trusted issuer and audience,
-#' database roles and identity mappings before connecting. A Keycloak setup
-#' is included in `vignette("postgres", package = "shinyOAuthDB")`.
+#' Configure the server's OAuth validator, trusted issuer and audience, and
+#' the mapping from users to database roles. Connections require OAuth and
+#' verified TLS. The PostgreSQL vignette has a working Keycloak configuration.
 #'
-#' Connections use verified TLS and require OAuth. The token hook exists only
-#' during synchronous connection opening and is restored on error or interrupt.
-#' Call `con()` before each operation. A valid connection survives token
-#' refresh; account or role changes and sign-out close it. Discard a broken
-#' native connection and obtain a new one through `con()`; resetting or cloning
-#' a retained native handle is unsupported. Use separate R processes for workers.
+#' Create the helper inside `server()` and call `con()` before each query.
+#' A valid connection stays open through token renewal. Account or role
+#' changes and sign-out close it. If it breaks, reopen through `con()`;
+#' resetting or cloning a saved connection isn't supported.
 #' @section Try the Docker demo:
-#' Run [oauth_db_demo()] with Docker running to start PostgreSQL 18,
-#' Keycloak and a small Shiny app. The installed package includes the
-#' configuration, demo accounts and sample data. Docker supplies R and the
-#' native libraries on Windows, macOS or Linux.
+#' With Docker running, call [oauth_db_demo()] to try PostgreSQL, Keycloak
+#' sign-in and a Shiny app with sample data on Windows, macOS or Linux.
+#' Use `oauth_db_demo(action = "files")` to copy the configuration.
 #'
 #' The [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
-#' covers the demo and your own server setup. Use
-#' `oauth_db_demo(action = "files")` to copy and inspect the Docker files.
+#' covers the demo and setup for your own server.
 #' @examples
 #' \dontrun{
 #' # Inside server(), with an OIDC client requesting openid, profile and database.read:
@@ -65,7 +63,6 @@
 #' })
 #' }
 #' @seealso [oauth_db_azure_postgres()] for Azure's Entra authentication.
-#' @family database connections
 #' @export
 oauth_db_postgres <- function(
   authorization,
@@ -320,8 +317,10 @@ oauth_db_postgres <- function(
 
 #' Query Azure PostgreSQL as the signed-in user
 #'
-#' Query Azure Database for PostgreSQL with a visitor's Microsoft account.
-#' The connection works with DBI or dbplyr through RPostgres.
+#' Read Azure Database for PostgreSQL data using each visitor's Microsoft
+#' account. The database maps that account to a user or group role with
+#' permission to query the data. The RPostgres connection works with DBI
+#' or dbplyr.
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param host PostgreSQL hostname.
@@ -332,17 +331,18 @@ oauth_db_postgres <- function(
 #' @param ... RPostgres result options (`bigint`, `check_interrupts`,
 #'   `timezone`, `timezone_out`), `connect_timeout`, `application_name`, or
 #'   TCP keepalive options. Authentication and TLS options cannot be overridden.
-#' @return A reactive function returning an RPostgres DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install RPostgres linked to libpq 16 or later. Use [oauth_db_microsoft_client()] with
-#' `services = "postgres"`. The server must accept Entra authentication,
-#' and the database role must already exist.
+#' Install RPostgres linked to libpq 16 or later. Configure Azure PostgreSQL
+#' for Entra authentication and create database roles for the users or their
+#' groups. Use [oauth_db_microsoft_client()] with `services = "postgres"`.
 #'
-#' Create the helper inside `server()` and get `connection <- con()`
-#' inside a render or reactive expression before querying.
-#' The connection uses verified TLS and requires password authentication with
-#' the visitor's access token. GSS encryption is disabled, and the server
-#' cannot select Kerberos, certificate-only, or trust authentication instead.
+#' Create the helper inside `server()` and call `con()` before querying.
+#' The connection uses verified TLS and sends the visitor's access token as
+#' the password. The server must use that authentication method; Kerberos,
+#' certificate-only and trust authentication aren't supported by this helper.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_azure_postgres(
@@ -360,7 +360,6 @@ oauth_db_postgres <- function(
 #' @seealso [oauth_db_microsoft_client()].
 #'   `vignette("azure-postgres", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_azure_postgres <- function(
   authorization,

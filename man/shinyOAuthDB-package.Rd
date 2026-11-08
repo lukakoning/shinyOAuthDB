@@ -6,80 +6,61 @@
 \alias{shinyOAuthDB-package}
 \title{Query data with a Shiny user's own account}
 \description{
-Build Shiny apps that query databases using each visitor's own permissions.
-Use DBI or dbplyr for SQL, or call fabricQueryR and brickster functions with
-the user's sign-in.
+Build Shiny apps that query data with each visitor's own account and
+existing data permissions. shinyOAuth handles browser sign-in and token
+renewal; shinyOAuthDB supplies those credentials to database connections
+and web API calls. The data source checks the token and applies the
+user's permissions.
 }
-\details{
-Supports commercial and cloud-hosted data platforms, as well as self-hosted
-PostgreSQL, Trino and DuckDB configured for OAuth. Users sign in through a provider
-the database or query engine trusts; that server enforces their permissions.
-}
-\section{Try a self-hosted database locally}{
+\section{Start with an app}{
 
-With Docker running, use \code{\link[=oauth_db_demo]{oauth_db_demo()}} to start PostgreSQL 18,
-Keycloak and a Shiny app with demo accounts and sample data. The installed
-package includes the configuration; Docker provides R and native libraries.
-PostgREST, Trino, StarRocks, DuckDB Quack, libSQL, CrateDB and OpenSearch
-demos use the same launcher.
-See \href{https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app}{Getting started}
-for demo accounts and cleanup, and \code{\link[=oauth_db_demo]{oauth_db_demo()}} for editing options.
+\code{vignette("getting-started", package = "shinyOAuthDB")} explains the
+package and walks through a complete app. The
+\href{https://lukakoning.github.io/shinyOAuthDB/articles/index.html}{source guides}
+cover each database or platform. Use \code{build_vignettes = TRUE} when
+installing from GitHub to read the guides locally.
+
+Try \code{\link[=oauth_db_demo]{oauth_db_demo()}} for a local database and sign-in service in Docker,
+or \code{\link[=oauth_db_cloud_demo]{oauth_db_cloud_demo()}} for an editable app using your cloud workspace.
 }
 
-\section{Start with your source}{
+\section{Query data}{
 
-\code{vignette("getting-started", package = "shinyOAuthDB")} links to a guide
-for each source. Each includes sign-in setup and a complete Shiny app.
-Read the guides on the
-\href{https://lukakoning.github.io/shinyOAuthDB/articles/index.html}{documentation website},
-or install with \code{build_vignettes = TRUE} for local \code{vignette()} help.
-For example, use \code{vignette("snowflake", package = "shinyOAuthDB")} for
-Snowflake or \code{vignette("fabric", package = "shinyOAuthDB")} for Fabric.
+DBI is R's common interface for SQL databases. dbplyr translates dplyr
+commands into SQL for the database to run.
+
+For SQL databases, a helper such as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}} returns a
+function, usually named \code{con}. Create it inside \code{server()}, passing
+\code{auth$connection} from shinyOAuth. Inside a render or reactive expression,
+call \code{connection <- con()} before querying with DBI or dbplyr.
+
+For web APIs, helpers such as \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}} return a client
+object with query methods. \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and
+\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} call functions from their supporting R
+packages with the visitor's credentials.
 }
 
-\section{Database queries}{
+\section{Sign-in and sessions}{
 
-Inside \code{server()}, pass shinyOAuth's \code{auth$connection} to a helper such
-as \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}}. It returns a connection function, \code{con}.
-Get \code{connection <- con()} inside a render or reactive expression, then
-query with DBI or dbplyr.
+The source's \verb{*_client()} helper supplies sign-in settings for shinyOAuth.
+You can also use an existing client that obtains suitable access tokens.
+Keep data helpers inside \code{server()} so each visitor has their own access.
+
+Clear saved query results when the visitor signs out or changes accounts.
+The getting-started vignette covers session behavior and multiple accounts.
 }
 
-\section{Platform functions}{
+\section{Diagnostics}{
 
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} call functions from
-their platforms' R packages with the visitor's credentials.
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}} runs GoogleSQL and returns data frames.
-}
+HTTP failures can raise \code{shinyOAuthDB_request_failed} with a \code{status} and,
+when available, \code{service_code} and \code{request_id}. These diagnostics exclude
+server messages, response bodies and credentials.
 
-\section{Cleanup diagnostics}{
-
-A failed native disconnect emits a message while local authorization
-retirement continues. To send these failures to your application's logger,
-set \code{options(shinyOAuthDB.on_cleanup_error = function(error) { ... })}.
-The handler receives a \code{shinyOAuthDB_cleanup_failed} condition containing
-a fixed message and reason, without the original driver error, connection,
-or credential. If the handler errors, the default message is emitted.
-}
-
-\section{HTTP request failures}{
-
-BigQuery, PostgREST and ClickHouse HTTP failures raise
-\code{shinyOAuthDB_request_failed}. Catch this condition inside the Shiny
-operation to inspect its \code{status}. Recognized service codes and UUID
-request identifiers appear as \code{service_code} and \code{request_id}; unavailable
-values are \code{NULL}. The condition excludes server messages, response bodies
-and credentials.
-}
-
-\section{Sign-in settings}{
-
-The source guides create clients with \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, or
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}. You can also use an existing shinyOAuth client.
-
-See \code{vignette("getting-started", package = "shinyOAuthDB")} for custom
-permissions, multiple accounts, and saved query results.
+To log connection-cleanup failures, set
+\code{options(shinyOAuthDB.on_cleanup_error = function(error) { ... })}.
+The callback receives a \code{shinyOAuthDB_cleanup_failed} condition with a
+fixed message and reason. If it fails, the package emits its default
+message and continues local cleanup.
 }
 
 \seealso{

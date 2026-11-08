@@ -18,9 +18,9 @@ oauth_db_supabase_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{url}{HTTPS Supabase project base URL, without \verb{/rest/v1} or
 \verb{/auth/v1}. Custom domains and reverse proxy paths are supported.}
@@ -30,11 +30,13 @@ that calls \code{auth$connection(id)}.}
 
 \item{schema}{Exposed PostgreSQL schema, or \code{NULL} for the server default.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -43,36 +45,35 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 
 \item{ca_bundle}{Optional path to a trusted CA certificate bundle.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with the same \code{select()}, \code{rpc()}, and \code{request()}
+A client object with the same \code{select()}, \code{rpc()}, and \code{request()}
 methods as \code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}}. \code{select()} returns a data frame;
 \code{rpc()} and \code{request()} return the parsed JSON value, or an httr2 response
 with \code{raw = TRUE}.
 }
 \description{
-Read tables and views, call database functions, or send native Data API
-requests with the visitor's access token. Supabase applies the database's
-grants and row-level security policies.
+Read Supabase tables or call database functions using each visitor's
+account. The Data API exposes PostgreSQL data over HTTPS, so no database
+driver is needed. Database grants and row-level security policies control
+which records the user can read or change.
 }
 \details{
-Create the client inside \code{server()}. Each request sends the project key
-in \code{apikey} and the visitor's current access token in \code{Authorization}.
-The project key is never used as a substitute for a missing user token.
-No database password or PostgreSQL driver is needed.
+Create the client inside \code{server()} and call its methods from render or
+reactive expressions. Use \code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}} for project sign-in,
+or an authorization from a third-party provider the project trusts.
 
-Use \code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}} with Supabase's OAuth server, or supply
-an authorization from a third-party provider trusted by the project.
-OAuth scopes do not grant table access; configure database grants and RLS.
-This helper accesses the REST Data API, not SQL connections, Storage,
-Realtime, or the Management API.
+The project key identifies the application; the visitor's token supplies
+their identity. OAuth scopes don't grant table access, so configure
+database grants and row-level security policies too. This client uses
+the Data API; use a separate helper for a direct SQL connection.
 
-The underlying PostgREST client obtains a current token for each operation,
-discards responses after account changes or sign-out, and retries GET/HEAD
-once after HTTP 401. Writes and POST function calls are never replayed.
-Verified HTTPS is required, including for self-hosted deployments.
+Requests use a current token and discard results after sign-out or
+account changes. GET and HEAD can refresh and retry once after HTTP 401;
+writes and POST function calls don't retry automatically. HTTPS is
+required, including for self-hosted projects.
 }
 \examples{
 \dontrun{
@@ -88,18 +89,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}, \code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}}.
 \code{vignette("supabase", package = "shinyOAuthDB")} has setup instructions
 and a complete Shiny app.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}}
 }
-\concept{platform API clients}

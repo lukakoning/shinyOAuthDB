@@ -1,34 +1,33 @@
 #' Query Supabase as the signed-in user
 #'
-#' Read tables and views, call database functions, or send native Data API
-#' requests with the visitor's access token. Supabase applies the database's
-#' grants and row-level security policies.
+#' Read Supabase tables or call database functions using each visitor's
+#' account. The Data API exposes PostgreSQL data over HTTPS, so no database
+#' driver is needed. Database grants and row-level security policies control
+#' which records the user can read or change.
 #'
 #' @inheritParams oauth_db_postgrest_api
 #' @param url HTTPS Supabase project base URL, without `/rest/v1` or
 #'   `/auth/v1`. Custom domains and reverse proxy paths are supported.
 #' @param api_key Project publishable key (`sb_publishable_...`) or legacy
 #'   `anon` JWT. Secret and `service_role` keys are rejected.
-#' @return An R6 client with the same `select()`, `rpc()`, and `request()`
+#' @return A client object with the same `select()`, `rpc()`, and `request()`
 #'   methods as [oauth_db_postgrest_api()]. `select()` returns a data frame;
 #'   `rpc()` and `request()` return the parsed JSON value, or an httr2 response
 #'   with `raw = TRUE`.
 #' @details
-#' Create the client inside `server()`. Each request sends the project key
-#' in `apikey` and the visitor's current access token in `Authorization`.
-#' The project key is never used as a substitute for a missing user token.
-#' No database password or PostgreSQL driver is needed.
+#' Create the client inside `server()` and call its methods from render or
+#' reactive expressions. Use [oauth_db_supabase_client()] for project sign-in,
+#' or an authorization from a third-party provider the project trusts.
 #'
-#' Use [oauth_db_supabase_client()] with Supabase's OAuth server, or supply
-#' an authorization from a third-party provider trusted by the project.
-#' OAuth scopes do not grant table access; configure database grants and RLS.
-#' This helper accesses the REST Data API, not SQL connections, Storage,
-#' Realtime, or the Management API.
+#' The project key identifies the application; the visitor's token supplies
+#' their identity. OAuth scopes don't grant table access, so configure
+#' database grants and row-level security policies too. This client uses
+#' the Data API; use a separate helper for a direct SQL connection.
 #'
-#' The underlying PostgREST client obtains a current token for each operation,
-#' discards responses after account changes or sign-out, and retries GET/HEAD
-#' once after HTTP 401. Writes and POST function calls are never replayed.
-#' Verified HTTPS is required, including for self-hosted deployments.
+#' Requests use a current token and discard results after sign-out or
+#' account changes. GET and HEAD can refresh and retry once after HTTP 401;
+#' writes and POST function calls don't retry automatically. HTTPS is
+#' required, including for self-hosted projects.
 #' @examples
 #' \dontrun{
 #' supabase <- oauth_db_supabase_api(auth$connection,
@@ -41,7 +40,6 @@
 #' @seealso [oauth_db_supabase_client()], [oauth_db_postgrest_api()].
 #'   `vignette("supabase", package = "shinyOAuthDB")` has setup instructions
 #'   and a complete Shiny app.
-#' @family platform API clients
 #' @export
 oauth_db_supabase_api <- function(
   authorization,
@@ -93,8 +91,9 @@ oauth_db_supabase_api <- function(
 
 #' Set up Supabase OAuth sign-in
 #'
-#' Create a sign-in client for a Supabase project with its OAuth 2.1 server
-#' enabled. Pass it to shinyOAuth's UI and server modules, then query with
+#' Set up sign-in for people with accounts in a Supabase project. The
+#' project must have its OAuth server enabled. Pass this client to
+#' shinyOAuth's UI and server modules, then read data with
 #' [oauth_db_supabase_api()].
 #'
 #' @inheritParams oauth_db_microsoft_client
@@ -105,17 +104,16 @@ oauth_db_supabase_api <- function(
 #'   `profile`, and `email`; these do not grant database permissions.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
 #' @details
-#' Enable Supabase's OAuth server, configure its sign-in and consent UI, and
-#' register the app's exact redirect URI. Use asymmetric JWT signing keys
-#' for OIDC. The default provider makes an HTTPS OIDC discovery request to
-#' the project's `/auth/v1` issuer and enables PKCE and nonce validation.
+#' Enable the project's OAuth server, configure its sign-in and consent
+#' pages, and register the app's exact redirect URI. Use asymmetric signing
+#' keys so shinyOAuth can validate the sign-in identity.
 #'
-#' A nonempty secret selects HTTP Basic client authentication; without one,
-#' the preset uses a public client. Supabase returns refresh tokens without
-#' an `offline_access` scope. shinyOAuth handles renewal.
+#' Supply `client_secret` for a confidential registration; omit it for a
+#' public registration without a secret. Supabase supplies refresh tokens
+#' without an `offline_access` scope, and shinyOAuth handles renewal.
 #'
-#' For a third-party provider configured in Supabase, pass its provider here
-#' or use an ordinary `shinyOAuth::oauth_client()`.
+#' For a third-party provider trusted directly by the project, supply that
+#' `provider` or use `shinyOAuth::oauth_client()`.
 #' @examples
 #' \dontrun{
 #' client <- oauth_db_supabase_client(
@@ -127,7 +125,6 @@ oauth_db_supabase_api <- function(
 #' }
 #' @seealso [oauth_db_supabase_api()].
 #'   `vignette("supabase", package = "shinyOAuthDB")`.
-#' @family sign-in configuration
 #' @export
 oauth_db_supabase_client <- function(
   url,

@@ -1,7 +1,8 @@
 #' Query StarRocks as the signed-in user
 #'
-#' Open a DBI connection to StarRocks using its JWT authentication plugin
-#' and MySQL Connector/ODBC's OpenID Connect client plugin.
+#' Query StarRocks data with each visitor's account and database privileges.
+#' The helper opens a DBI connection for SQL or dbplyr, using the visitor's
+#' signed access token to authenticate.
 #'
 #' @inheritParams oauth_db_connect
 #' @param server One StarRocks frontend hostname or address.
@@ -19,27 +20,24 @@
 #'   `bigint`, `encoding`, `name_encoding`, `interruptible`, `readtimeout`,
 #'   `writetimeout`, `NO_CACHE`, `FORWARD_CURSOR`, `NO_CATALOG`, `NO_SCHEMA`,
 #'   or `DFLT_BIGINT_BIND_STR`.
-#' @return A reactive function returning an odbc DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Configure StarRocks 3.5 or later with `authentication_jwt` or a JWT security
-#' integration, a trusted JWKS, issuer, audience, and principal claim. Configure
-#' shinyOAuth to obtain a JWT access token accepted by that integration.
-#' This helper supplies the access token; it does not substitute an ID token
-#' or launch the driver's own browser flow.
+#' Install odbc and MySQL Connector/ODBC 9.2 or later with its OpenID Connect
+#' plugin. Configure StarRocks 3.5 or later to accept JWT access tokens from
+#' your provider and map their identity claim to the requested `user`.
+#' The connection uses verified TLS; supply `ssl_ca` for a private CA.
 #'
-#' The driver reads the token from a temporary file during synchronous
-#' connection opening. The file is created in a private temporary directory
-#' and removed on success, error, or interrupt. On Windows its access rules
-#' inherit from R's temporary directory; use a private user temporary location.
-#' TLS verifies the server identity. DSNs, option files, and competing
-#' credentials cannot be supplied through `...`.
-#' Parameter binding uses the driver's client-side prepared statements
-#' (`NO_SSPS=1`) for compatibility with StarRocks' MySQL protocol.
+#' Create the helper inside `server()` and call `con()` before each query.
+#' Valid connections stay open through ordinary token renewal. Account or
+#' username changes and sign-out close them. Reopen a broken connection
+#' through `con()` to obtain a current token.
 #'
-#' Create the helper inside `server()` and call `con()` before each operation.
-#' Valid SQL sessions survive ordinary token renewal; account or username
-#' changes and sign-out close them. Reopen a broken connection through `con()`;
-#' the original token file no longer exists after connection opening.
+#' The driver briefly reads the token from a temporary file, which the helper
+#' removes after connecting. On Windows, keep R's temporary directory private
+#' to the app's operating-system user. Authentication and TLS options are
+#' managed by the helper.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_starrocks(auth$connection,
@@ -56,7 +54,6 @@
 #' })
 #' }
 #' @seealso `vignette("starrocks", package = "shinyOAuthDB")`.
-#' @family database connections
 #' @export
 oauth_db_starrocks <- function(
   authorization,

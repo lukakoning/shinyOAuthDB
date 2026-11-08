@@ -1,50 +1,45 @@
 #' Query libSQL as the signed-in user
 #'
-#' Run SQLite SQL against a remote libSQL or compatible Turso endpoint using
-#' the visitor's current access token. Results are returned as data frames.
+#' Run SQLite SQL on a remote libSQL or compatible Turso database using each
+#' visitor's access token. The database checks the token's permissions, and
+#' the client returns data frames. No R database driver is needed.
 #'
 #' @inheritParams oauth_db_connect
 #' @inheritParams oauth_db_clickhouse_api
 #' @param url HTTPS database base URL, or a `libsql://` URL (uses HTTPS).
 #'   A reverse proxy path is allowed; omit `/v2/pipeline`.
-#' @return An R6 client with these methods:
+#' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$query(sql, parameters = list(), raw = FALSE)} returns a
-#'       data frame, or a validated Hrana statement result with `raw = TRUE`.
+#'       data frame, or the server's rows and metadata with `raw = TRUE`.
 #'     \item \code{$execute(sql, parameters = list())} runs one statement
-#'       and invisibly returns its Hrana result, including `affected_row_count`
+#'       and invisibly returns metadata, including `affected_row_count`
 #'       and `last_insert_rowid`.
 #'   }
 #' @details
-#' The server must accept the access token issued to your shinyOAuth client.
-#' Self-hosted libSQL uses Ed25519 signing keys and libSQL permission claims;
-#' arbitrary OIDC access tokens are not interchangeable with database tokens.
-#' Turso Cloud has a separate external-provider JWKS configuration.
-#' See `vignette("libsql", package = "shinyOAuthDB")` for both configurations.
+#' The database must accept tokens from your shinyOAuth client. Self-hosted
+#' libSQL needs a particular signing key and permission format; Turso Cloud
+#' has its own external-provider setup. The libSQL vignette explains both.
 #'
-#' Each operation obtains a current token and uses a new Hrana HTTP stream,
-#' closing it in the same request. No stream baton or server-provided URL is
-#' reused. Calls cannot share transactions, temporary tables or connection
-#' state. The helper does not provide a DBI connection or embedded replica.
+#' Create the client inside `server()` and call its methods from render or
+#' reactive expressions. Each call gets a current token and runs one statement
+#' in its own request. Calls don't share transactions or temporary tables;
+#' separate `BEGIN` and `COMMIT` calls can't form a transaction.
 #'
-#' Create the helper inside `server()` and call its methods in render or
-#' reactive expressions. Results arriving after account changes, permission
-#' loss or sign-out are discarded. Requests use verified HTTPS and never retry,
-#' including after HTTP 401. A submitted statement may continue on the server
-#' after a timeout or sign-out.
+#' Results are discarded after sign-out or account changes. SQL requests
+#' don't retry automatically. A submitted statement can finish after a
+#' timeout or sign-out, so check a failed write before submitting it again.
 #' @section Parameters and results:
-#' Supply an unnamed list for `?` parameters or a fully named list for named
-#' parameters such as `:country`. Values are bound separately from SQL.
-#' Character, logical, integer, finite numeric, raw vectors and `NULL`/`NA`
-#' are supported. Use `I("9223372036854775807")` for an exact signed 64-bit
-#' integer; ordinary character values bind as text. Encode dates as strings.
+#' Use an unnamed list for `?` parameters or a named list for placeholders
+#' such as `:country`. Values are bound separately from SQL. Character,
+#' logical, integer, finite numeric, raw vectors and `NULL`/`NA` are supported.
+#' Use `I("9223372036854775807")` for an exact signed 64-bit integer; ordinary
+#' strings bind as text. Format dates and timestamps as database strings.
 #'
-#' SQLite integers are returned as strings to preserve all 64 bits. Floating
-#' point values remain numeric; non-finite results become `NaN`.
-#' Text remains character and blobs use raw
-#' vectors in list columns. Columns with mixed SQLite types remain lists.
-#' All-null or empty columns use logical missing values; `raw = TRUE`
-#' preserves the server's declared column metadata.
+#' SQLite integers return as strings to preserve all 64 bits. Floating-point
+#' values stay numeric, with non-finite results represented as `NaN`.
+#' Blobs use raw vectors in list columns, and columns with mixed types remain
+#' lists. Use `raw = TRUE` for the server's statement metadata and rows.
 #' @examples
 #' \dontrun{
 #' libsql <- oauth_db_libsql_api(auth$connection, "https://sqlite.example.org")
@@ -55,7 +50,6 @@
 #' }
 #' @seealso `vignette("libsql", package = "shinyOAuthDB")`.
 #'   [oauth_db_demo()] runs a local libSQL and Keycloak example.
-#' @family platform API clients
 #' @export
 oauth_db_libsql_api <- function(
   authorization,

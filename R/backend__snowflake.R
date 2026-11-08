@@ -1,8 +1,8 @@
 #' Query Snowflake as the signed-in user
 #'
-#' Query Snowflake with the visitor's account and role using DBI or dbplyr.
-#' Set the warehouse, database, and schema for your queries, or use the
-#' account's defaults.
+#' Query Snowflake with each visitor's account and role. A role controls
+#' which data they can access, while a warehouse runs the queries. The
+#' connection works with DBI or dbplyr.
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param database,schema,warehouse Optional connection settings. `NULL` uses
@@ -14,17 +14,18 @@
 #' @param target Named shinyOAuth token target, or `NULL` for the default token.
 #' @param ... Named Snowflake ODBC connection options. Authentication and the
 #'   HTTPS protocol cannot be overridden.
-#' @return A reactive function returning an odbc DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
 #' Install odbc and the Snowflake ODBC driver. Use [oauth_db_snowflake_client()]
-#' for Snowflake's own OAuth integration, or a shinyOAuth client configured
-#' for your External OAuth provider.
+#' for Snowflake's own OAuth integration, or a shinyOAuth client for your
+#' external provider. The user needs access to the requested role, warehouse
+#' and data.
 #'
-#' Create `con` inside `server()` and get `connection <- con()` inside a
-#' render or reactive expression before querying. The helper opens the
-#' connection on first use and closes it when the authorization or session ends.
-#'
-#' For names containing ODBC delimiters, use [odbc::quote_value()].
+#' Create the helper inside `server()` and call `con()` before each query.
+#' The connection opens on first use and closes when the authorization or
+#' session ends. For names containing ODBC delimiters, use [odbc::quote_value()].
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_snowflake(
@@ -42,7 +43,6 @@
 #' @seealso [oauth_db_snowflake_client()].
 #'   `vignette("snowflake", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_snowflake <- function(
   authorization,
@@ -152,9 +152,10 @@ oauth_db_snowflake <- function(
 
 #' Set up Snowflake OAuth sign-in
 #'
-#' Create a sign-in client for Snowflake's own OAuth integration and a role
-#' your app's users can access. Pass it to shinyOAuth's UI and server modules,
-#' then connect with [oauth_db_snowflake()].
+#' Set up sign-in for a Shiny app using Snowflake's own OAuth integration.
+#' Visitors use their Snowflake account and a role they can access. Pass
+#' this client to shinyOAuth's UI and server modules, then connect with
+#' [oauth_db_snowflake()].
 #'
 #' @inheritParams oauth_db_microsoft_client
 #' @param server Snowflake account hostname. Ignored when `provider` is supplied.
@@ -162,9 +163,10 @@ oauth_db_snowflake <- function(
 #' @param role Requested Snowflake role. Ignored when `scopes` is supplied.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
 #' @details
-#' Register the app's redirect URI in the Snowflake OAuth integration.
-#' For External OAuth through Entra, Okta, or another provider, use that
-#' provider's shinyOAuth client configuration.
+#' Register the app's exact redirect URI in a Snowflake custom OAuth
+#' integration. The requested role must match the role used by
+#' [oauth_db_snowflake()]. If your account uses an external provider such
+#' as Entra or Okta, configure a shinyOAuth client for that provider instead.
 #' @examples
 #' \dontrun{
 #' client <- oauth_db_snowflake_client(
@@ -178,7 +180,6 @@ oauth_db_snowflake <- function(
 #' @seealso [oauth_db_snowflake()], [oauth_db_snowflake_provider()].
 #'   `vignette("snowflake", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family sign-in configuration
 #' @export
 oauth_db_snowflake_client <- function(
   server,
@@ -205,19 +206,19 @@ oauth_db_snowflake_client <- function(
 
 #' Create a Snowflake OAuth provider
 #'
-#' Use this to choose provider settings when constructing
-#' `shinyOAuth::oauth_client()` yourself. For a typical app, use
-#' [oauth_db_snowflake_client()].
+#' Describe Snowflake's sign-in service when building a custom client with
+#' `shinyOAuth::oauth_client()`. For an app using Snowflake's own OAuth
+#' integration, [oauth_db_snowflake_client()] supplies the usual settings.
 #'
 #' @param server Snowflake account hostname.
 #' @param ... Settings for `shinyOAuth::oauth_provider()`, replacing defaults.
 #' @return A shinyOAuth `OAuthProvider` for Snowflake's own OAuth integration.
 #' @details
-#' External OAuth uses the external identity provider's configuration.
+#' This provider uses Snowflake's own OAuth endpoints. An account using
+#' External OAuth needs the external sign-in provider's configuration.
 #' @seealso [oauth_db_snowflake_client()].
 #'   `vignette("snowflake", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family sign-in configuration
 #' @export
 oauth_db_snowflake_provider <- function(server, ...) {
   .odb_string(server, "server")

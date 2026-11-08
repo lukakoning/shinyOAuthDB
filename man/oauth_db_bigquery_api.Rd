@@ -18,9 +18,9 @@ oauth_db_bigquery_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{project}{Google Cloud project in which to run and bill queries.}
 
@@ -29,11 +29,13 @@ that calls \code{auth$connection(id)}.}
 \item{location}{Dataset location, such as \code{"EU"} or \code{"us-central1"}.
 \code{NULL} lets BigQuery choose it.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -42,11 +44,11 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 
 \item{page_size}{Maximum number of rows requested per result page.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$query(sql, parameters = NULL, parameter_types = NULL,
       maximum_bytes_billed = NULL, use_query_cache = TRUE, raw = FALSE)}
@@ -57,26 +59,28 @@ runs GoogleSQL and returns a data frame.
 }
 }
 \description{
-Run GoogleSQL and browse datasets with the visitor's Google account.
-Queries return data frames for use in your Shiny app.
+Run BigQuery SQL and browse datasets using each visitor's Google account.
+Queries run as jobs in your chosen Google Cloud project and return data
+frames for the Shiny app. Users need permission to run jobs in that
+project and read the data.
 }
 \details{
-Create the client inside \code{server()} and call its methods inside render or
+Create the client inside \code{server()} and call its methods from render or
 reactive expressions. Use \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}} for Google sign-in.
-Users need permission to create query jobs in \code{project} and read the data.
-The client uses BigQuery's REST API; bigrquery and ODBC aren't required.
-Dataset discovery fails if BigQuery reports unreachable locations, so a
-partial listing cannot appear as a complete or empty collection.
+No BigQuery database driver is needed.
+
+Set \code{project} to the Google Cloud project that runs and bills queries.
+The data can be in another project the user can access. Set \code{location}
+to match the datasets you query.
 }
 \section{Query parameters}{
 
-Supply named R values in \code{parameters}, such as \code{list(country = "NL")}
-for SQL containing \verb{@country}. Supported values include character,
-logical, integer, numeric, \code{Date}, and \code{POSIXct}.
+Use named R values in \code{parameters}, such as \code{list(country = "NL")} for
+SQL containing \verb{@country}. Character, logical, integer, numeric, \code{Date}
+and \code{POSIXct} values are supported; vectors become arrays.
 
-Vectors become ARRAY parameters. Use a named character vector of
-\code{parameter_types} to override the scalar element type or type a
-\code{NULL} value. Use \code{"ARRAY<INT64>"} for a one-element array.
+Use a named character vector of \code{parameter_types} to choose the type or
+type a \code{NULL} value. Use \code{"ARRAY<INT64>"} for a one-element integer array.
 }
 
 \section{Query options}{
@@ -87,25 +91,22 @@ Set \code{use_query_cache = FALSE} to disable cached query results.
 
 \section{Result types}{
 
-INT64 and decimal columns remain strings to preserve precision.
-DATE becomes \code{Date}, TIMESTAMP becomes UTC \code{POSIXct}, and nested or
-repeated fields become list columns. BYTES fields keep their REST
-representation.
+INT64 and decimal columns stay as strings to preserve precision. Dates
+become \code{Date}, timestamps become UTC \code{POSIXct}, and nested or repeated
+fields use list columns. BYTES fields keep their API representation.
 
-\code{raw = TRUE} returns an R list with the combined REST response, schema,
-and job reference. DML may return a data frame with no columns; use the
-raw result to inspect \code{numDmlAffectedRows}.
+Use \code{raw = TRUE} for the combined API response, schema and job reference.
+For statements that change data, inspect \code{numDmlAffectedRows} in that
+result; the data frame can have no columns.
 }
 
 \section{Longer queries}{
 
-Queries run synchronously and collect their results in R memory.
+Queries wait for completion and collect all result pages in R memory.
 A timeout or sign-out stops fetching results but doesn't cancel a
-submitted BigQuery job.
-
-Each request obtains a current token for the authorization that started
-the operation. A 401 response triggers one refresh attempt. Other errors
-stop the operation without resubmitting SQL.
+submitted BigQuery job. Each request uses a current token. HTTP 401 can
+trigger one refresh attempt; other errors stop the operation without
+resubmitting SQL.
 }
 
 \examples{
@@ -125,18 +126,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}}.
 \code{vignette("bigquery", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other platform API clients:
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

@@ -1,7 +1,9 @@
 #' Set up Salesforce sign-in
 #'
-#' Create a client for Salesforce CRM and, optionally, Data Cloud (Data 360).
-#' Register an External Client App with the authorization-code flow and PKCE.
+#' Set up Salesforce sign-in for a Shiny app that queries CRM records,
+#' Data Cloud or both. Pass the client to shinyOAuth's UI and server modules.
+#' Visitors sign in with their own Salesforce account and keep their
+#' existing data permissions.
 #'
 #' @inheritParams oauth_db_microsoft_client
 #' @param login_url Salesforce login origin: your My Domain URL,
@@ -13,21 +15,17 @@
 #'   `NULL` only with a custom public-client provider matching that registration.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
 #' @details
-#' The default provider is discovered from `login_url` over HTTPS. Discovery
-#' configures signed ID-token validation, user information and PKCE. A custom
-#' provider replaces discovery. `shinyOAuth` manages tokens and renewal.
+#' Register an External Client App with the authorization-code flow and
+#' PKCE, which protects the sign-in code. Enable JWT-based access tokens
+#' for named users; this format works with shinyOAuth's token validation.
+#' The default client discovers sign-in settings from `login_url` over HTTPS.
 #'
-#' Enable Salesforce's JWT-based access tokens for named users in the app
-#' registration. Legacy opaque Salesforce session tokens containing `!` are
-#' not accepted by shinyOAuth's bearer-token validation.
-#'
-#' Salesforce can omit access-token expiry. In that case shinyOAuth warns and
-#' applies its configured fallback lifetime. GET requests can renew a rejected
-#' token once; SQL submissions are never replayed.
+#' shinyOAuth manages token renewal. If Salesforce omits the token's expiry,
+#' shinyOAuth warns and uses its configured fallback lifetime. Your app's
+#' registration and users still need the relevant API and data permissions.
 #' @seealso [oauth_db_salesforce_api()], [oauth_db_salesforce_data_cloud_api()].
 #'   `vignette("salesforce", package = "shinyOAuthDB")` has registration steps
 #'   and a complete app.
-#' @family sign-in configuration
 #' @export
 oauth_db_salesforce_client <- function(
   client_id,
@@ -62,8 +60,9 @@ oauth_db_salesforce_client <- function(
 
 #' Query Salesforce CRM as the signed-in user
 #'
-#' Run SOQL queries and inspect objects through Salesforce's REST API.
-#' Salesforce applies the visitor's object, field and record permissions.
+#' Read Salesforce CRM records using the visitor's object, field and record
+#' permissions. CRM objects, such as accounts, are queried with Salesforce's
+#' query language, SOQL. Queries return data frames for your Shiny app.
 #'
 #' @inheritParams oauth_db_connect
 #' @inheritParams oauth_db_postgrest_api
@@ -72,30 +71,33 @@ oauth_db_salesforce_client <- function(
 #' @param api_version Salesforce REST API version without `v`, default `"64.0"`.
 #' @param timeout Total seconds allowed for an operation, including polling,
 #'   result pages and any permitted refresh retry.
-#' @return An R6 client with these methods:
+#' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$query(soql, include_deleted = FALSE, raw = FALSE)} fetches
 #'       all result pages and returns a data frame. `include_deleted = TRUE`
-#'       uses QueryAll. `raw = TRUE` returns combined native records and
+#'       includes deleted or archived records through QueryAll.
+#'       `raw = TRUE` returns combined native records and
 #'       `totalSize`, including the count for `SELECT COUNT()`.
-#'     \item \code{$objects()} returns the native sObject discovery response.
-#'     \item \code{$describe(object)} returns native object metadata.
+#'     \item \code{$objects()} returns the API's object catalog.
+#'     \item \code{$describe(object)} returns field definitions and other
+#'       object metadata.
 #'   }
 #' @details
-#' Create the client inside `server()`. Each operation pins its starting
-#' authorization and obtains a current access token before each request.
-#' Responses arriving after sign-out, account changes or permission loss are
-#' discarded. A GET can retry once after HTTP 401 with a renewed token.
+#' Use [oauth_db_salesforce_client()] for sign-in. Create this API client
+#' inside `server()` and call its methods from render or reactive expressions.
+#' The client gets a current token for each request and discards results
+#' after sign-out or account changes. GET requests can refresh and retry
+#' once after HTTP 401.
 #'
-#' Pagination accepts only query-locator paths for the configured API version
-#' on the configured org. Redirects are refused. `timeout` covers all pages
-#' of an operation. Results are collected synchronously in R memory.
+#' Queries fetch all result pages into R memory. `timeout` applies to the
+#' whole operation. Relationships and child-query results stay in list
+#' columns; ordinary numbers become R numeric values and large integers
+#' stay as strings. Empty results have no field metadata; use `$describe()`
+#' for field types.
 #'
-#' Top-level Salesforce `attributes` metadata is omitted from data frames.
-#' Relationships and child queries remain list columns. Ordinary JSON numbers
-#' use R numeric values; large integers remain strings. An empty result has
-#' no column metadata; use `$describe()` when you need field types.
-#' SOQL is supplied as written, without SQL parameter interpolation.
+#' Supply SOQL as written. This client doesn't bind SQL parameters or
+#' provide a DBI connection. Use `raw = TRUE` for the records and metadata
+#' without conversion to a data frame.
 #' @examples
 #' \dontrun{
 #' crm <- oauth_db_salesforce_api(
@@ -107,7 +109,6 @@ oauth_db_salesforce_client <- function(
 #' }
 #' @seealso [oauth_db_salesforce_client()], [oauth_db_salesforce_data_cloud_api()].
 #'   `vignette("salesforce", package = "shinyOAuthDB")`.
-#' @family platform API clients
 #' @export
 oauth_db_salesforce_api <- function(
   authorization,

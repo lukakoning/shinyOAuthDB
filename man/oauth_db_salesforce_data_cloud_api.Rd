@@ -19,9 +19,9 @@ oauth_db_salesforce_data_cloud_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{instance_url}{Trusted HTTPS origin of your Salesforce org, such as
 \code{"https://example.my.salesforce.com"}. Use the org URL, not a Lightning URL.}
@@ -30,11 +30,13 @@ that calls \code{auth$connection(id)}.}
 
 \item{dataspace}{Data Cloud data space API name, default \code{"default"}.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -46,46 +48,54 @@ result pages and any permitted refresh retry.}
 
 \item{ca_bundle}{Optional path to a trusted CA certificate bundle.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with a \code{$query(sql, parameters = list(), raw = FALSE)}
-method. It submits SQL, polls for completion, fetches all pages, and returns
+A client object with a \code{$query(sql, parameters = list(), raw = FALSE)}
+method. It waits for completion, fetches all pages, and returns
 a data frame. \code{raw = TRUE} returns combined \code{data}, \code{metadata}, \code{status}
 and \code{returnedRows}.
 }
 \description{
-Run Data Cloud (Data 360) SQL through Salesforce's Query Connect API.
-It uses the visitor's Salesforce access token and org permissions.
+Run Salesforce Data Cloud SQL with the visitor's Salesforce account and
+data permissions. The client uses Query Connect API and returns data
+frames. It can share a sign-in with \code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}}.
 }
 \details{
 Use \code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}} with \code{data_cloud = TRUE}. Users need
-Data Cloud licensing, data-space access and query permissions. The client
-uses \verb{/services/data/v64.0/ssot/query-sql} by default, through the Salesforce
-org endpoint. It does not use legacy Query V1/V2 or exchange/store a second
-Data Cloud token. API version 64.0 or later is required.
+Data Cloud licensing, access to the data space and query permissions.
+The client uses your Salesforce org endpoint and API version 64.0 or later.
 
-\code{parameters} is an unnamed list of native SQL parameter descriptors, each
-with \code{name}, \code{type} and \code{value} strings. For example,
-\code{list(list(name = "since", type = "date", value = "2026-01-01"))} binds
-\verb{:since}. Values are sent separately from SQL. Use Salesforce's SQL type
-names; the service validates whether a type and value are supported.
-
-BIGINT and NUMERIC values remain strings to preserve precision. Other
-numeric columns become R numeric values, booleans become logical, and
-date/time values remain strings. Nested and unknown types remain list
-columns. Raw results retain numeric lexemes as strings.
-
-Create the client inside \code{server()}. Each query pins its starting
-authorization and obtains a current token before submission, polling and
-result fetching. Results arriving after sign-out, account changes or lost
-scopes are discarded. A GET can renew and retry once after HTTP 401.
-SQL submission is never replayed, including after HTTP 401. \code{timeout}
-covers submission, polling and every result page. A timed-out or abandoned
-query may continue on Salesforce; this client does not cancel remote jobs.
-Queries run synchronously in R and collect their results in memory.
+Create the client inside \code{server()} and call \verb{$query()} from a render or
+reactive expression. Each request gets a current token and discards
+results after sign-out or account changes.
 }
+\section{Parameters and results}{
+
+Use an unnamed list of SQL parameter descriptors with \code{name}, \code{type} and
+\code{value} strings. For example,
+\code{list(list(name = "since", type = "date", value = "2026-01-01"))} binds
+\verb{:since}. Values travel separately from SQL; use the types Salesforce
+accepts.
+
+BIGINT and NUMERIC results stay as strings to preserve precision. Other
+numbers become R numeric values and booleans become logical. Dates and
+times stay as strings; nested and unknown types use list columns. Use
+\code{raw = TRUE} for rows, metadata and final query status.
+}
+
+\section{Longer queries}{
+
+Queries wait for completion and collect all pages in R memory.
+\code{timeout} covers submission, polling and fetching. A timeout or sign-out
+doesn't cancel a submitted query.
+
+GET requests can refresh and retry once after HTTP 401. SQL submission
+doesn't retry automatically, so check Salesforce after a submission
+failure before running the query again.
+}
+
 \examples{
 \dontrun{
 cloud <- oauth_db_salesforce_data_cloud_api(
@@ -99,18 +109,4 @@ output$rows <- shiny::renderTable({
 \seealso{
 \code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}}, \code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}}.
 \code{vignette("salesforce", package = "shinyOAuthDB")}.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

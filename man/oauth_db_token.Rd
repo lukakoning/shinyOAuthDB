@@ -13,37 +13,42 @@ oauth_db_token(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning a bearer token string. Call
-\code{bearer()} inside the user's Shiny session.
+A reactive function, such as \code{bearer}. Call \code{bearer()} inside
+a render or reactive expression to get the current token string.
 }
 \description{
-Use this when an R function accepts an access token directly. Call the
-returned function for a current token each time you make a request.
+Get the visitor's current access token for an R function that accepts one
+directly. An access token is a temporary credential for making requests
+on the user's behalf. The returned function gets a current token each
+time you call it.
 }
 \details{
-For Fabric or Databricks functions, the platform API clients below can
-supply the credentials for you.
+Create the helper inside \code{server()}. shinyOAuth obtains or renews the
+token when needed. Call \code{bearer()} for each request; a token string saved
+earlier still has its original expiry time.
 
-shinyOAuth obtains or renews the token. Keep the function in the Shiny
-session and get a token for each operation; a copied token string keeps
-its own expiry time.
+For Fabric and Databricks, \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} and
+\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} can supply credentials to their supporting
+packages for you.
 }
 \examples{
 \dontrun{
@@ -59,9 +64,4 @@ output$rows <- shiny::renderPrint({
 \seealso{
 \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
 See \code{vignette("getting-started", package = "shinyOAuthDB")} for token lifetime.
-
-Other advanced connection helpers:
-\code{\link[=oauth_db_connect]{oauth_db_connect()}},
-\code{\link[=oauth_db_fabric]{oauth_db_fabric()}}
 }
-\concept{advanced connection helpers}

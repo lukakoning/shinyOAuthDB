@@ -39,34 +39,23 @@ oauth_db_salesforce_client(
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a client for Salesforce CRM and, optionally, Data Cloud (Data 360).
-Register an External Client App with the authorization-code flow and PKCE.
+Set up Salesforce sign-in for a Shiny app that queries CRM records,
+Data Cloud or both. Pass the client to shinyOAuth's UI and server modules.
+Visitors sign in with their own Salesforce account and keep their
+existing data permissions.
 }
 \details{
-The default provider is discovered from \code{login_url} over HTTPS. Discovery
-configures signed ID-token validation, user information and PKCE. A custom
-provider replaces discovery. \code{shinyOAuth} manages tokens and renewal.
+Register an External Client App with the authorization-code flow and
+PKCE, which protects the sign-in code. Enable JWT-based access tokens
+for named users; this format works with shinyOAuth's token validation.
+The default client discovers sign-in settings from \code{login_url} over HTTPS.
 
-Enable Salesforce's JWT-based access tokens for named users in the app
-registration. Legacy opaque Salesforce session tokens containing \code{!} are
-not accepted by shinyOAuth's bearer-token validation.
-
-Salesforce can omit access-token expiry. In that case shinyOAuth warns and
-applies its configured fallback lifetime. GET requests can renew a rejected
-token once; SQL submissions are never replayed.
+shinyOAuth manages token renewal. If Salesforce omits the token's expiry,
+shinyOAuth warns and uses its configured fallback lifetime. Your app's
+registration and users still need the relevant API and data permissions.
 }
 \seealso{
 \code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}}, \code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}}.
 \code{vignette("salesforce", package = "shinyOAuthDB")} has registration steps
 and a complete app.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }
-\concept{sign-in configuration}

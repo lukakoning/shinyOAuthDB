@@ -36,14 +36,16 @@ oauth_db_snowflake_client(
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a sign-in client for Snowflake's own OAuth integration and a role
-your app's users can access. Pass it to shinyOAuth's UI and server modules,
-then connect with \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}.
+Set up sign-in for a Shiny app using Snowflake's own OAuth integration.
+Visitors use their Snowflake account and a role they can access. Pass
+this client to shinyOAuth's UI and server modules, then connect with
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}.
 }
 \details{
-Register the app's redirect URI in the Snowflake OAuth integration.
-For External OAuth through Entra, Okta, or another provider, use that
-provider's shinyOAuth client configuration.
+Register the app's exact redirect URI in a Snowflake custom OAuth
+integration. The requested role must match the role used by
+\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}. If your account uses an external provider such
+as Entra or Okta, configure a shinyOAuth client for that provider instead.
 }
 \examples{
 \dontrun{
@@ -60,14 +62,4 @@ client <- oauth_db_snowflake_client(
 \code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}}, \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}.
 \code{vignette("snowflake", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }
-\concept{sign-in configuration}

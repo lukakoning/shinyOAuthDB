@@ -21,9 +21,9 @@ oauth_db_oracle(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{host}{One Oracle TCPS listener hostname or IP address.}
 
@@ -48,72 +48,72 @@ mutual TLS. \code{NULL} uses the Oracle client's configured trust store.}
 name. \code{NULL} uses Oracle's hostname matching. Certificate matching is
 always enabled.}
 
-\item{authorization_model}{\code{"global"} requires Oracle to report
-\code{TOKEN_GLOBAL} authentication, preserving the global-schema model used
-by existing Entra configurations. \code{"end_user"} requires Oracle Deep
-Data Security to expose system-managed token claims matching the
-submitted JWT's issuer, subject and audience. It never falls back to
-global-schema privileges. Use this for configured OCI IAM OAuth and
-Keycloak direct-logon deployments.}
+\item{authorization_model}{\code{"global"} (the default) for a mapped global
+database user, or \code{"end_user"} for an individual Oracle Deep Data
+Security context. Choose the model configured by your administrator;
+see Details.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Open an Oracle ODBC connection with the visitor's OAuth access token.
-The database validates the provider's JWT and applies its configured
-global-user or Oracle Deep Data Security authorization model.
+Read Oracle data in a Shiny app with each visitor's database permissions.
+Oracle checks the visitor's access token and maps their identity to
+database privileges. The helper opens a DBI connection for SQL or dbplyr.
 }
 \details{
 Install odbc and Oracle Instant Client's Basic and ODBC packages. The
-database must trust the token's provider and audience and map the visitor
-to a global schema or Deep Data Security data roles. Supported routes
-include Microsoft Entra, OCI IAM Identity Domains OAuth, and the
-configurable OAuth provider documented for Keycloak in Oracle 26ai.
-Server and client version requirements differ between these integrations;
-a JWT from an unconfigured provider does not establish database access.
-See \code{vignette("oracle", package = "shinyOAuthDB")} for sign-in setup.
+database must trust your provider and audience, map users to database
+privileges, and use a compatible Oracle client. The Oracle vignette
+explains the provider-specific setup.
 
-Create the helper inside \code{server()} and call \code{con()} before each operation.
-Global-schema sessions survive ordinary token renewal. End-user sessions
-are reopened on access when the token changes, so new identity and role
-claims reach the database without replaying completed queries. Account
-changes, sign-out, permission loss and session end close the connection.
-A broken connection is reopened with the current token on access.
-
-The helper builds a separate TCPS descriptor for each connection. It sets
-\code{TOKEN_AUTH=OAUTH}, supplies the token through a private temporary file,
-and removes that file on success, error or interrupt. On Windows the
-directory inherits R's temporary-directory access rules; run R with a
-private user temporary directory. Shared \code{TNS_ADMIN}, \code{tnsnames.ora}, and
-\code{sqlnet.ora} files are not modified.
-
-Oracle ODBC failover is disabled because the temporary token file is
-removed after connection opening. Before returning a connection, the
-helper verifies the selected authorization model and disconnects on
-failure. In \code{"end_user"} mode, jsonlite is also required. Local JWT
-decoding identifies the expected claims; Oracle verifies the signature
-and establishes the system-managed context. DSNs, alternate credentials
-and authentication overrides cannot be supplied through \code{...}.
-
-Scope names are checked literally, as with generic OAuth helpers. Keep
-Entra's \verb{/.default} consent marker in the client configuration, not in
-this helper's \code{required_scopes}. OCI IAM proof-of-possession tokens,
-password authentication and application-mediated two-token contexts are
-separate mechanisms. For ORDS REST resources use \code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}}.
+Create the helper inside \code{server()} and call \code{con()} before each query.
+Connections use encrypted TCPS transport with server certificate checks.
+Use a wallet when the service requires one.
 }
+\section{Authorization models}{
+
+The \code{"global"} model connects as the Oracle global user mapped to the
+external identity. The helper checks for \code{TOKEN_GLOBAL} authentication.
+
+The \code{"end_user"} model requires Oracle Deep Data Security direct logon and
+the jsonlite package. Oracle must establish an end-user context whose
+issuer, subject and audience match the supplied JWT. Missing or mismatched
+context is an error; the helper doesn't fall back to a global-schema login.
+
+Keep Entra's \verb{/.default} consent marker in the client configuration. Use
+the exact granted database scope in \code{required_scopes}.
+}
+
+\section{Connection lifetime}{
+
+Global-schema connections stay open through token renewal. End-user
+connections reopen on the next \code{con()} call after a token change, so new
+role claims reach the database. Sign-out, account changes and session
+end close both types. Reopen broken connections through \code{con()}.
+
+The Oracle driver reads the token from a temporary file, which is removed
+after connecting. On Windows, keep R's temporary directory private to
+the app's operating-system user. For Oracle web APIs, use
+\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}}.
+}
+
 \examples{
 \dontrun{
 con <- oauth_db_oracle(
@@ -130,19 +130,4 @@ output$rows <- shiny::renderTable({
 }
 \seealso{
 \code{vignette("oracle", package = "shinyOAuthDB")}.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

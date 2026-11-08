@@ -17,20 +17,22 @@ oauth_db_salesforce_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{instance_url}{Trusted HTTPS origin of your Salesforce org, such as
 \code{"https://example.my.salesforce.com"}. Use the org URL, not a Lightning URL.}
 
 \item{api_version}{Salesforce REST API version without \code{v}, default \code{"64.0"}.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -40,39 +42,43 @@ result pages and any permitted refresh retry.}
 
 \item{ca_bundle}{Optional path to a trusted CA certificate bundle.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$query(soql, include_deleted = FALSE, raw = FALSE)} fetches
 all result pages and returns a data frame. \code{include_deleted = TRUE}
-uses QueryAll. \code{raw = TRUE} returns combined native records and
+includes deleted or archived records through QueryAll.
+\code{raw = TRUE} returns combined native records and
 \code{totalSize}, including the count for \verb{SELECT COUNT()}.
-\item \code{$objects()} returns the native sObject discovery response.
-\item \code{$describe(object)} returns native object metadata.
+\item \code{$objects()} returns the API's object catalog.
+\item \code{$describe(object)} returns field definitions and other
+object metadata.
 }
 }
 \description{
-Run SOQL queries and inspect objects through Salesforce's REST API.
-Salesforce applies the visitor's object, field and record permissions.
+Read Salesforce CRM records using the visitor's object, field and record
+permissions. CRM objects, such as accounts, are queried with Salesforce's
+query language, SOQL. Queries return data frames for your Shiny app.
 }
 \details{
-Create the client inside \code{server()}. Each operation pins its starting
-authorization and obtains a current access token before each request.
-Responses arriving after sign-out, account changes or permission loss are
-discarded. A GET can retry once after HTTP 401 with a renewed token.
+Use \code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}} for sign-in. Create this API client
+inside \code{server()} and call its methods from render or reactive expressions.
+The client gets a current token for each request and discards results
+after sign-out or account changes. GET requests can refresh and retry
+once after HTTP 401.
 
-Pagination accepts only query-locator paths for the configured API version
-on the configured org. Redirects are refused. \code{timeout} covers all pages
-of an operation. Results are collected synchronously in R memory.
+Queries fetch all result pages into R memory. \code{timeout} applies to the
+whole operation. Relationships and child-query results stay in list
+columns; ordinary numbers become R numeric values and large integers
+stay as strings. Empty results have no field metadata; use \verb{$describe()}
+for field types.
 
-Top-level Salesforce \code{attributes} metadata is omitted from data frames.
-Relationships and child queries remain list columns. Ordinary JSON numbers
-use R numeric values; large integers remain strings. An empty result has
-no column metadata; use \verb{$describe()} when you need field types.
-SOQL is supplied as written, without SQL parameter interpolation.
+Supply SOQL as written. This client doesn't bind SQL parameters or
+provide a DBI connection. Use \code{raw = TRUE} for the records and metadata
+without conversion to a data frame.
 }
 \examples{
 \dontrun{
@@ -87,18 +93,4 @@ output$rows <- shiny::renderTable({
 \seealso{
 \code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}}, \code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}}.
 \code{vignette("salesforce", package = "shinyOAuthDB")}.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

@@ -19,9 +19,9 @@ oauth_db_azure_postgres(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{host}{PostgreSQL hostname.}
 
@@ -38,35 +38,40 @@ TCP keepalive options. Authentication and TLS options cannot be overridden.}
 \item{sslrootcert}{CA certificate bundle path, or \code{NULL} to use libpq's
 configured bundle.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an RPostgres DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Query Azure Database for PostgreSQL with a visitor's Microsoft account.
-The connection works with DBI or dbplyr through RPostgres.
+Read Azure Database for PostgreSQL data using each visitor's Microsoft
+account. The database maps that account to a user or group role with
+permission to query the data. The RPostgres connection works with DBI
+or dbplyr.
 }
 \details{
-Install RPostgres linked to libpq 16 or later. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with
-\code{services = "postgres"}. The server must accept Entra authentication,
-and the database role must already exist.
+Install RPostgres linked to libpq 16 or later. Configure Azure PostgreSQL
+for Entra authentication and create database roles for the users or their
+groups. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with \code{services = "postgres"}.
 
-Create the helper inside \code{server()} and get \code{connection <- con()}
-inside a render or reactive expression before querying.
-The connection uses verified TLS and requires password authentication with
-the visitor's access token. GSS encryption is disabled, and the server
-cannot select Kerberos, certificate-only, or trust authentication instead.
+Create the helper inside \code{server()} and call \code{con()} before querying.
+The connection uses verified TLS and sends the visitor's access token as
+the password. The server must use that authentication method; Kerberos,
+certificate-only and trust authentication aren't supported by this helper.
 }
 \examples{
 \dontrun{
@@ -87,19 +92,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}.
 \code{vignette("azure-postgres", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

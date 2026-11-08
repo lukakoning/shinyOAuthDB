@@ -53,20 +53,25 @@ scopes come from \code{services}, which must select one resource. Supply
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a Microsoft Entra sign-in client for database and platform access.
-Choose the services or token targets the app uses, then pass the client
-to shinyOAuth's UI and server modules.
+Set up Microsoft sign-in for a Shiny app that queries Azure SQL,
+Azure PostgreSQL or other supported Microsoft services. Choose the services
+your app uses, then pass this client to shinyOAuth's UI and server modules.
+The client holds your app's sign-in settings; each visitor signs in with
+their own account.
 }
 \details{
-The Entra registration needs delegated permissions for the selected services.
-Users also need access to the database or Fabric items.
-When PostgreSQL is combined with other services, its preset requests the
-delegated \code{user_impersonation} scope instead of \code{.default}.
+Register the Shiny app in Microsoft Entra with the exact \code{redirect_uri}
+and delegated permissions for the services it uses. Delegated access lets
+the app act on behalf of the person who signs in. Users also need
+permission to access the database or Fabric items.
 
-Custom \code{scopes}, \code{provider}, and \code{token_targets} replace their defaults.
-An existing shinyOAuth client can be used in place of this preset.
-For a deployment-specific resource such as Oracle Database, supply custom
-\code{token_targets}; see \code{vignette("oracle", package = "shinyOAuthDB")}.
+The preset creates named token targets for the selected services. Custom
+\code{scopes}, \code{provider} and \code{token_targets} replace their defaults. An existing
+shinyOAuth client can also supply suitable tokens.
+
+When PostgreSQL is combined with other services, its preset requests
+\code{user_impersonation} instead of \code{.default}. For a custom resource such as
+Oracle Database, supply \code{token_targets}; the Oracle vignette has an example.
 }
 \examples{
 \dontrun{
@@ -80,17 +85,6 @@ client <- oauth_db_microsoft_client(
 }
 }
 \seealso{
-\code{vignette("getting-started", package = "shinyOAuthDB")} links to
-each source's setup. For custom permissions and targets, see
-\code{vignette("getting-started", package = "shinyOAuthDB")}.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
+\code{vignette("getting-started", package = "shinyOAuthDB")} explains
+sign-in settings and links to each source's setup guide.
 }
-\concept{sign-in configuration}

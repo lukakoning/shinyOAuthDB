@@ -1,8 +1,9 @@
 #' Query Azure SQL as the signed-in user
 #'
-#' Query Azure SQL with the visitor's Microsoft account using DBI or dbplyr.
-#' Use this for Azure SQL Database, SQL Managed Instance, or a compatible
-#' Synapse SQL endpoint.
+#' Read Azure SQL data in a Shiny app using each visitor's Microsoft account
+#' and database permissions. The helper provides a DBI connection for SQL
+#' or dbplyr queries. It also works with SQL Managed Instance and compatible
+#' Synapse SQL endpoints.
 #'
 #' @inheritParams oauth_db_connect
 #' @param server Database hostname.
@@ -11,17 +12,19 @@
 #' @param port Database port.
 #' @param ... Named odbc connection options, such as `timeout`.
 #'   The helper sets authentication and verified TLS.
-#' @return A reactive function returning an odbc DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install odbc and Microsoft ODBC Driver 18 for SQL Server. The database must
-#' accept Microsoft Entra authentication. Use [oauth_db_microsoft_client()]
-#' with `services = "sql"` to set up sign-in.
+#' Install odbc and Microsoft ODBC Driver 18 for SQL Server. Configure the
+#' database for Microsoft Entra sign-in and give users access to the data.
+#' Use [oauth_db_microsoft_client()] with `services = "sql"` for sign-in.
 #'
-#' Create `con` inside `server()`. In a render or reactive expression,
-#' get `connection <- con()` before calling DBI or dbplyr. Connections open
-#' on first use and close when the authorization or Shiny session ends.
+#' Create the helper inside `server()` and call `con()` before querying.
+#' The connection opens on first use and closes when the authorization or
+#' Shiny session ends. See [oauth_db_connect()] for shared session behavior.
 #'
-#' For names containing ODBC delimiters, use [odbc::quote_value()].
+#' For connection names containing ODBC delimiters, use [odbc::quote_value()].
 #' @examples
 #' \dontrun{
 #' # Inside server():
@@ -38,7 +41,6 @@
 #' @seealso [oauth_db_microsoft_client()], [oauth_db_sql_server()].
 #'   `vignette("azure-sql", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_azure_sql <- function(
   authorization,
@@ -116,18 +118,22 @@ oauth_db_azure_sql <- function(
 
 #' Query SQL Server as the signed-in user
 #'
-#' Use this for SQL Server configured to accept Microsoft Entra tokens.
-#' It takes the same connection arguments as [oauth_db_azure_sql()].
+#' Read SQL Server data in a Shiny app with each visitor's Microsoft account.
+#' The server must accept Microsoft Entra tokens. This is the same connection
+#' helper as [oauth_db_azure_sql()], with the same arguments.
 #'
 #' @inheritParams oauth_db_azure_sql
-#' @return A reactive function returning an odbc DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Create the helper inside `server()` and call it inside a render or
-#' reactive expression before querying with DBI or dbplyr.
+#' Install odbc and Microsoft ODBC Driver 18 for SQL Server. Use
+#' [oauth_db_microsoft_client()] with `services = "sql"` for sign-in.
+#' Create the helper inside `server()` and call `con()` before querying.
+#' See [oauth_db_azure_sql()] for connection requirements and options.
 #' @seealso [oauth_db_azure_sql()], [oauth_db_microsoft_client()].
 #'   `vignette("azure-sql", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_sql_server <- oauth_db_azure_sql
 

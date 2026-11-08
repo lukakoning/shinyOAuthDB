@@ -1,30 +1,28 @@
 #' Query Redshift as the signed-in user
 #'
-#' Query Redshift with a visitor's own access using DBI or dbplyr.
-#' This helper connects through Redshift's IAM Identity Center integration.
+#' Read Redshift data in a Shiny app using each visitor's database
+#' permissions. The helper opens a DBI connection through Redshift's
+#' IAM Identity Center integration for SQL or dbplyr queries.
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param token_type `"EXT_JWT"` for an external provider's JWT access token,
 #'   or `"ACCESS_TOKEN"` for an IAM Identity Center access token.
 #' @param ... Named Redshift ODBC options, such as `CaFile` or `LoginTimeout`.
 #'   The helper sets authentication and verified TLS.
-#' @return A reactive function returning an odbc DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install odbc and the AWS Redshift ODBC 2.x driver with
-#' `IdpTokenAuthPlugin` support. The deployment must trust your app's sign-in
-#' provider and map users to database permissions. Configure a shinyOAuth
-#' client for that provider and the required token audience.
+#' Install odbc and the Redshift ODBC 2.x driver with `IdpTokenAuthPlugin`.
+#' Configure IAM Identity Center to trust your sign-in provider and map users
+#' to database permissions. Your shinyOAuth client must obtain a token for
+#' the audience accepted by that integration.
 #'
-#' Create `con` inside `server()` and call it before querying in a render
-#' or reactive expression.
+#' Create the helper inside `server()` and call `con()` before each query.
 #' @section Connection lifetime:
-#' Connections open on first use and close on authorization changes,
-#' sign-out, or session end. Ordinary token refresh preserves an established
-#' SQL connection; a new connection obtains a current token.
-#' @section Authentication options:
-#' The helper passes the token to the driver's `IdpTokenAuthPlugin`.
-#' Use one of the two `token_type` values above. Identity-enhanced IAM
-#' credentials and `SUBJECT_TOKEN` use separate authentication flows.
+#' Connections open on first use and close after sign-out, account changes
+#' or session end. An established SQL connection stays open through ordinary
+#' token renewal; a new connection gets a current token.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_redshift(
@@ -41,7 +39,6 @@
 #' @seealso [oauth_db_microsoft_client()].
 #'   `vignette("redshift", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_redshift <- function(
   authorization,

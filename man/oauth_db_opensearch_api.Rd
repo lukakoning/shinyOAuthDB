@@ -16,17 +16,19 @@ oauth_db_opensearch_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{url}{HTTPS OpenSearch cluster base URL, including a proxy path if needed.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -35,53 +37,53 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 
 \item{ca_bundle}{Optional path to a trusted CA certificate bundle.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$search(index = NULL, body = list(), query = list(), raw = FALSE)}
-posts a Query DSL object to \code{/<index>/_search}. An index may be a
-name, pattern or character vector. \code{NULL} uses cluster-wide search.
-\item \code{$sql(sql, parameters = list(), raw = FALSE)} posts SQL to
-\code{/_plugins/_sql}, returning its native JDBC-format JSON response.
-Parameters are an unnamed list of \code{list(type = "integer", value = 30)}
-descriptors for positional \code{?} placeholders.
+searches an index using an OpenSearch JSON query. The index can be a
+name, pattern or character vector; \code{NULL} searches across the cluster.
+\item \code{$sql(sql, parameters = list(), raw = FALSE)} runs a query
+through the SQL plugin and returns its native JSON result.
 \item \code{$request(path, method = "GET", query = list(), body = NULL,
-      raw = FALSE)} sends a native JSON request. Supply relative path segments,
-for example \code{c("orders", "_doc", "42")}.
+      raw = FALSE)} calls a JSON API. Supply relative path segments,
+such as \code{c("orders", "_doc", "42")}.
 }
 }
 \description{
-Search documents, run aggregations or use the SQL plugin with the visitor's
-current OAuth access token. Results retain OpenSearch's native JSON structure.
+Search OpenSearch documents and calculate summaries using each visitor's
+permissions. An index holds the documents you query. The client supports
+JSON searches and the SQL plugin, returning results as R lists.
 }
 \details{
-Configure OpenSearch's Security plugin to accept your provider's JWT access
-tokens using OpenID Connect or JWT authentication. It must validate the
-issuer and audience and map the token's subject and backend roles to
-OpenSearch permissions. A Dashboards browser login alone is insufficient.
-This client uses bearer tokens, not AWS SigV4 or a shared service account.
+Configure OpenSearch's Security plugin to accept your provider's tokens
+and map the user and role claims to OpenSearch permissions. The endpoint
+must accept bearer tokens; AWS SigV4 needs a different client.
 
-Create the client in \code{server()}. Each operation obtains a current token,
-pins its authorization, and discards responses after account changes,
-sign-out or lost permissions. GET and HEAD retry once after HTTP 401.
-POST, PUT, PATCH and DELETE are never replayed automatically, including
-searches and SQL queries. shinyOAuth renews tokens before requests.
+Create the client inside \code{server()} and call its methods from render or
+reactive expressions. Each operation uses a current token and discards
+results after sign-out or account changes. GET and HEAD can refresh and
+retry once after HTTP 401; POST searches, SQL and writes don't retry.
 
-JSON objects become named lists, arrays become lists, and large integers
-remain strings. Search hits, aggregations, totals and SQL schema metadata
-are preserved rather than flattened into a data frame. \code{raw = TRUE}
-returns an httr2 response. Searches that time out or report failed shards
-raise an error unless \code{raw = TRUE}; use \verb{$request()} for filtered responses.
-
-SQL requires the server's SQL plugin. There is no automatic pagination:
-search pages use native \code{from}/\code{size} or \code{search_after} in the body.
-Advanced SQL cursors and other JSON APIs are available through \verb{$request()};
-consume or close cursors before changing accounts. Bulk NDJSON requests
-are outside this client's JSON interface.
+Search results keep \code{hits}, \code{aggregations} and totals as R lists. SQL
+results keep their \code{schema} and \code{datarows}. Large integers stay as strings.
+Use \code{raw = TRUE} for an httr2 response. Searches reporting a timeout or
+failed shards raise an error unless you request the raw response.
 }
+\section{SQL parameters and pagination}{
+
+SQL requires the server's SQL plugin. Use \verb{?} placeholders with an
+unnamed list of typed values, such as
+\code{list(list(type = "integer", value = 30))} in \code{parameters}.
+
+Fetch search pages explicitly with \code{from}/\code{size} or \code{search_after}.
+Use \verb{$request()} for SQL cursors and other JSON APIs; consume or close
+cursors before changing accounts.
+}
+
 \examples{
 \dontrun{
 search <- oauth_db_opensearch_api(auth$connection,
@@ -96,18 +98,4 @@ output$results <- shiny::renderPrint({
 \seealso{
 \code{vignette("opensearch", package = "shinyOAuthDB")}.
 \code{\link[=oauth_db_demo]{oauth_db_demo()}} runs a local OpenSearch and Keycloak example.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

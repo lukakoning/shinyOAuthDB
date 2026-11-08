@@ -1,37 +1,38 @@
 #' Query Fabric SQL as the signed-in user
 #'
-#' Read data from a Fabric Warehouse, Lakehouse SQL analytics endpoint, or
-#' SQL Database with DBI. The default ODBC backend also supports dbplyr.
-#' Queries use the visitor's Microsoft account.
+#' Read tables from a Fabric Warehouse, Lakehouse SQL endpoint or SQL
+#' Database using each visitor's Microsoft account. The helper provides a
+#' DBI connection for SQL queries; its default ODBC backend also supports
+#' dbplyr.
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param ... Arguments for `fabricQueryR::fabric_sql_connect()`, such as
 #'   `read_only` and `timeout`.
 #' @param backend SQL driver interface: `"odbc"` (default) or `"adbc"`.
-#' @return A reactive function returning a DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
 #' Install fabricQueryR and the SQL driver. Copy the server and database
-#' from the item's SQL connection settings. Use [oauth_db_microsoft_client()]
-#' with `services = "sql"` for sign-in.
+#' from the Fabric item's SQL connection settings. Use
+#' [oauth_db_microsoft_client()] with `services = "sql"` for sign-in.
+#' Users need access to the item and its data.
 #'
-#' Create `con` inside `server()` and get `connection <- con()` inside a
-#' render or reactive expression before querying. The helper reuses the
-#' connection and closes it when the authorization or session ends.
+#' Create the helper inside `server()` and call `con()` before querying.
+#' The helper reuses the connection and closes it when the authorization
+#' or Shiny session ends.
 #' @section SQL drivers:
-#' The default ODBC backend supports DBI and dbplyr. To use ADBC for DBI or
-#' Arrow queries, install adbi, adbcdrivermanager and the external MSSQL driver
-#' (version 1.5.0 or later), then pass `backend = "adbc"`.
-#' Use ODBC for dbplyr's SQL Server translations; the ADBC connection does not
-#' currently select that dialect.
+#' Use the default ODBC backend for DBI and dbplyr's SQL Server translations.
+#' For ADBC queries through DBI or Arrow, install adbi, adbcdrivermanager and
+#' the external MSSQL driver (1.5.0 or later), then set `backend = "adbc"`.
+#' ADBC doesn't select dbplyr's SQL Server dialect.
 #'
-#' ADBC connections reopen with a current token when `con()` is next called
-#' after token renewal. This closes outstanding results on the old connection.
-#' Consume and release results before starting another operation.
+#' After token renewal, ADBC replaces the connection on the next `con()` call.
+#' Consume and close outstanding results before starting another operation.
 #'
-#' Direct DBI reads use the driver's type conversions. For fabricQueryR's
-#' exact numeric conversion, call `fabricQueryR::fabric_sql_query()` through
-#' [oauth_db_fabric_api()] with `backend = "adbc"` and
-#' `numeric_policy = "exact"`.
+#' DBI reads use the driver's type conversions. For fabricQueryR's exact
+#' numeric conversion, call `fabricQueryR::fabric_sql_query()` through
+#' [oauth_db_fabric_api()] with `backend = "adbc"` and `numeric_policy = "exact"`.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_fabric_sql(
@@ -47,7 +48,6 @@
 #' @seealso [oauth_db_microsoft_client()], [oauth_db_fabric_api()].
 #'   `vignette("fabric", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_fabric_sql <- function(
   authorization,
@@ -122,10 +122,11 @@ oauth_db_fabric_sql <- function(
 
 #' Get a token callback for one Fabric service
 #'
-#' Use this to call a fabricQueryR function directly with the visitor's
-#' credentials. It supplies the callback expected by the function's `token`
-#' argument. For several services or resource objects, use
-#' [oauth_db_fabric_api()].
+#' Call a fabricQueryR function with the visitor's credentials for one
+#' Fabric service. This helper supplies a token callback: a function
+#' fabricQueryR calls when it needs a current access token. Use
+#' [oauth_db_fabric_api()] when working with several services or resource
+#' objects such as Lakehouses.
 #'
 #' @inheritParams oauth_db_connect
 #' @param service One of `"fabric"`, `"sql"`, `"dax"`, `"kql"`, `"onelake"`,
@@ -134,11 +135,14 @@ oauth_db_fabric_sql <- function(
 #'   Use `NULL` if the authorization has no named targets.
 #' @param required_scopes Additional permissions to check. `NULL` uses the
 #'   service's read/query defaults.
-#' @return A reactive function. Call `callback()` to get the function to pass
-#'   as fabricQueryR's `token` argument.
+#' @return A reactive function, such as `callback`. Calling `callback()`
+#'   returns the token callback to pass to a fabricQueryR function, as
+#'   `token = callback()` in the example below.
 #' @details
-#' Create the helper inside `server()`. The callback obtains and renews tokens
-#' through shinyOAuth. It stays tied to the authorization that created it.
+#' Create the helper inside `server()`. Configure [oauth_db_microsoft_client()]
+#' for the selected service first. shinyOAuth obtains or renews tokens when
+#' the callback needs them. Keep the callback in the Shiny session that
+#' created it.
 #' @examples
 #' \dontrun{
 #' # Microsoft client configured with services = "kql":
@@ -155,7 +159,6 @@ oauth_db_fabric_sql <- function(
 #' @seealso [oauth_db_fabric_api()].
 #'   `vignette("fabric", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family advanced connection helpers
 #' @export
 oauth_db_fabric <- function(
   authorization,
@@ -236,9 +239,10 @@ oauth_db_fabric <- function(
 
 #' Call Fabric functions as the signed-in user
 #'
-#' List workspaces, query semantic models, or read OneLake data through
-#' fabricQueryR. Pass a function and its usual arguments to `$call()`;
-#' the client supplies the visitor's credentials.
+#' Use Fabric services with each visitor's Microsoft account. Pass a
+#' fabricQueryR function to `$call()` to list workspaces, query semantic
+#' models or read OneLake data. The client supplies the user's credentials
+#' and returns the function's result.
 #'
 #' @inheritParams oauth_db_connect
 #' @param targets Named vector or list mapping services to shinyOAuth token
@@ -247,7 +251,7 @@ oauth_db_fabric <- function(
 #'   a named target.
 #' @param required_scopes Named list of additional permissions to check,
 #'   by service. Set client and target requirements in shinyOAuth.
-#' @return An R6 client with these methods:
+#' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$call(.fn, ...)} calls a fabricQueryR function and returns
 #'       its result, including resource objects. Omit \code{token} from
@@ -256,21 +260,23 @@ oauth_db_fabric <- function(
 #'       a fabricQueryR function directly.
 #'   }
 #' @details
-#' Create the client inside `server()`. Configure
-#' [oauth_db_microsoft_client()] for the services your app needs.
+#' Create the client inside `server()` and call its methods from render or
+#' reactive expressions. Configure [oauth_db_microsoft_client()] for the
+#' services your app needs first. Users need access to the Fabric items
+#' and data they query.
 #' @section Resource objects:
-#' fabricQueryR objects, such as a Lakehouse, keep the authorization used to
-#' create them. Put the lookup in `reactive()` so a change of account obtains
-#' a new object. The object's methods can then use the same sign-in.
+#' A fabricQueryR object, such as a Lakehouse, keeps the authorization used
+#' to create it. Put the lookup inside `reactive()` so it runs again when
+#' the visitor changes accounts, as in the example.
 #'
-#' Use [oauth_db_fabric_sql()] for a DBI connection managed by shinyOAuthDB.
+#' For a DBI connection managed by shinyOAuthDB, use [oauth_db_fabric_sql()].
 #' Your app must close connections it opens through fabricQueryR functions
-#' or resource methods.
+#' or object methods.
 #' @section Custom token targets:
-#' The `targets` mapping selects the services the client can use. DAX and
-#' GraphQL share the Power BI resource and must use the same target;
-#' different resources need different targets. Tokens are obtained only
-#' when a service needs them.
+#' The `targets` mapping selects the service tokens this client can use.
+#' DAX and GraphQL share the Power BI resource and must use the same target;
+#' different resources need different targets. Tokens are obtained when a
+#' service needs them.
 #' @examples
 #' \dontrun{
 #' # Microsoft client configured with services = c("fabric", "onelake"):
@@ -289,7 +295,6 @@ oauth_db_fabric <- function(
 #' @seealso [oauth_db_microsoft_client()], [oauth_db_fabric_sql()].
 #'   `vignette("fabric", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family platform API clients
 #' @export
 oauth_db_fabric_api <- function(
   authorization,

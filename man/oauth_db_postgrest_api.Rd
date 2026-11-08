@@ -17,19 +17,21 @@ oauth_db_postgrest_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{url}{HTTPS PostgREST base URL, including a reverse proxy path if needed.}
 
 \item{schema}{Exposed PostgreSQL schema, or \code{NULL} for the server default.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -38,11 +40,11 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 
 \item{ca_bundle}{Optional path to a trusted CA certificate bundle.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$select(table, select = "*", filters = list(), order = NULL,
       limit = NULL, offset = NULL, count = NULL, raw = FALSE)} reads one
@@ -56,40 +58,39 @@ Supply path segments such as \code{c("rpc", "my_function")}.
 }
 }
 \description{
-Read PostgreSQL tables and views or call exposed functions through
-PostgREST, using the visitor's current bearer token for each request.
+Read PostgreSQL tables or call database functions over a web API using
+each visitor's account. PostgREST checks their access token, and PostgreSQL
+grants and row policies determine which data they can access. No PostgreSQL
+driver is needed in R.
 }
 \details{
-The services-only PostgREST demo permits its exact loopback HTTP
-endpoint while the returned demo handle is active. All other endpoints
-require HTTPS. Stopping the demo revokes this exception for existing
-API clients too.
+Configure a shinyOAuth client for the provider trusted by PostgREST.
+Its access token must have the audience and role claims the server
+expects. PostgreSQL grants and row policies control data access.
 
-Configure a shinyOAuth client for the identity provider trusted by your
-PostgREST deployment. Its access token must be a JWT with the expected
-audience and role claims. PostgREST verifies the token; PostgreSQL grants
-and row-level security control which data the visitor can access.
-
-Create the client inside \code{server()} and call its methods in render or
-reactive expressions. No PostgreSQL driver or native OAuth hook is needed.
-\code{schema} uses Accept-Profile for reads and Content-Profile for writes.
-
-Each call pins its starting authorization, obtains a current access token,
-and discards responses after sign-out, account changes, or permission loss.
-GET and HEAD retry once after a 401 with a renewed token. POST, PATCH, PUT,
-and DELETE are never replayed automatically, including function calls.
+Create the client inside \code{server()} and call its methods from render or
+reactive expressions. Requests get a current token and discard results
+after sign-out or account changes. GET and HEAD can refresh and retry
+once after HTTP 401; writes and POST function calls don't retry.
 }
 \section{Results and pagination}{
 
-\code{select()} returns one page; the server can cap its size. Use \code{limit},
-\code{offset}, and a deterministic \code{order} to page explicitly. Set \code{count} to
-\code{"exact"}, \code{"planned"}, or \code{"estimated"} to request a total.
+\code{select()} returns one page, which the server can limit further. Use
+\code{limit}, \code{offset} and a stable \code{order} to fetch more. Set \code{count} to
+\code{"exact"}, \code{"planned"} or \code{"estimated"} to request a total.
 
-\code{raw = TRUE} returns an httr2 response, including Content-Range; inspect
-it with \code{httr2::resp_header()}. Otherwise JSON is decoded with large
-integers preserved as strings. Embedded resources may become nested data
-frames or list columns. An empty selection returns a zero-column data frame.
-Dates and decimal strings keep the server's JSON representation.
+Use \code{raw = TRUE} for an httr2 response and inspect its Content-Range with
+\code{httr2::resp_header()}. Otherwise selections return data frames, with
+large integers preserved as strings. Embedded resources can produce
+nested data frames or list columns. Empty selections have no column
+metadata. Dates and decimal strings keep their JSON representation.
+}
+
+\section{Local demo}{
+
+The services-only PostgREST demo allows its exact local HTTP endpoint
+while the demo handle is active. All other endpoints require HTTPS.
+Stopping the demo removes that exception for existing clients too.
 }
 
 \examples{
@@ -104,18 +105,4 @@ output$rows <- shiny::renderTable({
 }
 \seealso{
 \code{vignette("postgrest", package = "shinyOAuthDB")}.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

@@ -1,7 +1,8 @@
 #' Query Databricks SQL as the signed-in user
 #'
-#' Query a Databricks SQL warehouse with DBI or dbplyr through brickster.
-#' Users can sign in with Databricks OAuth or Microsoft Entra.
+#' Query Databricks tables with each visitor's account and data permissions.
+#' You connect to a SQL warehouse, which supplies the compute for queries.
+#' The connection works with DBI or dbplyr through the brickster package.
 #'
 #' @inheritParams oauth_db_connect
 #' @param host Databricks workspace hostname or HTTPS origin.
@@ -13,16 +14,21 @@
 #'   with Microsoft sign-in.
 #' @param target Token target name. Defaults to `"databricks"` for Entra.
 #'   Databricks OAuth uses the authorization's default token.
-#' @return A reactive function returning a brickster DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install brickster. Create `con` inside `server()` and get
-#' `connection <- con()` in a render or reactive expression before querying.
+#' Install brickster and use [oauth_db_databricks_client()] for Databricks
+#' sign-in. The user needs access to the workspace, SQL warehouse and data.
+#' For Azure Databricks with Entra, use [oauth_db_microsoft_client()] with
+#' `services = "databricks_entra"` and set `auth_mode = "entra"` here.
 #'
-#' For other brickster functions, use [oauth_db_databricks_api()].
+#' Create the helper inside `server()` and call `con()` before each query.
+#' Use [oauth_db_databricks_api()] to call other brickster functions.
 #' @section Connection lifetime:
-#' The helper replaces the connection when its stored token changes.
-#' A saved connection can retain its token after local sign-out; call
-#' `con()` for each operation.
+#' The helper replaces the connection when its token changes. A saved
+#' brickster connection can retain its old token after sign-out, so obtain
+#' the current connection through `con()` for every operation.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_databricks(
@@ -38,7 +44,6 @@
 #' @seealso [oauth_db_databricks_client()], [oauth_db_databricks_api()].
 #'   `vignette("databricks", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_databricks <- function(
   authorization,
@@ -132,24 +137,27 @@ oauth_db_databricks <- function(
 
 #' Call Databricks functions as the signed-in user
 #'
-#' Call brickster functions to list warehouses, run SQL, or use other
-#' Databricks APIs. The client supplies the workspace host and the user's
-#' credentials.
+#' Use Databricks APIs with each visitor's account. Pass a brickster function
+#' to the client's `$call()` method to list warehouses, run queries or perform
+#' other supported operations. The client supplies the workspace and the
+#' visitor's current token.
 #'
 #' @inheritParams oauth_db_databricks
-#' @return An R6 client with `$call(.fn, ...)`. Pass a brickster function as
+#' @return A client object with `$call(.fn, ...)`. Pass a brickster function as
 #'   `.fn` and its usual arguments through `...`, omitting `host` and
 #'   `token`. The method returns the function's result.
 #'   `$warehouses(timeout = 30)` lists visible SQL warehouses as a data frame
 #'   with `id`, `name` and `state`, following all result pages. Listing doesn't
 #'   start a warehouse or establish permission to run queries.
 #' @details
-#' Create the client inside `server()`. Set the authentication options when
-#' creating it; `$call()` uses those settings.
+#' Create the client inside `server()` and call its methods from render or
+#' reactive expressions. Choose authentication settings when creating the
+#' client; `$call()` supplies them to the brickster function.
+#' Use [oauth_db_databricks()] for a DBI connection managed by shinyOAuthDB.
 #' @section Longer operations:
-#' Each call obtains a current token. Polling and fetching within that
-#' brickster call keep the supplied token. The client doesn't retry the
-#' operation or close connections returned by the function.
+#' Each brickster call gets a current token. Polling and fetching within
+#' that call keep the supplied token. Operations don't retry automatically.
+#' Your app must close any connections returned by brickster functions.
 #' @examples
 #' \dontrun{
 #' databricks <- oauth_db_databricks_api(
@@ -163,7 +171,6 @@ oauth_db_databricks <- function(
 #' @seealso [oauth_db_databricks()], [oauth_db_databricks_client()].
 #'   `vignette("databricks", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family platform API clients
 #' @export
 oauth_db_databricks_api <- function(
   authorization,
@@ -311,21 +318,22 @@ oauth_db_databricks_api <- function(
 
 #' Set up Databricks OAuth sign-in
 #'
-#' Create a sign-in client for a Databricks workspace. Pass it to shinyOAuth's
-#' UI and server modules, then use the resulting authorization with
-#' [oauth_db_databricks()] or [oauth_db_databricks_api()].
+#' Set up sign-in for a Shiny app that uses a Databricks workspace. Pass
+#' this client to shinyOAuth's UI and server modules, then query with
+#' [oauth_db_databricks()] or [oauth_db_databricks_api()]. Each visitor uses
+#' their own Databricks account and data permissions.
 #'
 #' @inheritParams oauth_db_microsoft_client
 #' @param host Workspace hostname or HTTPS origin. Ignored when `provider`
 #'   is supplied.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
 #' @details
-#' Register the app and redirect URI with Databricks. The defaults request
-#' `all-apis` and refresh access; supply `scopes` to change them.
+#' Register your app and its exact redirect URI with Databricks. The defaults
+#' request `all-apis` and refresh access; use `scopes` to replace them.
+#' Omit `client_secret` for a public registration without a secret.
 #'
-#' For a public app registration without a secret, omit `client_secret`.
-#' For Azure Databricks with Entra tokens, use [oauth_db_microsoft_client()]
-#' with `services = "databricks_entra"`.
+#' For Azure Databricks using Microsoft Entra tokens, use
+#' [oauth_db_microsoft_client()] with `services = "databricks_entra"`.
 #' @examples
 #' \dontrun{
 #' client <- oauth_db_databricks_client(
@@ -338,7 +346,6 @@ oauth_db_databricks_api <- function(
 #' @seealso [oauth_db_databricks_provider()].
 #'   `vignette("databricks", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family sign-in configuration
 #' @export
 oauth_db_databricks_client <- function(
   host,
@@ -376,9 +383,10 @@ oauth_db_databricks_client <- function(
 
 #' Create a Databricks OAuth provider
 #'
-#' Use this to choose provider settings when constructing
-#' `shinyOAuth::oauth_client()` yourself. For a typical app, use
-#' [oauth_db_databricks_client()].
+#' Describe a Databricks workspace's sign-in service when building a custom
+#' client with `shinyOAuth::oauth_client()`. The provider supplies the sign-in
+#' and token endpoints. For the usual app setup, use
+#' [oauth_db_databricks_client()] instead.
 #'
 #' @param host Databricks workspace hostname or HTTPS origin.
 #' @param token_auth_style `"header"` for a client with a secret, or
@@ -387,12 +395,12 @@ oauth_db_databricks_client <- function(
 #'   replacing defaults.
 #' @return A shinyOAuth `OAuthProvider`.
 #' @details
-#' The function makes an HTTPS request to discover the workspace's sign-in
-#' endpoints.
+#' The function discovers the workspace's sign-in endpoints over HTTPS.
+#' Choose `token_auth_style` to match the app registration: `"header"` for
+#' a client with a secret, or `"public"` for one registered without a secret.
 #' @seealso [oauth_db_databricks_client()].
 #'   `vignette("databricks", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family sign-in configuration
 #' @export
 oauth_db_databricks_provider <- function(
   host,

@@ -1,7 +1,9 @@
 #' Query BigQuery as the signed-in user
 #'
-#' Run GoogleSQL and browse datasets with the visitor's Google account.
-#' Queries return data frames for use in your Shiny app.
+#' Run BigQuery SQL and browse datasets using each visitor's Google account.
+#' Queries run as jobs in your chosen Google Cloud project and return data
+#' frames for the Shiny app. Users need permission to run jobs in that
+#' project and read the data.
 #'
 #' @inheritParams oauth_db_connect
 #' @param project Google Cloud project in which to run and bill queries.
@@ -10,7 +12,7 @@
 #'   `NULL` lets BigQuery choose it.
 #' @param timeout Maximum seconds to submit, poll, and fetch an operation.
 #' @param page_size Maximum number of rows requested per result page.
-#' @return An R6 client with these methods:
+#' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$query(sql, parameters = NULL, parameter_types = NULL,
 #'       maximum_bytes_billed = NULL, use_query_cache = TRUE, raw = FALSE)}
@@ -20,40 +22,37 @@
 #'       \code{dataset} uses the client's default.
 #'   }
 #' @details
-#' Create the client inside `server()` and call its methods inside render or
+#' Create the client inside `server()` and call its methods from render or
 #' reactive expressions. Use [oauth_db_bigquery_client()] for Google sign-in.
-#' Users need permission to create query jobs in `project` and read the data.
-#' The client uses BigQuery's REST API; bigrquery and ODBC aren't required.
-#' Dataset discovery fails if BigQuery reports unreachable locations, so a
-#' partial listing cannot appear as a complete or empty collection.
-#' @section Query parameters:
-#' Supply named R values in `parameters`, such as `list(country = "NL")`
-#' for SQL containing `@country`. Supported values include character,
-#' logical, integer, numeric, `Date`, and `POSIXct`.
+#' No BigQuery database driver is needed.
 #'
-#' Vectors become ARRAY parameters. Use a named character vector of
-#' `parameter_types` to override the scalar element type or type a
-#' `NULL` value. Use `"ARRAY<INT64>"` for a one-element array.
+#' Set `project` to the Google Cloud project that runs and bills queries.
+#' The data can be in another project the user can access. Set `location`
+#' to match the datasets you query.
+#' @section Query parameters:
+#' Use named R values in `parameters`, such as `list(country = "NL")` for
+#' SQL containing `@country`. Character, logical, integer, numeric, `Date`
+#' and `POSIXct` values are supported; vectors become arrays.
+#'
+#' Use a named character vector of `parameter_types` to choose the type or
+#' type a `NULL` value. Use `"ARRAY<INT64>"` for a one-element integer array.
 #' @section Query options:
 #' Set `maximum_bytes_billed` to limit the bytes a query may bill.
 #' Set `use_query_cache = FALSE` to disable cached query results.
 #' @section Result types:
-#' INT64 and decimal columns remain strings to preserve precision.
-#' DATE becomes `Date`, TIMESTAMP becomes UTC `POSIXct`, and nested or
-#' repeated fields become list columns. BYTES fields keep their REST
-#' representation.
+#' INT64 and decimal columns stay as strings to preserve precision. Dates
+#' become `Date`, timestamps become UTC `POSIXct`, and nested or repeated
+#' fields use list columns. BYTES fields keep their API representation.
 #'
-#' `raw = TRUE` returns an R list with the combined REST response, schema,
-#' and job reference. DML may return a data frame with no columns; use the
-#' raw result to inspect `numDmlAffectedRows`.
+#' Use `raw = TRUE` for the combined API response, schema and job reference.
+#' For statements that change data, inspect `numDmlAffectedRows` in that
+#' result; the data frame can have no columns.
 #' @section Longer queries:
-#' Queries run synchronously and collect their results in R memory.
+#' Queries wait for completion and collect all result pages in R memory.
 #' A timeout or sign-out stops fetching results but doesn't cancel a
-#' submitted BigQuery job.
-#'
-#' Each request obtains a current token for the authorization that started
-#' the operation. A 401 response triggers one refresh attempt. Other errors
-#' stop the operation without resubmitting SQL.
+#' submitted BigQuery job. Each request uses a current token. HTTP 401 can
+#' trigger one refresh attempt; other errors stop the operation without
+#' resubmitting SQL.
 #' @examples
 #' \dontrun{
 #' bigquery <- oauth_db_bigquery_api(
@@ -69,7 +68,6 @@
 #' @seealso [oauth_db_bigquery_client()].
 #'   `vignette("bigquery", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family platform API clients
 #' @export
 oauth_db_bigquery_api <- function(
   authorization,
@@ -124,16 +122,19 @@ oauth_db_bigquery_api <- function(
 
 #' Set up Google sign-in for BigQuery
 #'
-#' Create a sign-in client for a Shiny app that queries BigQuery.
-#' Pass it to shinyOAuth's UI and server modules, then query with
-#' [oauth_db_bigquery_api()].
+#' Set up Google sign-in for a Shiny app that queries BigQuery. The client
+#' holds your app registration and requested permissions. Pass it to
+#' shinyOAuth's UI and server modules, then use [oauth_db_bigquery_api()]
+#' to query with each visitor's Google account.
 #'
 #' @inheritParams oauth_db_microsoft_client
 #' @param client_secret Client secret from a Google Web OAuth registration.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
 #' @details
-#' Register a Web OAuth client in Google Cloud. Users need access to the
-#' query project and datasets.
+#' Register a Web OAuth client in Google Cloud with your app's exact
+#' redirect URI. Create this client outside `server()`; the registration is
+#' shared by the app, while each visitor's sign-in stays in their own session.
+#' Users need access to the query project and datasets.
 #' @examples
 #' \dontrun{
 #' client <- oauth_db_bigquery_client(
@@ -145,7 +146,6 @@ oauth_db_bigquery_api <- function(
 #' @seealso [oauth_db_bigquery_api()].
 #'   `vignette("bigquery", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family sign-in configuration
 #' @export
 oauth_db_bigquery_client <- function(
   client_id,

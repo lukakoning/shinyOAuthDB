@@ -1,62 +1,55 @@
 #' Query ClickHouse as the signed-in user
 #'
-#' Run SQL over ClickHouse's HTTPS interface with the visitor's current
-#' bearer token. Query results are returned as data frames.
+#' Query ClickHouse data using the signed-in visitor's database permissions.
+#' The client sends their access token with SQL requests over HTTPS and
+#' returns data frames. No database driver is needed.
 #'
 #' @inheritParams oauth_db_connect
 #' @param url HTTPS query endpoint, including its port and proxy path if needed.
 #' @param database Default database, or `NULL` for the user's server default.
 #' @param timeout Maximum seconds for one HTTP operation.
 #' @param ca_bundle Optional trusted CA certificate bundle path.
-#' @return An R6 client with these methods:
+#' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$query(sql, parameters = list(), raw = FALSE)} returns a
-#'       data frame, or the parsed JSONCompact response when `raw = TRUE`.
+#'       data frame, or the parsed server response when `raw = TRUE`.
 #'     \item \code{$execute(sql, parameters = list())} runs a statement
 #'       without collecting a result and invisibly returns its httr2 response.
 #'   }
 #' @details
-#' The endpoint must accept externally issued bearer tokens. Custom identity
-#' providers currently require ClickHouse Cloud Enterprise, service version
-#' 26.4 or later (26.8 for EC signing keys). This helper does not use Cloud
-#' management API keys, database passwords, or a service account.
+#' Configure your service to accept access tokens from the app's sign-in
+#' provider. Custom providers require ClickHouse Cloud Enterprise, service
+#' version 26.4 or later (26.8 for EC signing keys). The ClickHouse vignette
+#' explains the service setup.
 #'
-#' Configure a shinyOAuth client for the provider and audience trusted by
-#' your ClickHouse service. Create the API client inside `server()` and call
-#' its methods from render or reactive expressions. Tokens are obtained for
-#' each request, and a result is discarded if its authorization changes.
-#'
-#' SQL is sent as the POST body. Requests are never replayed automatically,
-#' including HTTP 401, because a submitted statement may have changed data.
-#' Token renewal before each request is handled by shinyOAuth. A timeout or
-#' sign-out stops local access; a submitted query may continue on the server.
+#' Create the client inside `server()` and call its methods from render or
+#' reactive expressions. Each request uses a current token and discards
+#' results after sign-out or account changes. SQL doesn't retry automatically,
+#' since a statement may already have executed. Submitted work can continue
+#' after a timeout or sign-out.
 #' @section Parameters:
-#' Use native typed placeholders, such as \code{{country:String}} or
-#' \code{{id:UInt64}}, with a named list of scalar R values in `parameters`.
-#' Values are sent separately through the HTTP `param_` mechanism. Character,
-#' logical, integer, numeric, `Date`, `POSIXct`, and missing values are
-#' supported. Use character values for exact large integers and decimals.
+#' Use typed placeholders such as \code{{country:String}} or
+#' \code{{id:UInt64}} and a named list of R values in `parameters`. Values
+#' are sent separately from SQL. Character, logical, integer, numeric,
+#' `Date`, `POSIXct` and missing values are supported. Use strings for exact
+#' large integers and decimals.
 #'
-#' `POSIXct` values are formatted as UTC wall-clock strings, regardless of
-#' their R display timezone. Use \code{DateTime('UTC')} for whole seconds or
-#' \code{DateTime64(6, 'UTC')} for fractional seconds. Always specify UTC in
-#' the placeholder: an unqualified type uses the server or session timezone,
-#' and another timezone annotation changes the instant represented by the
-#' formatted string. Timestamp encoding retains up to six fractional digits.
+#' R timestamps are formatted in UTC. Use \code{DateTime('UTC')} or
+#' \code{DateTime64(6, 'UTC')} in the placeholder to preserve the intended
+#' instant, including up to six fractional digits. A different SQL timezone
+#' would interpret the formatted value differently.
 #'
-#' For arrays, tuples, or already encoded values, wrap native ClickHouse
-#' escaped-format strings in `I()` to preserve their encoding.
+#' For arrays or tuples, wrap ClickHouse escaped-format strings in `I()`
+#' to preserve their encoding.
 #' @section Result types:
-#' Signed and unsigned integers of 64 bits or more, and decimals, remain
-#' strings. Smaller integers and floats become R numbers; Bool becomes
-#' logical and Date/Date32 become `Date`. Timestamps keep their server string
-#' representation. Arrays, maps, tuples, JSON, and other complex values stay
-#' in list columns. Empty results preserve column metadata.
+#' Integers of 64 bits or more and decimals stay as strings. Smaller
+#' integers and floats become R numbers, booleans become logical, and dates
+#' become `Date`. Timestamps keep their server string format; complex values
+#' use list columns. Empty results preserve column metadata.
 #'
-#' Omit FORMAT clauses and output-format overrides from SQL. The client
-#' requests JSONCompact with exact numeric quoting and validates the entire
-#' response before returning any rows. `raw = TRUE` preserves metadata and
-#' statistics, with JSON arrays decoded as R lists.
+#' Leave FORMAT clauses and output-format overrides out of SQL. Use
+#' `raw = TRUE` for the parsed server response, including metadata and
+#' statistics, with JSON arrays represented as R lists.
 #' @examples
 #' \dontrun{
 #' clickhouse <- oauth_db_clickhouse_api(auth$connection,
@@ -67,7 +60,6 @@
 #' })
 #' }
 #' @seealso `vignette("clickhouse", package = "shinyOAuthDB")`.
-#' @family platform API clients
 #' @export
 oauth_db_clickhouse_api <- function(
   authorization,

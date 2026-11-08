@@ -20,9 +20,9 @@ oauth_db_hana(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{server}{One HANA SQL endpoint hostname or IPv4 address, without a
 protocol or port.}
@@ -46,44 +46,44 @@ SAP HANA Client with JWT authentication support.}
 \item{ssl_trust_store}{Optional trust-store path for the SAP HANA Client's
 TLS provider. \code{NULL} uses the client's configured trust store.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Open a DBI connection to SAP HANA or SAP HANA Cloud using the visitor's
-JWT access token. HANA maps the token's external identity to a database
-user and applies that user's privileges.
+Read SAP HANA or HANA Cloud data using each visitor's database privileges.
+HANA checks their signed access token and maps it to a database user.
+The helper provides a DBI connection for SQL or dbplyr queries.
 }
 \details{
-Install odbc and SAP HANA Client's ODBC driver. Configure a JWT provider,
-signing-certificate trust, external-identity mappings and user privileges
-in the target database. The OAuth provider must issue a JWT access token
-accepted by this configuration. Browser SSO for SAP BTP alone does not
-establish SQL access. There is no universal SAP scope or token audience.
+Install odbc and SAP HANA Client's ODBC driver. Configure HANA to trust
+your provider's JWT access tokens, map their identities to database users
+and grant access to the data. The scope and audience depend on that
+configuration; a SAP BTP browser login alone doesn't establish SQL access.
 
-The helper supplies the token as \code{PWD} with an empty \code{UID} and restricts
-\code{authenticationMethods} to \code{jwt}. TLS encryption, certificate validation
-and matching of the endpoint hostname are required. DSNs, saved user
-credentials, session cookies and alternate authentication methods cannot
-be selected through this helper.
+Create the helper inside \code{server()} and call \code{con()} before each query.
+The connection requires encryption and a trusted server certificate.
+A valid SQL session stays open through ordinary token renewal, with the
+identity and privileges established when it connected.
 
-Create the helper inside \code{server()} and call \code{connection <- con()} before
-each query. Valid SQL sessions survive ordinary token renewal. Account
-changes, permission loss, sign-out and Shiny session end close them.
-Native automatic reconnect is disabled; reopen a broken connection
-through \code{con()} to supply a current token. Failed queries are not replayed.
+Sign-out, account changes or session end close the connection. If it
+breaks, the next \code{con()} reconnects with a current token. The helper
+doesn't replay a failed query.
 }
 \examples{
 \dontrun{
@@ -101,19 +101,4 @@ output$rows <- shiny::renderTable({
 \seealso{
 \code{vignette("hana", package = "shinyOAuthDB")} for sign-in,
 database configuration and a complete Shiny app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

@@ -18,9 +18,9 @@ oauth_db_azure_sql(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
@@ -29,11 +29,13 @@ that calls \code{auth$connection(id)}.}
 \item{...}{Named odbc connection options, such as \code{timeout}.
 The helper sets authentication and verified TLS.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{driver}{Installed ODBC driver name.}
 
@@ -42,27 +44,30 @@ consent and set the client's permission requirements in shinyOAuth.}
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Query Azure SQL with the visitor's Microsoft account using DBI or dbplyr.
-Use this for Azure SQL Database, SQL Managed Instance, or a compatible
-Synapse SQL endpoint.
+Read Azure SQL data in a Shiny app using each visitor's Microsoft account
+and database permissions. The helper provides a DBI connection for SQL
+or dbplyr queries. It also works with SQL Managed Instance and compatible
+Synapse SQL endpoints.
 }
 \details{
-Install odbc and Microsoft ODBC Driver 18 for SQL Server. The database must
-accept Microsoft Entra authentication. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
-with \code{services = "sql"} to set up sign-in.
+Install odbc and Microsoft ODBC Driver 18 for SQL Server. Configure the
+database for Microsoft Entra sign-in and give users access to the data.
+Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with \code{services = "sql"} for sign-in.
 
-Create \code{con} inside \code{server()}. In a render or reactive expression,
-get \code{connection <- con()} before calling DBI or dbplyr. Connections open
-on first use and close when the authorization or Shiny session ends.
+Create the helper inside \code{server()} and call \code{con()} before querying.
+The connection opens on first use and closes when the authorization or
+Shiny session ends. See \code{\link[=oauth_db_connect]{oauth_db_connect()}} for shared session behavior.
 
-For names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
+For connection names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
 }
 \examples{
 \dontrun{
@@ -82,19 +87,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}}.
 \code{vignette("azure-sql", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

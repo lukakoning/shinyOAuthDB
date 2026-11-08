@@ -20,9 +20,9 @@ oauth_db_trino(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{host}{Cluster hostname or HTTPS origin.}
 
@@ -38,45 +38,47 @@ account. Use a reactive function when the username can change.}
 
 \item{ca_bundle}{Optional CA certificate bundle path for RTrino.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an RTrino DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Query a self-hosted Trino cluster or Starburst Enterprise using DBI or
-dbplyr through RTrino. Users sign in with an identity provider accepted
-by the cluster.
+Query data through Trino or Starburst Enterprise with each visitor's
+account and cluster permissions. The RTrino connection supports DBI and
+dbplyr. A catalog selects the data source; a schema selects a group of
+tables within it.
 }
 \details{
-Install RTrino 0.1.0 or later. Create \code{con} inside \code{server()} and get
-\code{connection <- con()} inside a render or reactive expression before
-querying.
+Install RTrino 0.1.0 or later. Create the helper inside \code{server()} and
+call \code{con()} inside a render or reactive expression before querying.
 }
 \section{Sign-in settings}{
 
-Configure a shinyOAuth client for the cluster's trusted issuer and
-audience. The \code{user} value must match the cluster's principal mapping;
-the server checks impersonation permissions.
+Configure a shinyOAuth client for the cluster's trusted provider and
+audience. Set \code{user} to match the cluster's identity mapping; the server
+checks that the visitor can use that username.
 }
 
 \section{Connection lifetime}{
 
-RTrino gets a current token for each HTTP request, including result pages.
-Ordinary token refresh preserves the connection. Account or username
-changes replace it; sign-out and session end close it.
-
-A saved authentication callback stays tied to its original authorization.
+RTrino gets a current token for each request, including result pages.
+Token renewal preserves the connection. Account or username changes
+replace it; sign-out and session end close it.
 }
 
 \examples{
@@ -97,19 +99,4 @@ output$rows <- shiny::renderTable({
 \seealso{
 \code{vignette("trino", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}}
 }
-\concept{database connections}

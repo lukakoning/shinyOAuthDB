@@ -14,9 +14,9 @@ oauth_db_fabric_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{targets}{Named vector or list mapping services to shinyOAuth token
 targets. Defaults match \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}. A supplied mapping
@@ -29,11 +29,11 @@ by service. Set client and target requirements in shinyOAuth.}
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$call(.fn, ...)} calls a fabricQueryR function and returns
 its result, including resource objects. Omit \code{token} from
@@ -43,31 +43,34 @@ a fabricQueryR function directly.
 }
 }
 \description{
-List workspaces, query semantic models, or read OneLake data through
-fabricQueryR. Pass a function and its usual arguments to \verb{$call()};
-the client supplies the visitor's credentials.
+Use Fabric services with each visitor's Microsoft account. Pass a
+fabricQueryR function to \verb{$call()} to list workspaces, query semantic
+models or read OneLake data. The client supplies the user's credentials
+and returns the function's result.
 }
 \details{
-Create the client inside \code{server()}. Configure
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} for the services your app needs.
+Create the client inside \code{server()} and call its methods from render or
+reactive expressions. Configure \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} for the
+services your app needs first. Users need access to the Fabric items
+and data they query.
 }
 \section{Resource objects}{
 
-fabricQueryR objects, such as a Lakehouse, keep the authorization used to
-create them. Put the lookup in \code{reactive()} so a change of account obtains
-a new object. The object's methods can then use the same sign-in.
+A fabricQueryR object, such as a Lakehouse, keeps the authorization used
+to create it. Put the lookup inside \code{reactive()} so it runs again when
+the visitor changes accounts, as in the example.
 
-Use \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}} for a DBI connection managed by shinyOAuthDB.
+For a DBI connection managed by shinyOAuthDB, use \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}.
 Your app must close connections it opens through fabricQueryR functions
-or resource methods.
+or object methods.
 }
 
 \section{Custom token targets}{
 
-The \code{targets} mapping selects the services the client can use. DAX and
-GraphQL share the Power BI resource and must use the same target;
-different resources need different targets. Tokens are obtained only
-when a service needs them.
+The \code{targets} mapping selects the service tokens this client can use.
+DAX and GraphQL share the Power BI resource and must use the same target;
+different resources need different targets. Tokens are obtained when a
+service needs them.
 }
 
 \examples{
@@ -90,18 +93,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}}.
 \code{vignette("fabric", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

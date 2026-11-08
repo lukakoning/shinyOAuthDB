@@ -17,9 +17,9 @@ oauth_db_fabric_sql(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
@@ -30,51 +30,54 @@ that calls \code{auth$connection(id)}.}
 
 \item{backend}{SQL driver interface: \code{"odbc"} (default) or \code{"adbc"}.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning a DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Read data from a Fabric Warehouse, Lakehouse SQL analytics endpoint, or
-SQL Database with DBI. The default ODBC backend also supports dbplyr.
-Queries use the visitor's Microsoft account.
+Read tables from a Fabric Warehouse, Lakehouse SQL endpoint or SQL
+Database using each visitor's Microsoft account. The helper provides a
+DBI connection for SQL queries; its default ODBC backend also supports
+dbplyr.
 }
 \details{
 Install fabricQueryR and the SQL driver. Copy the server and database
-from the item's SQL connection settings. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
-with \code{services = "sql"} for sign-in.
+from the Fabric item's SQL connection settings. Use
+\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with \code{services = "sql"} for sign-in.
+Users need access to the item and its data.
 
-Create \code{con} inside \code{server()} and get \code{connection <- con()} inside a
-render or reactive expression before querying. The helper reuses the
-connection and closes it when the authorization or session ends.
+Create the helper inside \code{server()} and call \code{con()} before querying.
+The helper reuses the connection and closes it when the authorization
+or Shiny session ends.
 }
 \section{SQL drivers}{
 
-The default ODBC backend supports DBI and dbplyr. To use ADBC for DBI or
-Arrow queries, install adbi, adbcdrivermanager and the external MSSQL driver
-(version 1.5.0 or later), then pass \code{backend = "adbc"}.
-Use ODBC for dbplyr's SQL Server translations; the ADBC connection does not
-currently select that dialect.
+Use the default ODBC backend for DBI and dbplyr's SQL Server translations.
+For ADBC queries through DBI or Arrow, install adbi, adbcdrivermanager and
+the external MSSQL driver (1.5.0 or later), then set \code{backend = "adbc"}.
+ADBC doesn't select dbplyr's SQL Server dialect.
 
-ADBC connections reopen with a current token when \code{con()} is next called
-after token renewal. This closes outstanding results on the old connection.
-Consume and release results before starting another operation.
+After token renewal, ADBC replaces the connection on the next \code{con()} call.
+Consume and close outstanding results before starting another operation.
 
-Direct DBI reads use the driver's type conversions. For fabricQueryR's
-exact numeric conversion, call \code{fabricQueryR::fabric_sql_query()} through
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} with \code{backend = "adbc"} and
-\code{numeric_policy = "exact"}.
+DBI reads use the driver's type conversions. For fabricQueryR's exact
+numeric conversion, call \code{fabricQueryR::fabric_sql_query()} through
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} with \code{backend = "adbc"} and \code{numeric_policy = "exact"}.
 }
 
 \examples{
@@ -94,19 +97,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}, \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
 \code{vignette("fabric", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

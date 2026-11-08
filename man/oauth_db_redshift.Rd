@@ -19,9 +19,9 @@ oauth_db_redshift(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
@@ -37,46 +37,43 @@ The helper sets authentication and verified TLS.}
 \item{token_type}{\code{"EXT_JWT"} for an external provider's JWT access token,
 or \code{"ACCESS_TOKEN"} for an IAM Identity Center access token.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Query Redshift with a visitor's own access using DBI or dbplyr.
-This helper connects through Redshift's IAM Identity Center integration.
+Read Redshift data in a Shiny app using each visitor's database
+permissions. The helper opens a DBI connection through Redshift's
+IAM Identity Center integration for SQL or dbplyr queries.
 }
 \details{
-Install odbc and the AWS Redshift ODBC 2.x driver with
-\code{IdpTokenAuthPlugin} support. The deployment must trust your app's sign-in
-provider and map users to database permissions. Configure a shinyOAuth
-client for that provider and the required token audience.
+Install odbc and the Redshift ODBC 2.x driver with \code{IdpTokenAuthPlugin}.
+Configure IAM Identity Center to trust your sign-in provider and map users
+to database permissions. Your shinyOAuth client must obtain a token for
+the audience accepted by that integration.
 
-Create \code{con} inside \code{server()} and call it before querying in a render
-or reactive expression.
+Create the helper inside \code{server()} and call \code{con()} before each query.
 }
 \section{Connection lifetime}{
 
-Connections open on first use and close on authorization changes,
-sign-out, or session end. Ordinary token refresh preserves an established
-SQL connection; a new connection obtains a current token.
-}
-
-\section{Authentication options}{
-
-The helper passes the token to the driver's \code{IdpTokenAuthPlugin}.
-Use one of the two \code{token_type} values above. Identity-enhanced IAM
-credentials and \code{SUBJECT_TOKEN} use separate authentication flows.
+Connections open on first use and close after sign-out, account changes
+or session end. An established SQL connection stays open through ordinary
+token renewal; a new connection gets a current token.
 }
 
 \examples{
@@ -97,19 +94,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}.
 \code{vignette("redshift", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

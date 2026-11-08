@@ -15,25 +15,16 @@ oauth_db_snowflake_provider(server, ...)
 A shinyOAuth \code{OAuthProvider} for Snowflake's own OAuth integration.
 }
 \description{
-Use this to choose provider settings when constructing
-\code{shinyOAuth::oauth_client()} yourself. For a typical app, use
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
+Describe Snowflake's sign-in service when building a custom client with
+\code{shinyOAuth::oauth_client()}. For an app using Snowflake's own OAuth
+integration, \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}} supplies the usual settings.
 }
 \details{
-External OAuth uses the external identity provider's configuration.
+This provider uses Snowflake's own OAuth endpoints. An account using
+External OAuth needs the external sign-in provider's configuration.
 }
 \seealso{
 \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
 \code{vignette("snowflake", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }
-\concept{sign-in configuration}

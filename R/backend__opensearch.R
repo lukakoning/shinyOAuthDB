@@ -1,49 +1,46 @@
 #' Query OpenSearch as the signed-in user
 #'
-#' Search documents, run aggregations or use the SQL plugin with the visitor's
-#' current OAuth access token. Results retain OpenSearch's native JSON structure.
+#' Search OpenSearch documents and calculate summaries using each visitor's
+#' permissions. An index holds the documents you query. The client supports
+#' JSON searches and the SQL plugin, returning results as R lists.
 #'
 #' @inheritParams oauth_db_connect
 #' @param url HTTPS OpenSearch cluster base URL, including a proxy path if needed.
 #' @param timeout Maximum seconds for one HTTP operation, including a read retry.
 #' @param ca_bundle Optional path to a trusted CA certificate bundle.
-#' @return An R6 client with these methods:
+#' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$search(index = NULL, body = list(), query = list(), raw = FALSE)}
-#'       posts a Query DSL object to \code{/<index>/_search}. An index may be a
-#'       name, pattern or character vector. \code{NULL} uses cluster-wide search.
-#'     \item \code{$sql(sql, parameters = list(), raw = FALSE)} posts SQL to
-#'       \code{/_plugins/_sql}, returning its native JDBC-format JSON response.
-#'       Parameters are an unnamed list of \code{list(type = "integer", value = 30)}
-#'       descriptors for positional \code{?} placeholders.
+#'       searches an index using an OpenSearch JSON query. The index can be a
+#'       name, pattern or character vector; \code{NULL} searches across the cluster.
+#'     \item \code{$sql(sql, parameters = list(), raw = FALSE)} runs a query
+#'       through the SQL plugin and returns its native JSON result.
 #'     \item \code{$request(path, method = "GET", query = list(), body = NULL,
-#'       raw = FALSE)} sends a native JSON request. Supply relative path segments,
-#'       for example \code{c("orders", "_doc", "42")}.
+#'       raw = FALSE)} calls a JSON API. Supply relative path segments,
+#'       such as \code{c("orders", "_doc", "42")}.
 #'   }
 #' @details
-#' Configure OpenSearch's Security plugin to accept your provider's JWT access
-#' tokens using OpenID Connect or JWT authentication. It must validate the
-#' issuer and audience and map the token's subject and backend roles to
-#' OpenSearch permissions. A Dashboards browser login alone is insufficient.
-#' This client uses bearer tokens, not AWS SigV4 or a shared service account.
+#' Configure OpenSearch's Security plugin to accept your provider's tokens
+#' and map the user and role claims to OpenSearch permissions. The endpoint
+#' must accept bearer tokens; AWS SigV4 needs a different client.
 #'
-#' Create the client in `server()`. Each operation obtains a current token,
-#' pins its authorization, and discards responses after account changes,
-#' sign-out or lost permissions. GET and HEAD retry once after HTTP 401.
-#' POST, PUT, PATCH and DELETE are never replayed automatically, including
-#' searches and SQL queries. shinyOAuth renews tokens before requests.
+#' Create the client inside `server()` and call its methods from render or
+#' reactive expressions. Each operation uses a current token and discards
+#' results after sign-out or account changes. GET and HEAD can refresh and
+#' retry once after HTTP 401; POST searches, SQL and writes don't retry.
 #'
-#' JSON objects become named lists, arrays become lists, and large integers
-#' remain strings. Search hits, aggregations, totals and SQL schema metadata
-#' are preserved rather than flattened into a data frame. `raw = TRUE`
-#' returns an httr2 response. Searches that time out or report failed shards
-#' raise an error unless `raw = TRUE`; use `$request()` for filtered responses.
+#' Search results keep `hits`, `aggregations` and totals as R lists. SQL
+#' results keep their `schema` and `datarows`. Large integers stay as strings.
+#' Use `raw = TRUE` for an httr2 response. Searches reporting a timeout or
+#' failed shards raise an error unless you request the raw response.
+#' @section SQL parameters and pagination:
+#' SQL requires the server's SQL plugin. Use `?` placeholders with an
+#' unnamed list of typed values, such as
+#' `list(list(type = "integer", value = 30))` in `parameters`.
 #'
-#' SQL requires the server's SQL plugin. There is no automatic pagination:
-#' search pages use native `from`/`size` or `search_after` in the body.
-#' Advanced SQL cursors and other JSON APIs are available through `$request()`;
-#' consume or close cursors before changing accounts. Bulk NDJSON requests
-#' are outside this client's JSON interface.
+#' Fetch search pages explicitly with `from`/`size` or `search_after`.
+#' Use `$request()` for SQL cursors and other JSON APIs; consume or close
+#' cursors before changing accounts.
 #' @examples
 #' \dontrun{
 #' search <- oauth_db_opensearch_api(auth$connection,
@@ -56,7 +53,6 @@
 #' }
 #' @seealso `vignette("opensearch", package = "shinyOAuthDB")`.
 #'   [oauth_db_demo()] runs a local OpenSearch and Keycloak example.
-#' @family platform API clients
 #' @export
 oauth_db_opensearch_api <- function(
   authorization,

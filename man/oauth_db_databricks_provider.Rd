@@ -23,26 +23,18 @@ replacing defaults.}
 A shinyOAuth \code{OAuthProvider}.
 }
 \description{
-Use this to choose provider settings when constructing
-\code{shinyOAuth::oauth_client()} yourself. For a typical app, use
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
+Describe a Databricks workspace's sign-in service when building a custom
+client with \code{shinyOAuth::oauth_client()}. The provider supplies the sign-in
+and token endpoints. For the usual app setup, use
+\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}} instead.
 }
 \details{
-The function makes an HTTPS request to discover the workspace's sign-in
-endpoints.
+The function discovers the workspace's sign-in endpoints over HTTPS.
+Choose \code{token_auth_style} to match the app registration: \code{"header"} for
+a client with a secret, or \code{"public"} for one registered without a secret.
 }
 \seealso{
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
 \code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }
-\concept{sign-in configuration}

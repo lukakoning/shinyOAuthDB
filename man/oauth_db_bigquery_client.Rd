@@ -30,13 +30,16 @@ oauth_db_bigquery_client(
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a sign-in client for a Shiny app that queries BigQuery.
-Pass it to shinyOAuth's UI and server modules, then query with
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}}.
+Set up Google sign-in for a Shiny app that queries BigQuery. The client
+holds your app registration and requested permissions. Pass it to
+shinyOAuth's UI and server modules, then use \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}}
+to query with each visitor's Google account.
 }
 \details{
-Register a Web OAuth client in Google Cloud. Users need access to the
-query project and datasets.
+Register a Web OAuth client in Google Cloud with your app's exact
+redirect URI. Create this client outside \code{server()}; the registration is
+shared by the app, while each visitor's sign-in stays in their own session.
+Users need access to the query project and datasets.
 }
 \examples{
 \dontrun{
@@ -51,14 +54,4 @@ client <- oauth_db_bigquery_client(
 \code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}}.
 \code{vignette("bigquery", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
-\code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }
-\concept{sign-in configuration}

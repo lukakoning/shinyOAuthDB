@@ -18,9 +18,9 @@ oauth_db_databricks(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
@@ -37,33 +37,40 @@ with Microsoft sign-in.}
 \item{target}{Token target name. Defaults to \code{"databricks"} for Entra.
 Databricks OAuth uses the authorization's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning a brickster DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Query a Databricks SQL warehouse with DBI or dbplyr through brickster.
-Users can sign in with Databricks OAuth or Microsoft Entra.
+Query Databricks tables with each visitor's account and data permissions.
+You connect to a SQL warehouse, which supplies the compute for queries.
+The connection works with DBI or dbplyr through the brickster package.
 }
 \details{
-Install brickster. Create \code{con} inside \code{server()} and get
-\code{connection <- con()} in a render or reactive expression before querying.
+Install brickster and use \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}} for Databricks
+sign-in. The user needs access to the workspace, SQL warehouse and data.
+For Azure Databricks with Entra, use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with
+\code{services = "databricks_entra"} and set \code{auth_mode = "entra"} here.
 
-For other brickster functions, use \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
+Create the helper inside \code{server()} and call \code{con()} before each query.
+Use \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}} to call other brickster functions.
 }
 \section{Connection lifetime}{
 
-The helper replaces the connection when its stored token changes.
-A saved connection can retain its token after local sign-out; call
-\code{con()} for each operation.
+The helper replaces the connection when its token changes. A saved
+brickster connection can retain its old token after sign-out, so obtain
+the current connection through \code{con()} for every operation.
 }
 
 \examples{
@@ -83,19 +90,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
 \code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

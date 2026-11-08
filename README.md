@@ -13,7 +13,8 @@ your Shiny dashboard can query the data as that analyst and automatically use th
 
 The OAuth sign-in and data access work like this:
 
-1. A user navigates to your Shiny app. Your Shiny app shows a **Sign in** button.
+1. A user navigates to your Shiny app. Your Shiny app shows a **Sign in** button
+   (shinyOAuth can also redirect users to the provider automatically).
    When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow.
    The user is sent to the sign-in page of the database or data platform,
    or to a trusted sign-in service (like your organization's login service).

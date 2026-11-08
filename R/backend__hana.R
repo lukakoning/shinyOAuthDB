@@ -1,8 +1,8 @@
 #' Query SAP HANA as the signed-in user
 #'
-#' Open a DBI connection to SAP HANA or SAP HANA Cloud using the visitor's
-#' JWT access token. HANA maps the token's external identity to a database
-#' user and applies that user's privileges.
+#' Read SAP HANA or HANA Cloud data using each visitor's database privileges.
+#' HANA checks their signed access token and maps it to a database user.
+#' The helper provides a DBI connection for SQL or dbplyr queries.
 #'
 #' @inheritParams oauth_db_connect
 #' @param server One HANA SQL endpoint hostname or IPv4 address, without a
@@ -20,25 +20,23 @@
 #' @param ... Result options `timeout`, `timezone`, `timezone_out`, `bigint`,
 #'   `encoding`, `name_encoding`, and `interruptible`. Native authentication,
 #'   routing, reconnect and TLS settings cannot be overridden.
-#' @return A reactive function returning an odbc DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install odbc and SAP HANA Client's ODBC driver. Configure a JWT provider,
-#'   signing-certificate trust, external-identity mappings and user privileges
-#'   in the target database. The OAuth provider must issue a JWT access token
-#'   accepted by this configuration. Browser SSO for SAP BTP alone does not
-#'   establish SQL access. There is no universal SAP scope or token audience.
+#' Install odbc and SAP HANA Client's ODBC driver. Configure HANA to trust
+#' your provider's JWT access tokens, map their identities to database users
+#' and grant access to the data. The scope and audience depend on that
+#' configuration; a SAP BTP browser login alone doesn't establish SQL access.
 #'
-#' The helper supplies the token as `PWD` with an empty `UID` and restricts
-#'   `authenticationMethods` to `jwt`. TLS encryption, certificate validation
-#'   and matching of the endpoint hostname are required. DSNs, saved user
-#'   credentials, session cookies and alternate authentication methods cannot
-#'   be selected through this helper.
+#' Create the helper inside `server()` and call `con()` before each query.
+#' The connection requires encryption and a trusted server certificate.
+#' A valid SQL session stays open through ordinary token renewal, with the
+#' identity and privileges established when it connected.
 #'
-#' Create the helper inside `server()` and call `connection <- con()` before
-#'   each query. Valid SQL sessions survive ordinary token renewal. Account
-#'   changes, permission loss, sign-out and Shiny session end close them.
-#'   Native automatic reconnect is disabled; reopen a broken connection
-#'   through `con()` to supply a current token. Failed queries are not replayed.
+#' Sign-out, account changes or session end close the connection. If it
+#' breaks, the next `con()` reconnects with a current token. The helper
+#' doesn't replay a failed query.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_hana(
@@ -53,7 +51,6 @@
 #' }
 #' @seealso `vignette("hana", package = "shinyOAuthDB")` for sign-in,
 #'   database configuration and a complete Shiny app.
-#' @family database connections
 #' @export
 oauth_db_hana <- function(
   authorization,

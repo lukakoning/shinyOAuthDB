@@ -21,9 +21,9 @@ oauth_db_starrocks(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{server}{One StarRocks frontend hostname or address.}
 
@@ -48,45 +48,45 @@ or \code{DFLT_BIGINT_BIND_STR}.}
 \item{plugin_dir}{Directory containing the driver's authentication plugins,
 or \code{NULL} for its installed default.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Open a DBI connection to StarRocks using its JWT authentication plugin
-and MySQL Connector/ODBC's OpenID Connect client plugin.
+Query StarRocks data with each visitor's account and database privileges.
+The helper opens a DBI connection for SQL or dbplyr, using the visitor's
+signed access token to authenticate.
 }
 \details{
-Configure StarRocks 3.5 or later with \code{authentication_jwt} or a JWT security
-integration, a trusted JWKS, issuer, audience, and principal claim. Configure
-shinyOAuth to obtain a JWT access token accepted by that integration.
-This helper supplies the access token; it does not substitute an ID token
-or launch the driver's own browser flow.
+Install odbc and MySQL Connector/ODBC 9.2 or later with its OpenID Connect
+plugin. Configure StarRocks 3.5 or later to accept JWT access tokens from
+your provider and map their identity claim to the requested \code{user}.
+The connection uses verified TLS; supply \code{ssl_ca} for a private CA.
 
-The driver reads the token from a temporary file during synchronous
-connection opening. The file is created in a private temporary directory
-and removed on success, error, or interrupt. On Windows its access rules
-inherit from R's temporary directory; use a private user temporary location.
-TLS verifies the server identity. DSNs, option files, and competing
-credentials cannot be supplied through \code{...}.
-Parameter binding uses the driver's client-side prepared statements
-(\code{NO_SSPS=1}) for compatibility with StarRocks' MySQL protocol.
+Create the helper inside \code{server()} and call \code{con()} before each query.
+Valid connections stay open through ordinary token renewal. Account or
+username changes and sign-out close them. Reopen a broken connection
+through \code{con()} to obtain a current token.
 
-Create the helper inside \code{server()} and call \code{con()} before each operation.
-Valid SQL sessions survive ordinary token renewal; account or username
-changes and sign-out close them. Reopen a broken connection through \code{con()};
-the original token file no longer exists after connection opening.
+The driver briefly reads the token from a temporary file, which the helper
+removes after connecting. On Windows, keep R's temporary directory private
+to the app's operating-system user. Authentication and TLS options are
+managed by the helper.
 }
 \examples{
 \dontrun{
@@ -106,19 +106,4 @@ output$rows <- shiny::renderTable({
 }
 \seealso{
 \code{vignette("starrocks", package = "shinyOAuthDB")}.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_snowflake]{oauth_db_snowflake()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

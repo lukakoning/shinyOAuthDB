@@ -14,9 +14,9 @@ oauth_db_fabric(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{service}{One of \code{"fabric"}, \code{"sql"}, \code{"dax"}, \code{"kql"}, \code{"onelake"},
 or \code{"graphql"}.}
@@ -30,22 +30,26 @@ service's read/query defaults.}
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function. Call \code{callback()} to get the function to pass
-as fabricQueryR's \code{token} argument.
+A reactive function, such as \code{callback}. Calling \code{callback()}
+returns the token callback to pass to a fabricQueryR function, as
+\code{token = callback()} in the example below.
 }
 \description{
-Use this to call a fabricQueryR function directly with the visitor's
-credentials. It supplies the callback expected by the function's \code{token}
-argument. For several services or resource objects, use
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
+Call a fabricQueryR function with the visitor's credentials for one
+Fabric service. This helper supplies a token callback: a function
+fabricQueryR calls when it needs a current access token. Use
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} when working with several services or resource
+objects such as Lakehouses.
 }
 \details{
-Create the helper inside \code{server()}. The callback obtains and renews tokens
-through shinyOAuth. It stays tied to the authorization that created it.
+Create the helper inside \code{server()}. Configure \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}}
+for the selected service first. shinyOAuth obtains or renews tokens when
+the callback needs them. Keep the callback in the Shiny session that
+created it.
 }
 \examples{
 \dontrun{
@@ -65,9 +69,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}.
 \code{vignette("fabric", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other advanced connection helpers:
-\code{\link[=oauth_db_connect]{oauth_db_connect()}},
-\code{\link[=oauth_db_token]{oauth_db_token()}}
 }
-\concept{advanced connection helpers}

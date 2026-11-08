@@ -1,8 +1,9 @@
 #' Query Trino as the signed-in user
 #'
-#' Query a self-hosted Trino cluster or Starburst Enterprise using DBI or
-#' dbplyr through RTrino. Users sign in with an identity provider accepted
-#' by the cluster.
+#' Query data through Trino or Starburst Enterprise with each visitor's
+#' account and cluster permissions. The RTrino connection supports DBI and
+#' dbplyr. A catalog selects the data source; a schema selects a group of
+#' tables within it.
 #'
 #' @inheritParams oauth_db_connect
 #' @param host Cluster hostname or HTTPS origin.
@@ -13,21 +14,20 @@
 #' @param ca_bundle Optional CA certificate bundle path for RTrino.
 #' @param ... RTrino connection options, such as `timeout`, `bigint`,
 #'   `query_max_run_time`, or `extra.headers`.
-#' @return A reactive function returning an RTrino DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install RTrino 0.1.0 or later. Create `con` inside `server()` and get
-#' `connection <- con()` inside a render or reactive expression before
-#' querying.
+#' Install RTrino 0.1.0 or later. Create the helper inside `server()` and
+#' call `con()` inside a render or reactive expression before querying.
 #' @section Sign-in settings:
-#' Configure a shinyOAuth client for the cluster's trusted issuer and
-#' audience. The `user` value must match the cluster's principal mapping;
-#' the server checks impersonation permissions.
+#' Configure a shinyOAuth client for the cluster's trusted provider and
+#' audience. Set `user` to match the cluster's identity mapping; the server
+#' checks that the visitor can use that username.
 #' @section Connection lifetime:
-#' RTrino gets a current token for each HTTP request, including result pages.
-#' Ordinary token refresh preserves the connection. Account or username
-#' changes replace it; sign-out and session end close it.
-#'
-#' A saved authentication callback stays tied to its original authorization.
+#' RTrino gets a current token for each request, including result pages.
+#' Token renewal preserves the connection. Account or username changes
+#' replace it; sign-out and session end close it.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_trino(
@@ -44,7 +44,6 @@
 #' }
 #' @seealso `vignette("trino", package = "shinyOAuthDB")` has sign-in setup
 #'   and a complete app.
-#' @family database connections
 #' @export
 oauth_db_trino <- function(
   authorization,

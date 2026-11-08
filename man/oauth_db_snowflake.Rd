@@ -20,9 +20,9 @@ oauth_db_snowflake(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{server}{Database hostname.}
 
@@ -45,27 +45,28 @@ supply the scope names configured by the integration.}
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named \code{con}. Call
+\code{connection <- con()} inside a render or reactive expression, then pass
+the connection to DBI. Before sign-in, the function waits quietly.
 }
 \description{
-Query Snowflake with the visitor's account and role using DBI or dbplyr.
-Set the warehouse, database, and schema for your queries, or use the
-account's defaults.
+Query Snowflake with each visitor's account and role. A role controls
+which data they can access, while a warehouse runs the queries. The
+connection works with DBI or dbplyr.
 }
 \details{
 Install odbc and the Snowflake ODBC driver. Use \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}
-for Snowflake's own OAuth integration, or a shinyOAuth client configured
-for your External OAuth provider.
+for Snowflake's own OAuth integration, or a shinyOAuth client for your
+external provider. The user needs access to the requested role, warehouse
+and data.
 
-Create \code{con} inside \code{server()} and get \code{connection <- con()} inside a
-render or reactive expression before querying. The helper opens the
-connection on first use and closes it when the authorization or session ends.
-
-For names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
+Create the helper inside \code{server()} and call \code{con()} before each query.
+The connection opens on first use and closes when the authorization or
+session ends. For names containing ODBC delimiters, use \code{\link[odbc:quote_value]{odbc::quote_value()}}.
 }
 \examples{
 \dontrun{
@@ -86,19 +87,4 @@ output$rows <- shiny::renderTable({
 \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}.
 \code{vignette("snowflake", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other database connections:
-\code{\link[=oauth_db_azure_postgres]{oauth_db_azure_postgres()}},
-\code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
-\code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
-\code{\link[=oauth_db_duckdb]{oauth_db_duckdb()}},
-\code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
-\code{\link[=oauth_db_hana]{oauth_db_hana()}},
-\code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
-\code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
-\code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
-\code{\link[=oauth_db_sql_server]{oauth_db_sql_server()}},
-\code{\link[=oauth_db_starrocks]{oauth_db_starrocks()}},
-\code{\link[=oauth_db_trino]{oauth_db_trino()}}
 }
-\concept{database connections}

@@ -15,9 +15,9 @@ oauth_db_databricks_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{host}{Databricks workspace hostname or HTTPS origin.}
 
@@ -27,17 +27,18 @@ with Microsoft sign-in.}
 \item{target}{Token target name. Defaults to \code{"databricks"} for Entra.
 Databricks OAuth uses the authorization's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with \verb{$call(.fn, ...)}. Pass a brickster function as
+A client object with \verb{$call(.fn, ...)}. Pass a brickster function as
 \code{.fn} and its usual arguments through \code{...}, omitting \code{host} and
 \code{token}. The method returns the function's result.
 \verb{$warehouses(timeout = 30)} lists visible SQL warehouses as a data frame
@@ -45,19 +46,22 @@ with \code{id}, \code{name} and \code{state}, following all result pages. Listin
 start a warehouse or establish permission to run queries.
 }
 \description{
-Call brickster functions to list warehouses, run SQL, or use other
-Databricks APIs. The client supplies the workspace host and the user's
-credentials.
+Use Databricks APIs with each visitor's account. Pass a brickster function
+to the client's \verb{$call()} method to list warehouses, run queries or perform
+other supported operations. The client supplies the workspace and the
+visitor's current token.
 }
 \details{
-Create the client inside \code{server()}. Set the authentication options when
-creating it; \verb{$call()} uses those settings.
+Create the client inside \code{server()} and call its methods from render or
+reactive expressions. Choose authentication settings when creating the
+client; \verb{$call()} supplies them to the brickster function.
+Use \code{\link[=oauth_db_databricks]{oauth_db_databricks()}} for a DBI connection managed by shinyOAuthDB.
 }
 \section{Longer operations}{
 
-Each call obtains a current token. Polling and fetching within that
-brickster call keep the supplied token. The client doesn't retry the
-operation or close connections returned by the function.
+Each brickster call gets a current token. Polling and fetching within
+that call keep the supplied token. Operations don't retry automatically.
+Your app must close any connections returned by brickster functions.
 }
 
 \examples{
@@ -75,18 +79,4 @@ output$warehouses <- shiny::renderPrint({
 \code{\link[=oauth_db_databricks]{oauth_db_databricks()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}.
 \code{vignette("databricks", package = "shinyOAuthDB")} has sign-in setup
 and a complete app.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

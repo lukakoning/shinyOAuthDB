@@ -16,18 +16,20 @@ oauth_db_oracle_ords_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{url}{HTTPS ORDS schema base URL, including any proxy prefix,
 for example \code{"https://data.example.org/ords/reporting"}.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -36,14 +38,14 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 
 \item{ca_bundle}{Optional path to a trusted CA certificate bundle.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$select(resource, query = list(), raw = FALSE)} reads one
-AutoREST collection page. Pass native query parameters such as
+page of records from an AutoREST collection. Pass query parameters such as
 \code{list(limit = 20L, offset = 0L)}.
 \item \code{$request(path, method = "GET", query = list(), body = NULL,
       raw = FALSE, trailing_slash = FALSE)} calls a JSON resource. Supply
@@ -52,32 +54,29 @@ Set \code{trailing_slash = TRUE} when the resource URL ends in \code{/}.
 }
 }
 \description{
-Read protected Oracle REST Data Services (ORDS) resources and call JSON
-handlers using the visitor's OAuth access token. Configure ORDS to trust
-the provider's JWTs and map their scopes or roles to ORDS privileges.
+Read Oracle data through Oracle REST Data Services (ORDS) using each
+visitor's access token. ORDS exposes tables and custom database handlers
+as web APIs. This client calls those APIs over HTTPS without Oracle
+client libraries.
 }
 \details{
-ORDS JWT profiles support external providers including OCI IAM, Keycloak,
-Auth0 and Okta when their tokens meet the configured issuer, audience,
-signing-key and privilege requirements. Register a browser authorization
-code flow in shinyOAuth. An unrelated database or console access token
-does not authorize an ORDS resource.
+Configure ORDS to trust your provider's JWT access tokens and map their
+scopes or roles to resource privileges. Create the client inside \code{server()}
+and call its methods from render or reactive expressions.
 
-ORDS enforces its resource privileges. A JWT subject is available to
-handlers as \verb{:current_user}; it does not automatically switch the handler
-to a distinct Oracle database schema. Configure user filtering or a
-supported database security context where per-user data access is needed.
+ORDS controls access to its endpoints. The token's user ID is available
+to handlers as \verb{:current_user}, but it doesn't automatically change the
+Oracle database schema. Configure handler filtering or a database
+security context to apply the required per-user data access.
 
-Results retain native JSON lists, including \code{items}, \code{hasMore}, offsets
-and links. Large JSON integers are strings. The client does not follow
-links or redirects; page explicitly with native query parameters.
-\code{raw = TRUE} returns an httr2 response. HEAD also returns the response;
-successful empty responses return invisible \code{NULL} otherwise.
+Results are JSON lists, including \code{items}, \code{hasMore} and pagination links.
+Large integers stay as strings. Fetch pages explicitly; the client
+doesn't follow links or redirects. \code{raw = TRUE} and HEAD return an httr2
+response; successful empty responses otherwise return invisible \code{NULL}.
 
-Create the client inside \code{server()}. Each request obtains a current token
-pinned to the selected authorization; late responses after account changes
-or sign-out are discarded. GET and HEAD retry once after HTTP 401. Writes
-are never replayed automatically. No Oracle client libraries are needed.
+Requests use a current token and discard results after sign-out or
+account changes. GET and HEAD can refresh and retry once after HTTP 401;
+writes don't retry automatically.
 }
 \examples{
 \dontrun{
@@ -91,18 +90,4 @@ output$rows <- shiny::renderPrint({
 }
 \seealso{
 \code{\link[=oauth_db_oracle]{oauth_db_oracle()}}, \code{vignette("oracle-ords", package = "shinyOAuthDB")}.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

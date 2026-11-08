@@ -16,18 +16,20 @@ oauth_db_libsql_api(
 )
 }
 \arguments{
-\item{authorization}{\code{auth$connection} from a shinyOAuth server module,
-without parentheses. To select a saved authorization, pass a function
-that calls \code{auth$connection(id)}.}
+\item{authorization}{Function providing the visitor's current sign-in
+authorization. Pass \code{auth$connection} from shinyOAuth without parentheses.
+To select a saved account, use a function calling \code{auth$connection(id)}.}
 
 \item{url}{HTTPS database base URL, or a \verb{libsql://} URL (uses HTTPS).
 A reverse proxy path is allowed; omit \verb{/v2/pipeline}.}
 
-\item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
-default token, including for clients without named targets.}
+\item{target}{Name of the service token to use in your shinyOAuth client.
+Named targets let one sign-in obtain tokens for different services.
+\code{NULL} uses the client's default token.}
 
-\item{required_scopes}{Additional permissions to check before use. Request
-consent and set the client's permission requirements in shinyOAuth.}
+\item{required_scopes}{Additional OAuth permissions to check before use.
+Request them on the shinyOAuth client first; this check doesn't request
+consent or grant database privileges.}
 
 \item{min_valid_for}{Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use \code{0} to accept any unexpired token.}
@@ -36,55 +38,50 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 
 \item{ca_bundle}{Optional trusted CA certificate bundle path.}
 
-\item{session}{Shiny session. Inferred when the helper is created in
-\code{server()}.}
+\item{session}{The visitor's Shiny session. Usually inferred when you
+create the helper inside \code{server()}.}
 }
 \value{
-An R6 client with these methods:
+A client object with these methods:
 \itemize{
 \item \code{$query(sql, parameters = list(), raw = FALSE)} returns a
-data frame, or a validated Hrana statement result with \code{raw = TRUE}.
+data frame, or the server's rows and metadata with \code{raw = TRUE}.
 \item \code{$execute(sql, parameters = list())} runs one statement
-and invisibly returns its Hrana result, including \code{affected_row_count}
+and invisibly returns metadata, including \code{affected_row_count}
 and \code{last_insert_rowid}.
 }
 }
 \description{
-Run SQLite SQL against a remote libSQL or compatible Turso endpoint using
-the visitor's current access token. Results are returned as data frames.
+Run SQLite SQL on a remote libSQL or compatible Turso database using each
+visitor's access token. The database checks the token's permissions, and
+the client returns data frames. No R database driver is needed.
 }
 \details{
-The server must accept the access token issued to your shinyOAuth client.
-Self-hosted libSQL uses Ed25519 signing keys and libSQL permission claims;
-arbitrary OIDC access tokens are not interchangeable with database tokens.
-Turso Cloud has a separate external-provider JWKS configuration.
-See \code{vignette("libsql", package = "shinyOAuthDB")} for both configurations.
+The database must accept tokens from your shinyOAuth client. Self-hosted
+libSQL needs a particular signing key and permission format; Turso Cloud
+has its own external-provider setup. The libSQL vignette explains both.
 
-Each operation obtains a current token and uses a new Hrana HTTP stream,
-closing it in the same request. No stream baton or server-provided URL is
-reused. Calls cannot share transactions, temporary tables or connection
-state. The helper does not provide a DBI connection or embedded replica.
+Create the client inside \code{server()} and call its methods from render or
+reactive expressions. Each call gets a current token and runs one statement
+in its own request. Calls don't share transactions or temporary tables;
+separate \code{BEGIN} and \code{COMMIT} calls can't form a transaction.
 
-Create the helper inside \code{server()} and call its methods in render or
-reactive expressions. Results arriving after account changes, permission
-loss or sign-out are discarded. Requests use verified HTTPS and never retry,
-including after HTTP 401. A submitted statement may continue on the server
-after a timeout or sign-out.
+Results are discarded after sign-out or account changes. SQL requests
+don't retry automatically. A submitted statement can finish after a
+timeout or sign-out, so check a failed write before submitting it again.
 }
 \section{Parameters and results}{
 
-Supply an unnamed list for \verb{?} parameters or a fully named list for named
-parameters such as \verb{:country}. Values are bound separately from SQL.
-Character, logical, integer, finite numeric, raw vectors and \code{NULL}/\code{NA}
-are supported. Use \code{I("9223372036854775807")} for an exact signed 64-bit
-integer; ordinary character values bind as text. Encode dates as strings.
+Use an unnamed list for \verb{?} parameters or a named list for placeholders
+such as \verb{:country}. Values are bound separately from SQL. Character,
+logical, integer, finite numeric, raw vectors and \code{NULL}/\code{NA} are supported.
+Use \code{I("9223372036854775807")} for an exact signed 64-bit integer; ordinary
+strings bind as text. Format dates and timestamps as database strings.
 
-SQLite integers are returned as strings to preserve all 64 bits. Floating
-point values remain numeric; non-finite results become \code{NaN}.
-Text remains character and blobs use raw
-vectors in list columns. Columns with mixed SQLite types remain lists.
-All-null or empty columns use logical missing values; \code{raw = TRUE}
-preserves the server's declared column metadata.
+SQLite integers return as strings to preserve all 64 bits. Floating-point
+values stay numeric, with non-finite results represented as \code{NaN}.
+Blobs use raw vectors in list columns, and columns with mixed types remain
+lists. Use \code{raw = TRUE} for the server's statement metadata and rows.
 }
 
 \examples{
@@ -99,18 +96,4 @@ output$rows <- shiny::renderTable({
 \seealso{
 \code{vignette("libsql", package = "shinyOAuthDB")}.
 \code{\link[=oauth_db_demo]{oauth_db_demo()}} runs a local libSQL and Keycloak example.
-
-Other platform API clients:
-\code{\link[=oauth_db_bigquery_api]{oauth_db_bigquery_api()}},
-\code{\link[=oauth_db_clickhouse_api]{oauth_db_clickhouse_api()}},
-\code{\link[=oauth_db_cratedb_api]{oauth_db_cratedb_api()}},
-\code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}},
-\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}},
-\code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
-\code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
-\code{\link[=oauth_db_postgrest_api]{oauth_db_postgrest_api()}},
-\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
-\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
-\code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
-\concept{platform API clients}

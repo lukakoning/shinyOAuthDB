@@ -1,8 +1,10 @@
 #' Set up Microsoft sign-in for database access
 #'
-#' Create a Microsoft Entra sign-in client for database and platform access.
-#' Choose the services or token targets the app uses, then pass the client
-#' to shinyOAuth's UI and server modules.
+#' Set up Microsoft sign-in for a Shiny app that queries Azure SQL,
+#' Azure PostgreSQL or other supported Microsoft services. Choose the services
+#' your app uses, then pass this client to shinyOAuth's UI and server modules.
+#' The client holds your app's sign-in settings; each visitor signs in with
+#' their own account.
 #'
 #' @param services One or more of `"sql"`, `"postgres"`, `"fabric"`, `"kql"`,
 #'   `"dax"`, `"graphql"`, `"onelake"`, or `"databricks_entra"`.
@@ -21,15 +23,18 @@
 #' @param ... Other arguments for `shinyOAuth::oauth_client()`.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
 #' @details
-#' The Entra registration needs delegated permissions for the selected services.
-#' Users also need access to the database or Fabric items.
-#' When PostgreSQL is combined with other services, its preset requests the
-#' delegated `user_impersonation` scope instead of `.default`.
+#' Register the Shiny app in Microsoft Entra with the exact `redirect_uri`
+#' and delegated permissions for the services it uses. Delegated access lets
+#' the app act on behalf of the person who signs in. Users also need
+#' permission to access the database or Fabric items.
 #'
-#' Custom `scopes`, `provider`, and `token_targets` replace their defaults.
-#' An existing shinyOAuth client can be used in place of this preset.
-#' For a deployment-specific resource such as Oracle Database, supply custom
-#' `token_targets`; see `vignette("oracle", package = "shinyOAuthDB")`.
+#' The preset creates named token targets for the selected services. Custom
+#' `scopes`, `provider` and `token_targets` replace their defaults. An existing
+#' shinyOAuth client can also supply suitable tokens.
+#'
+#' When PostgreSQL is combined with other services, its preset requests
+#' `user_impersonation` instead of `.default`. For a custom resource such as
+#' Oracle Database, supply `token_targets`; the Oracle vignette has an example.
 #' @examples
 #' \dontrun{
 #' client <- oauth_db_microsoft_client(
@@ -40,10 +45,8 @@
 #'   redirect_uri = "http://localhost:8100"
 #' )
 #' }
-#' @seealso `vignette("getting-started", package = "shinyOAuthDB")` links to
-#'   each source's setup. For custom permissions and targets, see
-#'   `vignette("getting-started", package = "shinyOAuthDB")`.
-#' @family sign-in configuration
+#' @seealso `vignette("getting-started", package = "shinyOAuthDB")` explains
+#'   sign-in settings and links to each source's setup guide.
 #' @export
 oauth_db_microsoft_client <- function(
   services = "sql",

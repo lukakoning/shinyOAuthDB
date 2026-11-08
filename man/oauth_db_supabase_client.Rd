@@ -34,22 +34,22 @@ oauth_db_supabase_client(
 A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
-Create a sign-in client for a Supabase project with its OAuth 2.1 server
-enabled. Pass it to shinyOAuth's UI and server modules, then query with
+Set up sign-in for people with accounts in a Supabase project. The
+project must have its OAuth server enabled. Pass this client to
+shinyOAuth's UI and server modules, then read data with
 \code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}.
 }
 \details{
-Enable Supabase's OAuth server, configure its sign-in and consent UI, and
-register the app's exact redirect URI. Use asymmetric JWT signing keys
-for OIDC. The default provider makes an HTTPS OIDC discovery request to
-the project's \verb{/auth/v1} issuer and enables PKCE and nonce validation.
+Enable the project's OAuth server, configure its sign-in and consent
+pages, and register the app's exact redirect URI. Use asymmetric signing
+keys so shinyOAuth can validate the sign-in identity.
 
-A nonempty secret selects HTTP Basic client authentication; without one,
-the preset uses a public client. Supabase returns refresh tokens without
-an \code{offline_access} scope. shinyOAuth handles renewal.
+Supply \code{client_secret} for a confidential registration; omit it for a
+public registration without a secret. Supabase supplies refresh tokens
+without an \code{offline_access} scope, and shinyOAuth handles renewal.
 
-For a third-party provider configured in Supabase, pass its provider here
-or use an ordinary \code{shinyOAuth::oauth_client()}.
+For a third-party provider trusted directly by the project, supply that
+\code{provider} or use \code{shinyOAuth::oauth_client()}.
 }
 \examples{
 \dontrun{
@@ -64,14 +64,4 @@ client <- oauth_db_supabase_client(
 \seealso{
 \code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}.
 \code{vignette("supabase", package = "shinyOAuthDB")}.
-
-Other sign-in configuration:
-\code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},
-\code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
-\code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
-\code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
-\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
-\code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}},
-\code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}}
 }
-\concept{sign-in configuration}

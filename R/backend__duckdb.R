@@ -1,8 +1,8 @@
 #' Query a remote DuckDB server as the signed-in user
 #'
-#' Attach a DuckDB Quack server using the visitor's OAuth access token and
-#' query its tables with DBI or dbplyr. The server must validate OAuth tokens,
-#' for example with the quack_oauth extension.
+#' Query a shared remote DuckDB database with each visitor's access token.
+#' Quack connects your R client to the server, which checks the token and
+#' controls data access. You can query its tables with DBI or dbplyr.
 #'
 #' @inheritParams oauth_db_connect
 #' @param host One TCP hostname or address. Enclose IPv6 addresses in brackets.
@@ -11,29 +11,26 @@
 #' @param ca_bundle Optional CA certificate bundle path for a private server CA.
 #' @param allow_local_http Allow unencrypted HTTP for `localhost`, `127.0.0.1`
 #'   or `[::1]`. Defaults to `FALSE`; use only for local development.
-#' @return A reactive function returning a DuckDB DBI connection.
+#' @return A reactive function, usually named `con`. Call
+#'   `connection <- con()` inside a render or reactive expression, then pass
+#'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install duckdb 1.5.3 or later and its matching `quack` and `httpfs`
-#' extensions. Provision them before starting the app with `INSTALL quack`
-#' and `INSTALL httpfs` in DuckDB.
-#' The helper loads them in a separate in-memory database for each connection.
-#' TLS and certificate verification are required, including on loopback unless
-#' `allow_local_http = TRUE`. Use a certificate trusted by the DuckDB client.
+#' Install duckdb 1.5.3 or later and matching `quack` and `httpfs` extensions
+#' before starting the app. Configure the remote server's OAuth validator,
+#' trusted issuer, audience and data permissions. A local DuckDB file
+#' doesn't provide user sign-in.
 #'
-#' shinyOAuth manages sign-in and token renewal. Only the access token is
-#' passed to Quack; the client does not need quack_oauth or persistent secrets.
-#' Configure the server's trusted issuer, audience and authorization policy.
+#' Create the helper inside `server()` and call `con()` before each query.
+#' Connections require verified TLS unless you explicitly allow HTTP for
+#' local development with `allow_local_http`.
 #'
-#' Call `con()` before each operation. A changed access token replaces the
-#' connection because Quack authenticates at attachment time. This also ends
-#' any transaction on the old connection. Account changes, lost permissions,
-#' sign-out and session end shut down the private DuckDB instance.
-#' Queries and failed statements are never replayed by the helper.
+#' The helper selects the remote catalog `oauth_remote` and your chosen
+#' schema for table queries. Standalone expressions can still run locally;
+#' query a remote table to check server access.
 #'
-#' The remote catalog is attached as `oauth_remote` and selected as the
-#' default database, so unqualified table names use its selected schema.
-#' SQL runs through DuckDB's attached-catalog interface; local expressions
-#' and functions can still execute on the client.
+#' Token renewal replaces the connection and ends any transaction on it.
+#' Keep transactions within one operation. Sign-out, account changes or
+#' session end close the connection. The helper doesn't replay failed SQL.
 #' @examples
 #' \dontrun{
 #' # Inside server(), using a client for the Quack server's issuer and audience:
@@ -49,7 +46,6 @@
 #' @seealso `vignette("duckdb", package = "shinyOAuthDB")` has server
 #'   requirements, sign-in setup and a complete app.
 #'   [oauth_db_demo()] runs a local Quack and Keycloak example.
-#' @family database connections
 #' @export
 oauth_db_duckdb <- function(
   authorization,
