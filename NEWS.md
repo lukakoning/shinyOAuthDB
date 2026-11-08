@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Refuse to restart an active services-mode demo at the same database and path,
+  preventing competing handles from stopping its containers or restoring its
+  OAuth options prematurely.
+
 * Parse API responses and HTTP error diagnostics as literal JSON so response
   bodies cannot trigger local-file reads or additional HTTP requests.
 

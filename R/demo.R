@@ -94,6 +94,8 @@
 #' it with `shiny::onStop()` when your app starts. Services are also stopped
 #' when the returned object is garbage collected or R exits. Run one demo
 #' at a time, and stop it before starting another.
+#' Starting the same database and `path` again is refused while its services
+#' handle is active; reuse that handle or stop it before restarting.
 #' Using `action = "stop"` with the same database and `path` also retires
 #' any services handle in the current R process and restores its options.
 #' @examples
@@ -197,6 +199,9 @@ oauth_db_demo <- function(
     writeLines(as.character(utils::packageVersion("shinyOAuthDB")), marker)
   }
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  if (action %in% c("start", "services")) {
+    .odb_demo_services_available(path, database)
+  }
   if (app == "local" && action != "stop" && !services) {
     .odb_demo_local_files(path, database)
   }
@@ -379,6 +384,17 @@ oauth_db_demo <- function(
   )
 }
 
+.odb_demo_services_available <- function(path, database) {
+  key <- .odb_demo_services_key(path, database)
+  state <- .odb_demo_services[[key]]
+  if (!is.null(state) && !state$stopped) {
+    .odb_abort(
+      "This services demo is already active. Reuse its handle or stop the demo before restarting."
+    )
+  }
+  invisible(key)
+}
+
 .odb_demo_services_restore <- function(state) {
   for (name in names(state$previous)) {
     if (identical(getOption(name), state$policy[[name]])) {
@@ -410,10 +426,11 @@ oauth_db_demo <- function(
 }
 
 .odb_demo_services_settings <- function(path, cleanup, database) {
+  key <- .odb_demo_services_available(path, database)
   # The registry holds state only, so it cannot keep the handle alive and
   # prevent its garbage-collection finalizer from stopping Docker.
   state <- new.env(parent = emptyenv())
-  state$key <- .odb_demo_services_key(path, database)
+  state$key <- key
   state$postgrest <- database == "postgrest"
   state$stopped <- FALSE
   state$policy <- list(

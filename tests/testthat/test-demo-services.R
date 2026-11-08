@@ -326,3 +326,70 @@ test_that("the PostgREST HTTP exception is confined to its active demo", {
     expect_identical(calls, 1L)
   })
 })
+
+test_that("active services cannot be restarted before the current handle stops", {
+  withr::local_options(list(
+    shinyOAuth.allowed_hosts = "existing.example",
+    shinyOAuth.allow_insecure_oidc_loopback = FALSE
+  ))
+  calls <- list()
+  local_mocked_bindings(
+    .odb_demo_docker = function() "docker",
+    .odb_demo_command = function(docker, args, check = TRUE) {
+      calls[[length(calls) + 1L]] <<- args
+      0L
+    }
+  )
+  path <- withr::local_tempdir()
+  demo <- suppressMessages(oauth_db_demo("postgrest", "services", path = path))
+  withr::defer(suppressMessages(demo$stop()))
+  started <- length(calls)
+  for (action in c("services", "start")) {
+    expect_error(
+      oauth_db_demo("postgrest", action, path = path),
+      "already active",
+      class = "shinyOAuthDB_invalid_configuration"
+    )
+    expect_length(calls, started)
+    expect_true(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+    expect_identical(.odb_demo_postgrest_url(demo$url), demo$url)
+  }
+  suppressMessages(demo$stop())
+  expect_false(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+  old <- demo
+  demo <- suppressMessages(oauth_db_demo("postgrest", "services", path = path))
+  old$stop()
+  rm(old)
+  suppressMessages(gc())
+  expect_true(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+  suppressMessages(demo$stop())
+  expect_false(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+  expect_identical(getOption("shinyOAuth.allowed_hosts"), "existing.example")
+  expect_identical(
+    sum(vapply(calls, function(args) "down" %in% args, logical(1))),
+    2L
+  )
+})
+
+test_that("services state creation rejects a second cleanup owner", {
+  withr::local_options(list(shinyOAuth.allow_insecure_oidc_loopback = FALSE))
+  calls <- 0L
+  cleanup <- function() {
+    calls <<- calls + 1L
+    0L
+  }
+  path <- withr::local_tempdir()
+  demo <- .odb_demo_services_settings(path, cleanup, "postgrest")
+  withr::defer(suppressMessages(demo$stop()))
+  expect_error(
+    .odb_demo_services_settings(path, cleanup, "postgrest"),
+    "already active",
+    class = "shinyOAuthDB_invalid_configuration"
+  )
+  suppressMessages(gc())
+  expect_identical(calls, 0L)
+  expect_true(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+  suppressMessages(demo$stop())
+  expect_identical(calls, 1L)
+  expect_false(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+})
