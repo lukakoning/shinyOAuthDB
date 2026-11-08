@@ -26,6 +26,7 @@ vignette_sources <- c(
   trino = "RTrino",
   "azure-postgres" = "RPostgres",
   oracle = "odbc",
+  "oracle-ords" = NA_character_,
   postgrest = NA_character_,
   starrocks = "odbc",
   clickhouse = NA_character_,
@@ -109,11 +110,10 @@ test_that("the Databricks guide's Entra alternative constructs a real client", {
   expect_named(envir$client@token_targets, "databricks")
 })
 
-test_that("the Oracle guide requests its database resource and delegated scope", {
+test_that("the Oracle guide's Entra alternative requests its database resource", {
   withr::local_envvar(playground_env())
   envir <- new.env(parent = globalenv())
-  envir$runApp <- function(app, ...) app
-  eval(vignette_chunks("oracle")[["app"]], envir)
+  eval(vignette_chunks("oracle")[["entra-client"]], envir)
   expect_named(envir$client@token_targets, "oracle")
   oracle <- envir$client@token_targets$oracle
   expect_identical(oracle$resource, "api://oracle-fixture")

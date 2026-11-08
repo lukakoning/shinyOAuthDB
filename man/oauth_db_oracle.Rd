@@ -13,6 +13,7 @@ oauth_db_oracle(
   port = 1522L,
   wallet_location = NULL,
   server_cert_dn = NULL,
+  authorization_model = c("global", "end_user"),
   target = NULL,
   required_scopes = character(),
   min_valid_for = 60,
@@ -29,9 +30,8 @@ that calls \code{auth$connection(id)}.}
 \item{service_name}{Oracle database service name, not a SID or TNS alias.}
 
 \item{driver}{Registered Oracle ODBC driver name, or its library path when
-supported by the driver manager. Use Oracle Instant Client with OAuth
-support: 19.16 or later in the 19c line, or a supported newer release.
-The 21c thick client does not support this integration.}
+supported by the driver manager. Install a client that supports the
+database's OAuth integration; newer integrations need a current client.}
 
 \item{...}{Result options \code{timeout}, \code{timezone}, \code{timezone_out}, \code{bigint},
 \code{encoding}, \code{name_encoding}, or \code{interruptible}; Oracle ODBC options
@@ -47,6 +47,14 @@ mutual TLS. \code{NULL} uses the Oracle client's configured trust store.}
 \item{server_cert_dn}{Optional expected server certificate distinguished
 name. \code{NULL} uses Oracle's hostname matching. Certificate matching is
 always enabled.}
+
+\item{authorization_model}{\code{"global"} requires Oracle to report
+\code{TOKEN_GLOBAL} authentication, preserving the global-schema model used
+by existing Entra configurations. \code{"end_user"} requires Oracle Deep
+Data Security to expose system-managed token claims matching the
+submitted JWT's issuer, subject and audience. It never falls back to
+global-schema privileges. Use this for configured OCI IAM OAuth and
+Keycloak direct-logon deployments.}
 
 \item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
 default token, including for clients without named targets.}
@@ -64,22 +72,26 @@ obtaining a token. Use \code{0} to accept any unexpired token.}
 A reactive function returning an odbc DBI connection.
 }
 \description{
-Open an Oracle ODBC connection with the visitor's Microsoft Entra access
-token. Use the connection with DBI or dbplyr against an Oracle database
-configured for Entra authentication, on your infrastructure or in the cloud.
+Open an Oracle ODBC connection with the visitor's OAuth access token.
+The database validates the provider's JWT and applies its configured
+global-user or Oracle Deep Data Security authorization model.
 }
 \details{
 Install odbc and Oracle Instant Client's Basic and ODBC packages. The
-database must support and enable Microsoft Entra integration and map the
-visitor to a global database schema. Request delegated access to
-that database's own Entra application resource. Azure SQL tokens and
-arbitrary OIDC tokens are not interchangeable with Oracle access tokens.
+database must trust the token's provider and audience and map the visitor
+to a global schema or Deep Data Security data roles. Supported routes
+include Microsoft Entra, OCI IAM Identity Domains OAuth, and the
+configurable OAuth provider documented for Keycloak in Oracle 26ai.
+Server and client version requirements differ between these integrations;
+a JWT from an unconfigured provider does not establish database access.
 See \code{vignette("oracle", package = "shinyOAuthDB")} for sign-in setup.
 
 Create the helper inside \code{server()} and call \code{con()} before each operation.
-Valid SQL sessions survive ordinary token renewal. Account changes,
-sign-out, permission loss and session end close the connection. A broken
-connection is reopened with the current token on the next \code{con()} call.
+Global-schema sessions survive ordinary token renewal. End-user sessions
+are reopened on access when the token changes, so new identity and role
+claims reach the database without replaying completed queries. Account
+changes, sign-out, permission loss and session end close the connection.
+A broken connection is reopened with the current token on access.
 
 The helper builds a separate TCPS descriptor for each connection. It sets
 \code{TOKEN_AUTH=OAUTH}, supplies the token through a private temporary file,
@@ -90,10 +102,17 @@ private user temporary directory. Shared \code{TNS_ADMIN}, \code{tnsnames.ora}, 
 
 Oracle ODBC failover is disabled because the temporary token file is
 removed after connection opening. Before returning a connection, the
-helper checks that Oracle reports \code{TOKEN_GLOBAL} authentication and
-disconnects otherwise. DSNs, alternate credentials and authentication
-overrides cannot be supplied through \code{...}. OCI IAM proof-of-possession
-tokens and password authentication are outside this helper's scope.
+helper verifies the selected authorization model and disconnects on
+failure. In \code{"end_user"} mode, jsonlite is also required. Local JWT
+decoding identifies the expected claims; Oracle verifies the signature
+and establishes the system-managed context. DSNs, alternate credentials
+and authentication overrides cannot be supplied through \code{...}.
+
+Scope names are checked literally, as with generic OAuth helpers. Keep
+Entra's \verb{/.default} consent marker in the client configuration, not in
+this helper's \code{required_scopes}. OCI IAM proof-of-possession tokens,
+password authentication and application-mediated two-token contexts are
+separate mechanisms. For ORDS REST resources use \code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}}.
 }
 \examples{
 \dontrun{

@@ -1,5 +1,34 @@
 # Validation record
 
+## 8 November 2026: generic Oracle OAuth and ORDS
+
+The Oracle transport now accepts a JWT from the provider configured in the
+database. Global-schema connections require `TOKEN_GLOBAL`. The explicit
+`"end_user"` model verifies issuer, subject and audience in Oracle's
+system-managed token context and rejects a missing or different context.
+End-user connections reopen on access after token rotation, without
+replaying completed reactive queries. Operation scopes are checked literally.
+
+The separate ORDS HTTP client reads AutoREST pages and calls JSON handlers
+using the visitor's token. It preserves native paging metadata, rejects
+redirects and unsafe relative paths, retries only GET/HEAD after HTTP 401,
+and discards responses after the selected authorization ends or changes.
+
+The full source suite passes 5,731 assertions with zero failures, errors,
+warnings or skipped scenarios. Documentation checks parse 92 R blocks and
+resolve 210 local links and 18 anchors. Repository Air and Jarl checks pass.
+`R CMD check --no-manual --no-tests` reports zero errors, warnings or notes;
+package vignettes build and rebuild successfully. Tests were run separately
+in the full source suite above.
+Validation uses an isolated checkout containing only the Oracle changes,
+while unrelated Supabase work continues in the main checkout.
+
+Live Oracle/ORDS/provider integration remains unverified. The automated
+checks exercise R's ODBC boundary, mocked immutable token context and HTTP
+responses, and real SQLite connections for lifecycle behavior. See the
+provider and version requirements in `docs/oracle-backend.md` before testing
+a configured deployment.
+
 ## 8 November 2026: Oracle Database with Entra access tokens
 
 Checked on Windows 11 with R 4.5.1. `oauth_db_oracle()` uses the Oracle

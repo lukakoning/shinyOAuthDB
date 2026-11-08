@@ -57,7 +57,8 @@ server and advanced configuration.
 | [Amazon Redshift](redshift.html) | Query Redshift with DBI |
 | [Trino and Starburst Enterprise](trino.html) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
 | [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
-| [Oracle Database](oracle.html) | Query with Entra user access tokens and Oracle ODBC |
+| [Oracle Database](oracle.html) | Query with database-trusted OAuth tokens and Oracle ODBC |
+| [Oracle REST Data Services](oracle-ords.html) | Read protected collections and call JSON handlers over HTTPS |
 
 ## Install shinyOAuthDB
 

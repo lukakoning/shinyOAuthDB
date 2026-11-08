@@ -1,5 +1,16 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Generalize `oauth_db_oracle()` to database-trusted OAuth JWTs, including
+  configured OCI IAM OAuth and Keycloak direct-logon integrations. Add
+  `authorization_model = "end_user"` to verify Oracle Deep Data Security
+  token context and reopen sessions when renewed tokens carry new claims.
+  Oracle operation scopes are now checked literally for every provider.
+
+* Add `oauth_db_oracle_ords_api()` for protected ORDS collections and JSON
+  resources with per-visitor OAuth tokens. Preserve native pages, enforce
+  session isolation and retry only safe reads. Add generic OIDC and
+  provider-specific setup guides.
+
 * Install the checkout's source archive in Docker demo browser checks and
   verify its hash in the running app container before testing sign-in.
 

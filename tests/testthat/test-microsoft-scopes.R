@@ -33,16 +33,6 @@ test_that("Microsoft backends separate consent markers from operation permission
     character()
   )
   expect_identical(
-    oauth_db_oracle(
-      NULL,
-      "host",
-      "service",
-      "Oracle driver",
-      required_scopes = scope
-    )$required_scopes,
-    character()
-  )
-  expect_identical(
     oauth_db_fabric(NULL, "kql", required_scopes = scope)$required_scopes,
     character()
   )

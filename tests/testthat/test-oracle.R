@@ -302,3 +302,220 @@ test_that("Oracle cleans the token file on interruption", {
     expect_false(dir.exists(dirname(path)))
   })
 })
+
+oracle_fixture_jwt <- function(claims) {
+  payload <- as.character(jsonlite::toJSON(claims, auto_unbox = TRUE))
+  payload <- chartr(
+    "+/",
+    "-_",
+    as.character(openssl::base64_encode(charToRaw(payload)))
+  )
+  paste0("e30.", sub("=+$", "", payload), ".signature")
+}
+
+test_that("Oracle end-user sessions verify server claims and rotate with their tokens", {
+  skip_if_not_installed("odbc")
+  skip_if_not_installed("jsonlite")
+  skip_if_not_installed("RSQLite")
+  claims <- list(
+    iss = "https://issuer.example/realms/oracle",
+    sub = "alice",
+    aud = c("database", "account")
+  )
+  first_jwt <- oracle_fixture_jwt(c(claims, list(iat = 1L)))
+  renewed_jwt <- oracle_fixture_jwt(c(claims, list(iat = 2L)))
+  context <- as.character(jsonlite::toJSON(claims, auto_unbox = TRUE))
+  opened <- paths <- tokens <- list()
+  native_connect <- DBI::dbConnect
+  local_mocked_bindings(
+    dbConnect = function(drv, ...) {
+      args <- list(...)
+      path <- sub('.*TOKEN_LOCATION="([^"]+)".*', "\\1", args$DBQ)
+      paths[[length(paths) + 1L]] <<- path
+      tokens[[length(tokens) + 1L]] <<- readLines(path, warn = FALSE)
+      connection <- native_connect(RSQLite::SQLite(), ":memory:")
+      opened[[length(opened) + 1L]] <<- connection
+      connection
+    },
+    dbGetQuery = function(conn, statement, ...) {
+      expect_match(
+        statement,
+        "ORA_END_USER_CONTEXT.USER.TOKEN.iss",
+        fixed = TRUE
+      )
+      expect_match(
+        statement,
+        "ORA_END_USER_CONTEXT.USER.TOKEN.sub",
+        fixed = TRUE
+      )
+      expect_match(
+        statement,
+        "ORA_END_USER_CONTEXT.USER.TOKEN.aud",
+        fixed = TRUE
+      )
+      expect_false(grepl("signature", statement, fixed = TRUE))
+      data.frame(TOKEN_CLAIMS = context)
+    },
+    .package = "DBI"
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    auth$token(auth$make_token(first_jwt))
+    con <- oauth_db_oracle(
+      auth$connection,
+      "oracle.example",
+      "db",
+      "driver",
+      authorization_model = "end_user"
+    )
+    first <- con()
+    expect_identical(con(), first)
+    expect_length(opened, 1L)
+    executions <- 0L
+    rows <- shiny::reactive({
+      con()
+      executions <<- executions + 1L
+      42L
+    })
+    expect_identical(rows(), 42L)
+    auth$token(auth$make_token(renewed_jwt))
+    session$flushReact()
+    expect_identical(rows(), 42L)
+    expect_identical(executions, 1L)
+    second <- con()
+    expect_false(DBI::dbIsValid(first))
+    expect_true(DBI::dbIsValid(second))
+    expect_identical(tokens, list(first_jwt, renewed_jwt))
+    expect_false(any(file.exists(unlist(paths))))
+    auth$current(FALSE)
+    expect_error(con(), class = "shiny.silent.error")
+    expect_false(DBI::dbIsValid(second))
+  })
+})
+
+test_that("Oracle end-user verification rejects missing or different token contexts", {
+  skip_if_not_installed("odbc")
+  skip_if_not_installed("jsonlite")
+  skip_if_not_installed("RSQLite")
+  claims <- list(iss = "https://issuer.example", sub = "alice", aud = "oracle")
+  token <- oracle_fixture_jwt(claims)
+  context <- NULL
+  connection <- path <- NULL
+  native_connect <- DBI::dbConnect
+  local_mocked_bindings(
+    dbConnect = function(drv, ...) {
+      path <<- sub('.*TOKEN_LOCATION="([^"]+)".*', "\\1", list(...)$DBQ)
+      connection <<- native_connect(RSQLite::SQLite(), ":memory:")
+      connection
+    },
+    dbGetQuery = function(...) {
+      if (inherits(context, "condition")) {
+        stop(context)
+      }
+      data.frame(TOKEN_CLAIMS = context)
+    },
+    .package = "DBI"
+  )
+  bad <- c(
+    "{}",
+    "null",
+    "not-json",
+    '"/private/file.json"',
+    '{"iss":"https://other.example","sub":"alice","aud":"oracle"}',
+    '{"iss":"https://issuer.example","sub":"bob","aud":"oracle"}',
+    '{"iss":"https://issuer.example","sub":"alice","aud":"other"}',
+    '{"iss":"https://issuer.example","sub":"alice","aud":["oracle",null]}',
+    '{"iss":"https://issuer.example","sub":"alice","sub":"bob","aud":"oracle"}'
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    auth$token(auth$make_token(token))
+    con <- oauth_db_oracle(
+      auth$connection,
+      "oracle.example",
+      "db",
+      "driver",
+      authorization_model = "end_user"
+    )
+    for (value in bad) {
+      context <<- value
+      error <- expect_error(con(), class = "shinyOAuthDB_invalid_credential")
+      expect_false(grepl(
+        "alice|bob|signature|private",
+        conditionMessage(error)
+      ))
+      expect_false(DBI::dbIsValid(connection))
+      expect_false(file.exists(path))
+      expect_false(dir.exists(dirname(path)))
+    }
+    context <<- errorCondition("Context unavailable", class = "context_error")
+    expect_error(con(), class = "context_error")
+    expect_false(DBI::dbIsValid(connection))
+    expect_false(file.exists(path))
+  })
+})
+
+test_that("Oracle validates end-user token identity before opening a connection", {
+  skip_if_not_installed("odbc")
+  skip_if_not_installed("jsonlite")
+  connects <- 0L
+  local_mocked_bindings(
+    dbConnect = function(...) {
+      connects <<- connects + 1L
+      stop("Invalid identity reached the driver")
+    },
+    .package = "DBI"
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    con <- oauth_db_oracle(
+      auth$connection,
+      "oracle.example",
+      "db",
+      "driver",
+      authorization_model = "end_user"
+    )
+    for (claims in list(
+      list(),
+      list(iss = "issuer", sub = "alice"),
+      list(iss = "issuer", sub = "", aud = "oracle"),
+      list(iss = "issuer", sub = "alice", aud = list(list("oracle")))
+    )) {
+      auth$token(auth$make_token(oracle_fixture_jwt(claims)))
+      expect_error(con(), class = "shinyOAuthDB_invalid_credential")
+    }
+    auth$token(auth$make_token("header.payload.signature"))
+    expect_error(con(), class = "shinyOAuthDB_invalid_credential")
+    expect_identical(connects, 0L)
+  })
+})
+
+test_that("Oracle retains provider-specific permission names literally", {
+  local_mocked_bindings(
+    .odb_bind = capture_backend,
+    .odb_require = function(...) TRUE
+  )
+  scope <- "https://issuer.example/database/.default"
+  expect_identical(
+    oauth_db_oracle(
+      NULL,
+      "host",
+      "db",
+      "driver",
+      required_scopes = scope
+    )$required_scopes,
+    scope
+  )
+})
+
+test_that("Oracle identity comparisons preserve UTF-8 and normalize audience order", {
+  claims <- list(
+    iss = "https://issuer.example",
+    sub = "\u00e1l\u00efce",
+    aud = c("second", "first")
+  )
+  expect_identical(
+    .odb_oracle_jwt_identity(oracle_fixture_jwt(claims)),
+    list(iss = claims$iss, sub = claims$sub, aud = c("first", "second"))
+  )
+})

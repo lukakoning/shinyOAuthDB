@@ -29,6 +29,22 @@ The single-service `oauth_db_fabric()` callback helper remains available.
 See the [Fabric](../vignettes/fabric.Rmd) and
 [Databricks](../vignettes/databricks.Rmd) guides for examples.
 
+## Oracle OAuth providers
+
+`oauth_db_oracle()` now accepts tokens from the identity provider configured
+in Oracle, including documented OCI IAM OAuth and Keycloak integrations.
+Existing Entra global-schema connections retain the default
+`authorization_model = "global"`. For Oracle Deep Data Security direct
+logon, select `authorization_model = "end_user"`; it requires a matching
+server-established token context and replaces the connection on access
+after token renewal.
+
+Oracle's `required_scopes` are now literal provider scope names. Keep
+Entra `/.default` consent markers in the client or token target and omit
+them from the helper's operation checks. ORDS resources use the separate
+`oauth_db_oracle_ords_api()` client. See the [Oracle guide](../vignettes/oracle.Rmd)
+and [ORDS guide](../vignettes/oracle-ords.Rmd).
+
 ## Former source and operation API
 
 Replace source descriptors and `oauth_db_session()` with a helper such as

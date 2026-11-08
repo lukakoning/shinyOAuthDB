@@ -5,7 +5,7 @@ implemented; Dremio is deferred. For app examples, start with the
 [source guides](../vignettes/getting-started.Rmd).
 
 Oracle was added after this investigation; see the
-[Oracle backend decision](oracle-backend.md) for its Entra/ODBC scope and
+[Oracle backend decision](oracle-backend.md) for its OAuth/ODBC and ORDS scope and
 validation limits.
 
 | Platform | Implementation |
