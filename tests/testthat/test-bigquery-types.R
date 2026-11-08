@@ -1,3 +1,50 @@
+test_that("BigQuery rejects raw parameters before credentials or HTTP", {
+  requests <- 0L
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    bq_test_response(bq_test_result())
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing")
+    for (value in list(raw(), as.raw(255), as.raw(c(0, 255)))) {
+      for (type in c("BYTES", "ARRAY<BYTES>", "STRING")) {
+        expect_error(
+          api$query(
+            "SELECT @bytes",
+            parameters = list(bytes = value),
+            parameter_types = c(bytes = type)
+          ),
+          class = "shinyOAuthDB_invalid_configuration"
+        )
+      }
+    }
+    expect_identical(requests, 0L)
+    expect_identical(auth$calls$acquire, 0L)
+  })
+})
+
+test_that("BigQuery accepts explicitly encoded BYTES parameters", {
+  sent <- NULL
+  httr2::local_mocked_responses(function(req) {
+    sent <<- req$body$data$queryParameters[[1L]]
+    bq_test_response(bq_test_result())
+  })
+  odb_test_domain(function(session) {
+    api <- oauth_db_bigquery_api(
+      odb_test_authorization(session)$connection,
+      "billing"
+    )
+    api$query(
+      "SELECT @bytes",
+      parameters = list(bytes = "/w=="),
+      parameter_types = c(bytes = "BYTES")
+    )
+    expect_identical(sent$parameterType, list(type = "BYTES"))
+    expect_identical(sent$parameterValue, list(value = "/w=="))
+  })
+})
+
 test_that("BigQuery rejects ambiguous parameter type maps before credentials or HTTP", {
   invalid <- list(
     c("STRING", "INT64"),

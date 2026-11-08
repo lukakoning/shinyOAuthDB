@@ -642,7 +642,10 @@ oauth_db_bigquery_client <- function(
     }
     if (
       !is.null(value) &&
-        (!is.atomic(value) || !is.null(dim(value)) || is.factor(value))
+        (!is.atomic(value) ||
+          is.raw(value) ||
+          !is.null(dim(value)) ||
+          is.factor(value))
     ) {
       .odb_abort(
         "Each parameter must be a scalar or vector of supported R values."
