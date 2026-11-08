@@ -143,6 +143,7 @@ for multiple accounts and advanced permissions.
 ### More demos
 
 The package includes various demo apps.
+
 `oauth_db_demo()` runs local Docker demos for PostgreSQL and other self-hosted databases.
 `oauth_db_cloud_demo()` guides demos for several cloud platforms, during which
 you will be walked through first setup with your existing platform workspace and account.
