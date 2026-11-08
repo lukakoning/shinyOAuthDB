@@ -47,7 +47,8 @@ A reactive function returning a DBI connection.
 }
 \description{
 Read data from a Fabric Warehouse, Lakehouse SQL analytics endpoint, or
-SQL Database with DBI or dbplyr. Queries use the visitor's Microsoft account.
+SQL Database with DBI. The default ODBC backend also supports dbplyr.
+Queries use the visitor's Microsoft account.
 }
 \details{
 Install fabricQueryR and the SQL driver. Copy the server and database
@@ -60,10 +61,20 @@ connection and closes it when the authorization or session ends.
 }
 \section{SQL drivers}{
 
-The default backend uses odbc. To use ADBC, install fabricQueryR's ADBC
-dependencies and the MSSQL driver, then pass \code{backend = "adbc"}.
+The default ODBC backend supports DBI and dbplyr. To use ADBC for DBI or
+Arrow queries, install adbi, adbcdrivermanager and the external MSSQL driver
+(version 1.5.0 or later), then pass \code{backend = "adbc"}.
+Use ODBC for dbplyr's SQL Server translations; the ADBC connection does not
+currently select that dialect.
+
 ADBC connections reopen with a current token when \code{con()} is next called
 after token renewal. This closes outstanding results on the old connection.
+Consume and release results before starting another operation.
+
+Direct DBI reads use the driver's type conversions. For fabricQueryR's
+exact numeric conversion, call \code{fabricQueryR::fabric_sql_query()} through
+\code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}} with \code{backend = "adbc"} and
+\code{numeric_policy = "exact"}.
 }
 
 \examples{

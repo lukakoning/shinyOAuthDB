@@ -1,7 +1,8 @@
 #' Query Fabric SQL as the signed-in user
 #'
 #' Read data from a Fabric Warehouse, Lakehouse SQL analytics endpoint, or
-#' SQL Database with DBI or dbplyr. Queries use the visitor's Microsoft account.
+#' SQL Database with DBI. The default ODBC backend also supports dbplyr.
+#' Queries use the visitor's Microsoft account.
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param ... Arguments for `fabricQueryR::fabric_sql_connect()`, such as
@@ -17,10 +18,20 @@
 #' render or reactive expression before querying. The helper reuses the
 #' connection and closes it when the authorization or session ends.
 #' @section SQL drivers:
-#' The default backend uses odbc. To use ADBC, install fabricQueryR's ADBC
-#' dependencies and the MSSQL driver, then pass `backend = "adbc"`.
+#' The default ODBC backend supports DBI and dbplyr. To use ADBC for DBI or
+#' Arrow queries, install adbi, adbcdrivermanager and the external MSSQL driver
+#' (version 1.5.0 or later), then pass `backend = "adbc"`.
+#' Use ODBC for dbplyr's SQL Server translations; the ADBC connection does not
+#' currently select that dialect.
+#'
 #' ADBC connections reopen with a current token when `con()` is next called
 #' after token renewal. This closes outstanding results on the old connection.
+#' Consume and release results before starting another operation.
+#'
+#' Direct DBI reads use the driver's type conversions. For fabricQueryR's
+#' exact numeric conversion, call `fabricQueryR::fabric_sql_query()` through
+#' [oauth_db_fabric_api()] with `backend = "adbc"` and
+#' `numeric_policy = "exact"`.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_fabric_sql(

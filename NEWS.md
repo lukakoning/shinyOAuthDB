@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Document ODBC as the Fabric backend for dbplyr's SQL Server translations,
+  and explain ADBC driver setup, result lifetime and numeric conversion.
+
 * Apply ODBC connection-string validation only to Fabric's ODBC backend,
   allowing literal ADBC driver paths. Reject URI overrides for either backend.
 
