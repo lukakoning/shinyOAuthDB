@@ -102,10 +102,11 @@ signed 64-bit integer; ordinary character values bind as text. Encode
 dates as strings.
 
 SQLite integers are returned as strings to preserve all 64 bits.
-Floating point values remain numeric, text remains character and blobs
-use raw vectors in list columns. Columns with mixed SQLite types remain
-lists. All-null or empty columns use logical missing values;
-`raw = TRUE` preserves the server's declared column metadata.
+Floating point values remain numeric; non-finite results become `NaN`.
+Text remains character and blobs use raw vectors in list columns.
+Columns with mixed SQLite types remain lists. All-null or empty columns
+use logical missing values; `raw = TRUE` preserves the server's declared
+column metadata.
 
 ## See also
 

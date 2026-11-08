@@ -18,6 +18,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html</loc></url>
@@ -48,6 +49,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.html</loc></url>

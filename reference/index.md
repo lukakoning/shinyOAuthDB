@@ -31,6 +31,8 @@
   : Query StarRocks as the signed-in user
 - [`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md)
   : Query a remote DuckDB server as the signed-in user
+- [`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md)
+  : Query Oracle Database as the signed-in user
 - [`oauth_db_connect()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.md)
   : Connect another database package to a user's sign-in
 

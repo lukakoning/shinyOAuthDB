@@ -2,6 +2,26 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Install the checkout’s source archive in Docker demo browser checks
+  and verify its hash in the running app container before testing
+  sign-in.
+
+- Decode Turso’s null-valued floating-point results as `NaN`, preserving
+  SQL NULL values and rejecting malformed float cells in ordinary and
+  raw results.
+
+- Allow Azure PostgreSQL to share a Microsoft sign-in client with other
+  services by requesting its explicit delegated scope in mixed-service
+  clients.
+
+- Add
+  [`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md)
+  for Oracle Database configured for Microsoft Entra authentication.
+  Connections use Oracle ODBC, verified TCPS and each visitor’s access
+  token. Temporary token files are removed after connection opening; the
+  helper requires Oracle to confirm token authentication. Includes a
+  setup guide for self-hosted and hosted databases.
+
 - Document ODBC as the Fabric backend for dbplyr’s SQL Server
   translations, and explain ADBC driver setup, result lifetime and
   numeric conversion.

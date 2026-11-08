@@ -114,7 +114,12 @@ these values in a local <code>.Renviron</code> file and restart R:</p>
 <p>Use the <a href="oauth-setup.html#register-a-microsoft-entra-app">Microsoft
 registration steps</a> and configure delegated access to <strong>Azure
 OSSRDBMS Database</strong>. The preset requests
-<code>https://ossrdbms-aad.database.windows.net/.default</code>.</p>
+<code>https://ossrdbms-aad.database.windows.net/.default</code> when
+PostgreSQL is selected alone. When combined with other Microsoft
+services, it requests
+<code>https://ossrdbms-aad.database.windows.net/user_impersonation</code>
+so the consent request contains explicit permissions for every
+service.</p>
 <table class="table">
 <colgroup>
 <col width="50%">

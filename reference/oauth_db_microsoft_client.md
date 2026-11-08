@@ -1,8 +1,8 @@
 # Set up Microsoft sign-in for database access
 
-Create a sign-in client for an app that queries Azure or Microsoft
-Fabric. Choose the services the app uses, then pass the client to
-shinyOAuth's UI and server modules.
+Create a Microsoft Entra sign-in client for database and platform
+access. Choose the services or token targets the app uses, then pass the
+client to shinyOAuth's UI and server modules.
 
 ## Usage
 
@@ -83,10 +83,15 @@ A shinyOAuth `OAuthClient`. Create it outside `server()`.
 ## Details
 
 The Entra registration needs delegated permissions for the selected
-services. Users also need access to the database or Fabric items.
+services. Users also need access to the database or Fabric items. When
+PostgreSQL is combined with other services, its preset requests the
+delegated `user_impersonation` scope instead of `.default`.
 
 Custom `scopes`, `provider`, and `token_targets` replace their defaults.
-An existing shinyOAuth client can be used in place of this preset.
+An existing shinyOAuth client can be used in place of this preset. For a
+deployment-specific resource such as Oracle Database, supply custom
+`token_targets`; see
+[`vignette("oracle", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md).
 
 ## See also
 

@@ -51,6 +51,7 @@ server and advanced configuration.
 | [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md) | Query Redshift with DBI |
 | [Trino and Starburst Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
 | [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md) | Query with RPostgres and DBI |
+| [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md) | Query with Entra user access tokens and Oracle ODBC |
 
 ## Install shinyOAuthDB
 

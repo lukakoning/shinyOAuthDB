@@ -42,7 +42,11 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Document ODBC as the Fabric backend for dbplyr’s SQL Server translations, and explain ADBC driver setup, result lifetime and numeric conversion.</p></li>
+<ul><li><p>Install the checkout’s source archive in Docker demo browser checks and verify its hash in the running app container before testing sign-in.</p></li>
+<li><p>Decode Turso’s null-valued floating-point results as <code>NaN</code>, preserving SQL NULL values and rejecting malformed float cells in ordinary and raw results.</p></li>
+<li><p>Allow Azure PostgreSQL to share a Microsoft sign-in client with other services by requesting its explicit delegated scope in mixed-service clients.</p></li>
+<li><p>Add <code><a href="../reference/oauth_db_oracle.html">oauth_db_oracle()</a></code> for Oracle Database configured for Microsoft Entra authentication. Connections use Oracle ODBC, verified TCPS and each visitor’s access token. Temporary token files are removed after connection opening; the helper requires Oracle to confirm token authentication. Includes a setup guide for self-hosted and hosted databases.</p></li>
+<li><p>Document ODBC as the Fabric backend for dbplyr’s SQL Server translations, and explain ADBC driver setup, result lifetime and numeric conversion.</p></li>
 <li><p>Apply ODBC connection-string validation only to Fabric’s ODBC backend, allowing literal ADBC driver paths. Reject URI overrides for either backend.</p></li>
 <li><p>Reopen Fabric ADBC connections with a current token on access after token renewal, without replaying completed reactive queries. ODBC connections continue to reuse valid database sessions across ordinary token renewal.</p></li>
 <li><p>Close ADBC connections and their outstanding DBI or Arrow results when the authorization changes, permissions are lost, or the Shiny session ends.</p></li>

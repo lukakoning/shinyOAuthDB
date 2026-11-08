@@ -29,6 +29,8 @@
   JWTs](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md):
 - [OpenSearch with user OAuth
   tokens](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
+- [Oracle
+  Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
 
 ### Cloud platforms
 

@@ -57,6 +57,8 @@ Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
 Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 · [Azure
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
+· [Oracle
+Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html)
 ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
 ·
@@ -231,6 +233,8 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   : Query StarRocks as the signed-in user
 - [`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md)
   : Query a remote DuckDB server as the signed-in user
+- [`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md)
+  : Query Oracle Database as the signed-in user
 - [`oauth_db_connect()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.md)
   : Connect another database package to a user's sign-in
 
@@ -309,6 +313,8 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   JWTs](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md):
 - [OpenSearch with user OAuth
   tokens](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
+- [Oracle
+  Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
 
 ### Cloud platforms
 

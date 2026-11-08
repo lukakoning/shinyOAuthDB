@@ -1,0 +1,180 @@
+# Oracle Database
+
+Use
+[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md)
+to query Oracle Database with each visitor’s Microsoft Entra account. It
+returns a DBI connection for SQL and dbplyr. Oracle maps the visitor to
+a database schema and applies their database privileges. The database
+can run on your infrastructure or in the cloud, including Oracle
+Autonomous Database, if it supports Entra integration.
+
+## Set up the database and driver
+
+Ask your database administrator for an Oracle service configured for
+[Microsoft Entra
+authentication](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/configuring-oracle-database-microsoft-entra-id-integration.html),
+a TCPS listener address and port, and the database’s Entra Application
+ID URI. Your users must have the corresponding global-schema or app-role
+mapping in Oracle. Signing in to the Shiny app does not create that
+mapping.
+
+Install the R package `odbc` and Oracle Instant Client’s **Basic** and
+**ODBC** packages for the architecture of your R process. Register the
+Oracle ODBC driver and find its name with
+[`odbc::odbcListDrivers()`](https://odbc.r-dbi.org/reference/odbcListDrivers.html).
+Use a current supported Oracle client with Entra token support. Oracle
+documents support for the 19c thick client from 19.16 and for newer
+supported releases; the 21c thick client does not support this
+integration. Check both your database and client versions against
+Oracle’s [ODBC setup
+guide](https://docs.oracle.com/en/database/oracle/oracle-database/26/odbcd/using-oracle-database-odbc-driver.html)
+and [client support
+table](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/supported-client-drivers-entra-ad-connections.html).
+
+The client needs a trusted TLS certificate chain. Depending on the
+client, platform and database, use its configured trust store or pass an
+Oracle wallet directory as `wallet_location`. A database requiring
+mutual TLS also needs the client certificate in that wallet. Use
+`server_cert_dn` when your administrator supplies the expected
+certificate distinguished name; otherwise the client matches the
+hostname. Certificate matching is always enabled.
+
+## Register the Shiny application
+
+Register a Microsoft Entra **Web** application with redirect URI
+`http://localhost:8100`. Add the delegated permission exposed by your
+database’s Entra registration, commonly `session:scope:connect`, and
+obtain the required consent. This is a separate registration from the
+database server registration. See Oracle’s [registration
+example](https://docs.oracle.com/en/learn/ocidb-auth-msentraid/) and
+[Microsoft app
+registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app).
+
+Your administrator must configure the database registration’s
+access-token claims and Oracle user mappings. For Entra v2 access
+tokens, Oracle’s setup includes the `upn` access-token claim. Request
+the database’s own resource and scope; an Azure SQL access token has a
+different audience.
+
+Save the app settings in your local `.Renviron` and restart R:
+
+``` text
+OAUTHDB_TENANT_ID=your-tenant-id
+OAUTHDB_CLIENT_ID=your-shiny-app-client-id
+OAUTHDB_CLIENT_SECRET=your-shiny-app-client-secret
+OAUTHDB_ORACLE_RESOURCE=api://your-database-application-id
+OAUTHDB_ORACLE_HOST=database.example.org
+OAUTHDB_ORACLE_SERVICE=reporting.example.org
+OAUTHDB_ORACLE_DRIVER=Oracle in instantclient_19_30
+```
+
+| Setting | Where to find it |
+|----|----|
+| `OAUTHDB_ORACLE_RESOURCE` | Database server’s Entra Application ID URI, not the Shiny application’s client ID |
+| Delegated scope | Database registration’s **Expose an API** page; replace `session:scope:connect` below if needed |
+| Host, service and TCPS port | Oracle connection details supplied by the administrator |
+| Driver | Installed driver name reported by [`odbc::odbcListDrivers()`](https://odbc.r-dbi.org/reference/odbcListDrivers.html) |
+| Wallet and certificate DN, if needed | Oracle administrator’s TLS configuration |
+
+## A complete app
+
+The Microsoft client accepts custom token targets. Oracle has a
+deployment-specific resource, so configure an `oracle` target
+explicitly:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+resource <- Sys.getenv("OAUTHDB_ORACLE_RESOURCE")
+scope <- paste0(resource, "/session:scope:connect")
+client <- oauth_db_microsoft_client(
+  tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  token_targets = list(
+    oracle = list(
+      resource = resource,
+      scopes = scope,
+      required_scopes = scope
+    )
+  )
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_oracle(
+    auth$connection,
+    host = Sys.getenv("OAUTHDB_ORACLE_HOST"),
+    service_name = Sys.getenv("OAUTHDB_ORACLE_SERVICE"),
+    driver = Sys.getenv("OAUTHDB_ORACLE_DRIVER"),
+    port = 1522L,
+    target = "oracle"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT USER AS database_user FROM DUAL")
+  })
+}
+
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+```
+
+Save the code as `example.R`, set your TCPS port and any wallet or
+certificate DN arguments, then run `source("example.R")`. Open
+`http://localhost:8100` in your regular browser and sign in. The example
+shows the Oracle session user. Replace the query with a table or view
+the user can read.
+
+## Connections and token files
+
+shinyOAuth handles browser sign-in and token renewal. The adapter
+obtains the current access token when opening a connection. It supplies
+a separate Oracle Net descriptor containing `TOKEN_AUTH=OAUTH` and the
+location of a temporary token file. It does not change shared Oracle
+configuration files or the process’s `TNS_ADMIN` environment variable.
+
+The token file is removed after connection opening, including on error
+or interrupt. On Unix, its directory is private (`0700`) and the file
+has mode `0600`. On Windows, use a private R temporary directory because
+access rules are inherited from its parent directory.
+
+Before returning a connection, the helper queries
+`SYS_CONTEXT('USERENV', 'AUTHENTICATION_METHOD')` and requires Oracle’s
+`TOKEN_GLOBAL` result. A different method or a failed check closes the
+connection. The helper disables network authentication alternatives and
+Oracle ODBC automatic failover. Reopen a broken connection by calling
+`con()` so the new connection gets a current token.
+
+A valid database session survives ordinary token renewal. Account
+changes, permission loss, sign-out and Shiny session end close it.
+Always call `con()` before querying; a previously retained native handle
+is not a new authorization check. Oracle still decides which database
+objects and rows the visitor may access.
+
+This helper supports Oracle’s Entra OAuth bearer-token path. It does not
+implement OCI IAM proof-of-possession authentication, password login,
+proxy-user connections or arbitrary OIDC issuers. There is no local
+Oracle/Entra Docker demo. The automated tests check the ODBC boundary,
+credential cleanup, token-authentication verification and Shiny
+lifecycle; they do not establish a live Oracle/Entra connection.
