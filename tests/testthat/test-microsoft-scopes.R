@@ -144,6 +144,77 @@ test_that("PostgreSQL's default consent works with real shinyOAuth permission ev
   })
 })
 
+test_that("PostgreSQL composes with every Microsoft service in either order", {
+  targets <- c(
+    sql = "sql",
+    fabric = "fabric",
+    kql = "kusto",
+    dax = "power_bi",
+    graphql = "power_bi",
+    onelake = "storage",
+    databricks_entra = "databricks"
+  )
+  permission <- "https://ossrdbms-aad.database.windows.net/user_impersonation"
+  for (service in names(targets)) {
+    for (services in list(c("postgres", service), c(service, "postgres"))) {
+      client <- oauth_db_microsoft_client(
+        services,
+        "organizations",
+        "app",
+        "http://localhost:8100"
+      )
+      expect_identical(
+        client@token_target_default,
+        if (services[[1L]] == "postgres") "postgres" else targets[[service]]
+      )
+      expect_setequal(
+        names(client@token_targets),
+        c("postgres", targets[[service]])
+      )
+      expect_identical(client@token_targets$postgres$scopes, permission)
+      expect_identical(
+        client@token_targets$postgres$required_scopes,
+        permission
+      )
+      expect_true(permission %in% client@scopes)
+      expect_false(any(endsWith(client@scopes, "/.default")))
+    }
+  }
+  client <- oauth_db_microsoft_client(
+    c("postgres", names(targets)),
+    "organizations",
+    "app",
+    "http://localhost:8100"
+  )
+  expect_identical(client@token_target_default, "postgres")
+  expect_length(client@token_targets$power_bi$scopes, 2L)
+})
+
+test_that("mixed Microsoft clients enforce PostgreSQL permissions independently", {
+  local_mocked_bindings(
+    .odb_require = function(...) TRUE,
+    .odb_backend_postgres = function(token, ...) list(bearer = token())
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_fabric_authorization(
+      session,
+      services = c("postgres", "sql")
+    )
+    con <- oauth_db_azure_postgres(auth$connection, "host", "db", "role")
+    sql <- oauth_db_token(auth$connection, target = "sql")
+    expect_identical(con(), list(bearer = "A-postgres"))
+    expect_identical(sql(), "A-sql")
+    values <- auth$tokens()
+    values$postgres <- auth$make_token("postgres", scopes = character())
+    auth$tokens(values)
+    expect_error(con(), class = "shiny.silent.error")
+    expect_identical(sql(), "A-sql")
+    values$postgres <- auth$make_token("postgres")
+    auth$tokens(values)
+    expect_identical(con(), list(bearer = "A-postgres"))
+  })
+})
+
 test_that("generic accessors do not reinterpret provider-specific scope names", {
   odb_test_domain(function(session) {
     scope <- "https://example.invalid/.default"

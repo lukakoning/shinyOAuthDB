@@ -60,6 +60,8 @@ to shinyOAuth's UI and server modules.
 \details{
 The Entra registration needs delegated permissions for the selected services.
 Users also need access to the database or Fabric items.
+When PostgreSQL is combined with other services, its preset requests the
+delegated \code{user_impersonation} scope instead of \code{.default}.
 
 Custom \code{scopes}, \code{provider}, and \code{token_targets} replace their defaults.
 An existing shinyOAuth client can be used in place of this preset.

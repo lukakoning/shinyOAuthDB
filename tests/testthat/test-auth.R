@@ -19,15 +19,6 @@ test_that("Microsoft convenience configures native targets without source object
   expect_length(client@client_secret, 0L)
   expect_error(
     oauth_db_microsoft_client(
-      c("sql", "postgres"),
-      "organizations",
-      "app",
-      "http://localhost:8100"
-    ),
-    "cannot mix .default"
-  )
-  expect_error(
-    oauth_db_microsoft_client(
       "made-up",
       "organizations",
       "app",

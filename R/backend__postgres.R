@@ -464,12 +464,12 @@ oauth_db_azure_postgres <- function(
   do.call(DBI::dbConnect, c(args, options))
 }
 
-.odb_postgres_profiles <- function() {
+.odb_postgres_profiles <- function(explicit_scopes = FALSE) {
   list(
     postgres = .odb_microsoft_profile(
       "postgres",
       "https://ossrdbms-aad.database.windows.net",
-      ".default"
+      if (explicit_scopes) "user_impersonation" else ".default"
     )
   )
 }

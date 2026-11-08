@@ -23,6 +23,8 @@
 #' @details
 #' The Entra registration needs delegated permissions for the selected services.
 #' Users also need access to the database or Fabric items.
+#' When PostgreSQL is combined with other services, its preset requests the
+#' delegated `user_impersonation` scope instead of `.default`.
 #'
 #' Custom `scopes`, `provider`, and `token_targets` replace their defaults.
 #' An existing shinyOAuth client can be used in place of this preset.
@@ -95,7 +97,9 @@ oauth_db_microsoft_client <- function(
 .odb_microsoft_targets <- function(services) {
   profiles <- c(
     .odb_sql_server_profiles(),
-    .odb_postgres_profiles(),
+    .odb_postgres_profiles(
+      explicit_scopes = is.character(services) && length(unique(services)) > 1L
+    ),
     .odb_fabric_profiles(),
     .odb_databricks_profiles()
   )

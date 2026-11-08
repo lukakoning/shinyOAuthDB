@@ -56,7 +56,10 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 
 Use the [Microsoft registration steps](oauth-setup.html#register-a-microsoft-entra-app)
 and configure delegated access to **Azure OSSRDBMS Database**. The preset
-requests `https://ossrdbms-aad.database.windows.net/.default`.
+requests `https://ossrdbms-aad.database.windows.net/.default` when PostgreSQL
+is selected alone. When combined with other Microsoft services, it requests
+`https://ossrdbms-aad.database.windows.net/user_impersonation` so the consent
+request contains explicit permissions for every service.
 
 | Value in the app | Where to find it |
 | --- | --- |

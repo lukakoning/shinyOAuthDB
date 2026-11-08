@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Allow Azure PostgreSQL to share a Microsoft sign-in client with other
+  services by requesting its explicit delegated scope in mixed-service clients.
+
 * Add `oauth_db_oracle()` for Oracle Database configured for Microsoft Entra
   authentication. Connections use Oracle ODBC, verified TCPS and each visitor's
   access token. Temporary token files are removed after connection opening;
