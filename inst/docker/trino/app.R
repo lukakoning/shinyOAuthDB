@@ -167,3 +167,6 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server, uiPattern = ".*")
+
+# Open the printed app URL in your regular browser.
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

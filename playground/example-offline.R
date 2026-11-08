@@ -57,3 +57,6 @@ if (interactive()) {
     launch.browser = FALSE
   )
 }
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

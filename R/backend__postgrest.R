@@ -8,6 +8,10 @@
 #' @param schema Exposed PostgreSQL schema, or `NULL` for the server default.
 #' @param timeout Maximum seconds for one request, including its refresh retry.
 #' @param ca_bundle Optional path to a trusted CA certificate bundle.
+#' @details The services-only PostgREST demo permits its exact loopback HTTP
+#'   endpoint while the returned demo handle is active. All other endpoints
+#'   require HTTPS. Stopping the demo revokes this exception for existing
+#'   API clients too.
 #' @return An R6 client with these methods:
 #'   \itemize{
 #'     \item \code{$select(table, select = "*", filters = list(), order = NULL,
@@ -67,7 +71,7 @@ oauth_db_postgrest_api <- function(
   ca_bundle = NULL,
   session = shiny::getDefaultReactiveDomain()
 ) {
-  url <- .odb_http_url(url)
+  url <- .odb_demo_postgrest_url(url)
   .odb_string(schema, "schema", optional = TRUE)
   if (!is.null(schema) && grepl("[[:cntrl:]]", schema)) {
     .odb_abort("schema cannot contain control characters.")
@@ -177,6 +181,7 @@ oauth_db_postgrest_api <- function(
       prefer = NULL,
       raw = FALSE
     ) {
+      .odb_demo_postgrest_url(private$url)
       path <- .odb_http_path(path)
       .odb_string(method, "method")
       method <- toupper(method)

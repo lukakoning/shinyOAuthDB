@@ -1,4 +1,3 @@
-# From the repository root: shiny::runApp("playground/fabric", port = 8100)
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -150,3 +149,7 @@ server <- function(input, output, session) {
 
 app <- shinyApp(ui, server, uiPattern = ".*")
 app
+
+# From the repository root: shiny::runApp("playground/fabric", port = 8100, launch.browser = FALSE)
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

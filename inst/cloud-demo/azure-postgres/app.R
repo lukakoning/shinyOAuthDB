@@ -45,3 +45,6 @@ make_access <- function(authorization) {
 run_query <- function(access) DBI::dbGetQuery(access(), example_query)
 
 source("demo-ui.R", local = TRUE)$value
+
+# Open the printed app URL in your regular browser.
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

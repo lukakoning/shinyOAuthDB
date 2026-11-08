@@ -72,6 +72,11 @@ for (source in names(vignette_sources)) {
         )
         chunks <- vignette_chunks(source_name)
         envir <- new.env(parent = globalenv())
+        envir$runApp <- function(app, port, launch.browser, ...) {
+          expect_identical(port, 8100)
+          expect_false(launch.browser)
+          app
+        }
         app <- eval(chunks[["app"]], envir)
         expect_s3_class(app, "shiny.appobj")
         expect_s3_class(envir$client, "shinyOAuth::OAuthClient")

@@ -7,7 +7,7 @@
 oauth_db_demo(
   database = c("postgres", "postgrest", "trino", "starrocks", "duckdb", "libsql",
     "cratedb", "opensearch"),
-  action = c("start", "stop", "files"),
+  action = c("start", "stop", "files", "services"),
   path = NULL,
   launch_browser = interactive(),
   build = TRUE,
@@ -21,13 +21,16 @@ or \code{"opensearch"}.}
 
 \item{action}{\code{"start"} runs the demo until you stop it or interrupt R.
 \code{"stop"} removes its containers and data, including after a forced exit.
-\code{"files"} copies the configuration without starting Docker.}
+\code{"files"} copies the configuration without starting Docker.
+\code{"services"} starts only the Docker services and returns settings for
+an app you run in the current R session; \code{app} is ignored in this mode.}
 
 \item{path}{Directory for the demo files. Defaults to a database-specific
 directory in R's user cache. Existing demo files are kept so you can edit
 the app or configuration. An unrelated nonempty directory is refused.}
 
-\item{launch_browser}{Open the app in your browser once it is ready.}
+\item{launch_browser}{Open the app in your browser once it is ready.
+Services-only mode leaves browser launch to your app.}
 
 \item{build}{Build Docker images before starting. Set to \code{FALSE} to reuse
 images from a previous successful build.}
@@ -38,6 +41,10 @@ Local mode creates an editable app under \verb{local-app/<database>/} in \code{p
 }
 \value{
 Invisibly, the directory containing the demo configuration.
+With \code{action = "services"}, an environment containing \code{provider} (a
+configured shinyOAuth provider), \code{url} (the local data endpoint),
+\code{host}, \code{port}, \code{ca_bundle} (for HTTPS endpoints), \code{path} and a \code{stop()}
+function instead.
 }
 \description{
 Start a database and Keycloak sign-in using Docker, with a small Shiny app
@@ -93,6 +100,31 @@ or the parent R session's TLS settings. Local mode requires Compose 2.24.4
 or later and publishes its database endpoint on loopback port 19444.
 }
 
+\section{Run your own app with Docker services}{
+
+Use \code{action = "services"} to start the database and sign-in infrastructure
+without starting Shiny or blocking R. Use the returned \code{provider} in
+\code{shinyOAuth::oauth_client()} and \code{url} in an API helper.
+This mode needs Compose 2.24.4 or later but does not install or require
+local database drivers. Native database clients still need their usual
+runtime; PostgREST works in local R on Windows, macOS and Linux.
+
+Browser sign-in uses HTTPS. The returned provider uses Keycloak's HTTP
+endpoints on loopback port 18080 for R's token, UserInfo and signing-key
+requests. It retains the HTTPS issuer and validates signed ID tokens.
+This avoids changing R's certificate store or curl settings. PostgREST's
+services-only endpoint uses HTTP on \verb{127.0.0.1:19444}, permitted only while
+its demo handle is active. Other data endpoints retain HTTPS and supply
+\code{ca_bundle} for clients that support custom certificate authorities.
+
+During this demo, shinyOAuth's host policy permits loopback hosts and
+its loopback-only OIDC development option is enabled. \code{demo$stop()}
+removes the containers and data and restores these options. Register
+it with \code{shiny::onStop()} when your app starts. Services are also stopped
+when the returned object is garbage collected or R exits. Run one demo
+at a time, and stop it before starting another.
+}
+
 \examples{
 \dontrun{
 oauth_db_demo()
@@ -109,6 +141,11 @@ path <- oauth_db_demo(action = "files")
 path <- oauth_db_demo("postgrest", app = "local", action = "files")
 file.edit(file.path(path, "local-app", "postgrest", "app.R"))
 oauth_db_demo("postgrest", app = "local", path = path)
+# Run your own app against PostgreSQL through PostgREST:
+demo <- oauth_db_demo("postgrest", action = "services")
+demo$provider
+demo$url
+demo$stop()
 }
 }
 \seealso{

@@ -284,7 +284,7 @@ oauth_db_cloud_demo <- function(
     wrap = TRUE
   )
   cli::cli_text(
-    "Open {.url {paste0('http://localhost:', config$port)}} and click Sign in. Choose a warehouse there, then run the example query."
+    "Open {.url {paste0('http://localhost:', config$port)}} in a regular browser and click Sign in. Embedded RStudio/Positron viewers cannot complete OAuth redirects. Choose a warehouse there, then run the example query."
   )
   cli::cli_text(
     "Save edits to {.file app.R} and reload the browser to try them. Stop demo ends the local app; the shared cloud warehouse keeps its own settings."

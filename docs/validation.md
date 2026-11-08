@@ -1,5 +1,39 @@
 # Validation record
 
+## 8 November 2026: runnable README and consistent example launches
+
+The README starts its Docker services immediately after `library()` and
+runs Shiny in the current R session. PostgreSQL is accessed through
+PostgREST, so this example needs no native database driver. The packaged
+script is `inst/examples/postgres/example.R`; run it with `source()`.
+It registers service cleanup when Shiny starts and releases it on app stop.
+
+Services-only mode uses loopback HTTP for R's OAuth requests and the
+PostgREST demo endpoint. The HTTPS issuer and signed ID-token validation
+are retained. The PostgREST HTTP exception accepts only the active demo's
+exact address and is checked again before each request. Stopping the demo
+revokes it, restores R options and removes Docker resources. System trust
+stores and curl settings remain unchanged.
+
+README and vignette apps use `runApp(..., launch.browser = FALSE)` with
+the regular-browser comment after the call, following shinyOAuth. The
+README's Learn more section points to both demo functions and setup guides.
+Air formatted the R files and 84 fenced R blocks; a second pass made no changes.
+
+| Check | Result |
+| --- | --- |
+| Focused demo, cloud and example suites | 855 assertions across 77 scenarios; zero failures, errors, warnings or skips |
+| Formatted README, packaged script and database guides | 211 assertions across 22 scenarios pass after formatting |
+| Real installed-package browser check, Windows | Alice and Bob sign in through Keycloak, see only their PostgreSQL rows, and sign-out clears the table |
+| App stop | Docker containers are removed and R options restored before the child R process exits; cleanup does not rely on an exit finalizer |
+| Services-only Compose configurations | All eight resolve; published ports bind to loopback, and port 18100 remains available to local R |
+| Air and Jarl | Repository checks pass; fenced code formatting is idempotent |
+| Documentation and website | 86 R blocks parse, 199 local links and 17 anchors resolve; pkgdown builds |
+| `R CMD check --no-manual --no-tests` | Zero errors, warnings or notes; examples are exercised separately above |
+
+No live cloud accounts were used. Logs are `.validation/services-*.log`;
+real browser results are under `.validation/readme-demo/`.
+
 ## 7 November 2026: minimal app code in the README
 
 The README now shows 36 lines of R: OAuth client setup, sign-in/sign-out,

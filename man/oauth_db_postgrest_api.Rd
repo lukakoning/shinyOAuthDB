@@ -60,6 +60,11 @@ Read PostgreSQL tables and views or call exposed functions through
 PostgREST, using the visitor's current bearer token for each request.
 }
 \details{
+The services-only PostgREST demo permits its exact loopback HTTP
+endpoint while the returned demo handle is active. All other endpoints
+require HTTPS. Stopping the demo revokes this exception for existing
+API clients too.
+
 Configure a shinyOAuth client for the identity provider trusted by your
 PostgREST deployment. Its access token must be a JWT with the expected
 audience and role claims. PostgREST verifies the token; PostgreSQL grants

@@ -6,20 +6,20 @@ they already use for that data source, and your app queries data on their
 behalf.
 
 This is useful when you or your organization already manage accounts and data
-permissions in a database or data platform. Your Shiny app can reuse those permissions, 
-so you don't have to maintain a separate set of user accounts and data-access rules in the Shiny app. 
-For example, if your database limits an analyst to sales data for their region, 
+permissions in a database or data platform. Your Shiny app can reuse those permissions,
+so you don't have to maintain a separate set of user accounts and data-access rules in the Shiny app.
+For example, if your database limits an analyst to sales data for their region,
 your Shiny dashboard can query the data as that analyst and automatically use the same restriction.
 
 The OAuth sign-in and data access work like this:
 
-1. A user navigates to your Shiny app. Your Shiny app shows a **Sign in** button. 
-   When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow. 
-   The user is sent to the sign-in page of the database or data platform, 
+1. A user navigates to your Shiny app. Your Shiny app shows a **Sign in** button.
+   When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow.
+   The user is sent to the sign-in page of the database or data platform,
    or to a trusted sign-in service (like your organization's login service).
 2. The user signs in with their existing account and, if asked, approve the
    access your app requests.
-3. They return to your Shiny app and shinyOAuth obtains an **access token**, 
+3. They return to your Shiny app and shinyOAuth obtains an **access token**,
    a temporary credential that lets your Shiny app request data on their behalf.
 4. Your Shiny app uses shinyOAuthDB to send that token with its data requests.
    The database or data platform checks the token and applies that user's
@@ -57,19 +57,21 @@ the setup and where to find the settings you need.
 ## Install
 
 ```r
-install.packages("remotes")
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
 ## Example usage with PostgreSQL
 
-Start [Docker](https://docs.docker.com/get-started/get-docker/) with Linux
-containers, then run this app in R. The setup call starts PostgreSQL,
-Keycloak sign-in and PostgREST, which lets R read PostgreSQL over HTTP
-without installing a database driver. PostgreSQL applies each user's permissions.
+Below is a minimal example of a Shiny app that queries a PostgreSQL database.
 
-Pass `auth$connection` to `oauth_db_postgrest_api()`, then use `$select()`
-to read a table as the signed-in user.
+It launches PostgreSQL and Keycloak sign-in in Docker
+(so install and launch [Docker](https://docs.docker.com/engine/install/) if you wish to run it).
+
+This example uses PostgREST since it does not require a database driver to be installed, but you could also use DBI with a PostgreSQL driver.
+See the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) for that.
 
 ```r
 library(shiny)
@@ -80,16 +82,21 @@ demo <- oauth_db_demo("postgrest", action = "services")
 
 client <- oauth_client(
   demo$provider,
-  client_id = "shiny-db", client_secret = "demo-client-secret",
+  client_id = "shiny-db",
+  client_secret = "demo-client-secret",
   redirect_uri = "http://localhost:18100",
   scopes = c("openid", "profile", "database.read")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -97,15 +104,24 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   postgres <- oauth_db_postgrest_api(
-    auth$connection, url = demo$url
+    auth$connection,
+    url = demo$url
   )
   output$rows <- renderTable({
     postgres$select("visible_rows", order = "row_id.asc")
   })
 }
 
-shinyApp(ui, server, options = list(port = 18100), uiPattern = ".*",
-         onStart = function() onStop(demo$stop))
+runApp(
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    onStop(demo$stop)
+  }),
+  port = 18100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:18100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
 Sign in as `alice` / `alice` or `bob` / `bob` (username / password).
@@ -113,35 +129,19 @@ The first build takes a few minutes; your browser may ask you to accept the
 local sign-in certificate. Stopping the app removes its Docker services.
 Call `demo$stop()` to stop the services manually.
 
-The package includes this example as `examples/postgres/app.R`;
+The package includes this example as `examples/postgres/example.R`;
 [run it directly](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
 or edit a copy. For your own server, follow the [PostgREST guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html).
-For native PostgreSQL connections with DBI, see the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
 
-## Try the demo
+## Learn more
 
-With [Docker](https://docs.docker.com/get-started/get-docker/) running Linux
-containers, run the following in R. The first build takes several minutes.
+`oauth_db_demo()` runs local Docker demos for PostgreSQL and other databases.
+`oauth_db_cloud_demo()` guides demos for several cloud platforms using an
+existing account. See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
+and [Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
 
-```r
-shinyOAuthDB::oauth_db_demo()
-```
-
-This starts PostgreSQL, Keycloak sign-in and a styled version of the app.
-Open <http://localhost:18100> and sign in as `alice` / `alice` or `bob` / `bob`
-(username / password). Each account sees only its own rows.
-Your browser may ask you to accept the local test certificate.
-Click **Stop demo** or interrupt R to remove the containers and sample data.
-
-See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
-for other databases, editing the app in local R and troubleshooting.
-
-For a cloud platform, `shinyOAuthDB::oauth_db_cloud_demo("fabric")` guides you
-through sign-in setup and opens an editable local app. See
-[Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html)
-for the supported platforms and their setup requirements.
-
-[Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html) explains the Shiny pattern.
-[OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html) explains app registrations and
-sign-in settings. [Authentication and sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
-covers multiple accounts, saved results and advanced permissions.
+[Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html)
+explains the app pattern. Use the database links above for platform setup,
+[OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html)
+for app registrations, and [Authentication and sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
+for multiple accounts and advanced permissions.

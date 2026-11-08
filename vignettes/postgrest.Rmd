@@ -58,7 +58,7 @@ recipe after the app if your PostgreSQL database doesn't yet expose an API.
 ## Complete Shiny app
 
 Replace the schema, table, and column names with your own. Save the example
-as `app.R` and run it with `shiny::runApp(port = 8100)`.
+as `example.R` and run it with `source("example.R")`.
 
 ```{r app, eval=FALSE}
 library(shiny)
@@ -76,11 +76,15 @@ client <- oauth_client(
   scopes = c("openid", "profile", "email", "offline_access")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -97,7 +101,14 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
 Create the client inside `server()`. Its requests wait quietly before
@@ -142,12 +153,20 @@ include related resources configured through foreign keys.
 
 ```{r pagination, eval=FALSE}
 rows <- postgrest$select(
-  "orders", select = "id,total,customers(name)",
+  "orders",
+  select = "id,total,customers(name)",
   filters = list(total = "gte.100", country = "eq.NL"),
-  order = "id.asc", limit = 20L, offset = 20L
+  order = "id.asc",
+  limit = 20L,
+  offset = 20L
 )
-response <- postgrest$select("orders", order = "id.asc", limit = 20L,
-  count = "exact", raw = TRUE)
+response <- postgrest$select(
+  "orders",
+  order = "id.asc",
+  limit = 20L,
+  count = "exact",
+  raw = TRUE
+)
 httr2::resp_header(response, "Content-Range")
 ```
 
@@ -171,13 +190,20 @@ Call an exposed PostgreSQL function through its RPC endpoint. The keys in
 total <- postgrest$rpc("order_total", list(order_id = 42L))
 
 # A GET function call runs in a read-only transaction on PostgREST.
-total <- postgrest$request(c("rpc", "order_total"),
-  query = list(order_id = 42L))
+total <- postgrest$request(
+  c("rpc", "order_total"),
+  query = list(order_id = 42L)
+)
 
 # Native writes use the same visitor's token and database permissions.
-response <- postgrest$request("orders", method = "PATCH",
-  query = list(id = "eq.42"), body = list(status = "reviewed"),
-  prefer = "return=representation", raw = TRUE)
+response <- postgrest$request(
+  "orders",
+  method = "PATCH",
+  query = list(id = "eq.42"),
+  body = list(status = "reviewed"),
+  prefer = "return=representation",
+  raw = TRUE
+)
 ```
 
 GET and HEAD requests retry once after HTTP 401 using a renewed token.

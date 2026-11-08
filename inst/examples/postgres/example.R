@@ -2,9 +2,10 @@ library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-issuer <- "https://localhost:18443/realms/shinyoauthdb"
+demo <- oauth_db_demo("postgrest", action = "services")
+
 client <- oauth_client(
-  oauth_provider_oidc_discover(issuer),
+  demo$provider,
   client_id = "shiny-db",
   client_secret = "demo-client-secret",
   redirect_uri = "http://localhost:18100",
@@ -26,22 +27,22 @@ server <- function(input, output, session) {
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
-  con <- oauth_db_postgres(
+  postgres <- oauth_db_postgrest_api(
     auth$connection,
-    host = "localhost",
-    dbname = "oauthdb_fixture",
-    user = function() req(auth$token@userinfo$preferred_username),
-    issuer = issuer,
-    scope = "database.read",
-    sslrootcert = "/fixtures/tls/ca-cert.pem"
+    url = demo$url
   )
   output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(
-      connection,
-      "SELECT marker FROM visible_rows ORDER BY row_id"
-    )
+    postgres$select("visible_rows", order = "row_id.asc")
   })
 }
 
-shinyApp(ui, server, uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    onStop(demo$stop)
+  }),
+  port = 18100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:18100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

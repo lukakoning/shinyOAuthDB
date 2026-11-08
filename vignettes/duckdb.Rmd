@@ -72,11 +72,15 @@ client <- oauth_client(
   scopes = c("openid", "quack:read")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -84,7 +88,9 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   con <- oauth_db_duckdb(
-    auth$connection, host = "duckdb.example.org", port = 443,
+    auth$connection,
+    host = "duckdb.example.org",
+    port = 443,
     required_scopes = "quack:read"
   )
   output$rows <- renderTable({
@@ -93,10 +99,17 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before connecting
+Run `source("example.R")`. The app waits for sign-in before connecting
 and clears the output on sign-out. Get a connection inside each render or
 reactive expression before running queries.
 

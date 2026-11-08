@@ -91,3 +91,6 @@ if (interactive()) {
     launch.browser = FALSE
   )
 }
+
+# Open the app in your regular browser at its registered redirect URI.
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

@@ -1,4 +1,15 @@
 readme_example <- function(title) {
+  if (title == "Packaged PostgreSQL") {
+    return(parse(
+      system.file(
+        "examples",
+        "postgres",
+        "example.R",
+        package = "shinyOAuthDB"
+      ),
+      keep.source = FALSE
+    ))
+  }
   guide <- c(
     PostgREST = "postgrest",
     StarRocks = "starrocks",
@@ -27,7 +38,7 @@ readme_example <- function(title) {
   for (i in seq.int(1L, length(fences), by = 2L)) {
     code <- section[seq.int(fences[[i]] + 1L, fences[[i + 1L]] - 1L)]
     if ("library(shiny)" %in% code) {
-      return(parse(text = code))
+      return(parse(text = code, keep.source = FALSE))
     }
   }
   stop("No complete Shiny app in README section: ", title)
@@ -35,6 +46,7 @@ readme_example <- function(title) {
 
 for (title in c(
   "Self-hosted PostgreSQL",
+  "Packaged PostgreSQL",
   "PostgREST",
   "StarRocks",
   "ClickHouse"
@@ -67,6 +79,17 @@ for (title in c(
           },
           .package = "shinyOAuth"
         )
+        local_mocked_bindings(oauth_db_demo = function(database, action) {
+          expect_identical(database, "postgrest")
+          expect_identical(action, "services")
+          list(
+            provider = shinyOAuth::oauth_provider_oidc_discover(
+              "https://localhost:18443/realms/shinyoauthdb"
+            ),
+            url = "https://localhost:19444",
+            stop = function() invisible(NULL)
+          )
+        })
         opened <- list()
         users <- character()
         requests <- list()
@@ -98,7 +121,10 @@ for (title in c(
             "",
             httr2::req_get_headers(req, redacted = "reveal")$Authorization
           )
-          body <- if (source_name == "PostgREST") {
+          body <- if (
+            source_name %in%
+              c("Self-hosted PostgreSQL", "Packaged PostgreSQL", "PostgREST")
+          ) {
             list(list(database_user = user))
           } else {
             list(
@@ -113,6 +139,21 @@ for (title in c(
           )))
         })
         envir <- new.env(parent = globalenv())
+        envir$runApp <- function(app, port, launch.browser, ...) {
+          expect_identical(
+            port,
+            if (
+              source_name %in%
+                c("Self-hosted PostgreSQL", "Packaged PostgreSQL")
+            ) {
+              18100
+            } else {
+              8100
+            }
+          )
+          expect_false(launch.browser)
+          app
+        }
         app <- eval(readme_example(source_name), envir)
         expect_s3_class(app, "shiny.appobj")
         expect_match(
@@ -157,7 +198,7 @@ for (title in c(
           session$setInputs(logout = 1L)
           expect_error(output$rows, class = "shiny.silent.error")
         })
-        if (source_name %in% c("Self-hosted PostgreSQL", "StarRocks")) {
+        if (source_name == "StarRocks") {
           expect_identical(users, c("A", "B"))
           expect_true(all(vapply(
             opened,

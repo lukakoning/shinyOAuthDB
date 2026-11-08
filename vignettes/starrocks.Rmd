@@ -62,11 +62,15 @@ client <- oauth_client(
   scopes = c("openid", "profile", "email", "offline_access")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -90,11 +94,18 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Save this as `app.R`, replace the database and claim mapping, and run
-`shiny::runApp(port = 8100)`. Use `target` when your shinyOAuth client
+Save this as `example.R`, replace the database and claim mapping, and run
+`source("example.R")`. Use `target` when your shinyOAuth client
 contains named token targets. No separate browser authentication is
 performed by the database driver.
 

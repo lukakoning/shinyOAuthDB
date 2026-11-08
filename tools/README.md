@@ -55,6 +55,11 @@ helper, real HTTPS, typed results, local grants and dropped/delayed write
 responses in an isolated [Docker fixture](../integration/clickhouse-http/README.md).
 
 Each script accepts additional R library directories as trailing arguments.
+`Rscript --vanilla tools/check-readme-demo.R` runs the packaged README app
+in host R with real Docker services, OAuth sign-in and PostgreSQL row
+permissions. It checks that stopping Shiny removes the containers and
+restores the demo's R options before the R process exits.
+
 The documentation checker uses rmarkdown and Pandoc to resolve rendered section
 anchors and local file links, including every integration guide. It parses R
 examples without executing them.

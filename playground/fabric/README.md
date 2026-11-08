@@ -23,10 +23,11 @@ Wait for setup to finish, then run from this repository:
 
 ```r
 pkgload::load_all()
-shiny::runApp("playground/fabric", port = 8100)
+shiny::runApp("playground/fabric", port = 8100, launch.browser = FALSE)
 ```
 
-Open `http://localhost:8100/`, choose a source, and click **Load data**.
+Open `http://localhost:8100/` in a regular browser, choose a source, and click **Load data**.
+Embedded RStudio/Positron viewers cannot complete OAuth redirects.
 The app finds items by name. Set `FABRIC_SHINY_WORKSPACE` to use another
 sandbox with the same prepared data.
 

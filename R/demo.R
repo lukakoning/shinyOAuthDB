@@ -11,16 +11,23 @@
 #' @param action `"start"` runs the demo until you stop it or interrupt R.
 #'   `"stop"` removes its containers and data, including after a forced exit.
 #'   `"files"` copies the configuration without starting Docker.
+#'   `"services"` starts only the Docker services and returns settings for
+#'   an app you run in the current R session; `app` is ignored in this mode.
 #' @param path Directory for the demo files. Defaults to a database-specific
 #'   directory in R's user cache. Existing demo files are kept so you can edit
 #'   the app or configuration. An unrelated nonempty directory is refused.
 #' @param launch_browser Open the app in your browser once it is ready.
+#'   Services-only mode leaves browser launch to your app.
 #' @param build Build Docker images before starting. Set to `FALSE` to reuse
 #'   images from a previous successful build.
 #' @param app Where to run the Shiny app: `"docker"` (the default) supplies
 #'   its R environment and drivers, or `"local"` uses your installed R packages.
 #'   Local mode creates an editable app under `local-app/<database>/` in `path`.
 #' @return Invisibly, the directory containing the demo configuration.
+#'   With `action = "services"`, an environment containing `provider` (a
+#'   configured shinyOAuth provider), `url` (the local data endpoint),
+#'   `host`, `port`, `ca_bundle` (for HTTPS endpoints), `path` and a `stop()`
+#'   function instead.
 #' @details
 #' Install and start Docker with Linux containers and Docker Compose v2.
 #' The first build downloads images, R packages and pinned package sources
@@ -65,6 +72,28 @@
 #' inside the local app process. It does not change your certificate store
 #' or the parent R session's TLS settings. Local mode requires Compose 2.24.4
 #' or later and publishes its database endpoint on loopback port 19444.
+#' @section Run your own app with Docker services:
+#' Use `action = "services"` to start the database and sign-in infrastructure
+#' without starting Shiny or blocking R. Use the returned `provider` in
+#' `shinyOAuth::oauth_client()` and `url` in an API helper.
+#' This mode needs Compose 2.24.4 or later but does not install or require
+#' local database drivers. Native database clients still need their usual
+#' runtime; PostgREST works in local R on Windows, macOS and Linux.
+#'
+#' Browser sign-in uses HTTPS. The returned provider uses Keycloak's HTTP
+#' endpoints on loopback port 18080 for R's token, UserInfo and signing-key
+#' requests. It retains the HTTPS issuer and validates signed ID tokens.
+#' This avoids changing R's certificate store or curl settings. PostgREST's
+#' services-only endpoint uses HTTP on `127.0.0.1:19444`, permitted only while
+#' its demo handle is active. Other data endpoints retain HTTPS and supply
+#' `ca_bundle` for clients that support custom certificate authorities.
+#'
+#' During this demo, shinyOAuth's host policy permits loopback hosts and
+#' its loopback-only OIDC development option is enabled. `demo$stop()`
+#' removes the containers and data and restores these options. Register
+#' it with `shiny::onStop()` when your app starts. Services are also stopped
+#' when the returned object is garbage collected or R exits. Run one demo
+#' at a time, and stop it before starting another.
 #' @examples
 #' \dontrun{
 #' oauth_db_demo()
@@ -81,6 +110,11 @@
 #' path <- oauth_db_demo("postgrest", app = "local", action = "files")
 #' file.edit(file.path(path, "local-app", "postgrest", "app.R"))
 #' oauth_db_demo("postgrest", app = "local", path = path)
+#' # Run your own app against PostgreSQL through PostgREST:
+#' demo <- oauth_db_demo("postgrest", action = "services")
+#' demo$provider
+#' demo$url
+#' demo$stop()
 #' }
 #' @seealso [oauth_db_postgres()], [oauth_db_postgrest_api()],
 #'   [oauth_db_trino()], [oauth_db_starrocks()], [oauth_db_duckdb()],
@@ -97,7 +131,7 @@ oauth_db_demo <- function(
     "cratedb",
     "opensearch"
   ),
-  action = c("start", "stop", "files"),
+  action = c("start", "stop", "files", "services"),
   path = NULL,
   launch_browser = interactive(),
   build = TRUE,
@@ -106,11 +140,22 @@ oauth_db_demo <- function(
   database <- match.arg(database)
   action <- match.arg(action)
   app <- match.arg(app)
+  services <- action == "services"
+  if (services) {
+    app <- "local"
+  }
   if (is.null(path)) {
     path <- file.path(
       tools::R_user_dir("shinyOAuthDB", "cache"),
       "demo",
-      paste0(database, if (app == "local") "-local")
+      paste0(
+        database,
+        if (services) {
+          "-services"
+        } else if (app == "local") {
+          "-local"
+        }
+      )
     )
   }
   .odb_string(path, "path")
@@ -150,7 +195,7 @@ oauth_db_demo <- function(
     writeLines(as.character(utils::packageVersion("shinyOAuthDB")), marker)
   }
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
-  if (app == "local" && action != "stop") {
+  if (app == "local" && action != "stop" && !services) {
     .odb_demo_local_files(path, database)
   }
   if (action == "files") {
@@ -187,6 +232,20 @@ oauth_db_demo <- function(
       file.path(path, database, "compose.local.yml")
     )
   }
+  if (services) {
+    override <- file.path(path, "compose.services.yml")
+    if (!file.exists(override)) {
+      stop(
+        "These demo files predate services mode. Choose a new empty path.",
+        call. = FALSE
+      )
+    }
+    compose <- c(compose, "--file", override)
+    backend_override <- file.path(path, database, "compose.services.yml")
+    if (file.exists(backend_override)) {
+      compose <- c(compose, "--file", backend_override)
+    }
+  }
   run <- function(args, check = TRUE) {
     .odb_demo_command(docker, c(compose, args), check)
   }
@@ -210,7 +269,7 @@ oauth_db_demo <- function(
   title <- .odb_demo_title(database)
   cli::cli_h1("{title} OAuth demo")
   cli::cli_text(
-    "The database and local sign-in service run in Docker. {if (app == 'local') 'Shiny runs in your local R installation.' else 'Shiny and its database driver also run in Docker.'}"
+    "The database and local sign-in service run in Docker. {if (services) 'Run your Shiny app in this R session after setup finishes.' else if (app == 'local') 'Shiny runs in your local R installation.' else 'Shiny and its database driver also run in Docker.'}"
   )
   cli::cli_text(
     "Demo files: {.path {path}}. Existing edits are kept; use a new empty {.arg path} for fresh templates."
@@ -223,14 +282,15 @@ oauth_db_demo <- function(
   }
   cli::cli_text("After a forced exit, clean up with:")
   cli::cli_code(.odb_demo_resume(database, path, app, "stop"))
+  keep_services <- FALSE
   on.exit(
     {
-      if (cleanup() != 0L) {
+      if (!keep_services && cleanup() != 0L) {
         warning(
           "Demo cleanup failed. Use action = 'stop' after Docker is available.",
           call. = FALSE
         )
-      } else {
+      } else if (!keep_services) {
         cli::cli_alert_success(
           "Demo services and sample data removed. Your app files are kept."
         )
@@ -254,11 +314,31 @@ oauth_db_demo <- function(
     run(c("logs", "--tail", "50"), check = FALSE)
     stop("Docker could not start the demo; see its logs above.", call. = FALSE)
   }
+  if (services) {
+    dir.create(file.path(path, "tls"), showWarnings = FALSE)
+    if (database != "postgrest") {
+      run(c(
+        "cp",
+        "tls:/fixtures/tls/ca-cert.pem",
+        file.path(path, "tls", "ca-cert.pem")
+      ))
+    }
+    settings <- .odb_demo_services_settings(path, cleanup, database)
+    keep_services <- TRUE
+    cli::cli_h2("Docker services are ready")
+    cli::cli_text(
+      "Continue with your app in R. Use the returned provider and endpoint; stop the services with {.code demo$stop()} when finished."
+    )
+    cli::cli_text(
+      "Open the app in a regular browser. Embedded RStudio/Positron viewers cannot complete OAuth redirects."
+    )
+    return(invisible(settings))
+  }
   cli::cli_h2(
     if (app == "local") "Starting Shiny in local R" else "Ready to sign in"
   )
   cli::cli_text(
-    "Open {.url http://localhost:18100}. Use the username and password shown in the app's sign-in panel."
+    "Open {.url http://localhost:18100} in a regular browser. Embedded RStudio/Positron viewers cannot complete OAuth redirects. Use the username and password shown in the app's sign-in panel."
   )
   cli::cli_text(
     "Your browser may ask you to allow the local sign-in service's test certificate. Click Stop demo or interrupt R to remove the demo services and sample data."
@@ -278,6 +358,92 @@ oauth_db_demo <- function(
     run(c("logs", "--follow", "app"))
   }
   invisible(path)
+}
+
+.odb_demo_http <- new.env(parent = emptyenv())
+.odb_demo_http$active <- 0L
+
+.odb_demo_postgrest_url <- function(url) {
+  if (identical(url, "http://127.0.0.1:19444") && .odb_demo_http$active > 0L) {
+    return(url)
+  }
+  .odb_http_url(url)
+}
+
+.odb_demo_services_settings <- function(path, cleanup, database) {
+  policy <- list(
+    shinyOAuth.allowed_hosts = c("localhost", "127.0.0.1", "::1"),
+    shinyOAuth.allow_insecure_oidc_loopback = TRUE
+  )
+  previous <- options(policy)
+  restore <- function() {
+    for (name in names(previous)) {
+      if (identical(getOption(name), policy[[name]])) {
+        options(previous[name])
+      }
+    }
+  }
+  ready <- FALSE
+  on.exit(if (!ready) restore(), add = TRUE)
+  issuer <- "https://localhost:18443/realms/shinyoauthdb"
+  backchannel <- "http://localhost:18080/realms/shinyoauthdb/protocol/openid-connect"
+  provider <- shinyOAuth::oauth_provider(
+    name = "local-demo",
+    issuer = issuer,
+    auth_url = paste0(issuer, "/protocol/openid-connect/auth"),
+    token_url = paste0(backchannel, "/token"),
+    userinfo_url = paste0(backchannel, "/userinfo"),
+    revocation_url = paste0(backchannel, "/revoke"),
+    jwks_uri = paste0(backchannel, "/certs"),
+    id_token_validation = TRUE,
+    userinfo_required = TRUE,
+    use_pkce = TRUE,
+    use_nonce = TRUE
+  )
+  settings <- new.env(parent = emptyenv())
+  settings$provider <- provider
+  postgrest <- database == "postgrest"
+  settings$url <- if (postgrest) {
+    "http://127.0.0.1:19444"
+  } else {
+    "https://localhost:19444"
+  }
+  settings$host <- "localhost"
+  settings$port <- 19444L
+  settings$ca_bundle <- if (postgrest) {
+    NULL
+  } else {
+    file.path(path, "tls", "ca-cert.pem")
+  }
+  settings$path <- path
+  if (postgrest) {
+    .odb_demo_http$active <- .odb_demo_http$active + 1L
+  }
+  stopped <- FALSE
+  settings$stop <- function() {
+    if (!stopped) {
+      if (cleanup() != 0L) {
+        stop(
+          "Docker could not stop the demo. Retry demo$stop() when Docker is available.",
+          call. = FALSE
+        )
+      }
+      stopped <<- TRUE
+      if (postgrest) {
+        .odb_demo_http$active <- .odb_demo_http$active - 1L
+      }
+      restore()
+      cli::cli_alert_success("Demo services and sample data removed.")
+    }
+    invisible(NULL)
+  }
+  reg.finalizer(settings, .odb_demo_services_finalize, onexit = TRUE)
+  ready <- TRUE
+  settings
+}
+
+.odb_demo_services_finalize <- function(settings) {
+  try(settings$stop(), silent = TRUE)
 }
 
 .odb_demo_title <- function(database) {

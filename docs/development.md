@@ -76,11 +76,16 @@ and the row policy for Alice and Bob. Run `action = "files"` from an installed
 package to check that the demo doesn't depend on repository-only files.
 `Rscript --vanilla tools/check-demos.R postgres` automates the installed-package
 and browser check; substitute another demo name to check it too.
+`Rscript --vanilla tools/check-readme-demo.R` checks the packaged minimal
+app in host R, including its services-only startup and Shiny stop callback.
 
-Keep the README's app in sync with `inst/examples/postgres/app.R`. Displayed
+Keep the README's app in sync with `inst/examples/postgres/example.R`. Displayed
 app examples should focus on sign-in, a database helper and a query. Keep
 the styled layouts and diagnostic panels in the runnable demo templates
 under `inst/docker/` and `inst/cloud-demo/`.
+Use Air for the fenced R examples too; `air format .` formats R files but
+does not format code blocks inside Markdown. Put the regular-browser
+comment after the launch call, following shinyOAuth's examples.
 
 Resolve `connection <- con()` before calling a DBI method. Passing `con()`
 directly can turn Shiny's wait-for-sign-in signal into a visible method

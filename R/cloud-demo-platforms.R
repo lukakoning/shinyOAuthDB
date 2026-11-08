@@ -199,7 +199,7 @@
     wrap = TRUE
   )
   cli::cli_text(
-    "Open {.url {paste0('http://localhost:', config$port)}} and sign in. Click Run example query when ready. {.file app.R} contains the connection settings and SQL; {.file demo-ui.R} contains the editable UI."
+    "Open {.url {paste0('http://localhost:', config$port)}} in a regular browser and sign in. Embedded RStudio/Positron viewers cannot complete OAuth redirects. Click Run example query when ready. {.file app.R} contains the connection settings and SQL; {.file demo-ui.R} contains the editable UI."
   )
   cli::cli_text("{spec$cost}")
   status <- .odb_cloud_run(

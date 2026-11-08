@@ -1,5 +1,14 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Launch the documented apps with `runApp(..., launch.browser = FALSE)`
+  and explain that OAuth sign-in needs a regular browser. Keep the README's
+  follow-up links in a short Learn more section.
+
+* Add `oauth_db_demo(action = "services")` to start Docker infrastructure
+  and return settings for an app running in the current R session. The
+  README example now starts PostgreSQL and PostgREST itself, works without
+  a native database driver, and stops its services when Shiny stops.
+
 * Keep the README app focused on sign-in and a PostgreSQL query. Ship that
   minimal example in the package with Docker run instructions. Runnable
   demos keep their styled UI.

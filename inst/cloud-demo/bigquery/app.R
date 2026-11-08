@@ -44,3 +44,6 @@ run_query <- function(access) {
 }
 
 source("demo-ui.R", local = TRUE)$value
+
+# Open the printed app URL in your regular browser.
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

@@ -1,0 +1,17 @@
+services:
+  local:
+    environment:
+      OAUTHDB_RELAY_TARGET_PORT: "13000"
+    depends_on: !override
+      database:
+        condition: service_started
+  jwks:
+    build: !reset null
+    image: python:3.12.12-slim
+    entrypoint:
+      - python
+      - -c
+      - >-
+        import urllib.request;
+        response = urllib.request.urlopen('http://localhost:18080/realms/shinyoauthdb/protocol/openid-connect/certs');
+        open('/jwks/keys.json', 'wb').write(response.read())

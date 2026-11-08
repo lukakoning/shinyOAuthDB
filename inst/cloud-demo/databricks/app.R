@@ -343,3 +343,6 @@ server <- function(input, output, session) {
 
 `%||%` <- function(value, otherwise) if (is.null(value)) otherwise else value
 shinyApp(ui, server, uiPattern = ".*")
+
+# Open the printed app URL in your regular browser.
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
