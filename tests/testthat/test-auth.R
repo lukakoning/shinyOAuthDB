@@ -108,6 +108,64 @@ test_that("Microsoft presets let callers select another default target", {
   expect_setequal(names(client@token_targets), c("sql", "kusto"))
 })
 
+test_that("untargeted Microsoft clients retain consent for their selected resource", {
+  cases <- list(
+    list(
+      services = "sql",
+      scopes = "https://database.windows.net//user_impersonation"
+    ),
+    list(
+      services = "postgres",
+      scopes = "https://ossrdbms-aad.database.windows.net/.default"
+    ),
+    list(
+      services = c("dax", "graphql"),
+      scopes = c(
+        "https://analysis.windows.net/powerbi/api/Dataset.Read.All",
+        "https://analysis.windows.net/powerbi/api/GraphQLApi.Execute.All"
+      )
+    )
+  )
+  for (case in cases) {
+    client <- oauth_db_microsoft_client(
+      services = case$services,
+      tenant_id = "organizations",
+      client_id = "app",
+      redirect_uri = "http://localhost:8100",
+      token_targets = list()
+    )
+    expect_identical(client@token_targets, list())
+    expect_identical(client@token_target_default, character())
+    expect_setequal(
+      client@scopes,
+      c("openid", "profile", "offline_access", case$scopes)
+    )
+  }
+  expect_error(
+    oauth_db_microsoft_client(
+      services = c("sql", "kql"),
+      tenant_id = "organizations",
+      client_id = "app",
+      redirect_uri = "http://localhost:8100",
+      token_targets = list()
+    ),
+    "one resource",
+    class = "shinyOAuthDB_invalid_configuration"
+  )
+  client <- oauth_db_microsoft_client(
+    services = stop("Explicit scopes replace the service defaults"),
+    tenant_id = "organizations",
+    client_id = "app",
+    redirect_uri = "http://localhost:8100",
+    token_targets = list(),
+    scopes = "https://database.windows.net//user_impersonation"
+  )
+  expect_identical(
+    client@scopes,
+    "https://database.windows.net//user_impersonation"
+  )
+})
+
 test_that("Databricks provider overrides bypass discovery and preserve client settings", {
   provider <- shinyOAuth::oauth_provider(
     "databricks",

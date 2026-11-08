@@ -20,8 +20,7 @@ oauth_db_microsoft_client(
     else {
      character()
  },
-  scopes = c("openid", "profile", "offline_access", unique(unlist(lapply(token_targets,
-    `[[`, "scopes"), use.names = FALSE)))
+  scopes = .odb_microsoft_client_scopes(services, token_targets)
 )
 }
 \arguments{
@@ -42,7 +41,9 @@ The first service selects the default token target.}
 \item{provider}{Custom shinyOAuth provider, replacing the default.}
 
 \item{token_targets}{Named token targets, replacing the service defaults.
-Use \code{list()} for a client without named targets.}
+Use \code{list()} for a client without named targets. In that case, default
+scopes come from \code{services}, which must select one resource. Supply
+\code{scopes} explicitly to replace those consent defaults.}
 
 \item{token_target_default}{Default target name, or \code{character()} for none.}
 

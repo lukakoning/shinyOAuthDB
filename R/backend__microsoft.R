@@ -14,7 +14,9 @@
 #' @param provider Custom shinyOAuth provider, replacing the default.
 #' @param scopes OAuth scopes to request, replacing the defaults.
 #' @param token_targets Named token targets, replacing the service defaults.
-#'   Use `list()` for a client without named targets.
+#'   Use `list()` for a client without named targets. In that case, default
+#'   scopes come from `services`, which must select one resource. Supply
+#'   `scopes` explicitly to replace those consent defaults.
 #' @param token_target_default Default target name, or `character()` for none.
 #' @param ... Other arguments for `shinyOAuth::oauth_client()`.
 #' @return A shinyOAuth `OAuthClient`. Create it outside `server()`.
@@ -57,12 +59,7 @@ oauth_db_microsoft_client <- function(
   } else {
     character()
   },
-  scopes = c(
-    "openid",
-    "profile",
-    "offline_access",
-    unique(unlist(lapply(token_targets, `[[`, "scopes"), use.names = FALSE))
-  )
+  scopes = .odb_microsoft_client_scopes(services, token_targets)
 ) {
   .odb_oauth_client(
     provider,
@@ -73,6 +70,23 @@ oauth_db_microsoft_client <- function(
     token_targets = token_targets,
     token_target_default = token_target_default,
     ...
+  )
+}
+
+.odb_microsoft_client_scopes <- function(services, token_targets) {
+  if (!length(token_targets)) {
+    token_targets <- .odb_microsoft_targets(services)
+    if (length(token_targets) != 1L) {
+      .odb_abort(
+        "Clients without named token targets must select one resource through services, or supply scopes explicitly."
+      )
+    }
+  }
+  c(
+    "openid",
+    "profile",
+    "offline_access",
+    unique(unlist(lapply(token_targets, `[[`, "scopes"), use.names = FALSE))
   )
 }
 

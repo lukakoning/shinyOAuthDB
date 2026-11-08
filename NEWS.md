@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Retain the selected Microsoft resource's default consent scopes when using
+  `token_targets = list()`. Multiple resources need named targets or explicit
+  scopes instead of silently requesting only sign-in permissions.
+
 * Refuse to restart an active services-mode demo at the same database and path,
   preventing competing handles from stopping its containers or restoring its
   OAuth options prematurely.
