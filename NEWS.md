@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add Salesforce user sign-in, CRM SOQL queries and Data Cloud (Data 360)
+  SQL queries through Query Connect API. Includes object discovery, bound
+  SQL parameters, polling, pagination and a complete Shiny setup guide.
+  Registrations must issue JWT-based access tokens for named users.
+
 * Add `oauth_db_supabase_api()` for Supabase tables, views and functions using
   project publishable keys and each visitor's access token. Add
   `oauth_db_supabase_client()` for the project's OAuth server, with a setup

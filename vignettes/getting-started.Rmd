@@ -60,6 +60,7 @@ server and advanced configuration.
 | [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
 | [Oracle Database](oracle.html) | Query with database-trusted OAuth tokens and Oracle ODBC |
 | [Oracle REST Data Services](oracle-ords.html) | Read protected collections and call JSON handlers over HTTPS |
+| [Salesforce CRM and Data Cloud](salesforce.html) | Query CRM objects with SOQL and Data Cloud with SQL using each visitor's Salesforce account |
 
 ## Install shinyOAuthDB
 

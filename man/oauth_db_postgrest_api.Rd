@@ -114,6 +114,8 @@ Other platform API clients:
 \code{\link[=oauth_db_libsql_api]{oauth_db_libsql_api()}},
 \code{\link[=oauth_db_opensearch_api]{oauth_db_opensearch_api()}},
 \code{\link[=oauth_db_oracle_ords_api]{oauth_db_oracle_ords_api()}},
+\code{\link[=oauth_db_salesforce_api]{oauth_db_salesforce_api()}},
+\code{\link[=oauth_db_salesforce_data_cloud_api]{oauth_db_salesforce_data_cloud_api()}},
 \code{\link[=oauth_db_supabase_api]{oauth_db_supabase_api()}}
 }
 \concept{platform API clients}

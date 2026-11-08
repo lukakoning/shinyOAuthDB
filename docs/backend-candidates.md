@@ -118,3 +118,32 @@ describes external JWT exchange, while its
 [SQL driver guide](https://docs.dremio.com/dremio-cloud/explore-analyze/client-apps/drivers/arrow-flight-sql-odbc/)
 describes a PAT. The edition and driver determine the usable path.
 No live Dremio tests ran.
+
+## Salesforce CRM and Data Cloud
+
+The Salesforce backend uses direct, session-bound HTTPS clients. CRM queries
+use the REST Query/QueryAll resources, query locators and native object
+discovery. Data Cloud (Data 360) uses Query Connect API on the Salesforce org
+with the same user's Salesforce access token. It submits SQL once, polls the
+query status and retrieves rows by offset.
+
+Salesforce's [Query API overview](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-queryservices-overview.html)
+recommends Query Connect API for integrations and supersedes legacy Query
+V1/V2. This avoids a second credential store for Direct API token exchange.
+The documented [request/response example](https://developer.salesforce.com/docs/data/connectapi/guide/query-use-case.html)
+supplies bound parameter descriptors, column types, completion status and
+row counts. Returned query IDs can contain an encoded slash; request URL
+construction must preserve it when adding query parameters.
+
+New registrations should use External Client Apps. Enable
+[JWT-based access tokens for named users](https://help.salesforce.com/s/articleView?id=sf.jwt_eca_configuration.htm&language=en_US&type=5):
+shinyOAuth rejects legacy opaque Salesforce tokens containing `!`. The
+helpers retain its existing credential validation rather than overriding it.
+Signed ID-token validation and access-token format are separate concerns.
+
+Contract tests cover current-token use on result pages, account changes,
+scope requirements, sanitized errors, request deadlines, exact numeric
+results and refusal to replay SQL submission. They use synthetic
+authorizations and documented response shapes. Live acceptance still needs
+an org registration, JWT access tokens, licenses and two users with different
+CRM/Data Cloud permissions. See the [Salesforce guide](../vignettes/salesforce.Rmd).

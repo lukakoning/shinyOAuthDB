@@ -51,7 +51,8 @@ Supported databases and data platforms (links open their setup guides):
 [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html) ·
 [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
-[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html).
+[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html) ·
+[Salesforce CRM and Data Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html).
 
 ## Install
 

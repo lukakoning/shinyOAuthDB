@@ -35,7 +35,8 @@ vignette_sources <- c(
   duckdb = "duckdb",
   libsql = NA_character_,
   cratedb = NA_character_,
-  opensearch = NA_character_
+  opensearch = NA_character_,
+  salesforce = NA_character_
 )
 
 for (source in names(vignette_sources)) {

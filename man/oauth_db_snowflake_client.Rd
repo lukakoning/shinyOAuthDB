@@ -66,6 +66,7 @@ Other sign-in configuration:
 \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}},
 \code{\link[=oauth_db_databricks_provider]{oauth_db_databricks_provider()}},
 \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
+\code{\link[=oauth_db_salesforce_client]{oauth_db_salesforce_client()}},
 \code{\link[=oauth_db_snowflake_provider]{oauth_db_snowflake_provider()}},
 \code{\link[=oauth_db_supabase_client]{oauth_db_supabase_client()}}
 }

@@ -1,0 +1,239 @@
+---
+title: "Salesforce CRM and Data Cloud"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Salesforce CRM and Data Cloud}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Use Salesforce's existing user accounts and permissions in a Shiny app.
+`oauth_db_salesforce_api()` queries CRM objects with SOQL.
+`oauth_db_salesforce_data_cloud_api()` queries Data Cloud, now called
+Data 360, with SQL. Both use the signed-in visitor's Salesforce access
+token and return data frames or native API results.
+
+## Register the Shiny app
+
+Create an **External Client App** in Salesforce Setup. Salesforce recommends
+these for new integrations; existing Connected Apps can still be used.
+Enable the authorization-code flow, PKCE, and the following OAuth scopes:
+
+| Scope | Purpose |
+| --- | --- |
+| `openid` and `profile` | Identify the visitor through OpenID Connect |
+| `api` | Query Salesforce APIs with the visitor's permissions |
+| `refresh_token` | Renew access without another browser sign-in |
+| `cdp_query_api` | Run Data Cloud SQL; omit for a CRM-only app |
+
+Register the exact callback URI used by Shiny, for example
+`http://localhost:8100`. For a hosted app, use its HTTPS URL. Configure the
+client-secret requirement to match your registration and deployment. The
+example uses a confidential server app with a client secret.
+
+In the app's OAuth security settings, enable **Issue JSON Web Token (JWT)-based
+access tokens for named users**. Legacy opaque Salesforce tokens can contain
+`!`, which shinyOAuth's bearer-token validation rejects. JWT-based access
+tokens are supported for Salesforce REST APIs, including the endpoints used
+here. This setting controls the access-token format; browser sign-in still
+uses the authorization-code flow with PKCE. See Salesforce's
+[JWT access-token configuration](https://help.salesforce.com/s/articleView?id=sf.jwt_eca_configuration.htm&language=en_US&type=5).
+
+Users need API access and permission to use the client app. CRM object,
+field and record access still comes from Salesforce. Data Cloud also needs
+the relevant license, query permissions, and access to the chosen data space.
+Requesting an OAuth scope does not grant those permissions.
+
+See Salesforce's [OAuth registration guide](https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/apexcode/intro_oauth_and_connected_apps.htm)
+and [OAuth scope definitions](https://developer.salesforce.com/docs/atlas.en-us.mobile_sdk.meta/pages/oauth_scope_parameter_values.htm).
+
+## Collect the settings
+
+Save your settings in `.Renviron` and restart R:
+
+```text
+OAUTHDB_CLIENT_ID=your-consumer-key
+OAUTHDB_CLIENT_SECRET=your-consumer-secret
+OAUTHDB_SALESFORCE_LOGIN_URL=https://example.my.salesforce.com
+OAUTHDB_SALESFORCE_INSTANCE_URL=https://example.my.salesforce.com
+```
+
+Replace `example` with your Salesforce My Domain. `LOGIN_URL` is the
+authorization server. It can also be `https://login.salesforce.com`, or
+`https://test.salesforce.com` for a sandbox. `INSTANCE_URL` is the trusted
+Salesforce org origin for API calls, without a path. Use the org's My Domain
+API URL rather than its Lightning UI URL. A login origin and an API origin
+can differ.
+
+The client discovers OpenID Connect settings at startup, validates signed
+ID tokens and uses PKCE. shinyOAuth handles acquisition and renewal.
+Supply `provider` or `scopes` to replace the sign-in defaults.
+
+## A complete app
+
+The app queries when the visitor clicks **Run query**. Replace the Data
+Cloud object and field names with ones available in your data space.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+client <- oauth_db_salesforce_client(
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  login_url = Sys.getenv("OAUTHDB_SALESFORCE_LOGIN_URL", "https://login.salesforce.com"),
+  data_cloud = TRUE
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    selectInput("source", "Query source", c("CRM", "Data Cloud")),
+    actionButton("query", "Run query"),
+    tableOutput("rows")
+  ),
+  id = "auth", client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  instance_url <- Sys.getenv(
+    "OAUTHDB_SALESFORCE_INSTANCE_URL", "https://example.my.salesforce.com"
+  )
+  crm <- oauth_db_salesforce_api(auth$connection, instance_url)
+  cloud <- oauth_db_salesforce_data_cloud_api(auth$connection, instance_url)
+
+  rows <- eventReactive(input$query, {
+    connection <- req(auth$connection())
+    scopes <- if (input$source == "CRM") "api" else c("api", "cdp_query_api")
+    data <- if (input$source == "CRM") {
+      crm$query("SELECT Id, Name FROM Account LIMIT 20")
+    } else {
+      cloud$query("SELECT ssot__Id__c FROM ssot__Individual__dlm LIMIT 20")
+    }
+    list(connection = connection, scopes = scopes, data = data)
+  })
+  output$rows <- renderTable({
+    connection <- req(auth$connection())
+    saved <- rows()
+    req(identical(saved$connection, connection))
+    req(connection$has_scopes(saved$scopes))
+    saved$data
+  })
+}
+
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+```
+
+Open `http://localhost:8100` in a regular browser. Embedded IDE viewers
+cannot complete OAuth redirects. For CRM only, set `data_cloud = FALSE`
+and omit the Data Cloud helper and query choice.
+
+The app hides saved results after sign-out, account replacement or loss of
+required scopes. See [Authentication and sessions](authorization.html#save-query-results)
+when adding other result caches.
+
+## Query CRM objects
+
+`$query()` follows query locators until all result pages have been fetched.
+`include_deleted = TRUE` uses QueryAll, which can include deleted and
+archived records under Salesforce's permissions and retention rules.
+
+```{r crm-query}
+crm$query("SELECT Id, Name, Parent.Name FROM Account LIMIT 20")
+crm$query("SELECT Id, IsDeleted FROM Account LIMIT 20", include_deleted = TRUE)
+crm$objects()
+crm$describe("Account")
+
+count <- crm$query("SELECT COUNT() FROM Account", raw = TRUE)
+count$totalSize
+```
+
+Data frames omit top-level `attributes` metadata. Relationship objects and
+child-query results stay in list columns. Missing scalar values become
+`NA`; empty results have no field metadata. Use `$describe()` for field
+definitions. Raw queries return combined native `records`, `totalSize`,
+and a completed `done` flag. Ordinary JSON numbers become R numeric
+values; large integers remain strings.
+
+SOQL is supplied as written. The helper does not interpolate parameters,
+create DBI connections, or implement CRM record mutations. See Salesforce's
+[Query resource](https://developer.salesforce.com/docs/platform/api-rest/guide/dome-query.html)
+and [Query More Results](https://developer.salesforce.com/docs/platform/api-rest/guide/resources-query-more-results.html).
+
+## Query Data Cloud with bound parameters
+
+The client uses Query Connect API on the Salesforce org:
+`/services/data/v64.0/ssot/query-sql`. Salesforce recommends this API over
+legacy Query V1/V2. Its Salesforce-token authentication lets CRM and Data
+Cloud share one sign-in. It does not require a Direct API token exchange.
+
+Specify a data space with `dataspace = "reporting"` when creating the client.
+`api_version` can select another supported version, at least `64.0`.
+
+```{r cloud-query}
+cloud$query(
+  "SELECT ssot__Id__c FROM ssot__Individual__dlm WHERE CreatedDate__c >= :since LIMIT 20",
+  parameters = list(
+    list(name = "since", type = "date", value = "2026-01-01")
+  )
+)
+```
+
+Each parameter has `name`, `type`, and `value` strings, using the SQL types
+accepted by Salesforce. Values are bound separately from SQL. Duplicate
+names and incomplete descriptors are rejected locally.
+
+BIGINT and NUMERIC columns remain strings, including numeric JSON values,
+so R does not round their digits. Other numeric types become R numeric
+values and booleans become logical. Dates and times remain strings;
+nested and unknown types remain list columns. Empty results retain their
+column names and supported types. `raw = TRUE` returns combined native
+rows, metadata, and final status; raw numeric lexemes remain strings.
+
+The client submits once, polls the query ID and fetches remaining rows
+with offsets. See the [Query API overview](https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-queryservices-overview.html)
+and [Query Connect example](https://developer.salesforce.com/docs/data/connectapi/guide/query-use-case.html).
+
+## Token renewal and query lifetime
+
+Clients belong to their creating Shiny session. Each operation pins its
+initial authorization and obtains current tokens within it. Sign-out,
+account replacement, lost required scopes and session end prevent further
+access and discard late responses.
+
+GET requests can refresh and retry once after HTTP 401. SQL submission is
+a POST and is never replayed, including after HTTP 401. After a submission
+failure, check Salesforce before deciding whether to run it again. All
+requests verify HTTPS and refuse redirects. CRM continuation paths must
+belong to the configured org and API version.
+
+`timeout` covers submission, polling and result pages. Results are collected
+synchronously in R memory. A timeout or sign-out does not cancel a submitted
+Data Cloud query, which can keep running on Salesforce. Limit result sizes
+in your queries.
+
+Salesforce can omit `expires_in` from its token response. shinyOAuth warns
+and applies its configured fallback lifetime. That value is an estimate.
+Its `shinyOAuth.default_expires_in` option can be set for the deployment's
+session policy. Earlier server rejection can trigger the GET refresh above.
+The helpers do not change global settings or maintain another token store.
+
+Errors omit response bodies and tokens. Use `ca_bundle` for a private CA.
+Tests use documented response shapes and synthetic authorizations; live
+validation still requires a Salesforce registration, licenses and data
+permissions for the intended org.

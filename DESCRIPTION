@@ -20,6 +20,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     Queries CrateDB's HTTPS SQL interface with per-user JWT access tokens.
     Searches OpenSearch
     indexes and runs its SQL plugin queries using each visitor's bearer token.
+    Queries Salesforce CRM with SOQL and Data Cloud with SQL through the
+    Query Connect API using each visitor's Salesforce authorization.
 License: MIT + file LICENSE
 URL: https://lukakoning.github.io/shinyOAuthDB/, https://github.com/lukakoning/shinyOAuthDB
 BugReports: https://github.com/lukakoning/shinyOAuthDB/issues
