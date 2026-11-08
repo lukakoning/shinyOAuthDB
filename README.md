@@ -17,7 +17,7 @@ The OAuth sign-in and data access work like this:
    When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow.
    The user is sent to the sign-in page of the database or data platform,
    or to a trusted sign-in service (like your organization's login service).
-2. The user signs in with their existing account and, if asked, approve the
+2. The user signs in with their existing account and, if asked, approves the
    access your app requests.
 3. They return to your Shiny app and shinyOAuth obtains an **access token**,
    a temporary credential that lets your Shiny app request data on their behalf.
@@ -29,7 +29,7 @@ shinyOAuthDB provides R functions to streamline the above steps,
 with configurations for various databases and data platforms.
 It also helps you open database connections, run queries, and make API calls.
 Depending on the data source, you can work with familiar tools such as DBI and dbplyr,
-or use the a supporting package's query and API helpers.
+or use a supporting package's query and API helpers.
 
 Supported databases and data platforms (links open their setup guides):
 
@@ -38,7 +38,7 @@ Supported databases and data platforms (links open their setup guides):
 [DuckDB (over Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html) ·
 [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html) ·
-[Microsoft Fabric and PowerBi](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
+[Microsoft Fabric and Power BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
 [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html) ·
 [Google BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html) ·
 [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html) ·
