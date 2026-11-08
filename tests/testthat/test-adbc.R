@@ -53,6 +53,46 @@ test_that("custom cleanup still owns ADBC connections", {
   expect_true(DBI::dbIsValid(native))
 })
 
+test_that("Fabric validates native options for the selected SQL backend", {
+  local_mocked_bindings(
+    .odb_bind = capture_backend,
+    .odb_require = function(...) TRUE,
+    .package = "shinyOAuthDB"
+  )
+  auth <- function() stop("Configuration must not acquire credentials")
+  path <- "C:/drivers/{team}/mssql.dll"
+  adbc <- oauth_db_fabric_sql(
+    auth,
+    "example.datawarehouse.fabric.microsoft.com",
+    "Reporting",
+    backend = "adbc",
+    adbc_driver = path,
+    bigint = "integer64"
+  )
+  expect_identical(adbc$args$options$adbc_driver, path)
+  expect_identical(adbc$args$options$bigint, "integer64")
+  expect_identical(adbc$args$options$backend, "adbc")
+  expect_error(
+    oauth_db_fabric_sql(auth, "server", app_name = "app;Encrypt=no"),
+    "Quote ODBC values"
+  )
+  for (backend in c("odbc", "adbc")) {
+    for (option in list(
+      list(uri = "sqlserver://other-host"),
+      list(TrustServerCertificate = "yes"),
+      list(token = "another-user")
+    )) {
+      expect_error(
+        do.call(
+          oauth_db_fabric_sql,
+          c(list(auth, "server", backend = backend), option)
+        ),
+        class = "shinyOAuthDB_invalid_configuration"
+      )
+    }
+  }
+})
+
 test_that("Fabric ADBC renews fixed credentials without replaying reactive queries", {
   skip_if_not_installed("adbi")
   skip_if_not_installed("duckdb")

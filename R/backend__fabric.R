@@ -79,6 +79,7 @@ oauth_db_fabric_sql <- function(
       "failover_partner",
       "drv",
       "attributes",
+      "uri",
       ".connection_string",
       "connection_string",
       "trusted_connection",
@@ -88,7 +89,9 @@ oauth_db_fabric_sql <- function(
     ),
     partial = c("dsn", "tenant_id", "client_id", "auth_args")
   )
-  .odb_odbc_values(options)
+  if (backend == "odbc") {
+    .odb_odbc_values(options)
+  }
   .odb_bind(
     authorization,
     .odb_backend_fabric_sql,

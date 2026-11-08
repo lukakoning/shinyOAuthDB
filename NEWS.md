@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Apply ODBC connection-string validation only to Fabric's ODBC backend,
+  allowing literal ADBC driver paths. Reject URI overrides for either backend.
+
 * Reopen Fabric ADBC connections with a current token on access after token
   renewal, without replaying completed reactive queries. ODBC connections
   continue to reuse valid database sessions across ordinary token renewal.
