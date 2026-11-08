@@ -37,6 +37,7 @@ server and advanced configuration.
 |----|----|
 | [Self-hosted PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md) | Try the Docker/Keycloak demo or connect your own PostgreSQL 18 server |
 | [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md) | Read PostgreSQL tables and call functions over HTTP |
+| [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md) | Read tables and call functions through the Data API with each visitor’s permissions |
 | [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md) | Query with JWT authentication and MySQL Connector/ODBC |
 | [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md) | Run SQL over HTTPS with a visitor token |
 | [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md) | Run SQL over HTTPS with JWT authentication and database user privileges |
@@ -51,7 +52,8 @@ server and advanced configuration.
 | [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md) | Query Redshift with DBI |
 | [Trino and Starburst Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
 | [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md) | Query with RPostgres and DBI |
-| [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md) | Query with Entra user access tokens and Oracle ODBC |
+| [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md) | Query with database-trusted OAuth tokens and Oracle ODBC |
+| [Oracle REST Data Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md) | Read protected collections and call JSON handlers over HTTPS |
 
 ## Install shinyOAuthDB
 

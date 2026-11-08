@@ -18,12 +18,14 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/trino.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/authors.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/index.html</loc></url>
@@ -50,6 +52,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.html</loc></url>
@@ -58,6 +61,8 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/shinyOAuthDB-package.html</loc></url>

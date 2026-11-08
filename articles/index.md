@@ -31,6 +31,8 @@
   tokens](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
 - [Oracle
   Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
+- [Oracle REST Data
+  Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md):
 
 ### Cloud platforms
 
@@ -47,3 +49,4 @@
 - [Amazon
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
 - [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md):
+- [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md):

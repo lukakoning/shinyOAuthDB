@@ -1,9 +1,8 @@
 # Query Oracle Database as the signed-in user
 
-Open an Oracle ODBC connection with the visitor's Microsoft Entra access
-token. Use the connection with DBI or dbplyr against an Oracle database
-configured for Entra authentication, on your infrastructure or in the
-cloud.
+Open an Oracle ODBC connection with the visitor's OAuth access token.
+The database validates the provider's JWT and applies its configured
+global-user or Oracle Deep Data Security authorization model.
 
 ## Usage
 
@@ -17,6 +16,7 @@ oauth_db_oracle(
   port = 1522L,
   wallet_location = NULL,
   server_cert_dn = NULL,
+  authorization_model = c("global", "end_user"),
   target = NULL,
   required_scopes = character(),
   min_valid_for = 60,
@@ -43,9 +43,8 @@ oauth_db_oracle(
 - driver:
 
   Registered Oracle ODBC driver name, or its library path when supported
-  by the driver manager. Use Oracle Instant Client with OAuth support:
-  19.16 or later in the 19c line, or a supported newer release. The 21c
-  thick client does not support this integration.
+  by the driver manager. Install a client that supports the database's
+  OAuth integration; newer integrations need a current client.
 
 - ...:
 
@@ -68,6 +67,16 @@ oauth_db_oracle(
 
   Optional expected server certificate distinguished name. `NULL` uses
   Oracle's hostname matching. Certificate matching is always enabled.
+
+- authorization_model:
+
+  `"global"` requires Oracle to report `TOKEN_GLOBAL` authentication,
+  preserving the global-schema model used by existing Entra
+  configurations. `"end_user"` requires Oracle Deep Data Security to
+  expose system-managed token claims matching the submitted JWT's
+  issuer, subject and audience. It never falls back to global-schema
+  privileges. Use this for configured OCI IAM OAuth and Keycloak
+  direct-logon deployments.
 
 - target:
 
@@ -95,19 +104,23 @@ A reactive function returning an odbc DBI connection.
 ## Details
 
 Install odbc and Oracle Instant Client's Basic and ODBC packages. The
-database must support and enable Microsoft Entra integration and map the
-visitor to a global database schema. Request delegated access to that
-database's own Entra application resource. Azure SQL tokens and
-arbitrary OIDC tokens are not interchangeable with Oracle access tokens.
-See
+database must trust the token's provider and audience and map the
+visitor to a global schema or Deep Data Security data roles. Supported
+routes include Microsoft Entra, OCI IAM Identity Domains OAuth, and the
+configurable OAuth provider documented for Keycloak in Oracle 26ai.
+Server and client version requirements differ between these
+integrations; a JWT from an unconfigured provider does not establish
+database access. See
 [`vignette("oracle", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md)
 for sign-in setup.
 
 Create the helper inside `server()` and call `con()` before each
-operation. Valid SQL sessions survive ordinary token renewal. Account
-changes, sign-out, permission loss and session end close the connection.
-A broken connection is reopened with the current token on the next
-`con()` call.
+operation. Global-schema sessions survive ordinary token renewal.
+End-user sessions are reopened on access when the token changes, so new
+identity and role claims reach the database without replaying completed
+queries. Account changes, sign-out, permission loss and session end
+close the connection. A broken connection is reopened with the current
+token on access.
 
 The helper builds a separate TCPS descriptor for each connection. It
 sets `TOKEN_AUTH=OAUTH`, supplies the token through a private temporary
@@ -118,10 +131,18 @@ and `sqlnet.ora` files are not modified.
 
 Oracle ODBC failover is disabled because the temporary token file is
 removed after connection opening. Before returning a connection, the
-helper checks that Oracle reports `TOKEN_GLOBAL` authentication and
-disconnects otherwise. DSNs, alternate credentials and authentication
-overrides cannot be supplied through `...`. OCI IAM proof-of-possession
-tokens and password authentication are outside this helper's scope.
+helper verifies the selected authorization model and disconnects on
+failure. In `"end_user"` mode, jsonlite is also required. Local JWT
+decoding identifies the expected claims; Oracle verifies the signature
+and establishes the system-managed context. DSNs, alternate credentials
+and authentication overrides cannot be supplied through `...`.
+
+Scope names are checked literally, as with generic OAuth helpers. Keep
+Entra's `/.default` consent marker in the client configuration, not in
+this helper's `required_scopes`. OCI IAM proof-of-possession tokens,
+password authentication and application-mediated two-token contexts are
+separate mechanisms. For ORDS REST resources use
+[`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md).
 
 ## See also
 

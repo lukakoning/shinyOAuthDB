@@ -2,6 +2,30 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Add
+  [`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
+  for Supabase tables, views and functions using project publishable
+  keys and each visitor’s access token. Add
+  [`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)
+  for the project’s OAuth server, with a setup guide covering native
+  sign-in, third-party providers and row-level security.
+
+- Generalize
+  [`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md)
+  to database-trusted OAuth JWTs, including configured OCI IAM OAuth and
+  Keycloak direct-logon integrations. Add
+  `authorization_model = "end_user"` to verify Oracle Deep Data Security
+  token context and reopen sessions when renewed tokens carry new
+  claims. Oracle operation scopes are now checked literally for every
+  provider.
+
+- Add
+  [`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md)
+  for protected ORDS collections and JSON resources with per-visitor
+  OAuth tokens. Preserve native pages, enforce session isolation and
+  retry only safe reads. Add generic OIDC and provider-specific setup
+  guides.
+
 - Install the checkout’s source archive in Docker demo browser checks
   and verify its hash in the running app container before testing
   sign-in.

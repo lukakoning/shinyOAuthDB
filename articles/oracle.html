@@ -69,28 +69,78 @@
     
     
 <p>Use <code><a href="../reference/oauth_db_oracle.html">oauth_db_oracle()</a></code> to query Oracle Database with each
-visitor’s Microsoft Entra account. It returns a DBI connection for SQL
-and dbplyr. Oracle maps the visitor to a database schema and applies
-their database privileges. The database can run on your infrastructure
-or in the cloud, including Oracle Autonomous Database, if it supports
-Entra integration.</p>
+visitor’s OAuth access token. It returns a DBI connection for SQL and
+dbplyr. Oracle must trust the token’s provider and map the visitor to
+database privileges.</p>
+<p>The helper supports two authorization models:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Model</th>
+<th>Oracle setup</th>
+<th>Helper argument</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Global schema</td>
+<td>A database global user mapped to an external identity; existing
+Entra configurations use this model</td>
+<td>
+<code>authorization_model = "global"</code> (default)</td>
+</tr>
+<tr class="even">
+<td>End-user context</td>
+<td>Oracle Deep Data Security direct logon with user data roles,
+including configured OCI IAM OAuth and Keycloak integrations</td>
+<td><code>authorization_model = "end_user"</code></td>
+</tr>
+</tbody>
+</table>
+<p>For OAuth-protected HTTP resources, use the separate <a href="oracle-ords.html">Oracle REST Data Services guide</a>.</p>
 <div class="section level2">
 <h2 id="set-up-the-database-and-driver">Set up the database and driver<a class="anchor" aria-label="anchor" href="#set-up-the-database-and-driver"></a>
 </h2>
-<p>Ask your database administrator for an Oracle service configured for
-<a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/configuring-oracle-database-microsoft-entra-id-integration.html" class="external-link">Microsoft
-Entra authentication</a>, a TCPS listener address and port, and the
-database’s Entra Application ID URI. Your users must have the
-corresponding global-schema or app-role mapping in Oracle. Signing in to
-the Shiny app does not create that mapping.</p>
+<p>Ask your administrator for a TCPS listener address, port, service
+name, trusted identity provider and database access scope. The server
+needs the corresponding global-schema or data-role mappings. Signing in
+to the Shiny app does not create those mappings.</p>
+<p>Choose the provider setup that matches your deployment:</p>
+<ul>
+<li>
+<strong>Microsoft Entra:</strong> configure the <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/configuring-oracle-database-microsoft-entra-id-integration.html" class="external-link">Entra
+database integration</a>. Existing global-schema configurations use
+<code>"global"</code>; Deep Data Security direct-logon configurations
+use <code>"end_user"</code>.</li>
+<li>
+<strong>OCI IAM Identity Domains OAuth:</strong> configure
+<code>IDENTITY_PROVIDER_TYPE=OCI_IAM</code> and the database’s OAuth
+application and domain. Oracle documents the <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/refrn/IDENTITY_PROVIDER_OAUTH_CONFIG.html" class="external-link">OAuth
+configuration parameter</a> from Oracle 26ai RU 23.26.2. Follow the
+database’s supported administrative setup, particularly for Autonomous
+Database. This is an OAuth bearer-token flow, separate from OCI IAM
+proof-of-possession authentication.</li>
+<li>
+<strong>Keycloak:</strong> Oracle’s current 26ai Deep Data Security
+guide documents <code>IDENTITY_PROVIDER_TYPE=OAUTH2</code> with issuer,
+JWKS, audience and claim mappings. Keycloak is the initial supported
+configurable provider; this integration is unavailable on Autonomous
+Database. Follow <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/ddscg/configure-database-iam-integration.html" class="external-link">database
+IAM configuration</a> and the <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/ddscg/configure-sql-client-end-user-direct-logon.html" class="external-link">direct-login
+procedure</a>.</li>
+</ul>
 <p>Install the R package <code>odbc</code> and Oracle Instant Client’s
 <strong>Basic</strong> and <strong>ODBC</strong> packages for the
 architecture of your R process. Register the Oracle ODBC driver and find
 its name with <code><a href="https://odbc.r-dbi.org/reference/odbcListDrivers.html" class="external-link">odbc::odbcListDrivers()</a></code>. Use a current
-supported Oracle client with Entra token support. Oracle documents
-support for the 19c thick client from 19.16 and for newer supported
-releases; the 21c thick client does not support this integration. Check
-both your database and client versions against Oracle’s <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/odbcd/using-oracle-database-odbc-driver.html" class="external-link">ODBC
+supported Oracle client with the required token integration. The Entra
+thick-client path is documented from 19c 19.16, excluding the 21c thick
+client. OCI IAM OAuth and configurable-provider Deep Data Security
+require newer database features and a compatible current client. Check
+your actual server release, update level and driver against Oracle’s <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/odbcd/using-oracle-database-odbc-driver.html" class="external-link">ODBC
 setup guide</a> and <a href="https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/supported-client-drivers-entra-ad-connections.html" class="external-link">client
 support table</a>.</p>
 <p>The client needs a trusted TLS certificate chain. Depending on the
@@ -100,29 +150,34 @@ requiring mutual TLS also needs the client certificate in that wallet.
 Use <code>server_cert_dn</code> when your administrator supplies the
 expected certificate distinguished name; otherwise the client matches
 the hostname. Certificate matching is always enabled.</p>
+<p>For OCI IAM OAuth, Oracle’s direct-login procedure specifies the
+server certificate DN. Copy it from the administrator’s connection
+details (or the downloaded Autonomous wallet alias) into
+<code>server_cert_dn</code> when calling the helper. Use the matching
+wallet when the service requires mutual TLS.</p>
 </div>
 <div class="section level2">
 <h2 id="register-the-shiny-application">Register the Shiny application<a class="anchor" aria-label="anchor" href="#register-the-shiny-application"></a>
 </h2>
-<p>Register a Microsoft Entra <strong>Web</strong> application with
-redirect URI <code>http://localhost:8100</code>. Add the delegated
-permission exposed by your database’s Entra registration, commonly
-<code>session:scope:connect</code>, and obtain the required consent.
-This is a separate registration from the database server registration.
-See Oracle’s <a href="https://docs.oracle.com/en/learn/ocidb-auth-msentraid/" class="external-link">registration
-example</a> and <a href="oauth-setup.html#register-a-microsoft-entra-app">Microsoft app
-registration</a>.</p>
-<p>Your administrator must configure the database registration’s
-access-token claims and Oracle user mappings. For Entra v2 access
-tokens, Oracle’s setup includes the <code>upn</code> access-token claim.
-Request the database’s own resource and scope; an Azure SQL access token
-has a different audience.</p>
+<p>Register an authorization-code client with PKCE at the provider
+trusted by the database. Register <code>http://localhost:8100</code> as
+its redirect URI. The app needs the database access scope and the
+corresponding user or group assignments. Configure the provider to issue
+the database audience and required identity and role claims. For
+Keycloak, configure an audience mapper and a top-level role claim
+matching Oracle’s provider configuration.</p>
+<p>The complete app below uses OIDC discovery for a Keycloak or OCI IAM
+Identity Domains provider with OpenID Connect enabled. Its
+<code>"end_user"</code> mode requires Oracle Deep Data Security direct
+logon. Enable refresh-token issuance when requesting
+<code>offline_access</code>, or replace that scope with your provider’s
+documented refresh setup. An Entra alternative follows the app.</p>
 <p>Save the app settings in your local <code>.Renviron</code> and
 restart R:</p>
-<pre class="text"><code>OAUTHDB_TENANT_ID=your-tenant-id
-OAUTHDB_CLIENT_ID=your-shiny-app-client-id
+<pre class="text"><code>OAUTHDB_CLIENT_ID=your-shiny-app-client-id
 OAUTHDB_CLIENT_SECRET=your-shiny-app-client-secret
-OAUTHDB_ORACLE_RESOURCE=api://your-database-application-id
+OAUTHDB_ORACLE_ISSUER=https://login.example.org/realms/reporting
+OAUTHDB_ORACLE_SCOPE=database.read
 OAUTHDB_ORACLE_HOST=database.example.org
 OAUTHDB_ORACLE_SERVICE=reporting.example.org
 OAUTHDB_ORACLE_DRIVER=Oracle in instantclient_19_30</code></pre>
@@ -137,14 +192,13 @@ OAUTHDB_ORACLE_DRIVER=Oracle in instantclient_19_30</code></pre>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>OAUTHDB_ORACLE_RESOURCE</code></td>
-<td>Database server’s Entra Application ID URI, not the Shiny
-application’s client ID</td>
+<td><code>OAUTHDB_ORACLE_ISSUER</code></td>
+<td>OIDC issuer configured for the database’s provider</td>
 </tr>
 <tr class="even">
-<td>Delegated scope</td>
-<td>Database registration’s <strong>Expose an API</strong> page; replace
-<code>session:scope:connect</code> below if needed</td>
+<td><code>OAUTHDB_ORACLE_SCOPE</code></td>
+<td>Exact database access scope supplied by the administrator; OCI IAM
+uses the resource audience concatenated with the scope name</td>
 </tr>
 <tr class="odd">
 <td>Host, service and TCPS port</td>
@@ -166,28 +220,24 @@ application’s client ID</td>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
 </h2>
-<p>The Microsoft client accepts custom token targets. Oracle has a
-deployment-specific resource, so configure an <code>oracle</code> target
-explicitly:</p>
+<p>The scope name below is checked literally. Configure the token
+audience on the authorization server for this client and database:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">resource</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_ORACLE_RESOURCE"</span><span class="op">)</span></span>
-<span><span class="va">scope</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">resource</span>, <span class="st">"/session:scope:connect"</span><span class="op">)</span></span>
-<span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_microsoft_client.html">oauth_db_microsoft_client</a></span><span class="op">(</span></span>
-<span>  tenant_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_TENANT_ID"</span><span class="op">)</span>,</span>
+<span><span class="va">scope</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_ORACLE_SCOPE"</span><span class="op">)</span></span>
+<span><span class="va">provider</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_provider_oidc_discover.html" class="external-link">oauth_provider_oidc_discover</a></span><span class="op">(</span></span>
+<span>  issuer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_ORACLE_ISSUER"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu">oauth_client</span><span class="op">(</span></span>
+<span>  <span class="va">provider</span>,</span>
 <span>  client_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_CLIENT_ID"</span><span class="op">)</span>,</span>
 <span>  client_secret <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_CLIENT_SECRET"</span><span class="op">)</span>,</span>
 <span>  redirect_uri <span class="op">=</span> <span class="st">"http://localhost:8100"</span>,</span>
-<span>  token_targets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    oracle <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      resource <span class="op">=</span> <span class="va">resource</span>,</span>
-<span>      scopes <span class="op">=</span> <span class="va">scope</span>,</span>
-<span>      required_scopes <span class="op">=</span> <span class="va">scope</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
+<span>  scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"openid"</span>, <span class="st">"profile"</span>, <span class="st">"offline_access"</span>, <span class="va">scope</span><span class="op">)</span>,</span>
+<span>  required_scopes <span class="op">=</span> <span class="va">scope</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span></span>
@@ -211,11 +261,14 @@ explicitly:</p>
 <span>    service_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_ORACLE_SERVICE"</span><span class="op">)</span>,</span>
 <span>    driver <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_ORACLE_DRIVER"</span><span class="op">)</span>,</span>
 <span>    port <span class="op">=</span> <span class="fl">1522L</span>,</span>
-<span>    target <span class="op">=</span> <span class="st">"oracle"</span></span>
+<span>    authorization_model <span class="op">=</span> <span class="st">"end_user"</span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>    <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT USER AS database_user FROM DUAL"</span><span class="op">)</span></span>
+<span>    <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span></span>
+<span>      <span class="va">connection</span>,</span>
+<span>      <span class="st">"SELECT ORA_END_USER_CONTEXT.username AS database_user FROM DUAL"</span></span>
+<span>    <span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
@@ -228,8 +281,43 @@ explicitly:</p>
 wallet or certificate DN arguments, then run
 <code>source("example.R")</code>. Open
 <code>http://localhost:8100</code> in your regular browser and sign in.
-The example shows the Oracle session user. Replace the query with a
+The example shows the Oracle end-user identity. Replace the query with a
 table or view the user can read.</p>
+</div>
+<div class="section level2">
+<h2 id="microsoft-entra-alternative">Microsoft Entra alternative<a class="anchor" aria-label="anchor" href="#microsoft-entra-alternative"></a>
+</h2>
+<p>For Entra, use the Microsoft client with a custom database resource
+target. Register a <strong>Web</strong> application with the same
+redirect URI and the database’s delegated permission, commonly
+<code>session:scope:connect</code>. Your administrator must configure
+global-schema or data-role mappings and access-token claims; Entra v2
+setup includes the <code>upn</code> claim. See Oracle’s <a href="https://docs.oracle.com/en/learn/ocidb-auth-msentraid/" class="external-link">registration
+example</a> and <a href="oauth-setup.html#register-a-microsoft-entra-app">Microsoft app
+registration</a>.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">resource</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_ORACLE_RESOURCE"</span><span class="op">)</span></span>
+<span><span class="va">scope</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">resource</span>, <span class="st">"/session:scope:connect"</span><span class="op">)</span></span>
+<span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_microsoft_client.html">oauth_db_microsoft_client</a></span><span class="op">(</span></span>
+<span>  tenant_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_TENANT_ID"</span><span class="op">)</span>,</span>
+<span>  client_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_CLIENT_ID"</span><span class="op">)</span>,</span>
+<span>  client_secret <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_CLIENT_SECRET"</span><span class="op">)</span>,</span>
+<span>  redirect_uri <span class="op">=</span> <span class="st">"http://localhost:8100"</span>,</span>
+<span>  token_targets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    oracle <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>resource <span class="op">=</span> <span class="va">resource</span>, scopes <span class="op">=</span> <span class="va">scope</span>, required_scopes <span class="op">=</span> <span class="va">scope</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><code>OAUTHDB_ORACLE_RESOURCE</code> is the database server’s Entra
+Application ID URI, not the Shiny application’s client ID. In the app’s
+connection helper, set <code>target = "oracle"</code>. For an existing
+global-schema deployment, set
+<code>authorization_model = "global"</code> and query
+<code>SELECT USER FROM DUAL</code> to inspect the database schema
+identity. For Deep Data Security use
+<code>authorization_model = "end_user"</code> and retain the end-user
+identity query. Keep <code>/.default</code> consent markers in client
+settings; <code>required_scopes</code> now treats every provider’s scope
+names literally.</p>
 </div>
 <div class="section level2">
 <h2 id="connections-and-token-files">Connections and token files<a class="anchor" aria-label="anchor" href="#connections-and-token-files"></a>
@@ -245,25 +333,37 @@ error or interrupt. On Unix, its directory is private
 (<code>0700</code>) and the file has mode <code>0600</code>. On Windows,
 use a private R temporary directory because access rules are inherited
 from its parent directory.</p>
-<p>Before returning a connection, the helper queries
-<code>SYS_CONTEXT('USERENV', 'AUTHENTICATION_METHOD')</code> and
-requires Oracle’s <code>TOKEN_GLOBAL</code> result. A different method
-or a failed check closes the connection. The helper disables network
-authentication alternatives and Oracle ODBC automatic failover. Reopen a
-broken connection by calling <code>con()</code> so the new connection
-gets a current token.</p>
-<p>A valid database session survives ordinary token renewal. Account
-changes, permission loss, sign-out and Shiny session end close it.
-Always call <code>con()</code> before querying; a previously retained
-native handle is not a new authorization check. Oracle still decides
-which database objects and rows the visitor may access.</p>
-<p>This helper supports Oracle’s Entra OAuth bearer-token path. It does
-not implement OCI IAM proof-of-possession authentication, password
-login, proxy-user connections or arbitrary OIDC issuers. There is no
-local Oracle/Entra Docker demo. The automated tests check the ODBC
-boundary, credential cleanup, token-authentication verification and
-Shiny lifecycle; they do not establish a live Oracle/Entra
-connection.</p>
+<p>Before returning a connection, the helper verifies the chosen
+model:</p>
+<ul>
+<li>
+<code>"global"</code> requires
+<code>SYS_CONTEXT('USERENV', 'AUTHENTICATION_METHOD')</code> to report
+<code>TOKEN_GLOBAL</code>.</li>
+<li>
+<code>"end_user"</code> reads only issuer, subject and audience from
+Oracle’s system-managed <code>ORA_END_USER_CONTEXT.USER.TOKEN</code> and
+requires them to match the submitted JWT. Local decoding establishes the
+expected claims; Oracle validates the token and establishes the context.
+Missing or mismatched context closes the connection, even if a
+global-schema login succeeded. This prevents global-user precedence from
+silently bypassing the requested Deep Data Security model.</li>
+</ul>
+<p>Global-schema connections survive ordinary token renewal. End-user
+connections reopen on the next <code>con()</code> call when the token
+changes, so updated role claims reach the database. This does not replay
+completed reactive queries. Account changes, permission loss, sign-out
+and Shiny session end close both types. Always call <code>con()</code>
+before each operation.</p>
+<p>The helper disables Oracle ODBC failover. Reopen a broken connection
+by calling <code>con()</code> so the new connection gets a current
+token. It does not implement OCI IAM proof-of-possession authentication,
+password login, proxy-user connections or application-mediated two-token
+contexts.</p>
+<p>Automated checks cover ODBC arguments, token and context
+verification, credential cleanup and the Shiny lifecycle. Live
+Oracle/client/provider compatibility remains unverified; there is no
+local Oracle identity demo.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -40,6 +40,8 @@ Supported databases and data platforms (links open their setup guides):
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 ·
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html)
+·
+[Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html)
 · [DuckDB (over
 Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html)
 · [Trino and
@@ -59,6 +61,8 @@ Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
 · [Oracle
 Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html)
+· [Oracle REST Data
+Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
 ·
@@ -244,8 +248,12 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   : Query libSQL as the signed-in user
 - [`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md)
   : Query OpenSearch as the signed-in user
+- [`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md)
+  : Access Oracle REST resources as the signed-in user
 - [`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md)
   : Query PostgREST as the signed-in user
+- [`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
+  : Query Supabase as the signed-in user
 
 ## Sign-in clients and providers
 
@@ -261,6 +269,8 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   : Set up Snowflake OAuth sign-in
 - [`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md)
   : Create a Snowflake OAuth provider
+- [`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)
+  : Set up Supabase OAuth sign-in
 
 ## Credentials and package help
 
@@ -305,6 +315,8 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   tokens](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
 - [Oracle
   Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
+- [Oracle REST Data
+  Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md):
 
 ### Cloud platforms
 
@@ -321,3 +333,4 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
 - [Amazon
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
 - [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md):
+- [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md):

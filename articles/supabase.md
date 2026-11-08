@@ -1,0 +1,212 @@
+# Supabase
+
+Supabase exposes PostgreSQL tables, views and functions through its REST
+Data API. Use
+[`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
+to query with each visitor’s access token; database grants and row-level
+security (RLS) decide which rows they can read or change. No PostgreSQL
+driver is needed.
+
+The client provides the same `select()`, `rpc()` and `request()` methods
+as the [PostgREST
+client](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md).
+It supports hosted projects and self-hosted deployments exposed through
+verified HTTPS, including custom domains and reverse proxy paths. It
+does not provide a SQL connection or clients for Storage, Realtime or
+the Management API.
+
+## Configure Supabase sign-in
+
+For people with accounts in your Supabase project, enable the project’s
+[OAuth 2.1
+server](https://supabase.com/docs/guides/auth/oauth-server/getting-started).
+This feature is currently in beta. It requires an existing sign-in and
+consent page in your Supabase application; the Shiny app redirects to
+it.
+
+In **Authentication \> OAuth Server**, enable the server, configure its
+authorization path and register a client with the exact Shiny redirect
+URI, `http://localhost:8100` for this example. A deployed app needs its
+own HTTPS redirect URI. For a confidential client, select
+`client_secret_basic` and save its secret. Public clients registered
+with authentication method `none` can omit the secret. Both use PKCE.
+
+Configure an asymmetric signing key, such as ES256 or RS256. The default
+client requests `openid` and validates signed ID tokens through OIDC
+discovery and JWKS. Supabase’s legacy HS256 signing setup cannot issue
+these OIDC ID tokens. See the [signing key
+guide](https://supabase.com/docs/guides/auth/signing-keys).
+
+Save these values in your app’s `.Renviron`:
+
+``` text
+OAUTHDB_SUPABASE_URL=https://your-project.supabase.co
+OAUTHDB_SUPABASE_KEY=sb_publishable_your-project-key
+OAUTHDB_CLIENT_ID=your-oauth-client-id
+OAUTHDB_CLIENT_SECRET=your-oauth-client-secret
+```
+
+Use the project base URL, without `/rest/v1` or `/auth/v1`. Get the
+publishable key from the project’s API keys settings. It identifies your
+application and is separate from the OAuth client ID and secret. For a
+public client, leave `OAUTHDB_CLIENT_SECRET` empty. Restart R after
+editing `.Renviron` and keep the file out of Git.
+
+The Data API client sends the publishable key in `apikey` and the
+current visitor access token in `Authorization: Bearer ...`. It waits
+for sign-in before sending requests. A legacy `anon` JWT also works,
+including on self-hosted projects using legacy API keys. The helper
+rejects `sb_secret_...` and legacy `service_role` keys. See [Supabase
+API keys](https://supabase.com/docs/guides/getting-started/api-keys).
+
+## Prepare a table with user permissions
+
+Run this example in the Supabase SQL editor, or use an existing table
+with the grants and RLS policies your app needs:
+
+``` sql
+create table public.oauthdb_notes (
+  id bigint generated always as identity primary key,
+  owner_id uuid not null references auth.users(id),
+  note text not null
+);
+
+alter table public.oauthdb_notes enable row level security;
+revoke all on public.oauthdb_notes from anon, authenticated;
+grant select on public.oauthdb_notes to authenticated;
+
+create policy "Visitors read their own notes"
+  on public.oauthdb_notes for select to authenticated
+  using ((select auth.uid()) = owner_id);
+```
+
+Add rows in the SQL editor using the UUIDs of two existing project users
+as `owner_id`. Sign in as each user to verify that they see only their
+own rows. An empty result can mean that RLS allows no matching rows.
+
+Supabase OAuth scopes such as `openid`, `profile` and `email` control
+identity information, not table access. Apply grants and RLS to exposed
+tables. You can also restrict a policy to your app with
+`auth.jwt() ->> 'client_id'`. See [OAuth tokens and
+RLS](https://supabase.com/docs/guides/auth/oauth-server/token-security).
+
+## A complete Shiny app
+
+Save this as `example.R`, then run `source("example.R")`:
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+project_url <- Sys.getenv("OAUTHDB_SUPABASE_URL")
+client <- oauth_db_supabase_client(
+  url = project_url,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100"
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  supabase <- oauth_db_supabase_api(
+    auth$connection,
+    url = project_url,
+    api_key = Sys.getenv("OAUTHDB_SUPABASE_KEY")
+  )
+  output$rows <- renderTable({
+    supabase$select("oauthdb_notes", order = "id.asc", limit = 20L)
+  })
+}
+
+runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
+
+# Open http://localhost:8100 in your regular browser
+```
+
+[`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)
+discovers the project’s `/auth/v1` OIDC issuer. shinyOAuth handles the
+authorization-code flow, identity validation and token renewal. Supabase
+issues refresh tokens without requiring an `offline_access` scope. Calls
+to the Data API use the access token.
+
+## Use an existing third-party identity provider
+
+A project configured to trust a [third-party
+provider](https://supabase.com/docs/guides/auth/third-party/overview)
+can use that provider’s authorization directly. Register the Shiny app
+with the provider and configure the JWT claims required by your Supabase
+integration. A provider enabled only as a Supabase social-login option
+does not establish direct Data API trust for that provider’s tokens.
+
+Replace the app’s client with your existing shinyOAuth client, or pass
+`provider` and `scopes` explicitly:
+
+``` r
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_SUPABASE_ISSUER")
+)
+client <- oauth_db_supabase_client(
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  provider = provider,
+  scopes = c("openid", "profile", "email")
+)
+```
+
+The Data API client stays the same. Native Supabase Auth uses UUID
+subjects with `auth.uid()`; external providers may use other subject
+formats, so write their policies against the appropriate verified JWT
+claims.
+
+## Functions, schemas and writes
+
+Use `schema = "reporting"` to select another schema exposed by the Data
+API. The client sends `Accept-Profile` for reads and `Content-Profile`
+for writes. The signed-in user’s role still needs schema and object
+privileges.
+
+``` r
+
+# Call an existing database function with the visitor's permissions.
+total <- supabase$rpc("note_total", list(category = "work"))
+
+# A write requires grants and an RLS policy permitting updates.
+response <- supabase$request(
+  "oauthdb_notes",
+  method = "PATCH",
+  query = list(id = "eq.42"),
+  body = list(note = "Reviewed"),
+  prefer = "return=representation",
+  raw = TRUE
+)
+```
+
+`select()` returns one page; use `limit`, `offset` and a deterministic
+order to fetch more. The [PostgREST
+guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md)
+covers filters, embedded resources, counts and result types. The project
+must expose a function before `rpc()` can call it; this client does not
+execute arbitrary SQL.
+
+GET and HEAD retry once after HTTP 401 with a renewed visitor token.
+Writes and POST function calls never retry automatically. Requests
+reject redirects and discard responses after account changes, sign-out
+or permission loss. The project key stays attached to the client when a
+visitor changes accounts.

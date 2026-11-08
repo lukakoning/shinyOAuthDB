@@ -17,14 +17,16 @@ articles:
   local-demos: local-demos.html
   oauth-setup: oauth-setup.html
   opensearch: opensearch.html
+  oracle-ords: oracle-ords.html
   oracle: oracle.html
   postgres: postgres.html
   postgrest: postgrest.html
   redshift: redshift.html
   snowflake: snowflake.html
   starrocks: starrocks.html
+  supabase: supabase.html
   trino: trino.html
-last_built: 2026-11-08T19:48Z
+last_built: 2026-11-08T20:28Z
 urls:
   reference: https://lukakoning.github.io/shinyOAuthDB/reference
   article: https://lukakoning.github.io/shinyOAuthDB/articles

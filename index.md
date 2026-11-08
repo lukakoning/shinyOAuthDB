@@ -40,6 +40,8 @@ Supported databases and data platforms (links open their setup guides):
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 ·
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html)
+·
+[Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html)
 · [DuckDB (over
 Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html)
 · [Trino and
@@ -59,6 +61,8 @@ Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
 · [Oracle
 Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html)
+· [Oracle REST Data
+Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
 ·

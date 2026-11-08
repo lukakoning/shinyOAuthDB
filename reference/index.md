@@ -52,8 +52,12 @@
   : Query libSQL as the signed-in user
 - [`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md)
   : Query OpenSearch as the signed-in user
+- [`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md)
+  : Access Oracle REST resources as the signed-in user
 - [`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md)
   : Query PostgREST as the signed-in user
+- [`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
+  : Query Supabase as the signed-in user
 
 ## Sign-in clients and providers
 
@@ -69,6 +73,8 @@
   : Set up Snowflake OAuth sign-in
 - [`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md)
   : Create a Snowflake OAuth provider
+- [`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)
+  : Set up Supabase OAuth sign-in
 
 ## Credentials and package help
 
