@@ -162,16 +162,6 @@ above.
 
 ## Learn more
 
-[`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
-runs local Docker demos for PostgreSQL and other databases.
-[`oauth_db_cloud_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md)
-guides demos for several cloud platforms, during which you will be
-walked through a setup with your existing platform account. See [Local
-Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
-and [Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
-
 [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html)
 explains the basic Shiny app pattern. Use the links above for setup per
@@ -180,6 +170,22 @@ setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html)
 for configuring app registrations, and [Authentication and
 sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
 for multiple accounts and advanced permissions.
+
+### More demos
+
+The package includes various demo apps.
+
+[`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
+runs local Docker demos for PostgreSQL and other self-hosted databases.
+[`oauth_db_cloud_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md)
+guides demos for several cloud platforms, during which you will be
+walked through first setup with your existing platform workspace and
+account.
+
+See [Local Docker
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
+and [Guided cloud
+demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
 
 # Package index
 
