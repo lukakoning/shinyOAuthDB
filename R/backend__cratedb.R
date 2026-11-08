@@ -98,11 +98,7 @@ oauth_db_cratedb_api <- function(
     },
     query = function(sql, parameters = list(), raw = FALSE) {
       .odb_flag(raw, "raw")
-      result <- private$submit(sql, parameters)
-      if (raw) {
-        return(result)
-      }
-      .odb_cratedb_frame(result)
+      private$submit(sql, parameters, raw = raw)
     },
     execute = function(sql, parameters = list()) {
       result <- private$submit(sql, parameters)
@@ -119,7 +115,7 @@ oauth_db_cratedb_api <- function(
     schema = NULL,
     timeout = NULL,
     ca_bundle = NULL,
-    submit = function(sql, parameters) {
+    submit = function(sql, parameters, raw = TRUE) {
       .odb_string(sql, "sql")
       args <- .odb_cratedb_parameters(parameters)
       req <- httr2::request(private$url)
@@ -140,7 +136,7 @@ oauth_db_cratedb_api <- function(
         private$timeout,
         private$ca_bundle
       )
-      .odb_cratedb_result(resp)
+      .odb_cratedb_result(resp, raw = raw)
     }
   )
 )
@@ -202,7 +198,7 @@ oauth_db_cratedb_api <- function(
   lapply(parameters, encode)
 }
 
-.odb_cratedb_result <- function(resp) {
+.odb_cratedb_result <- function(resp, raw = TRUE) {
   # Quote number tokens outside JSON strings before parsing. jsonlite's
   # bigint_as_char alone does not preserve fractional NUMERIC values.
   result <- tryCatch(
@@ -292,8 +288,8 @@ oauth_db_cratedb_api <- function(
     result$duration <- duration
   }
   # Validate every cell even when the caller requests metadata or a row count.
-  .odb_cratedb_frame(result)
-  result
+  frame <- .odb_cratedb_frame(result)
+  if (raw) result else frame
 }
 
 .odb_cratedb_frame <- function(result) {

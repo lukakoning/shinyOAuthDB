@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Convert CrateDB query results to data frames once, while retaining cell
+  validation for raw results and execution counts.
+
 * Reject malformed BigQuery Boolean, floating-point and timestamp results,
   including nested values, instead of silently introducing missing data.
   Preserve SQL NULLs and valid floating-point NaN and infinity values.

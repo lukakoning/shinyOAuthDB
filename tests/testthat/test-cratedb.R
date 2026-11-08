@@ -164,6 +164,32 @@ test_that("CrateDB validates complete results, numeric lexemes and typed empty f
   }
 })
 
+test_that("CrateDB validates cells for queries, raw results and execution counts", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) odb_http_response(body))
+  invalid <- c(
+    '{"cols":["x"],"col_types":[3],"rows":[["true"]],"rowcount":1}',
+    '{"cols":["x"],"col_types":[9],"rows":[["bad"]],"rowcount":1}',
+    '{"cols":["x"],"col_types":[[100,10]],"rows":[[["bad"]]],"rowcount":1}',
+    '{"cols":["x"],"col_types":[9],"rows":[[1,2]],"rowcount":1}'
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_cratedb_api(auth$connection, "https://crate.example/_sql")
+    operations <- list(
+      function() api$query("SELECT x"),
+      function() api$query("SELECT x", raw = TRUE),
+      function() api$execute("SELECT x")
+    )
+    for (response in invalid) {
+      body <<- response
+      for (operation in operations) {
+        expect_error(operation(), class = "shinyOAuthDB_invalid_response")
+      }
+    }
+  })
+})
+
 test_that("CrateDB never replays statements or exposes server messages on failure", {
   requests <- 0L
   response <- odb_http_response(
