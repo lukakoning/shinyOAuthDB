@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Decode libSQL REAL values as doubles regardless of JSON number notation,
+  while retaining exact integer cells and large affected-row counts.
+
 * Retain the selected Microsoft resource's default consent scopes when using
   `token_targets = list()`. Multiple resources need named targets or explicit
   scopes instead of silently requesting only sign-in permissions.

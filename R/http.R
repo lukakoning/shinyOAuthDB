@@ -273,7 +273,12 @@
   resp
 }
 
-.odb_http_json <- function(resp, service, simplify = FALSE) {
+.odb_http_json <- function(
+  resp,
+  service,
+  simplify = FALSE,
+  bigint_as_char = TRUE
+) {
   force(resp)
   tryCatch(
     {
@@ -285,7 +290,7 @@
       jsonlite::parse_json(
         httr2::resp_body_string(resp, encoding = "UTF-8"),
         simplifyVector = simplify,
-        bigint_as_char = TRUE
+        bigint_as_char = bigint_as_char
       )
     },
     error = function(e) {

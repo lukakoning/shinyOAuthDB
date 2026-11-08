@@ -133,7 +133,7 @@ oauth_db_libsql_api <- function(
         private$timeout,
         private$ca_bundle
       )
-      pipeline <- .odb_http_json(resp, "libSQL")
+      pipeline <- .odb_http_json(resp, "libSQL", bigint_as_char = FALSE)
       if (
         !is.list(pipeline) ||
           !"baton" %in% names(pipeline) ||
@@ -164,6 +164,18 @@ oauth_db_libsql_api <- function(
         }
       }
       result <- results[[1L]][["response"]][["result"]]
+      count <- if (is.list(result)) result[["affected_row_count"]] else NULL
+      if (
+        is.numeric(count) &&
+          length(count) == 1L &&
+          is.finite(count) &&
+          count >= 2^53
+      ) {
+        # Integer cells are strings; only the row count needs exact JSON numbers.
+        exact <- .odb_http_json(resp, "libSQL")
+        exact <- exact[["results"]][[1L]][["response"]][["result"]]
+        result[["affected_row_count"]] <- exact[["affected_row_count"]]
+      }
       .odb_libsql_validate(result)
       result
     }

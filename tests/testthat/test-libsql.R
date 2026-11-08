@@ -152,6 +152,66 @@ test_that("libSQL preserves exact integers, binary data, mixed types and empty m
   })
 })
 
+test_that("libSQL decodes REAL numbers independently of JSON integer notation", {
+  response <- function(number, count = "0") {
+    odb_http_response(paste0(
+      '{"baton":null,"results":[{"type":"ok","response":{"type":"execute",',
+      '"result":{"cols":[{"name":"value"},{"name":"id"}],"rows":[[',
+      '{"type":"float","value":',
+      number,
+      '},',
+      '{"type":"integer","value":"9223372036854775807"}]],',
+      '"affected_row_count":',
+      count,
+      ',"last_insert_rowid":null}}},',
+      '{"type":"ok","response":{"type":"close"}}]}'
+    ))
+  }
+  payload <- response("0")
+  httr2::local_mocked_responses(function(req) payload)
+  odb_test_domain(function(session) {
+    api <- oauth_db_libsql_api(
+      odb_test_authorization(session)$connection,
+      "https://db.example"
+    )
+    for (number in c(
+      "9007199254740992",
+      "10000000000000000",
+      "-10000000000000000",
+      "1000000000000000000000000000000",
+      "1e16",
+      "1.0e16"
+    )) {
+      payload <<- response(number)
+      rows <- api$query("SELECT value, id")
+      expect_identical(rows$value, as.numeric(number))
+      expect_identical(rows$id, "9223372036854775807")
+      raw <- api$query("SELECT value, id", raw = TRUE)
+      expect_identical(raw$rows[[1L]][[1L]]$value, as.numeric(number))
+    }
+    for (count in list(
+      list(json = "9007199254740991", value = 9007199254740991),
+      list(json = "9223372036854775807", value = "9223372036854775807"),
+      list(json = '"18446744073709551615"', value = "18446744073709551615")
+    )) {
+      payload <<- response("1.0", count$json)
+      result <- api$query("SELECT value, id", raw = TRUE)
+      expect_identical(result$affected_row_count, count$value)
+    }
+    for (count in c(
+      "9007199254740992",
+      "18446744073709551616",
+      '"18446744073709551616"'
+    )) {
+      payload <<- response("1.0", count)
+      expect_error(
+        api$query("SELECT value, id", raw = TRUE),
+        class = "shinyOAuthDB_invalid_response"
+      )
+    }
+  })
+})
+
 test_that("libSQL renews tokens before submission and never retries SQL failures", {
   requests <- list()
   status <- 200L
@@ -388,6 +448,7 @@ test_that("libSQL validates Hrana envelopes, rows, values and metadata before re
       list(type = "integer", value = "9223372036854775808"),
       list(type = "integer", value = 42),
       list(type = "float", value = "1.5"),
+      list(type = "float", value = "10000000000000000"),
       list(type = "text", value = list("a")),
       list(type = "blob", base64 = "?invalid"),
       list(type = "unknown", value = "response-secret")
