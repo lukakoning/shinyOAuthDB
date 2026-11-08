@@ -55,6 +55,16 @@ credentials.
 [`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md)
 runs GoogleSQL and returns data frames.
 
+## Cleanup diagnostics
+
+A failed native disconnect emits a message while local authorization
+retirement continues. To send these failures to your application's
+logger, set
+`options(shinyOAuthDB.on_cleanup_error = function(error) { ... })`. The
+handler receives a `shinyOAuthDB_cleanup_failed` condition containing a
+fixed message and reason, without the original driver error, connection,
+or credential. If the handler errors, the default message is emitted.
+
 ## Sign-in settings
 
 The source guides create clients with

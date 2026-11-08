@@ -71,7 +71,9 @@ Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
 ·
-[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html).
+[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html)
+· [Salesforce CRM and Data
+Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html).
 
 ## Install
 

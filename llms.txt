@@ -71,7 +71,9 @@ Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
 ·
-[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html).
+[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html)
+· [Salesforce CRM and Data
+Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html).
 
 ## Install
 
@@ -252,6 +254,10 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   : Access Oracle REST resources as the signed-in user
 - [`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md)
   : Query PostgREST as the signed-in user
+- [`oauth_db_salesforce_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.md)
+  : Query Salesforce CRM as the signed-in user
+- [`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md)
+  : Query Salesforce Data Cloud as the signed-in user
 - [`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
   : Query Supabase as the signed-in user
 
@@ -261,6 +267,8 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   : Set up Microsoft sign-in for database access
 - [`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md)
   : Set up Google sign-in for BigQuery
+- [`oauth_db_salesforce_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.md)
+  : Set up Salesforce sign-in
 - [`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md)
   : Set up Databricks OAuth sign-in
 - [`oauth_db_databricks_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_provider.md)
@@ -334,3 +342,5 @@ demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
 - [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md):
 - [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md):
+- [Salesforce CRM and Data
+  Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.md):

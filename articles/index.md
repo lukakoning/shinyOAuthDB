@@ -50,3 +50,5 @@
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
 - [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md):
 - [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md):
+- [Salesforce CRM and Data
+  Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.md):

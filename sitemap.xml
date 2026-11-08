@@ -23,6 +23,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html</loc></url>
@@ -56,6 +57,9 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.html</loc></url>

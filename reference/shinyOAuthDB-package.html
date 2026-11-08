@@ -100,6 +100,17 @@ their platforms' R packages with the visitor's credentials.
 <code><a href="oauth_db_bigquery_api.html">oauth_db_bigquery_api()</a></code> runs GoogleSQL and returns data frames.</p>
     </div>
     <div class="section level2">
+    <h2 id="cleanup-diagnostics">Cleanup diagnostics<a class="anchor" aria-label="anchor" href="#cleanup-diagnostics"></a></h2>
+
+
+<p>A failed native disconnect emits a message while local authorization
+retirement continues. To send these failures to your application's logger,
+set <code>options(shinyOAuthDB.on_cleanup_error = function(error) { ... })</code>.
+The handler receives a <code>shinyOAuthDB_cleanup_failed</code> condition containing
+a fixed message and reason, without the original driver error, connection,
+or credential. If the handler errors, the default message is emitted.</p>
+    </div>
+    <div class="section level2">
     <h2 id="sign-in-settings">Sign-in settings<a class="anchor" aria-label="anchor" href="#sign-in-settings"></a></h2>
 
 
