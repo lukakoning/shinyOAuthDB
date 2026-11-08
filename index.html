@@ -70,7 +70,6 @@
 <p>shinyOAuthDB provides R functions to streamline the above steps, with configurations for various databases and data platforms. It also helps you open database connections, run queries, and make API calls. Depending on the data source, you can work with familiar tools such as DBI and dbplyr, or use the a supporting package’s query and API helpers.</p>
 <p>Supported databases and data platforms (links open their setup guides):</p>
 <p><a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html">PostgreSQL</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html">PostgREST</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html">DuckDB (over Quack)</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/trino.html">Trino and Starburst</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html">Databricks</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html">Microsoft Fabric and PowerBi</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html">Snowflake</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html">Google BigQuery</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html">Amazon Redshift</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html">Azure SQL and SQL Server</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html">Azure PostgreSQL</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html">ClickHouse</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html">StarRocks</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html">libSQL and Turso</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html">CrateDB</a> · <a href="https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html">OpenSearch</a>.</p>
-<p>Your database or data platform must accept OAuth access tokens, and you’ll need to register your Shiny app with its sign-in service. Each guide explains the setup and where to find the settings you need.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
@@ -91,8 +90,10 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Start a local demo with PostgreSQL and Keycloak sign-in in Docker</span></span>
 <span><span class="va">demo</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, action <span class="op">=</span> <span class="st">"services"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Create an OAuth client for the demo Keycloak server</span></span>
 <span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu">oauth_client</span><span class="op">(</span></span>
 <span>  <span class="va">demo</span><span class="op">$</span><span class="va">provider</span>,</span>
 <span>  client_id <span class="op">=</span> <span class="st">"shiny-db"</span>,</span>
@@ -126,23 +127,25 @@
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span>, onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span></span>
+<span>    <span class="va">ui</span>, <span class="va">server</span>, </span>
+<span>    uiPattern <span class="op">=</span> <span class="st">".*"</span>, </span>
+<span>    onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span> <span class="op">}</span></span>
+<span>  <span class="op">)</span>,</span>
 <span>  port <span class="op">=</span> <span class="fl">18100</span>,</span>
 <span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Open the app in your regular browser at http://localhost:18100</span></span>
 <span><span class="co"># (viewers in RStudio/Positron/etc. cannot perform necessary redirects)</span></span></code></pre></div>
-<p>Sign in as <code>alice</code> / <code>alice</code> or <code>bob</code> / <code>bob</code> (username / password). The first build takes a few minutes; your browser may ask you to accept the local sign-in certificate. Stopping the app removes its Docker services. Call <code>demo$stop()</code> to stop the services manually.</p>
-<p>The package includes this example as <code>examples/postgres/example.R</code>; <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example">run it directly</a> or edit a copy. For your own server, follow the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html">PostgREST guide</a>.</p>
+<p>Sign in as <code>alice</code> / <code>alice</code> or <code>bob</code> / <code>bob</code> (username / password). The first build takes a few minutes; your browser may ask you to accept the local sign-in certificate. Stopping the app removes its Docker services.</p>
+<p>The package includes this example as <code>examples/postgres/example.R</code>; <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example">run it directly</a> or edit a copy. For your own PostgreSQL server, follow the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html">PostgreSQL</a> or <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html">PostgREST</a> guides.</p>
 </div>
 <div class="section level2">
 <h2 id="learn-more">Learn more<a class="anchor" aria-label="anchor" href="#learn-more"></a>
 </h2>
-<p><code><a href="reference/oauth_db_demo.html">oauth_db_demo()</a></code> runs local Docker demos for PostgreSQL and other databases. <code><a href="reference/oauth_db_cloud_demo.html">oauth_db_cloud_demo()</a></code> guides demos for several cloud platforms using an existing account. See <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html">Local Docker demos</a> and <a href="https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html">Guided cloud demos</a>.</p>
-<p><a href="https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html">Getting started</a> explains the app pattern. Use the database links above for platform setup, <a href="https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html">OAuth setup</a> for app registrations, and <a href="https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html">Authentication and sessions</a> for multiple accounts and advanced permissions.</p>
+<p><code><a href="reference/oauth_db_demo.html">oauth_db_demo()</a></code> runs local Docker demos for PostgreSQL and other databases. <code><a href="reference/oauth_db_cloud_demo.html">oauth_db_cloud_demo()</a></code> guides demos for several cloud platforms, during which you will be walked through a setup with your existing platform account. See <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html">Local Docker demos</a> and <a href="https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html">Guided cloud demos</a>.</p>
+<p><a href="https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html">Getting started</a> explains the basic Shiny app pattern. Use the links above for setup per database or data platform, and see <a href="https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html">OAuth setup</a> for configuring app registrations, and <a href="https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html">Authentication and sessions</a> for multiple accounts and advanced permissions.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
