@@ -17,6 +17,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Trino and Starburst Enterprise | [RTrino and DBI queries](../vignettes/trino.Rmd) |
 | Azure PostgreSQL | [RPostgres connections](../vignettes/azure-postgres.Rmd) |
 | Oracle Database | [OAuth access tokens and Oracle ODBC](../vignettes/oracle.Rmd) |
+| SAP HANA and HANA Cloud | [JWT access tokens and SAP HANA ODBC](../vignettes/hana.Rmd) |
 | Oracle REST Data Services | [JWT-protected HTTP resources](../vignettes/oracle-ords.Rmd) |
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
 | Supabase | [Data API queries and Supabase OAuth sign-in](../vignettes/supabase.Rmd) |
@@ -43,4 +44,5 @@ For existing apps and package development:
 - [Backend research notes](backend-candidates.md)
 - [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
+- [SAP HANA backend decision](hana-backend.md)
 - [Guided cloud demos: implementation notes](cloud-demos.md)

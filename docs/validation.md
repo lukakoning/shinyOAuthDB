@@ -1,5 +1,31 @@
 # Validation record
 
+## 8 November 2026: SAP HANA and HANA Cloud
+
+Checked on Windows 11 with R 4.5.1, shinyOAuth 0.7.0.9000 and odbc 1.6.4.1.
+`oauth_db_hana()` supplies the visitor's JWT access token through SAP HANA
+ODBC with an empty username, JWT-only authentication and verified TLS.
+Automatic native reconnect is disabled so reopening through the helper
+obtains a current token.
+
+The full source suite passes 6,194 assertions across 386 scenarios with
+zero failures, errors, warnings or skips. HANA tests cover the real R ODBC
+connection-string boundary, rejected credentials and native overrides,
+independent visitor connections, named token targets, literal operation
+scopes and lifecycle cleanup. SQLite DBI handles stand in for native SAP
+connections in lifecycle tests. The complete HANA guide app constructs
+and waits for sign-in. Documentation checks parse 100 R blocks and resolve
+224 local links and 19 anchors. Air and Jarl checks pass for R and tests.
+
+`R CMD check --no-manual` completes with zero errors, warnings or notes.
+The installed-package tests pass, and vignettes build and rebuild successfully.
+
+No SAP HANA driver, configured HANA database or live OAuth provider was
+available. These checks establish R-side behavior; database principal
+mapping, distinct visitor grants, expiry/reconnect and TLS compatibility
+still need a configured deployment. See the
+[HANA backend decision](hana-backend.md) for research sources and scope.
+
 ## 8 November 2026: generic Oracle OAuth and ORDS
 
 The Oracle transport now accepts a JWT from the provider configured in the

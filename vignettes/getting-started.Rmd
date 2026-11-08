@@ -58,6 +58,7 @@ server and advanced configuration.
 | [Amazon Redshift](redshift.html) | Query Redshift with DBI |
 | [Trino and Starburst Enterprise](trino.html) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
 | [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
+| [SAP HANA and HANA Cloud](hana.html) | Query with visitor JWT access tokens and SAP HANA ODBC |
 | [Oracle Database](oracle.html) | Query with database-trusted OAuth tokens and Oracle ODBC |
 | [Oracle REST Data Services](oracle-ords.html) | Read protected collections and call JSON handlers over HTTPS |
 | [Salesforce CRM and Data Cloud](salesforce.html) | Query CRM objects with SOQL and Data Cloud with SQL using each visitor's Salesforce account |

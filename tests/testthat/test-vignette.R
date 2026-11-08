@@ -26,6 +26,7 @@ vignette_sources <- c(
   trino = "RTrino",
   "azure-postgres" = "RPostgres",
   oracle = "odbc",
+  hana = "odbc",
   "oracle-ords" = NA_character_,
   postgrest = NA_character_,
   supabase = NA_character_,

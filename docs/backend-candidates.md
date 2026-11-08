@@ -8,6 +8,10 @@ Oracle was added after this investigation; see the
 [Oracle backend decision](oracle-backend.md) for its OAuth/ODBC and ORDS scope and
 validation limits.
 
+SAP HANA and HANA Cloud now use SAP HANA ODBC with visitor JWT access
+tokens; see the [HANA backend decision](hana-backend.md) for the database
+configuration and validation boundary.
+
 | Platform | Implementation |
 | --- | --- |
 | BigQuery | `oauth_db_bigquery_api()`: direct REST queries |

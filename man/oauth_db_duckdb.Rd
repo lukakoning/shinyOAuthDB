@@ -99,6 +99,7 @@ Other database connections:
 \code{\link[=oauth_db_azure_sql]{oauth_db_azure_sql()}},
 \code{\link[=oauth_db_databricks]{oauth_db_databricks()}},
 \code{\link[=oauth_db_fabric_sql]{oauth_db_fabric_sql()}},
+\code{\link[=oauth_db_hana]{oauth_db_hana()}},
 \code{\link[=oauth_db_oracle]{oauth_db_oracle()}},
 \code{\link[=oauth_db_postgres]{oauth_db_postgres()}},
 \code{\link[=oauth_db_redshift]{oauth_db_redshift()}},
