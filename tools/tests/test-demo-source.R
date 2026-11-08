@@ -25,6 +25,128 @@ demo_source_fixture <- function(root) {
   )
 }
 
+testthat::test_that("the default Docker bootstrap includes the shipped response fixes", {
+  root <- normalizePath(file.path("..", ".."), winslash = "/")
+  library <- withr::local_tempdir()
+  observed <- callr::r(
+    function(root, library) {
+      Sys.setenv(
+        R_LIBS_USER = library,
+        SHINYOAUTHDB_POSTGRES_OAUTH = "disabled"
+      )
+      references <- character()
+      testthat::local_mocked_bindings(
+        install_github = function(repo, ...) {
+          references <<- c(references, repo)
+          prefix <- "lukakoning/shinyOAuthDB@"
+          if (!startsWith(repo, prefix)) {
+            stopifnot(requireNamespace("shinyOAuth", quietly = TRUE))
+            return(invisible(NULL))
+          }
+          revision <- substring(repo, nchar(prefix) + 1L)
+          stopifnot(grepl("^[0-9a-f]{40}$", revision))
+          source <- tempfile("default-demo-source-")
+          dir.create(source)
+          archive <- tempfile(fileext = ".tar")
+          status <- system2(
+            Sys.which("git"),
+            c(
+              "-C",
+              shQuote(root),
+              "archive",
+              "--format=tar",
+              shQuote(paste0("--output=", archive)),
+              revision
+            )
+          )
+          if (status != 0L) {
+            stop("Fetch the pinned demo revision before running this check.")
+          }
+          utils::untar(archive, exdir = source)
+          pkgbuild::rcmd_build_tools(
+            "INSTALL",
+            c(
+              "--no-multiarch",
+              "--no-docs",
+              paste0("--library=", library),
+              source
+            )
+          )
+          invisible(NULL)
+        },
+        .package = "remotes"
+      )
+      bootstrap <- new.env(parent = globalenv())
+      bootstrap$install.packages <- function(...) invisible(NULL)
+      sys.source(file.path(root, "inst", "docker", "install.R"), bootstrap)
+      package <- find.package("shinyOAuthDB")
+      canary <- tempfile(fileext = ".json")
+      writeLines('{"proof":"local file"}', canary)
+      response <- function(body) {
+        httr2::response(
+          status_code = 200L,
+          headers = list(`Content-Type` = "application/json"),
+          body = charToRaw(body)
+        )
+      }
+      parser <- getFromNamespace(".odb_http_json", "shinyOAuthDB")
+      parsed <- tryCatch(parser(response(canary), "demo"), error = identity)
+      sent <- NULL
+      httr2::local_mocked_responses(function(req) {
+        if (grepl("libsql.example", req$url, fixed = TRUE)) {
+          return(response(
+            '{"baton":null,"results":[{"type":"ok","response":{"type":"execute","result":{"cols":[{"name":"n","decltype":"REAL"}],"rows":[[{"type":"float","value":9007199254740994}]],"affected_row_count":0,"last_insert_rowid":null}}},{"type":"ok","response":{"type":"close"}}]}'
+          ))
+        }
+        render <- getFromNamespace("req_body_render", "httr2")
+        sent <<- jsonlite::parse_json(render(req))
+        response('{"cols":[],"col_types":[],"rows":[],"rowcount":0}')
+      })
+      provider <- function() function(...) "fixture-token"
+      libsql <- getFromNamespace(".odb_libsql_api", "shinyOAuthDB")$new(
+        provider,
+        "https://libsql.example",
+        30,
+        NULL
+      )
+      real <- tryCatch(
+        libsql$query("SELECT CAST(9007199254740994 AS REAL)"),
+        error = identity
+      )
+      crate <- getFromNamespace(".odb_cratedb_api", "shinyOAuthDB")$new(
+        provider,
+        "https://crate.example/_sql",
+        NULL,
+        30,
+        NULL
+      )
+      values <- list(1.0000000000000002, 1e-100)
+      crate$query("SELECT $1, $2", values)
+      list(
+        references = references,
+        isolated = identical(
+          normalizePath(package, winslash = "/"),
+          normalizePath(file.path(library, "shinyOAuthDB"), winslash = "/")
+        ),
+        rejects_file_response = inherits(
+          parsed,
+          "shinyOAuthDB_invalid_response"
+        ),
+        real = if (is.data.frame(real)) real$n else NULL,
+        parameters = sent$args,
+        expected_parameters = values
+      )
+    },
+    args = list(root, library),
+    libpath = .libPaths()
+  )
+  testthat::expect_length(observed$references, 2L)
+  testthat::expect_true(observed$isolated)
+  testthat::expect_true(observed$rejects_file_response)
+  testthat::expect_identical(observed$real, 9007199254740994)
+  testthat::expect_identical(observed$parameters, observed$expected_parameters)
+})
+
 testthat::test_that("demo source staging installs the candidate code with its fingerprint", {
   root <- file.path(withr::local_tempdir(), "source")
   demo_source_fixture(root)
