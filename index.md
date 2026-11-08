@@ -153,14 +153,12 @@ Sign in as `alice` / `alice` or `bob` / `bob` (username / password). The
 first build takes a few minutes; your browser may ask you to accept the
 local sign-in certificate. Stopping the app removes its Docker services.
 
-The package includes this example as `examples/postgres/example.R`; [run
-it
-directly](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example)
-or edit a copy. For your own PostgreSQL server, follow the
+For your own PostgreSQL server, follow the
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 or
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html)
-guides.
+guides. For other databases and data platforms, refer to the links
+above.
 
 ## Learn more
 
