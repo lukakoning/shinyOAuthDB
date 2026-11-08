@@ -185,3 +185,48 @@ test_that("Fabric rejects abbreviations of its owned native formals", {
     )
   }
 })
+
+test_that("Snowflake rejects protocol overrides before the native ODBC boundary", {
+  skip_if_not_installed("odbc")
+  strings <- character()
+  local_mocked_bindings(
+    odbc_connect = function(connection_string, ...) {
+      strings <<- c(strings, connection_string)
+      stop(errorCondition("Native boundary reached", class = "native_boundary"))
+    },
+    .package = "odbc"
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    for (name in c("protocol", "PROTOCOL", "Pro.to.col")) {
+      expect_error(
+        do.call(
+          oauth_db_snowflake,
+          c(
+            list(
+              auth$connection,
+              "fixed.example",
+              role = "READER",
+              required_scopes = "read"
+            ),
+            stats::setNames(list("http"), name)
+          )
+        ),
+        "cannot be overridden",
+        class = "shinyOAuthDB_invalid_configuration"
+      )
+    }
+    expect_length(strings, 0L)
+    expect_identical(auth$calls$acquire, 0L)
+    con <- oauth_db_snowflake(
+      auth$connection,
+      "fixed.example",
+      role = "READER",
+      required_scopes = "read"
+    )
+    expect_error(con(), class = "native_boundary")
+    expect_length(strings, 1L)
+    expect_false(grepl("protocol=", strings[[1L]], fixed = TRUE))
+    expect_match(strings[[1L]], "authenticator=oauth", fixed = TRUE)
+  })
+})

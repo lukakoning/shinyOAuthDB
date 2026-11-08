@@ -31,7 +31,8 @@ the driver's or account's defaults.}
 
 \item{role}{Snowflake role for this connection.}
 
-\item{...}{Named Snowflake ODBC connection options.}
+\item{...}{Named Snowflake ODBC connection options. Authentication and the
+HTTPS protocol cannot be overridden.}
 
 \item{required_scopes}{Permissions to check before use. The default is the
 Snowflake role scope, \code{paste0("session:role:", role)}. For External OAuth,

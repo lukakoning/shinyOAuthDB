@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reject Snowflake ODBC protocol overrides before acquiring a token or opening
+  a native connection, preserving the driver's HTTPS default.
+
 * Require token-based password authentication over verified TLS for Azure
   PostgreSQL. Disable GSS encryption and reject native authentication/TLS
   overrides. This helper now requires RPostgres linked to libpq 16 or later.

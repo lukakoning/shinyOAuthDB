@@ -12,7 +12,8 @@
 #'   Snowflake role scope, `paste0("session:role:", role)`. For External OAuth,
 #'   supply the scope names configured by the integration.
 #' @param target Named shinyOAuth token target, or `NULL` for the default token.
-#' @param ... Named Snowflake ODBC connection options.
+#' @param ... Named Snowflake ODBC connection options. Authentication and the
+#'   HTTPS protocol cannot be overridden.
 #' @return A reactive function returning an odbc DBI connection.
 #' @details
 #' Install odbc and the Snowflake ODBC driver. Use [oauth_db_snowflake_client()]
@@ -95,6 +96,7 @@ oauth_db_snowflake <- function(
       "oauth_client_secret",
       "oauth_scope",
       "insecure_mode",
+      "protocol",
       "disable_saml_url_check",
       "encrypt",
       "trust_server_certificate"
