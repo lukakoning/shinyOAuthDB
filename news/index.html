@@ -42,7 +42,16 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Refresh the Docker demo runtime to include the current transport protections, corrected local app ports, strict date decoding and exact row-count checks.</p></li>
+<ul><li><p>Document ODBC as the Fabric backend for dbplyr’s SQL Server translations, and explain ADBC driver setup, result lifetime and numeric conversion.</p></li>
+<li><p>Apply ODBC connection-string validation only to Fabric’s ODBC backend, allowing literal ADBC driver paths. Reject URI overrides for either backend.</p></li>
+<li><p>Reopen Fabric ADBC connections with a current token on access after token renewal, without replaying completed reactive queries. ODBC connections continue to reuse valid database sessions across ordinary token renewal.</p></li>
+<li><p>Close ADBC connections and their outstanding DBI or Arrow results when the authorization changes, permissions are lost, or the Shiny session ends.</p></li>
+<li><p>Return CrateDB’s internal byte columns as numbers, including nulls and empty results, and reject values outside the signed byte range in scalar and array responses.</p></li>
+<li><p>Decode libSQL REAL values as doubles regardless of JSON number notation, while retaining exact integer cells and large affected-row counts.</p></li>
+<li><p>Retain the selected Microsoft resource’s default consent scopes when using <code>token_targets = list()</code>. Multiple resources need named targets or explicit scopes instead of silently requesting only sign-in permissions.</p></li>
+<li><p>Refuse to restart an active services-mode demo at the same database and path, preventing competing handles from stopping its containers or restoring its OAuth options prematurely.</p></li>
+<li><p>Parse API responses and HTTP error diagnostics as literal JSON so response bodies cannot trigger local-file reads or additional HTTP requests.</p></li>
+<li><p>Refresh the Docker demo runtime to include the current transport protections, corrected local app ports, strict date decoding and exact row-count checks.</p></li>
 <li><p>Check CrateDB row-count limits before numeric conversion so counts above <code>2^53</code> cannot round into the supported range.</p></li>
 <li><p>Reject malformed BigQuery and ClickHouse dates, including invalid calendar dates and trailing text, while preserving nulls and typed empty results.</p></li>
 <li><p>Use the published relay port in generated local PostgreSQL and StarRocks apps, independent of argument line breaks in the Docker app templates.</p></li>

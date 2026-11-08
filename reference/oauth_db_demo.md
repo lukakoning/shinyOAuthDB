@@ -143,9 +143,11 @@ removes the containers and data and restores these options. Register it
 with [`shiny::onStop()`](https://rdrr.io/pkg/shiny/man/onStop.html) when
 your app starts. Services are also stopped when the returned object is
 garbage collected or R exits. Run one demo at a time, and stop it before
-starting another. Using `action = "stop"` with the same database and
-`path` also retires any services handle in the current R process and
-restores its options.
+starting another. Starting the same database and `path` again is refused
+while its services handle is active; reuse that handle or stop it before
+restarting. Using `action = "stop"` with the same database and `path`
+also retires any services handle in the current R process and restores
+its options.
 
 ## See also
 

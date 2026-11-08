@@ -69,8 +69,7 @@ and server modules.</p>
 <span>    <span class="kw">else</span> <span class="op">{</span></span>
 <span>     <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
 <span> <span class="op">}</span>,</span>
-<span>  scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"openid"</span>, <span class="st">"profile"</span>, <span class="st">"offline_access"</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">token_targets</span>,</span>
-<span>    <span class="va">`[[`</span>, <span class="st">"scopes"</span><span class="op">)</span>, use.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  scopes <span class="op">=</span> <span class="fu">.odb_microsoft_client_scopes</span><span class="op">(</span><span class="va">services</span>, <span class="va">token_targets</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -110,7 +109,9 @@ The first service selects the default token target.</p></dd>
 
 <dt id="arg-token-targets">token_targets<a class="anchor" aria-label="anchor" href="#arg-token-targets"></a></dt>
 <dd><p>Named token targets, replacing the service defaults.
-Use <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code> for a client without named targets.</p></dd>
+Use <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code> for a client without named targets. In that case, default
+scopes come from <code>services</code>, which must select one resource. Supply
+<code>scopes</code> explicitly to replace those consent defaults.</p></dd>
 
 
 <dt id="arg-token-target-default">token_target_default<a class="anchor" aria-label="anchor" href="#arg-token-target-default"></a></dt>

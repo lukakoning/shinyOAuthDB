@@ -2,6 +2,44 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Document ODBC as the Fabric backend for dbplyr’s SQL Server
+  translations, and explain ADBC driver setup, result lifetime and
+  numeric conversion.
+
+- Apply ODBC connection-string validation only to Fabric’s ODBC backend,
+  allowing literal ADBC driver paths. Reject URI overrides for either
+  backend.
+
+- Reopen Fabric ADBC connections with a current token on access after
+  token renewal, without replaying completed reactive queries. ODBC
+  connections continue to reuse valid database sessions across ordinary
+  token renewal.
+
+- Close ADBC connections and their outstanding DBI or Arrow results when
+  the authorization changes, permissions are lost, or the Shiny session
+  ends.
+
+- Return CrateDB’s internal byte columns as numbers, including nulls and
+  empty results, and reject values outside the signed byte range in
+  scalar and array responses.
+
+- Decode libSQL REAL values as doubles regardless of JSON number
+  notation, while retaining exact integer cells and large affected-row
+  counts.
+
+- Retain the selected Microsoft resource’s default consent scopes when
+  using `token_targets = list()`. Multiple resources need named targets
+  or explicit scopes instead of silently requesting only sign-in
+  permissions.
+
+- Refuse to restart an active services-mode demo at the same database
+  and path, preventing competing handles from stopping its containers or
+  restoring its OAuth options prematurely.
+
+- Parse API responses and HTTP error diagnostics as literal JSON so
+  response bodies cannot trigger local-file reads or additional HTTP
+  requests.
+
 - Refresh the Docker demo runtime to include the current transport
   protections, corrected local app ports, strict date decoding and exact
   row-count checks.

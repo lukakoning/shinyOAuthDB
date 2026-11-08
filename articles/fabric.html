@@ -312,11 +312,29 @@ those methods. See fabricQueryR’s help for their arguments.</p>
 <div class="section level2">
 <h2 id="connection-options">Connection options<a class="anchor" aria-label="anchor" href="#connection-options"></a>
 </h2>
-<p>The SQL helper uses ODBC by default. For ADBC, install fabricQueryR’s
-ADBC dependencies and the MSSQL driver, then pass
+<p>The SQL helper uses ODBC by default for DBI and dbplyr. Use ODBC for
+dbplyr’s SQL Server translations: the ADBC connection does not currently
+select that dialect and can generate SQL that Fabric rejects, such as
+<code>LIMIT</code>.</p>
+<p>For ADBC queries through DBI or Arrow, install <code>adbi</code> and
+<code>adbcdrivermanager</code>, plus version 1.5.0 or later of the
+external <code>mssql</code> driver. The driver can be installed with
+<code>dbc install mssql</code>; the R packages do not install it. Pass
 <code>backend = "adbc"</code> to <code><a href="../reference/oauth_db_fabric_sql.html">oauth_db_fabric_sql()</a></code>.
 Options such as <code>timeout</code> and <code>read_only</code> go to
 <code><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_sql_connect.html" class="external-link">fabricQueryR::fabric_sql_connect()</a></code>.</p>
+<p>Call <code>con()</code> before each operation. An ADBC connection
+reopens with a current token on access after token renewal; ODBC keeps
+valid database sessions open across ordinary renewal. A replacement
+closes outstanding results, so consume and release them before starting
+another operation.</p>
+<p>ADBC can retain native Arrow types through
+<code><a href="https://dbi.r-dbi.org/reference/dbGetQueryArrow.html" class="external-link">DBI::dbGetQueryArrow()</a></code>. Direct
+<code><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">DBI::dbGetQuery()</a></code> reads use the driver’s conversions and do
+not apply fabricQueryR’s exact numeric policy. For that policy, call
+<code><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_sql_query.html" class="external-link">fabricQueryR::fabric_sql_query()</a></code> through
+<code><a href="../reference/oauth_db_fabric_api.html">oauth_db_fabric_api()</a></code> with <code>backend = "adbc"</code>
+and <code>numeric_policy = "exact"</code>.</p>
 <p>The helper manages its own DBI connection. Your app must close
 connections it opens through fabricQueryR functions or resource
 methods.</p>

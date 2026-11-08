@@ -213,11 +213,34 @@ services for those methods. See fabricQueryR’s help for their arguments.
 
 ## Connection options
 
-The SQL helper uses ODBC by default. For ADBC, install fabricQueryR’s
-ADBC dependencies and the MSSQL driver, then pass `backend = "adbc"` to
+The SQL helper uses ODBC by default for DBI and dbplyr. Use ODBC for
+dbplyr’s SQL Server translations: the ADBC connection does not currently
+select that dialect and can generate SQL that Fabric rejects, such as
+`LIMIT`.
+
+For ADBC queries through DBI or Arrow, install `adbi` and
+`adbcdrivermanager`, plus version 1.5.0 or later of the external `mssql`
+driver. The driver can be installed with `dbc install mssql`; the R
+packages do not install it. Pass `backend = "adbc"` to
 [`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md).
 Options such as `timeout` and `read_only` go to
 [`fabricQueryR::fabric_sql_connect()`](https://kennispunttwente.github.io/fabricQueryR/reference/fabric_sql_connect.html).
+
+Call `con()` before each operation. An ADBC connection reopens with a
+current token on access after token renewal; ODBC keeps valid database
+sessions open across ordinary renewal. A replacement closes outstanding
+results, so consume and release them before starting another operation.
+
+ADBC can retain native Arrow types through
+[`DBI::dbGetQueryArrow()`](https://dbi.r-dbi.org/reference/dbGetQueryArrow.html).
+Direct
+[`DBI::dbGetQuery()`](https://dbi.r-dbi.org/reference/dbGetQuery.html)
+reads use the driver’s conversions and do not apply fabricQueryR’s exact
+numeric policy. For that policy, call
+[`fabricQueryR::fabric_sql_query()`](https://kennispunttwente.github.io/fabricQueryR/reference/fabric_sql_query.html)
+through
+[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md)
+with `backend = "adbc"` and `numeric_policy = "exact"`.
 
 The helper manages its own DBI connection. Your app must close
 connections it opens through fabricQueryR functions or resource methods.

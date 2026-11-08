@@ -23,8 +23,7 @@ names(token_targets)[[1L]]
     else {
      character()
  },
-  scopes = c("openid", "profile", "offline_access", unique(unlist(lapply(token_targets,
-    `[[`, "scopes"), use.names = FALSE)))
+  scopes = .odb_microsoft_client_scopes(services, token_targets)
 )
 ```
 
@@ -64,7 +63,9 @@ names(token_targets)[[1L]]
 
   Named token targets, replacing the service defaults. Use
   [`list()`](https://rdrr.io/r/base/list.html) for a client without
-  named targets.
+  named targets. In that case, default scopes come from `services`,
+  which must select one resource. Supply `scopes` explicitly to replace
+  those consent defaults.
 
 - token_target_default:
 
