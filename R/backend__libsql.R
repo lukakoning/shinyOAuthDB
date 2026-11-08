@@ -40,7 +40,8 @@
 #' integer; ordinary character values bind as text. Encode dates as strings.
 #'
 #' SQLite integers are returned as strings to preserve all 64 bits. Floating
-#' point values remain numeric, text remains character and blobs use raw
+#' point values remain numeric; non-finite results become `NaN`.
+#' Text remains character and blobs use raw
 #' vectors in list columns. Columns with mixed SQLite types remain lists.
 #' All-null or empty columns use logical missing values; `raw = TRUE`
 #' preserves the server's declared column metadata.
@@ -291,6 +292,13 @@ oauth_db_libsql_api <- function(
   }
   if (identical(type, "text") && .odb_libsql_string(value[["value"]])) {
     return(value[["value"]])
+  }
+  if (
+    identical(type, "float") &&
+      "value" %in% names(value) &&
+      is.null(value[["value"]])
+  ) {
+    return(NaN)
   }
   if (
     identical(type, "float") &&

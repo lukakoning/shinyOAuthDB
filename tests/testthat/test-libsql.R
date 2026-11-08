@@ -152,6 +152,44 @@ test_that("libSQL preserves exact integers, binary data, mixed types and empty m
   })
 })
 
+test_that("libSQL decodes non-finite floats separately from SQL NULL", {
+  result <- libsql_test_result(
+    cols = list(list(name = "value"), list(name = "mixed")),
+    rows = list(
+      list(
+        list(type = "float", value = NULL),
+        list(type = "float", value = NULL)
+      ),
+      list(list(type = "null"), list(type = "text", value = "text")),
+      list(
+        list(type = "float", value = 1.25),
+        list(type = "integer", value = "42")
+      )
+    )
+  )
+  httr2::local_mocked_responses(function(req) libsql_test_response(result))
+  odb_test_domain(function(session) {
+    api <- oauth_db_libsql_api(
+      odb_test_authorization(session)$connection,
+      "https://db.example"
+    )
+    rows <- api$query("SELECT value, mixed")
+    expect_identical(rows$value, c(NaN, NA_real_, 1.25))
+    expect_identical(rows$mixed, list(NaN, "text", "42"))
+    raw <- api$query("SELECT value, mixed", raw = TRUE)
+    expect_identical(raw$rows[[1L]][[1L]], list(type = "float", value = NULL))
+    expect_identical(raw$rows[[2L]][[1L]], list(type = "null"))
+
+    result$rows[[1L]][[1L]] <<- list(type = "float")
+    for (raw in c(FALSE, TRUE)) {
+      expect_error(
+        api$query("SELECT value, mixed", raw = raw),
+        class = "shinyOAuthDB_invalid_response"
+      )
+    }
+  })
+})
+
 test_that("libSQL decodes REAL numbers independently of JSON integer notation", {
   response <- function(number, count = "0") {
     odb_http_response(paste0(

@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Decode Turso's null-valued floating-point results as `NaN`, preserving SQL
+  NULL values and rejecting malformed float cells in ordinary and raw results.
+
 * Allow Azure PostgreSQL to share a Microsoft sign-in client with other
   services by requesting its explicit delegated scope in mixed-service clients.
 

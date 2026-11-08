@@ -80,7 +80,8 @@ are supported. Use \code{I("9223372036854775807")} for an exact signed 64-bit
 integer; ordinary character values bind as text. Encode dates as strings.
 
 SQLite integers are returned as strings to preserve all 64 bits. Floating
-point values remain numeric, text remains character and blobs use raw
+point values remain numeric; non-finite results become \code{NaN}.
+Text remains character and blobs use raw
 vectors in list columns. Columns with mixed SQLite types remain lists.
 All-null or empty columns use logical missing values; \code{raw = TRUE}
 preserves the server's declared column metadata.
