@@ -69,6 +69,71 @@ test_that("services mode returns to R without starting Shiny and restores its se
   expect_length(calls, 3L)
 })
 
+test_that("services URLs work directly with each public HTTP client", {
+  withr::local_options(
+    shinyOAuth.allowed_hosts = c("localhost", "example.invalid")
+  )
+  local_mocked_bindings(
+    .odb_demo_docker = function() "docker",
+    .odb_demo_command = function(docker, args, check = TRUE) {
+      if ("cp" %in% args) {
+        writeLines("public CA", tail(args, 1L))
+      }
+      0L
+    }
+  )
+  paths <- c(
+    postgrest = "/visible_rows",
+    opensearch = "/orders/_search",
+    libsql = "/v2/pipeline",
+    cratedb = "/_sql"
+  )
+  bodies <- c(
+    postgrest = '[{"value":"ready"}]',
+    opensearch = '{"hits":{"hits":[]},"timed_out":false,"_shards":{"failed":0}}',
+    libsql = '{"baton":null,"results":[{"type":"ok","response":{"type":"execute","result":{"cols":[{"name":"value"}],"rows":[[{"type":"text","value":"ready"}]],"affected_row_count":0,"last_insert_rowid":null}}},{"type":"ok","response":{"type":"close"}}]}',
+    cratedb = '{"cols":["value"],"col_types":[4],"rows":[["ready"]],"rowcount":1}'
+  )
+  for (backend in names(paths)) {
+    local({
+      database <- backend
+      submitted_path <- NULL
+      httr2::local_mocked_responses(function(req) {
+        submitted_path <<- httr2::url_parse(req$url)$path
+        odb_http_response(bodies[[database]])
+      })
+      odb_test_domain(function(session) {
+        auth <- odb_test_authorization(session)
+        demo <- suppressMessages(oauth_db_demo(
+          database,
+          action = "services",
+          path = withr::local_tempdir()
+        ))
+        withr::defer(suppressMessages(demo$stop()))
+        factory <- switch(
+          database,
+          postgrest = oauth_db_postgrest_api,
+          opensearch = oauth_db_opensearch_api,
+          libsql = oauth_db_libsql_api,
+          cratedb = oauth_db_cratedb_api
+        )
+        api <- factory(auth$connection, demo$url, ca_bundle = demo$ca_bundle)
+        if (database == "opensearch") {
+          expect_length(api$search("orders")$hits$hits, 0L)
+        } else {
+          rows <- if (database == "postgrest") {
+            api$select("visible_rows")
+          } else {
+            api$query("SELECT 'ready' AS value")
+          }
+          expect_identical(rows$value, "ready")
+        }
+        expect_identical(submitted_path, paths[[database]])
+      })
+    })
+  }
+})
+
 for (failure in c("up", "cp", "provider")) {
   local({
     stage <- failure

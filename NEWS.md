@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Return the complete CrateDB SQL endpoint from services-mode demos so
+  `demo$url` can be passed directly to `oauth_db_cratedb_api()`.
+
 * Prevent libcurl from replaying PostgREST, OpenSearch, ClickHouse and CrateDB
   writes after a reused connection drops its response. Apply the existing
   libSQL protection through the shared HTTP transport.

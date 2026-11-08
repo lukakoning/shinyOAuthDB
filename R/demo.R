@@ -443,6 +443,8 @@ oauth_db_demo <- function(
   postgrest <- database == "postgrest"
   settings$url <- if (postgrest) {
     "http://127.0.0.1:19444"
+  } else if (database == "cratedb") {
+    "https://localhost:19444/_sql"
   } else {
     "https://localhost:19444"
   }
