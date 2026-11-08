@@ -202,7 +202,15 @@ oauth_db_cratedb_api <- function(
   # bigint_as_char alone does not preserve fractional NUMERIC values.
   result <- tryCatch(
     {
-      body <- httr2::resp_body_string(resp)
+      httr2::resp_check_content_type(
+        resp,
+        valid_types = "application/json",
+        valid_suffix = "json"
+      )
+      body <- httr2::resp_body_string(resp, encoding = "UTF-8")
+      if (!isTRUE(jsonlite::validate(body))) {
+        stop("Invalid JSON response.")
+      }
       pattern <- '"(?:[^"\\\\]|\\\\.)*"(*SKIP)(*F)|-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?'
       positions <- gregexpr(pattern, body, perl = TRUE)
       regmatches(body, positions) <- lapply(

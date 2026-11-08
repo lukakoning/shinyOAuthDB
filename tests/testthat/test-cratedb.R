@@ -253,6 +253,75 @@ test_that("CrateDB validates complete results, numeric lexemes and typed empty f
   }
 })
 
+test_that("CrateDB validates original JSON before preserving exact numeric lexemes", {
+  response <- NULL
+  httr2::local_mocked_responses(function(req) response)
+  valid <- '{"cols":["payload","amount"],"col_types":[12,22],"rows":[[{"123":"kept","nested":{"1":9007199254740993}},1.234567890123456789]],"rowcount":1}'
+  malformed <- c(
+    '{"cols":["payload"],"col_types":[12],"rows":[[{123:"PRIVATE_INVALID_KEY"}]],"rowcount":1}',
+    '{"cols":["payload"],"col_types":[12],"rows":[[{"nested":{1:"PRIVATE_INVALID_KEY"}}]],"rowcount":1}'
+  )
+  make_response <- function(body, type) {
+    httr2::response(
+      status_code = 200L,
+      headers = list(`Content-Type` = type),
+      body = charToRaw(body)
+    )
+  }
+  odb_test_domain(function(session) {
+    api <- oauth_db_cratedb_api(
+      odb_test_authorization(session)$connection,
+      "https://crate.example/_sql"
+    )
+    operations <- list(
+      function() api$query("SELECT payload"),
+      function() api$query("SELECT payload", raw = TRUE),
+      function() api$execute("SELECT payload")
+    )
+    for (body in malformed) {
+      response <<- make_response(body, "application/json")
+      for (operation in operations) {
+        error <- expect_error(
+          operation(),
+          class = "shinyOAuthDB_invalid_response"
+        )
+        expect_false(grepl(
+          "PRIVATE_INVALID_KEY",
+          conditionMessage(error),
+          fixed = TRUE
+        ))
+        expect_null(error$parent)
+      }
+    }
+    for (type in c("text/plain", "text/html")) {
+      response <<- make_response(valid, type)
+      for (operation in operations) {
+        expect_error(operation(), class = "shinyOAuthDB_invalid_response")
+      }
+    }
+    for (type in c(
+      "application/json; charset=utf-8",
+      "application/problem+json"
+    )) {
+      response <<- make_response(valid, type)
+      result <- api$query("SELECT payload, amount")
+      expect_identical(
+        result$payload,
+        list(list(
+          `123` = "kept",
+          nested = list(`1` = "9007199254740993")
+        ))
+      )
+      expect_identical(result$amount, "1.234567890123456789")
+      expect_identical(
+        api$query("SELECT payload, amount", raw = TRUE)$rows[[1L]][[2L]],
+        "1.234567890123456789"
+      )
+      expect_identical(api$execute("SELECT payload, amount"), 1)
+    }
+  })
+})
+
 test_that("CrateDB validates exact row-count boundaries before numeric conversion", {
   count <- "0"
   httr2::local_mocked_responses(function(req) {
