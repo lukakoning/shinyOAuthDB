@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -75,10 +72,38 @@ warehouse from Shiny using each visitor’s Databricks account.
 dbplyr queries.</p>
 <p>The same sign-in works with brickster’s API functions, including
 warehouse listing and query submission.</p>
-<p>For guided setup and an editable app, run
-<code>shinyOAuthDB::oauth_db_cloud_demo("databricks")</code>. The <a href="cloud-demos.html">cloud demo guide</a> explains the console
-prompts, warehouse selection and Free Edition’s registration
-limitation.</p>
+<div class="section level2">
+<h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
+</h2>
+<p>For guided setup and an editable app, run this in the R console:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"brickster"</span>, <span class="st">"jsonlite"</span>, <span class="st">"processx"</span>, <span class="st">"askpass"</span>, <span class="st">"bslib"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_cloud_demo.html">oauth_db_cloud_demo</a></span><span class="op">(</span><span class="st">"databricks"</span><span class="op">)</span></span></code></pre></div>
+<p>The launcher asks for your workspace URL and custom OAuth app
+registration. It uses SQL access with <code>openid</code>,
+<code>profile</code>, <code>email</code>, <code>offline_access</code>
+and <code>sql</code> scopes. A public PKCE registration needs no secret;
+a confidential registration uses masked input or
+<code>OAUTHDB_DATABRICKS_CLIENT_SECRET</code>. Register the exact
+callback it prints, normally <code>http://localhost:8100</code>. This
+SQL demo requests narrower access than the <code>all-apis</code> preset
+below.</p>
+<p>After sign-in, choose a SQL warehouse. If listing fails, enter its
+known warehouse ID or HTTP path from <strong>SQL Warehouses &gt; your
+warehouse &gt; Connection details</strong>. You need <strong>CAN
+USE</strong> on that warehouse. Click <strong>Run example query</strong>
+to run <code>SELECT current_user() AS signed_in_user</code>; listing
+warehouses doesn’t run SQL. Queries can start a stopped warehouse and
+consume compute credits. Stopping the local app leaves shared cloud
+compute running. Sign out and back in to choose a different warehouse
+after the first query.</p>
+<p>Databricks Free Edition doesn’t provide the account-level custom
+OAuth registration this demo needs. Use a full workspace or eligible
+full-platform trial with access to custom registration. See the <a href="https://docs.databricks.com/aws/en/getting-started/free-edition-limitations" class="external-link">Free
+Edition limits</a> and <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code>. For editing
+and resuming demos, see <a href="getting-started.html#more-ways-to-try-an-app">Getting
+started</a>.</p>
+</div>
 <div class="section level2">
 <h2 id="register-the-app">Register the app<a class="anchor" aria-label="anchor" href="#register-the-app"></a>
 </h2>
@@ -137,7 +162,7 @@ can’t be reproduced by a local Docker demo.</p>
 </h2>
 <p>Save this as <code>example.R</code>. Replace the workspace host and
 copy the warehouse ID from the warehouse’s connection details:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
@@ -197,7 +222,7 @@ pass it to <code><a href="https://dplyr.tidyverse.org/reference/tbl.html" class=
 </h2>
 <p>To list warehouses, add <code>verbatimTextOutput("warehouses")</code>
 to the UI and this code inside <code>server()</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">databricks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_databricks_api.html">oauth_db_databricks_api</a></span><span class="op">(</span><span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, host <span class="op">=</span> <span class="va">host</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">output</span><span class="op">$</span><span class="va">warehouses</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderPrint.html" class="external-link">renderPrint</a></span><span class="op">(</span><span class="op">{</span></span>
@@ -208,7 +233,7 @@ The client supplies the workspace host and the user’s current token.</p>
 <p>For example, to use brickster’s query API, replace the table output
 with <code>verbatimTextOutput("rows")</code> and the render expression
 with:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderPrint.html" class="external-link">renderPrint</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>  <span class="va">databricks</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span></span>
 <span>    <span class="fu">brickster</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/pkg/brickster/man/db_sql_query.html" class="external-link">db_sql_query</a></span>,</span>
@@ -233,8 +258,8 @@ changes, the helper replaces the connection. On sign-out or session end,
 <code>con()</code> stops returning the connection and calls the driver’s
 cleanup method. The brickster driver doesn’t invalidate retained native
 handles: a saved connection can still submit requests with its copied
-token. Keep using <code>con()</code> for each operation. See <a href="authorization.html">Authentication and sessions</a> for results
-saved in the app.</p>
+token. Keep using <code>con()</code> for each operation. See <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a> for results saved in the app.</p>
 </div>
 <div class="section level2">
 <h2 id="azure-databricks-with-entra-sign-in">Azure Databricks with Entra sign-in<a class="anchor" aria-label="anchor" href="#azure-databricks-with-entra-sign-in"></a>
@@ -242,7 +267,7 @@ saved in the app.</p>
 <p>For a workspace that accepts Microsoft Entra tokens, use an Entra Web
 app registration with delegated Databricks access. Set
 <code>OAUTHDB_TENANT_ID</code> and replace the client with:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_microsoft_client.html">oauth_db_microsoft_client</a></span><span class="op">(</span></span>
 <span>  services <span class="op">=</span> <span class="st">"databricks_entra"</span>,</span>
 <span>  tenant_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_TENANT_ID"</span><span class="op">)</span>,</span>

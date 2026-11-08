@@ -41,15 +41,15 @@ as `/rest/v1`. For a private CA, pass `ca_bundle` to
 
 For a configured local example, run
 `shinyOAuthDB::oauth_db_demo("postgrest")`. It includes PostgreSQL,
-PostgREST, Keycloak and an app. The [local demo
-guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
-lists the accounts and cleanup command.
+PostgREST, Keycloak and an app. [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
+lists the accounts and explains cleanup.
 
 | Setting | Where to get it |
 |----|----|
 | `OAUTHDB_POSTGREST_URL` | Your HTTPS PostgREST endpoint, including any proxy path such as `/rest/v1` |
 | `schema`, table | The schema exposed by PostgREST and a table the user can read |
-| Issuer, client ID, secret | The [OIDC registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#use-keycloak-with-a-self-hosted-database) with the API’s trusted provider |
+| Issuer, client ID, secret | The [OIDC registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) with the API’s trusted provider |
 
 Store the `OAUTHDB_*` values in `.Renviron` and restart R. See the
 server recipe after the app if your PostgreSQL database doesn’t yet

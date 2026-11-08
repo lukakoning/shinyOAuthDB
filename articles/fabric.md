@@ -19,8 +19,8 @@ Install `fabricQueryR`, `odbc`, `processx` and, for masked secrets,
 `askpass`; install Microsoft ODBC Driver 18 on your computer too. The
 app opens locally and runs its identity query only when you click **Run
 example query**. For scripted setup, pass those names as arguments;
-`driver` can override the installed driver’s name. See [Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md).
+`driver` can override the installed driver’s name. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app).
 
 If you have no workspace, check [Fabric trial
 eligibility](https://learn.microsoft.com/en-us/fabric/get-started/fabric-trial).
@@ -48,7 +48,7 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
 Use the [Microsoft registration
-steps](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app).
+steps](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#register-a-microsoft-entra-app).
 For this first SQL app, add **Azure SQL Database** delegated
 `user_impersonation`. Fabric API permissions are needed only when adding
 the API examples later in this guide.
@@ -57,7 +57,7 @@ the API examples later in this guide.
 |----|----|
 | `server` | Open the Warehouse or Lakehouse **SQL analytics endpoint**, then copy its **SQL connection string** server |
 | `database` | The database/catalog shown in those connection settings |
-| Tenant ID, client ID, secret | Your [Entra app registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app) |
+| Tenant ID, client ID, secret | Your [Entra app registration](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#register-a-microsoft-entra-app) |
 
 Copy the server hostname, without a connection-string prefix or
 credentials. Share the item with the app’s users and grant access to its
@@ -268,6 +268,6 @@ To call a fabricQueryR function directly, pass
 [`?oauth_db_fabric`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric.md)
 shows the alternative for a single service.
 
-See [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions)
 for target settings and saved query results.

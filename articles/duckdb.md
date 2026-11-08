@@ -19,7 +19,7 @@ shinyOAuthDB::oauth_db_demo("duckdb")
 ```
 
 Sign in as Alice or Bob using the [demo
-accounts](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#start-a-demo).
+accounts](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app).
 Both can read the shared sample table. **Try a write** demonstrates that
 the server rejects writes. Docker supplies DuckDB 1.5.4, matching Quack
 extensions, `quack_oauth` and Keycloak. It uses a prebuilt R client
@@ -37,7 +37,7 @@ extensions. The server and extension setup follows the app.
 |----|----|
 | `host`, `port` | The remote Quack server or its TLS proxy; the example uses HTTPS port 443 |
 | Table name | A table in the remote catalog you are allowed to read |
-| Issuer, client ID, secret | An [OAuth registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) with the server’s trusted provider |
+| Issuer, client ID, secret | An [OAuth registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) with the server’s trusted provider |
 | `quack:read` | The default quack_oauth read scope; your provider must issue it |
 | `ca_bundle`, if needed | The CA for a privately signed server certificate |
 
@@ -203,8 +203,8 @@ can mean an unavailable endpoint, a rejected TLS certificate or token,
 denied catalog access, or an unknown schema. Check server diagnostics
 and confirm the issuer, audience and scopes match the app registration.
 
-For several accounts and saved results, see [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).
+For several accounts and saved results, see [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions).
 
 ## Test the integration locally
 

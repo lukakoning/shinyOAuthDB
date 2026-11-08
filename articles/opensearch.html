@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -83,9 +80,9 @@ OpenSearch R driver or JDBC.</p>
 <p>The package starts OpenSearch 3.9.0 with its Security plugin,
 Keycloak and a Shiny app. Alice and Bob see their own documents, and
 <strong>Try a write</strong> shows that their roles cannot change the
-index. See <a href="local-demos.html">Local Docker demos</a> for
-accounts and cleanup; allow at least 2 GB of Docker memory for
-OpenSearch.</p>
+index. See <a href="getting-started.html#build-a-small-app">Getting
+started</a> for accounts and cleanup; allow at least 2 GB of Docker
+memory for OpenSearch.</p>
 <p><code>oauth_db_demo("opensearch", action = "files")</code> copies the
 configuration. <code>opensearch/prepare.py</code> creates the
 signing-key, role and document-permission settings;
@@ -121,8 +118,8 @@ page</td>
 </tr>
 <tr class="odd">
 <td>Issuer, client ID, secret</td>
-<td>The <a href="oauth-setup.html">Shiny registration</a> with the
-cluster’s trusted provider</td>
+<td>The <a href="getting-started.html#register-your-app">Shiny
+registration</a> with the cluster’s trusted provider</td>
 </tr>
 <tr class="even">
 <td><code>search.read</code></td>

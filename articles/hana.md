@@ -28,7 +28,7 @@ configuration:
 | Server and SQL port | HANA Cloud instance connection details, or your self-hosted HANA administrator; HANA Cloud normally uses port 443 |
 | Tenant database, if needed | Self-hosted HANA connection details; usually omit it for a HANA Cloud endpoint |
 | OAuth issuer | Authorization server trusted by the database’s JWT provider |
-| Client ID and secret | Your [OAuth application registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| Client ID and secret | Your [OAuth application registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) |
 | Access scope and token audience | Provider application configuration agreed with the HANA administrator |
 | TLS trust store, if needed | Certificate chain and trust-store format required by your SAP HANA Client TLS provider |
 

@@ -140,8 +140,8 @@ cannot complete OAuth redirects. For CRM only, set `data_cloud = FALSE`
 and omit the Data Cloud helper and query choice.
 
 The app hides saved results after sign-out, account replacement or loss
-of required scopes. See [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html#save-query-results)
+of required scopes. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#save-query-results)
 when adding other result caches.
 
 ## Query CRM objects

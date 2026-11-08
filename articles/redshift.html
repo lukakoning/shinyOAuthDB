@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -95,7 +92,8 @@ the Redshift hostname. The generated example uses Microsoft Entra and
 settings. A confidential client uses
 <code>OAUTHDB_REDSHIFT_CLIENT_SECRET</code> or masked input. The
 editable app waits for <strong>Run example query</strong>; stopping it
-doesn’t stop Redshift compute or billing. See <a href="cloud-demos.html">Guided cloud demos</a>.</p>
+doesn’t stop Redshift compute or billing. See <a href="getting-started.html#more-ways-to-try-an-app">Getting
+started</a>.</p>
 <p>With no AWS deployment, read <a href="https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html" class="external-link">Getting
 started with Redshift</a>. Trial availability does not establish
 trusted-identity readiness; this guide doesn’t provision resources or
@@ -141,7 +139,7 @@ without the port suffix</td>
 </tr>
 <tr class="odd">
 <td>Tenant ID, client ID, secret</td>
-<td>The <a href="oauth-setup.html#register-a-microsoft-entra-app">Entra
+<td>The <a href="azure-sql.html#register-a-microsoft-entra-app">Entra
 Web registration</a>
 </td>
 </tr>
@@ -247,8 +245,8 @@ client that obtains it. Other identity providers can use their own
 shinyOAuth client with the same connection helper.</p>
 <p><code>target = "redshift"</code> selects the token target defined in
 the example client. Match that name to your client, or use
-<code>target = NULL</code> if your client has no named targets. <a href="authorization.html">Authentication and sessions</a> explains these
-settings.</p>
+<code>target = NULL</code> if your client has no named targets. <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a> explains these settings.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

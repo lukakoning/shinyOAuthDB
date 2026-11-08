@@ -26,8 +26,8 @@ Install `odbc`, `processx`, `askpass` and the Redshift ODBC 2.x driver.
 Optional `driver` and `database_port` adjust its connection settings. A
 confidential client uses `OAUTHDB_REDSHIFT_CLIENT_SECRET` or masked
 input. The editable app waits for **Run example query**; stopping it
-doesn’t stop Redshift compute or billing. See [Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md).
+doesn’t stop Redshift compute or billing. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app).
 
 With no AWS deployment, read [Getting started with
 Redshift](https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html).
@@ -62,7 +62,7 @@ OAUTHDB_REDSHIFT_SCOPE=your-redshift-delegated-scope
 |----|----|
 | `server` | AWS Redshift console: cluster or serverless workgroup endpoint, without the port suffix |
 | `database` | Database name in that endpoint’s connection settings |
-| Tenant ID, client ID, secret | The [Entra Web registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app) |
+| Tenant ID, client ID, secret | The [Entra Web registration](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#register-a-microsoft-entra-app) |
 | Resource and scope | The administrator who configured IAM Identity Center’s trusted token issuer and application |
 
 For Entra, the resource is the accepted API identifier; the scope is the
@@ -159,6 +159,6 @@ their own shinyOAuth client with the same connection helper.
 
 `target = "redshift"` selects the token target defined in the example
 client. Match that name to your client, or use `target = NULL` if your
-client has no named targets. [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+client has no named targets. [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions)
 explains these settings.

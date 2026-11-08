@@ -4,14 +4,6 @@
 
 - [Getting
   started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md):
-- [Local Docker
-  demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md):
-- [Guided cloud
-  demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md):
-- [OAuth setup for your
-  app](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md):
-- [Authentication and
-  sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md):
 
 ### Self-hosted databases and APIs
 

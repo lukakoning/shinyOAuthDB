@@ -19,8 +19,8 @@ app opens a verified TLS connection only after **Run example query**.
 Its first query reports the database role and database name, so no table
 is needed. For scripts, supply those settings with `prompt = FALSE`;
 `database_port` defaults to 5432. A confidential app uses masked input
-or `OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET`. See [Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
+or `OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET`. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app)
 for draft setup and editing.
 
 With no Azure server yet, start with the [service
@@ -48,7 +48,7 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
 Use the [Microsoft registration
-steps](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app)
+steps](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#register-a-microsoft-entra-app)
 and configure delegated access to **Azure OSSRDBMS Database**. The
 preset requests `https://ossrdbms-aad.database.windows.net/.default`
 when PostgreSQL is selected alone. When combined with other Microsoft
@@ -62,7 +62,7 @@ consent request contains explicit permissions for every service.
 | `dbname` | The database name in your existing connection settings |
 | `user` | The Entra user or group role created in PostgreSQL by the Entra administrator |
 | `sslrootcert` | The CA bundle recommended for your server’s certificate chain |
-| Tenant ID, client ID, secret | [Entra registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app) |
+| Tenant ID, client ID, secret | [Entra registration](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#register-a-microsoft-entra-app) |
 
 Allow the app host through the server’s networking settings too.
 
@@ -181,6 +181,5 @@ verified TLS; Kerberos, certificate-only and trust authentication cannot
 replace it. Authentication and TLS settings cannot be changed through
 `...`.
 
-For custom sign-in settings or saved query results, see [Authentication
-and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).
+For custom sign-in settings or saved query results, see [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions).

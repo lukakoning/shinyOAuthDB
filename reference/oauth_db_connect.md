@@ -85,6 +85,11 @@ each operation.
 A valid DBI connection stays open through token refresh. If the
 connection becomes invalid, the next call opens a new one.
 
+While token refresh is running, reactive outputs wait and can resume
+when it finishes. A button-triggered query may need another click.
+`min_valid_for` checks token lifetime at the start of an operation; it
+does not guarantee validity throughout a long query.
+
 This helper supplies the token when opening a connection. For a function
 that takes a token on each request, use
 [`oauth_db_token()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md)
@@ -94,7 +99,7 @@ or a platform API client.
 
 [`oauth_db_token()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md).
 For saved results and connection lifetime, see
-[`vignette("authorization", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).
+[`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md).
 
 Other advanced connection helpers:
 [`oauth_db_fabric()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric.md),

@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -78,9 +75,9 @@ Connect client plugin.</p>
 <p>With Docker running,
 <code>shinyOAuthDB::oauth_db_demo("starrocks")</code> starts a
 configured server, Keycloak and an app with Alice and Bob’s accounts.
-See <a href="local-demos.html">Local Docker demos</a> for credentials
-and cleanup. StarRocks uses amd64 images and needs about 4 GB of Docker
-memory.</p>
+See <a href="getting-started.html#build-a-small-app">Getting started</a>
+for credentials and cleanup. StarRocks uses amd64 images and needs about
+4 GB of Docker memory.</p>
 </div>
 <div class="section level2">
 <h2 id="values-for-your-own-server">Values for your own server<a class="anchor" aria-label="anchor" href="#values-for-your-own-server"></a>
@@ -119,8 +116,8 @@ setup follows the app.</p>
 </tr>
 <tr class="odd">
 <td>Issuer, client ID, secret</td>
-<td>Your <a href="oauth-setup.html#use-keycloak-with-a-self-hosted-database">OIDC
-app registration</a>
+<td>Your <a href="getting-started.html#register-your-app">OIDC app
+registration</a>
 </td>
 </tr>
 </tbody>

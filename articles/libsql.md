@@ -24,8 +24,8 @@ The package includes libSQL 0.24.33, a Shiny app and a Keycloak
 configuration that issues compatible Ed25519-signed access tokens. Alice
 and Bob both receive `id=default` and `a=ro`, with no access-token
 audience. They can read the shared sample table; **Try a write**
-confirms that libSQL refuses writes. See [Local Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+confirms that libSQL refuses writes. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for passwords and cleanup.
 
 Use `oauth_db_demo("libsql", action = "files")` to inspect
@@ -44,7 +44,7 @@ token formats; the compatibility section after the app explains both.
 |----|----|
 | `OAUTHDB_LIBSQL_URL` | Turso database details or `turso db show your-database --url`; for self-hosting, your server’s HTTPS URL |
 | `OAUTHDB_LIBSQL_ISSUER` | The provider configured to issue compatible database tokens |
-| Client ID and secret | Your [OAuth app registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| Client ID and secret | Your [OAuth app registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) |
 | `OAUTHDB_LIBSQL_AUDIENCE` | The provider’s API audience, if required; leave empty for the self-hosted format below |
 | `sqlite.read` | An example scope your provider must define or replace |
 

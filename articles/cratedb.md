@@ -19,8 +19,8 @@ shinyOAuthDB::oauth_db_demo("cratedb")
 
 The demo includes CrateDB 6.4.3, Keycloak, a Shiny app and read-only
 database users. Alice and Bob can read a shared table; **Try a write**
-checks that CrateDB rejects their writes. See [Local Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+checks that CrateDB rejects their writes. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for accounts and cleanup.
 
 CrateDB expects the token’s issuer URL to serve its public signing keys.
@@ -40,7 +40,7 @@ The required user claims and configuration follow the app example.
 | `url` | CrateDB’s HTTP endpoint with `/_sql`, exposed through HTTPS |
 | `schema` and table | Your database’s schema and table names, often `doc` |
 | `OAUTHDB_CRATEDB_ISSUER` | Your compatible OAuth provider’s issuer URL |
-| Client ID and secret | The [Shiny app registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) in that provider |
+| Client ID and secret | The [Shiny app registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) in that provider |
 
 Put the `OAUTHDB_*` values in `.Renviron` and restart R. CrateDB needs a
 `username` claim and specific signing-key discovery; check the setup

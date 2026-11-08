@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -90,8 +87,8 @@ query reports the database role and database name, so no table is
 needed. For scripts, supply those settings with
 <code>prompt = FALSE</code>; <code>database_port</code> defaults to
 5432. A confidential app uses masked input or
-<code>OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET</code>. See <a href="cloud-demos.html">Guided cloud demos</a> for draft setup and
-editing.</p>
+<code>OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET</code>. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for draft setup and editing.</p>
 <p>With no Azure server yet, start with the <a href="https://learn.microsoft.com/en-us/azure/postgresql/overview" class="external-link">service
 overview</a>. Arrange Entra authentication, role grants and network
 access before trying the query. The demo doesn’t provision or stop a
@@ -111,7 +108,7 @@ these values in a local <code>.Renviron</code> file and restart R:</p>
 <pre class="text"><code><span><span class="va">OAUTHDB_TENANT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">tenant</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
-<p>Use the <a href="oauth-setup.html#register-a-microsoft-entra-app">Microsoft
+<p>Use the <a href="azure-sql.html#register-a-microsoft-entra-app">Microsoft
 registration steps</a> and configure delegated access to <strong>Azure
 OSSRDBMS Database</strong>. The preset requests
 <code>https://ossrdbms-aad.database.windows.net/.default</code> when
@@ -151,7 +148,7 @@ administrator</td>
 </tr>
 <tr class="odd">
 <td>Tenant ID, client ID, secret</td>
-<td><a href="oauth-setup.html#register-a-microsoft-entra-app">Entra
+<td><a href="azure-sql.html#register-a-microsoft-entra-app">Entra
 registration</a></td>
 </tr>
 </tbody>
@@ -265,7 +262,8 @@ server to request the visitor’s access token as its password over
 verified TLS; Kerberos, certificate-only and trust authentication cannot
 replace it. Authentication and TLS settings cannot be changed through
 <code>...</code>.</p>
-<p>For custom sign-in settings or saved query results, see <a href="authorization.html">Authentication and sessions</a>.</p>
+<p>For custom sign-in settings or saved query results, see <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

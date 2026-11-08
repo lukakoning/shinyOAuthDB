@@ -9,11 +9,42 @@ gives you a DBI connection for SQL or dbplyr queries.
 The same sign-in works with brickster’s API functions, including
 warehouse listing and query submission.
 
-For guided setup and an editable app, run
-`shinyOAuthDB::oauth_db_cloud_demo("databricks")`. The [cloud demo
-guide](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
-explains the console prompts, warehouse selection and Free Edition’s
-registration limitation.
+## Try the guided demo
+
+For guided setup and an editable app, run this in the R console:
+
+``` r
+
+install.packages(c("brickster", "jsonlite", "processx", "askpass", "bslib"))
+shinyOAuthDB::oauth_db_cloud_demo("databricks")
+```
+
+The launcher asks for your workspace URL and custom OAuth app
+registration. It uses SQL access with `openid`, `profile`, `email`,
+`offline_access` and `sql` scopes. A public PKCE registration needs no
+secret; a confidential registration uses masked input or
+`OAUTHDB_DATABRICKS_CLIENT_SECRET`. Register the exact callback it
+prints, normally `http://localhost:8100`. This SQL demo requests
+narrower access than the `all-apis` preset below.
+
+After sign-in, choose a SQL warehouse. If listing fails, enter its known
+warehouse ID or HTTP path from **SQL Warehouses \> your warehouse \>
+Connection details**. You need **CAN USE** on that warehouse. Click
+**Run example query** to run `SELECT current_user() AS signed_in_user`;
+listing warehouses doesn’t run SQL. Queries can start a stopped
+warehouse and consume compute credits. Stopping the local app leaves
+shared cloud compute running. Sign out and back in to choose a different
+warehouse after the first query.
+
+Databricks Free Edition doesn’t provide the account-level custom OAuth
+registration this demo needs. Use a full workspace or eligible
+full-platform trial with access to custom registration. See the [Free
+Edition
+limits](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations)
+and
+[`?oauth_db_cloud_demo`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md).
+For editing and resuming demos, see [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app).
 
 ## Register the app
 
@@ -162,8 +193,8 @@ replaces the connection. On sign-out or session end, `con()` stops
 returning the connection and calls the driver’s cleanup method. The
 brickster driver doesn’t invalidate retained native handles: a saved
 connection can still submit requests with its copied token. Keep using
-`con()` for each operation. See [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+`con()` for each operation. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions)
 for results saved in the app.
 
 ## Azure Databricks with Entra sign-in

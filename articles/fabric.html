@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -89,7 +86,8 @@ install Microsoft ODBC Driver 18 on your computer too. The app opens
 locally and runs its identity query only when you click <strong>Run
 example query</strong>. For scripted setup, pass those names as
 arguments; <code>driver</code> can override the installed driver’s name.
-See <a href="cloud-demos.html">Guided cloud demos</a>.</p>
+See <a href="getting-started.html#more-ways-to-try-an-app">Getting
+started</a>.</p>
 <p>If you have no workspace, check <a href="https://learn.microsoft.com/en-us/fabric/get-started/fabric-trial" class="external-link">Fabric
 trial eligibility</a>. You still need an Entra app registration and
 permission to use a SQL item.</p>
@@ -110,7 +108,7 @@ and restart R:</p>
 <pre class="text"><code><span><span class="va">OAUTHDB_TENANT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">tenant</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
-<p>Use the <a href="oauth-setup.html#register-a-microsoft-entra-app">Microsoft
+<p>Use the <a href="azure-sql.html#register-a-microsoft-entra-app">Microsoft
 registration steps</a>. For this first SQL app, add <strong>Azure SQL
 Database</strong> delegated <code>user_impersonation</code>. Fabric API
 permissions are needed only when adding the API examples later in this
@@ -137,7 +135,7 @@ server</td>
 </tr>
 <tr class="odd">
 <td>Tenant ID, client ID, secret</td>
-<td>Your <a href="oauth-setup.html#register-a-microsoft-entra-app">Entra
+<td>Your <a href="azure-sql.html#register-a-microsoft-entra-app">Entra
 app registration</a>
 </td>
 </tr>
@@ -357,8 +355,8 @@ resources need different targets.</p>
 <code>token = fabric$token_provider()</code>.
 <code><a href="../reference/oauth_db_fabric.html">?oauth_db_fabric</a></code> shows the alternative for a single
 service.</p>
-<p>See <a href="authorization.html">Authentication and sessions</a> for
-target settings and saved query results.</p>
+<p>See <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a> for target settings and saved query results.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

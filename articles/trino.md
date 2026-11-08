@@ -31,8 +31,8 @@ OAUTHDB_TRINO_ISSUER=https://your-identity-provider.example.org
 ```
 
 Try `shinyOAuthDB::oauth_db_demo("trino")` for a local cluster, sign-in
-and sample data. See [Local Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+and sample data. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for accounts and cleanup.
 
 | Setting | Where to get it |
@@ -40,7 +40,7 @@ for accounts and cleanup.
 | `host` | The coordinator’s HTTPS URL and port from your cluster administrator |
 | `catalog` | The data source name shown by Trino’s `SHOW CATALOGS` |
 | `schema` | A schema listed by `SHOW SCHEMAS FROM your_catalog` |
-| Issuer, client ID, secret | The cluster’s trusted provider and your [Shiny client registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| Issuer, client ID, secret | The cluster’s trusted provider and your [Shiny client registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) |
 | User field | The profile claim selected by the cluster’s principal mapping |
 
 Ask the administrator to check OAuth and impersonation rules as
@@ -167,5 +167,5 @@ provider uses another verified profile field, replace `email` with that
 field. The helper creates a new connection when the username changes.
 
 Starburst Galaxy needs its own OAuth registration and endpoint setup.
-For saved query results, see [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).
+For saved query results, see [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions).

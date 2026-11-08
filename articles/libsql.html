@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -87,8 +84,8 @@ configured to accept the access tokens issued to your app.</p>
 configuration that issues compatible Ed25519-signed access tokens. Alice
 and Bob both receive <code>id=default</code> and <code>a=ro</code>, with
 no access-token audience. They can read the shared sample table;
-<strong>Try a write</strong> confirms that libSQL refuses writes. See <a href="local-demos.html">Local Docker demos</a> for passwords and
-cleanup.</p>
+<strong>Try a write</strong> confirms that libSQL refuses writes. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
+passwords and cleanup.</p>
 <p>Use <code>oauth_db_demo("libsql", action = "files")</code> to inspect
 <code>realm-extended.json</code> and <code>libsql/server.py</code>. A
 separate provisioning client seeds the table; the Shiny client requests
@@ -124,7 +121,8 @@ server’s HTTPS URL</td>
 </tr>
 <tr class="odd">
 <td>Client ID and secret</td>
-<td>Your <a href="oauth-setup.html">OAuth app registration</a>
+<td>Your <a href="getting-started.html#register-your-app">OAuth app
+registration</a>
 </td>
 </tr>
 <tr class="even">

@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -81,14 +78,15 @@ data access policy.</p>
 <p>With Docker running, launch the configured server and Shiny app:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"duckdb"</span><span class="op">)</span></span></code></pre></div>
-<p>Sign in as Alice or Bob using the <a href="local-demos.html#start-a-demo">demo accounts</a>. Both can read
-the shared sample table. <strong>Try a write</strong> demonstrates that
-the server rejects writes. Docker supplies DuckDB 1.5.4, matching Quack
-extensions, <code>quack_oauth</code> and Keycloak. It uses a prebuilt R
-client where available; compiling the client on other platforms takes
-longer. The installed <code>duckdb/server.py</code> and
-<code>realm-extended.json</code> show the validator, audience and
-<code>quack:read</code> scope configuration.</p>
+<p>Sign in as Alice or Bob using the <a href="getting-started.html#build-a-small-app">demo accounts</a>. Both
+can read the shared sample table. <strong>Try a write</strong>
+demonstrates that the server rejects writes. Docker supplies DuckDB
+1.5.4, matching Quack extensions, <code>quack_oauth</code> and Keycloak.
+It uses a prebuilt R client where available; compiling the client on
+other platforms takes longer. The installed
+<code>duckdb/server.py</code> and <code>realm-extended.json</code> show
+the validator, audience and <code>quack:read</code> scope
+configuration.</p>
 </div>
 <div class="section level2">
 <h2 id="before-running-the-app">Before running the app<a class="anchor" aria-label="anchor" href="#before-running-the-app"></a>
@@ -120,8 +118,8 @@ port 443</td>
 </tr>
 <tr class="odd">
 <td>Issuer, client ID, secret</td>
-<td>An <a href="oauth-setup.html">OAuth registration</a> with the
-server’s trusted provider</td>
+<td>An <a href="getting-started.html#register-your-app">OAuth
+registration</a> with the server’s trusted provider</td>
 </tr>
 <tr class="even">
 <td><code>quack:read</code></td>
@@ -282,7 +280,8 @@ failure can mean an unavailable endpoint, a rejected TLS certificate or
 token, denied catalog access, or an unknown schema. Check server
 diagnostics and confirm the issuer, audience and scopes match the app
 registration.</p>
-<p>For several accounts and saved results, see <a href="authorization.html">Authentication and sessions</a>.</p>
+<p>For several accounts and saved results, see <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="test-the-integration-locally">Test the integration locally<a class="anchor" aria-label="anchor" href="#test-the-integration-locally"></a>

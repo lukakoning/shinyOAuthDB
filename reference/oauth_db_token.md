@@ -61,7 +61,7 @@ its own expiry time.
 [`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md),
 [`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md).
 See
-[`vignette("authorization", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+[`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md)
 for token lifetime.
 
 Other advanced connection helpers:

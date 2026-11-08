@@ -28,8 +28,8 @@ needed. A confidential client uses masked input or
 `OAUTHDB_CLICKHOUSE_CLIENT_SECRET`. The local editable app waits for
 **Run example query** and leaves the Cloud service running when stopped.
 An optional `database` selects a default for later table queries. See
-[Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md).
+[Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app).
 
 A standard trial or built-in `clickhouse-client --login` does not
 establish this custom-provider flow. Check the [documented
@@ -49,7 +49,7 @@ the app.
 |----|----|
 | `OAUTHDB_CLICKHOUSE_URL` | Your service’s **Connect** dialog, HTTPS endpoint, commonly port 8443 |
 | `OAUTHDB_CLICKHOUSE_ISSUER` | The issuer trusted by the service’s JWT settings |
-| Client ID and secret | Your [Shiny registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) with that identity provider |
+| Client ID and secret | Your [Shiny registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) with that identity provider |
 | Database roles | Existing ClickHouse roles mapped from the token’s role claims |
 
 Save the `OAUTHDB_*` values in `.Renviron` and restart R. You need no

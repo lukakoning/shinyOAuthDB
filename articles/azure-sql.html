@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -92,7 +89,8 @@ connecting. For scripts, supply the settings above; optional
 <code>driver</code> and <code>database_port</code> configure the native
 connection. The Shiny callback’s <code>port</code> is separate. A
 confidential registration uses
-<code>OAUTHDB_AZURE_SQL_CLIENT_SECRET</code> or masked input. See <a href="cloud-demos.html">Guided cloud demos</a>.</p>
+<code>OAUTHDB_AZURE_SQL_CLIENT_SECRET</code> or masked input. See <a href="getting-started.html#more-ways-to-try-an-app">Getting
+started</a>.</p>
 <p>If you need an account and database, check the <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer" class="external-link">Azure
 SQL free offer</a>. Availability and allowances depend on your
 subscription; stopping the local app does not stop Azure billing or
@@ -113,7 +111,7 @@ values in a local <code>.Renviron</code> file and restart R:</p>
 <pre class="text"><code><span><span class="va">OAUTHDB_TENANT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">tenant</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
-<p>Follow <a href="oauth-setup.html#register-a-microsoft-entra-app">Microsoft app
+<p>Follow <a href="#register-a-microsoft-entra-app">Microsoft app
 registration</a> to find the IDs and secret. Add the <strong>Azure SQL
 Database</strong> delegated <code>user_impersonation</code> permission
 and obtain consent as your tenant requires.</p>
@@ -151,6 +149,28 @@ name</strong>
 </table>
 <p>In Azure, allow the app server’s IP or private network to reach SQL.
 Creating an app registration doesn’t open the database firewall.</p>
+<div class="section level3">
+<h3 id="register-a-microsoft-entra-app">Register a Microsoft Entra app<a class="anchor" aria-label="anchor" href="#register-a-microsoft-entra-app"></a>
+</h3>
+<p>In the <a href="https://entra.microsoft.com/" class="external-link">Entra admin center</a>,
+open <strong>App registrations</strong> and create a registration in
+your organization’s tenant. Copy <strong>Application (client)
+ID</strong> and <strong>Directory (tenant) ID</strong> from its
+overview. Under <strong>Authentication</strong>, add a
+<strong>Web</strong> platform with <code>http://localhost:8100</code> as
+the redirect URI. Under <strong>Certificates &amp; secrets</strong>,
+create a client secret and copy its <strong>Value</strong> before
+leaving. Microsoft’s <a href="https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app" class="external-link">registration
+instructions</a> describe the available account types.</p>
+<p>Under <strong>API permissions</strong>, add the delegated permission
+for your data source: <strong>Azure SQL Database</strong> uses
+<code>user_impersonation</code>. Azure PostgreSQL uses <strong>Azure
+OSSRDBMS Database</strong> access; Fabric API permissions depend on the
+operations in the <a href="fabric.html">Fabric guide</a>. An
+administrator may need to grant consent or allow the application. The
+database administrator must separately give the user or their group
+database access.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
@@ -252,8 +272,8 @@ SQL Server configured to accept Entra tokens, use
 <code><a href="../reference/oauth_db_sql_server.html">oauth_db_sql_server()</a></code> with the same arguments and
 client.</p>
 <p>See <code><a href="../reference/oauth_db_azure_sql.html">?oauth_db_azure_sql</a></code> for driver settings such as
-<code>driver</code>, <code>port</code>, and <code>timeout</code>. <a href="authorization.html">Authentication and sessions</a> covers custom
-permissions and existing logins.</p>
+<code>driver</code>, <code>port</code>, and <code>timeout</code>. <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a> covers custom permissions and existing logins.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

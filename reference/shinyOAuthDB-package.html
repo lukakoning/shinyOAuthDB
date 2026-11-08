@@ -22,10 +22,7 @@ the user's sign-in."></head><body>
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Start here</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-guides"><li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-guides"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -67,8 +64,8 @@ Keycloak and a Shiny app with demo accounts and sample data. The installed
 package includes the configuration; Docker provides R and native libraries.
 PostgREST, Trino, StarRocks, DuckDB Quack, libSQL, CrateDB and OpenSearch
 demos use the same launcher.
-See the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html">local demo guide</a>
-for accounts, editing and cleanup.</p>
+See <a href="https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app">Getting started</a>
+for demo accounts and cleanup, and <code><a href="oauth_db_demo.html">oauth_db_demo()</a></code> for editing options.</p>
     </div>
     <div class="section level2">
     <h2 id="start-with-your-source">Start with your source<a class="anchor" aria-label="anchor" href="#start-with-your-source"></a></h2>
@@ -111,13 +108,24 @@ a fixed message and reason, without the original driver error, connection,
 or credential. If the handler errors, the default message is emitted.</p>
     </div>
     <div class="section level2">
+    <h2 id="http-request-failures">HTTP request failures<a class="anchor" aria-label="anchor" href="#http-request-failures"></a></h2>
+
+
+<p>BigQuery, PostgREST and ClickHouse HTTP failures raise
+<code>shinyOAuthDB_request_failed</code>. Catch this condition inside the Shiny
+operation to inspect its <code>status</code>. Recognized service codes and UUID
+request identifiers appear as <code>service_code</code> and <code>request_id</code>; unavailable
+values are <code>NULL</code>. The condition excludes server messages, response bodies
+and credentials.</p>
+    </div>
+    <div class="section level2">
     <h2 id="sign-in-settings">Sign-in settings<a class="anchor" aria-label="anchor" href="#sign-in-settings"></a></h2>
 
 
 <p>The source guides create clients with <code><a href="oauth_db_microsoft_client.html">oauth_db_microsoft_client()</a></code>,
 <code><a href="oauth_db_bigquery_client.html">oauth_db_bigquery_client()</a></code>, <code><a href="oauth_db_databricks_client.html">oauth_db_databricks_client()</a></code>, or
 <code><a href="oauth_db_snowflake_client.html">oauth_db_snowflake_client()</a></code>. You can also use an existing shinyOAuth client.</p>
-<p>See <code><a href="../articles/authorization.html">vignette("authorization", package = "shinyOAuthDB")</a></code> for custom
+<p>See <code><a href="../articles/getting-started.html">vignette("getting-started", package = "shinyOAuthDB")</a></code> for custom
 permissions, multiple accounts, and saved query results.</p>
     </div>
     <div class="section level2">

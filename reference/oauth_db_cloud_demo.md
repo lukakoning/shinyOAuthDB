@@ -103,7 +103,8 @@ oauth_db_cloud_demo(
   ClickHouse uses `jwt_ready`, `url`, `tenant_id`, `resource`, `scope`
   and optionally `database`. The Redshift and ClickHouse examples use
   Entra and require an existing trusted-token integration. See the
-  guided cloud demos vignette.
+  platform's source guide, linked from
+  [`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md).
 
 ## Value
 

@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -95,8 +92,8 @@ R:</p>
 OAUTHDB_CLIENT_SECRET=your-client-secret
 OAUTHDB_TRINO_ISSUER=https://your-identity-provider.example.org</code></pre>
 <p>Try <code>shinyOAuthDB::oauth_db_demo("trino")</code> for a local
-cluster, sign-in and sample data. See <a href="local-demos.html">Local
-Docker demos</a> for accounts and cleanup.</p>
+cluster, sign-in and sample data. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
+accounts and cleanup.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -125,7 +122,8 @@ administrator</td>
 </tr>
 <tr class="even">
 <td>Issuer, client ID, secret</td>
-<td>The cluster’s trusted provider and your <a href="oauth-setup.html">Shiny client registration</a>
+<td>The cluster’s trusted provider and your <a href="getting-started.html#register-your-app">Shiny client
+registration</a>
 </td>
 </tr>
 <tr class="odd">
@@ -253,8 +251,8 @@ above. If your provider uses another verified profile field, replace
 <code>email</code> with that field. The helper creates a new connection
 when the username changes.</p>
 <p>Starburst Galaxy needs its own OAuth registration and endpoint setup.
-For saved query results, see <a href="authorization.html">Authentication
-and sessions</a>.</p>
+For saved query results, see <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
+started</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

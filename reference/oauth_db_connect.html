@@ -22,10 +22,7 @@ the argument that receives the token."></head><body>
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/getting-started.html">Start here</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-guides"><li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-guides"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -129,6 +126,10 @@ Cleanup depends on the driver; a retained native handle may still contain
 copied credentials. Call <code>con()</code> before each operation.</p>
 <p>A valid DBI connection stays open through token refresh. If the connection
 becomes invalid, the next call opens a new one.</p>
+<p>While token refresh is running, reactive outputs wait and can resume
+when it finishes. A button-triggered query may need another click.
+<code>min_valid_for</code> checks token lifetime at the start of an operation;
+it does not guarantee validity throughout a long query.</p>
 <p>This helper supplies the token when opening a connection. For a function
 that takes a token on each request, use <code><a href="oauth_db_token.html">oauth_db_token()</a></code> or a platform
 API client.</p>
@@ -136,7 +137,7 @@ API client.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="oauth_db_token.html">oauth_db_token()</a></code>. For saved results and connection lifetime, see
-<code><a href="../articles/authorization.html">vignette("authorization", package = "shinyOAuthDB")</a></code>.</p>
+<code><a href="../articles/getting-started.html">vignette("getting-started", package = "shinyOAuthDB")</a></code>.</p>
 <p>Other advanced connection helpers:
 <code><a href="oauth_db_fabric.html">oauth_db_fabric()</a></code>,
 <code><a href="oauth_db_token.html">oauth_db_token()</a></code></p></div>

@@ -32,10 +32,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -68,187 +65,398 @@
 
     
     
-<p>With shinyOAuthDB, people sign in to your app and query a database
-with their own permissions. You can use DBI, dbplyr, or the platform’s R
-package to read the data.</p>
+<p>shinyOAuthDB helps you build Shiny apps that query a database or data
+platform using each app user’s own account. People sign in with the
+account they already use for that data source, and your app queries data
+on their behalf.</p>
+<p>This is useful when your organization already manages data
+permissions in the database. For example, if an analyst can only read
+sales for their region, your Shiny app can use the same restriction. You
+keep those access rules in the database rather than maintaining another
+set in the app.</p>
 <div class="section level2">
-<h2 id="try-an-app-on-your-computer">Try an app on your computer<a class="anchor" aria-label="anchor" href="#try-an-app-on-your-computer"></a>
+<h2 id="how-sign-in-and-data-access-work">How sign-in and data access work<a class="anchor" aria-label="anchor" href="#how-sign-in-and-data-access-work"></a>
 </h2>
-<p>Install the package, then start Docker with Linux containers and
-run:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>The package starts PostgreSQL, Keycloak sign-in and a small Shiny app
-with demo accounts. Open <code>http://localhost:18100</code> when ready.
-See <a href="local-demos.html">Local Docker demos</a> for the passwords,
-other databases, editing the app and cleanup. No repository clone or
-cloud account is needed.</p>
-<p>To run an editable app in local R with its database in Docker, try
-<code>shinyOAuthDB::oauth_db_demo("postgrest", app = "local")</code>.
-The <a href="local-demos.html#run-and-edit-shiny-in-local-r">local app
-guide</a> lists the required R packages and explains how to edit and
-reload the app.</p>
-<p>For your own data, choose a guide below. Each starts with the
-database’s purpose, the settings you need and a complete app, then
-explains the server and advanced configuration.</p>
+<p>shinyOAuthDB works with shinyOAuth, which handles the browser sign-in
+and token renewal. shinyOAuthDB connects that sign-in to your database
+queries or API calls:</p>
+<ol style="list-style-type: decimal">
+<li>Your app sends the user to a sign-in service, such as Microsoft
+Entra, Google, or Keycloak. This service is the OAuth
+<em>provider</em>.</li>
+<li>The user signs in and, if asked, approves the access your app
+requests. They enter their password with the provider; your app doesn’t
+collect it.</li>
+<li>The browser returns to your app. shinyOAuth obtains an <em>access
+token</em>, a temporary credential for making requests on that user’s
+behalf.</li>
+<li>shinyOAuthDB supplies that token when opening a database connection
+or making an API request. The data source checks it and applies the
+user’s permissions.</li>
+</ol>
+<p>The data source must be configured to accept tokens from that
+provider. Signing in successfully doesn’t give someone access to a
+database or table; they also need the relevant database permissions.</p>
 </div>
 <div class="section level2">
-<h2 id="choose-your-source">Choose your source<a class="anchor" aria-label="anchor" href="#choose-your-source"></a>
+<h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lukakoning/shinyOAuthDB"</span><span class="op">)</span></span></code></pre></div>
+<p>This also installs shinyOAuth. Some data sources need an additional R
+package or database driver; their guides list the requirements. Add
+<code>build_vignettes = TRUE</code> to the installation call if you want
+to read the guides locally with <code><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette()</a></code>.</p>
+</div>
+<div class="section level2">
+<h2 id="build-a-small-app">Build a small app<a class="anchor" aria-label="anchor" href="#build-a-small-app"></a>
+</h2>
+<p>The README’s example reads a PostgreSQL table through PostgREST, an
+HTTP API for PostgreSQL. It runs Shiny in your R session and starts the
+database and Keycloak sign-in service in Docker. You don’t need a cloud
+account or a database driver.</p>
+<p>Install and start Docker with Linux containers and Docker Compose
+2.24.4 or later. Also install <code>jsonlite</code> in R for the API
+responses:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"jsonlite"</span><span class="op">)</span></span></code></pre></div>
+<p>Save the following as <code>example.R</code> and run
+<code>source("example.R")</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Start PostgreSQL, PostgREST and Keycloak in Docker</span></span>
+<span><span class="va">demo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, action <span class="op">=</span> <span class="st">"services"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu">oauth_client</span><span class="op">(</span></span>
+<span>  <span class="va">demo</span><span class="op">$</span><span class="va">provider</span>,</span>
+<span>  client_id <span class="op">=</span> <span class="st">"shiny-db"</span>,</span>
+<span>  client_secret <span class="op">=</span> <span class="st">"demo-client-secret"</span>,</span>
+<span>  redirect_uri <span class="op">=</span> <span class="st">"http://localhost:18100"</span>,</span>
+<span>  scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"openid"</span>, <span class="st">"profile"</span>, <span class="st">"database.read"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
+<span>  client <span class="op">=</span> <span class="va">client</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span><span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">login</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">request_login</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">postgres</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api</a></span><span class="op">(</span></span>
+<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
+<span>    url <span class="op">=</span> <span class="va">demo</span><span class="op">$</span><span class="va">url</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>    <span class="va">postgres</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="st">"visible_rows"</span>, order <span class="op">=</span> <span class="st">"row_id.asc"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span></span>
+<span>    <span class="va">ui</span>, <span class="va">server</span>,</span>
+<span>    uiPattern <span class="op">=</span> <span class="st">".*"</span>,</span>
+<span>    onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span> <span class="op">}</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  port <span class="op">=</span> <span class="fl">18100</span>,</span>
+<span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The first Docker build takes a few minutes and needs internet access
+and several GB of disk space. When Shiny is ready, open
+<code>http://localhost:18100</code> in your regular browser. Embedded
+RStudio/Positron viewers can’t complete the sign-in redirects. Your
+browser may ask you to accept Keycloak’s generated local test
+certificate.</p>
+<p>Sign in as <code>alice</code> with password <code>alice</code>. The
+table shows <code>alice-visible-1</code> and
+<code>alice-visible-2</code>. Sign out, then sign in as <code>bob</code>
+with password <code>bob</code>: you’ll see Bob’s rows instead. The app
+sends the same request for both users; PostgreSQL’s row policies
+determine the result.</p>
+<p>Stop the Shiny app to remove the Docker services and sample data. The
+<code>onStop(demo$stop)</code> call arranges this cleanup. If you start
+the services separately, call <code>demo$stop()</code> when finished.
+These accounts and the client secret are public demo settings; use your
+own registration for a real app.</p>
+</div>
+<div class="section level2">
+<h2 id="what-each-part-of-the-app-does">What each part of the app does<a class="anchor" aria-label="anchor" href="#what-each-part-of-the-app-does"></a>
+</h2>
+<p><code>client</code> holds the settings for your app’s OAuth
+registration: where users sign in, the app’s identity, and the access it
+requests. Create it outside <code>server()</code>, since every visitor
+uses the same registration.</p>
+<p><code><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui()</a></code> wraps your Shiny UI so shinyOAuth can handle
+the browser’s return from sign-in. Its <code>id = "auth"</code> matches
+the ID passed to <code><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server()</a></code>;
+<code>uiPattern = ".*"</code> lets Shiny serve the callback paths
+too.</p>
+<p>Inside <code>server()</code>, <code><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server()</a></code>
+manages sign-in for that visitor’s Shiny session. With
+<code>auto_redirect = FALSE</code>, the app waits for the <strong>Sign
+in</strong> button. The two observers connect the buttons to
+<code>auth$request_login()</code> and <code>auth$logout()</code>.</p>
+<p><code>auth$connection</code> is a function that provides the current
+authorization. Pass the function, without parentheses, to
+<code><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code> so the API client can check it
+each time it needs a token. Create this helper inside
+<code>server()</code> to keep it with the visitor who signed in.</p>
+<p>Finally, <code>$select()</code> reads the table and returns a data
+frame for <code><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable()</a></code>. Before sign-in, the helper waits
+quietly, like <code><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">shiny::req()</a></code>. Because the call runs inside a
+reactive output, Shiny updates the table when the authorization changes
+and clears it on sign-out. See <code><a href="../reference/oauth_db_postgrest_api.html">?oauth_db_postgrest_api</a></code> for
+filters and other request methods.</p>
+</div>
+<div class="section level2">
+<h2 id="connect-your-own-data">Connect your own data<a class="anchor" aria-label="anchor" href="#connect-your-own-data"></a>
+</h2>
+<div class="section level3">
+<h3 id="choose-your-source">Choose your source<a class="anchor" aria-label="anchor" href="#choose-your-source"></a>
+</h3>
+<p>Each guide has the source’s setup requirements and a complete app.
+You can keep the same sign-in/UI pattern and replace the demo’s
+provider, client settings and data helper with the ones in your
+guide.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
 <col width="50%">
 </colgroup>
 <thead><tr class="header">
-<th>Source</th>
-<th>What you can do</th>
+<th>Data source</th>
+<th>Setup guide</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><a href="postgres.html">Self-hosted PostgreSQL</a></td>
-<td>Try the Docker/Keycloak demo or connect your own PostgreSQL 18
-server</td>
+<td>PostgreSQL</td>
+<td>
+<a href="postgres.html">Native OAuth</a>, <a href="postgrest.html">PostgREST</a>, <a href="supabase.html">Supabase</a>, <a href="azure-postgres.html">Azure
+PostgreSQL</a>
+</td>
 </tr>
 <tr class="even">
-<td><a href="postgrest.html">PostgREST</a></td>
-<td>Read PostgreSQL tables and call functions over HTTP</td>
-</tr>
-<tr class="odd">
-<td><a href="supabase.html">Supabase</a></td>
-<td>Read tables and call functions through the Data API with each
-visitor’s permissions</td>
-</tr>
-<tr class="even">
-<td><a href="starrocks.html">StarRocks</a></td>
-<td>Query with JWT authentication and MySQL Connector/ODBC</td>
-</tr>
-<tr class="odd">
-<td><a href="clickhouse.html">ClickHouse</a></td>
-<td>Run SQL over HTTPS with a visitor token</td>
-</tr>
-<tr class="even">
-<td><a href="cratedb.html">CrateDB</a></td>
-<td>Run SQL over HTTPS with JWT authentication and database user
-privileges</td>
-</tr>
-<tr class="odd">
-<td><a href="duckdb.html">DuckDB</a></td>
-<td>Query a remote Quack server with OAuth access tokens</td>
-</tr>
-<tr class="even">
-<td><a href="libsql.html">libSQL and Turso</a></td>
-<td>Run SQLite SQL over HTTPS with compatible user tokens</td>
-</tr>
-<tr class="odd">
-<td><a href="opensearch.html">OpenSearch</a></td>
-<td>Search indexes, run aggregations and query the SQL plugin</td>
-</tr>
-<tr class="even">
+<td>SQL Server</td>
 <td><a href="azure-sql.html">Azure SQL and SQL Server</a></td>
-<td>Query with DBI or dbplyr</td>
 </tr>
 <tr class="odd">
-<td><a href="fabric.html">Microsoft Fabric</a></td>
-<td>Query SQL endpoints, read OneLake tables, and call fabricQueryR
-functions</td>
+<td>Cloud data platforms</td>
+<td>
+<a href="fabric.html">Fabric and Power BI</a>, <a href="databricks.html">Databricks</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="redshift.html">Redshift</a>
+</td>
 </tr>
 <tr class="even">
-<td><a href="databricks.html">Databricks</a></td>
-<td>Query SQL warehouses and call brickster functions</td>
+<td>Query engines</td>
+<td>
+<a href="trino.html">Trino and Starburst</a>, <a href="starrocks.html">StarRocks</a>, <a href="clickhouse.html">ClickHouse</a>, <a href="duckdb.html">DuckDB over
+Quack</a>
+</td>
 </tr>
 <tr class="odd">
-<td><a href="snowflake.html">Snowflake</a></td>
-<td>Query with a user’s Snowflake account and role</td>
-</tr>
-<tr class="even">
-<td><a href="bigquery.html">Google BigQuery</a></td>
-<td>Run GoogleSQL and get data frames</td>
-</tr>
-<tr class="odd">
-<td><a href="redshift.html">Amazon Redshift</a></td>
-<td>Query Redshift with DBI</td>
-</tr>
-<tr class="even">
-<td><a href="trino.html">Trino and Starburst Enterprise</a></td>
-<td>Query a self-hosted Trino or Starburst Enterprise cluster with
-RTrino and DBI</td>
-</tr>
-<tr class="odd">
-<td><a href="azure-postgres.html">Azure PostgreSQL</a></td>
-<td>Query with RPostgres and DBI</td>
-</tr>
-<tr class="even">
-<td><a href="hana.html">SAP HANA and HANA Cloud</a></td>
-<td>Query with visitor JWT access tokens and SAP HANA ODBC</td>
-</tr>
-<tr class="odd">
-<td><a href="oracle.html">Oracle Database</a></td>
-<td>Query with database-trusted OAuth tokens and Oracle ODBC</td>
-</tr>
-<tr class="even">
-<td><a href="oracle-ords.html">Oracle REST Data Services</a></td>
-<td>Read protected collections and call JSON handlers over HTTPS</td>
-</tr>
-<tr class="odd">
-<td><a href="salesforce.html">Salesforce CRM and Data Cloud</a></td>
-<td>Query CRM objects with SOQL and Data Cloud with SQL using each
-visitor’s Salesforce account</td>
+<td>Other databases and APIs</td>
+<td>
+<a href="libsql.html">libSQL and Turso</a>, <a href="cratedb.html">CrateDB</a>, <a href="opensearch.html">OpenSearch</a>, <a href="hana.html">SAP HANA</a>,
+<a href="oracle.html">Oracle Database</a>, <a href="oracle-ords.html">Oracle REST Data Services</a>, <a href="salesforce.html">Salesforce</a>
+</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section level2">
-<h2 id="install-shinyoauthdb">Install shinyOAuthDB<a class="anchor" aria-label="anchor" href="#install-shinyoauthdb"></a>
-</h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lukakoning/shinyOAuthDB"</span><span class="op">)</span></span></code></pre></div>
-<p>This also installs shinyOAuth. Your source may need another R package
-or a database driver; its guide lists those requirements.</p>
-<p>For locally browsable guides, add <code>build_vignettes = TRUE</code>
-to the GitHub installation call. The Docker demos supply their own R
-environment and database drivers.</p>
+<div class="section level3">
+<h3 id="register-your-app">Register your app<a class="anchor" aria-label="anchor" href="#register-your-app"></a>
+</h3>
+<p>An OAuth app registration tells the provider which application is
+asking for access. Create one, or ask your administrator for one, using
+the instructions in your source guide. These are the settings you’ll
+encounter:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Setting</th>
+<th>What it means</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Client ID</td>
+<td>The provider’s identifier for your app</td>
+</tr>
+<tr class="even">
+<td>Client secret</td>
+<td>Your app’s credential, kept on the Shiny server; some registrations
+don’t use one</td>
+</tr>
+<tr class="odd">
+<td>Redirect URI</td>
+<td>The exact address where the browser returns after sign-in</td>
+</tr>
+<tr class="even">
+<td>Issuer</td>
+<td>The URL identifying the service that issues the tokens</td>
+</tr>
+<tr class="odd">
+<td>Scopes</td>
+<td>Permissions your app requests during sign-in</td>
+</tr>
+<tr class="even">
+<td>Audience</td>
+<td>The database or API the access token is intended for</td>
+</tr>
+</tbody>
+</table>
+<p>Most source guides use <code>http://localhost:8100</code> as the
+redirect URI; the Docker example above uses
+<code>http://localhost:18100</code>. Register the exact address,
+including any path and trailing slash, and run Shiny on the same port.
+When deploying, register your app’s HTTPS address.</p>
+<p>For a self-hosted provider such as Keycloak, register an OpenID
+Connect client with the authorization-code flow and PKCE S256, which
+protects the sign-in code. Set the callback under valid redirect URIs; a
+confidential client also has a secret. See Keycloak’s <a href="https://www.keycloak.org/docs/latest/server_admin/index.html" class="external-link">administration
+guide</a>. The database must trust the provider’s signing keys and
+accept the token’s audience and identity or role claims. The source
+guides explain the required mapping. An ID token describes the login;
+the database helpers need an access token intended for the data
+source.</p>
+</div>
+<div class="section level3">
+<h3 id="save-credentials-and-run-the-app">Save credentials and run the app<a class="anchor" aria-label="anchor" href="#save-credentials-and-run-the-app"></a>
+</h3>
+<p>Open your app project’s environment file with
+<code>file.edit(".Renviron")</code> and add the values requested by your
+source guide, for example:</p>
+<pre class="text"><code><span><span class="va">OAUTHDB_CLIENT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">id</span></span>
+<span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
+<p>Keep <code>.Renviron</code> out of Git and restart R after editing
+it. The source examples read these values with
+<code><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv()</a></code>. On a hosting service, set the variables in
+the app’s environment settings.</p>
+<p>Copy your source guide’s app into <code>example.R</code>, replace its
+connection settings, and run <code>source("example.R")</code>. Open the
+registered address in a regular browser. If sign-in works but a query
+fails, check the token’s audience and scopes, the user’s database
+grants, and network access from the Shiny server to the data source.
+Keep tokens and secrets out of logs.</p>
+</div>
 </div>
 <div class="section level2">
-<h2 id="run-your-first-app">Run your first app<a class="anchor" aria-label="anchor" href="#run-your-first-app"></a>
+<h2 id="query-with-dbi-or-dbplyr">Query with DBI or dbplyr<a class="anchor" aria-label="anchor" href="#query-with-dbi-or-dbplyr"></a>
 </h2>
-<p>Start with the guide for your data source. You’ll register an OAuth
-application, which gives your Shiny app a client ID and client secret.
-The registration also records the redirect URI: the address where the
-browser returns after sign-in. The examples use
-<code>http://localhost:8100</code>.</p>
-<p>Use <a href="oauth-setup.html">OAuth setup</a> for the registration
-steps and terminology. Save the credentials in a local
-<code>.Renviron</code> file as shown in the guide and restart R. Copy
-the example into <code>example.R</code>, replace the connection
-settings, and run <code>source("example.R")</code>. Open
-<code>http://localhost:8100</code> in a regular browser. Embedded
-RStudio/Positron viewers cannot complete OAuth redirects.</p>
-<p>The people signing in need access to the data. OAuth consent lets the
-app act on their behalf; their database permissions determine what they
-can read.</p>
+<p>For sources that support DBI, the helper returns a reactive function,
+usually called <code>con</code>. For example, inside
+<code>server()</code> in an Azure SQL app:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">con</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_azure_sql.html">oauth_db_azure_sql</a></span><span class="op">(</span></span>
+<span>  <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
+<span>  server <span class="op">=</span> <span class="st">"example.database.windows.net"</span>,</span>
+<span>  database <span class="op">=</span> <span class="st">"Reporting"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT TOP (10) * FROM sales"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>Call <code>con()</code> inside each render or reactive expression
+that queries data. It checks the current authorization and reuses the
+visitor’s connection when possible. For dbplyr, pass
+<code>connection</code> to <code><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">dplyr::tbl()</a></code> and use
+<code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">dplyr::collect()</a></code> when you need a data frame.</p>
+<p>Other sources provide API clients: BigQuery has
+<code>$query()</code>, while Fabric and Databricks can call functions
+from their supporting R packages through <code>$call()</code>. The
+source guide and helper’s function help describe the methods.</p>
 </div>
 <div class="section level2">
-<h2 id="how-it-fits-into-shiny">How it fits into Shiny<a class="anchor" aria-label="anchor" href="#how-it-fits-into-shiny"></a>
+<h2 id="more-ways-to-try-an-app">More ways to try an app<a class="anchor" aria-label="anchor" href="#more-ways-to-try-an-app"></a>
 </h2>
-<p>Create the sign-in <code>client</code> outside <code>server()</code>.
-Inside <code>server()</code>, <code><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server()</a></code> handles
-each visitor’s login. Pass its <code>auth$connection</code> function to
-a database helper or API client.</p>
-<p>A DBI helper returns a function such as <code>con</code>. In a render
-or reactive expression, call <code>connection &lt;- con()</code> before
-using DBI or dbplyr. The helper reuses that visitor’s connection. When
-their authorization or Shiny session ends, it stops returning the
-connection and calls the driver’s cleanup method. A saved Databricks
-connection can retain its token; call <code>con()</code> before each
-operation rather than keeping the native handle.</p>
-<p>API clients either offer query methods, such as BigQuery’s
-<code>$query()</code>, or call functions from the platform’s R package
-through <code>$call()</code>.</p>
-<p>For an existing login, several accounts, or query results saved
-between button clicks, see <a href="authorization.html">Authentication
-and sessions</a>.</p>
+<p><code><a href="../reference/oauth_db_demo.html">oauth_db_demo()</a></code> runs a complete local app in Docker,
+including its R packages and drivers. Use
+<code>oauth_db_demo("postgrest", app = "local")</code> for an editable
+app running in local R with its services in Docker. That mode also needs
+<code>callr</code> and <code>bslib</code> (0.9.0 or later). Run one demo
+at a time, since they share ports. See <code><a href="../reference/oauth_db_demo.html">?oauth_db_demo</a></code> for
+supported databases, copying files with <code>action = "files"</code>,
+and recovery with <code>action = "stop"</code>.</p>
+<p>For a cloud workspace, <code>oauth_db_cloud_demo("databricks")</code>
+guides setup in the R console and launches an editable local app without
+Docker. It also supports Fabric, BigQuery, Snowflake, Azure SQL, Azure
+PostgreSQL, Redshift and ClickHouse; their source guides list the
+requirements. Enter <code>?</code> for help or <code>cancel</code> to
+save an incomplete setup. The launcher prints a command to resume it.
+Edit the copied <code>app.R</code>, save and reload the browser to
+change the query.</p>
+<p>Cloud demos use real accounts and existing resources. Queries can
+consume compute or query allowances; stopping the demo ends the local
+app while shared cloud services keep running. See
+<code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for offline drafts, saved settings and
+script arguments.</p>
+</div>
+<div class="section level2">
+<h2 id="sessions-saved-results-and-extra-permissions">Sessions, saved results and extra permissions<a class="anchor" aria-label="anchor" href="#sessions-saved-results-and-extra-permissions"></a>
+</h2>
+<p>Keep connections and API clients inside <code>server()</code>. On
+sign-out, account changes or session end, the helpers stop providing the
+old connection and call its cleanup method. Driver behavior varies, so
+call <code>con()</code> before each operation instead of keeping a
+native connection or copied token for later use. shinyOAuth handles
+token renewal; <code>min_valid_for</code> on a helper sets the minimum
+remaining token lifetime at the start of an operation. It doesn’t
+guarantee validity throughout a long query.</p>
+<p>Keep live connections and token callbacks in the Shiny session that
+created them. For background work, use the database package’s supported
+approach and check the current authorization before displaying a result.
+Signing out doesn’t necessarily cancel work already submitted to a
+platform.</p>
+<div class="section level3">
+<h3 id="save-query-results">Save query results<a class="anchor" aria-label="anchor" href="#save-query-results"></a>
+</h3>
+<p>Closing a connection doesn’t erase data you’ve already fetched. If
+you store results in <code><a href="https://rdrr.io/pkg/shiny/man/reactiveVal.html" class="external-link">reactiveVal()</a></code>,
+<code><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">eventReactive()</a></code> or a cache, clear or hide them on sign-out,
+account changes and loss of required permissions. A shared cache keyed
+only by SQL can expose one user’s results to another. The source
+checkout’s <code>playground/example-query-button.R</code> shows a query
+button that clears saved results when access changes.</p>
+</div>
+<div class="section level3">
+<h3 id="use-an-existing-login-or-several-accounts">Use an existing login or several accounts<a class="anchor" aria-label="anchor" href="#use-an-existing-login-or-several-accounts"></a>
+</h3>
+<p>The <code>*_client()</code> functions are optional presets; you can
+keep an existing shinyOAuth client if it obtains suitable tokens. A
+named token <em>target</em> selects the service a token is for, such as
+<code>"sql"</code> or <code>"storage"</code> in Microsoft’s presets. Set
+the helper’s <code>target</code> to your client’s name, or use
+<code>target = NULL</code> for its default token. The <a href="fabric.html#use-an-existing-sign-in">Fabric guide</a> has an
+example.</p>
+<p><code>required_scopes</code> checks permissions before a helper runs.
+Request those permissions on the OAuth client first; this argument
+doesn’t request consent or grant database privileges. Microsoft’s
+<code>/.default</code> requests configured permissions and isn’t a
+granted scope to check here.</p>
+<p>For several saved accounts, see
+<code><a href="https://lukakoning.github.io/shinyOAuth/articles/multiple-authorizations.html" class="external-link">vignette("multiple-authorizations", package = "shinyOAuth")</a></code>.
+Pass a function such as
+<code>function() auth$connection(shiny::req(input$authorization_id))</code>
+to the database helper. Select IDs from <code>auth$connections()</code>;
+these identify saved authorizations, separately from token targets.</p>
+<p>For another database driver or R package that accepts tokens, see
+<code><a href="../reference/oauth_db_connect.html">?oauth_db_connect</a></code> and <code><a href="../reference/oauth_db_token.html">?oauth_db_token</a></code>.</p>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

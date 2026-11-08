@@ -2,12 +2,10 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/404.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/CI.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/LICENSE-text.html</loc></url>
-<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html</loc></url>
-<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html</loc></url>
@@ -16,8 +14,6 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/hana.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html</loc></url>
-<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html</loc></url>
-<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html</loc></url>

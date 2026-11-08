@@ -19,9 +19,11 @@ to start PostgreSQL 18, Keycloak and a Shiny app with demo accounts and
 sample data. The installed package includes the configuration; Docker
 provides R and native libraries. PostgREST, Trino, StarRocks, DuckDB
 Quack, libSQL, CrateDB and OpenSearch demos use the same launcher. See
-the [local demo
-guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
-for accounts, editing and cleanup.
+[Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
+for demo accounts and cleanup, and
+[`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
+for editing options.
 
 ## Start with your source
 
@@ -65,6 +67,15 @@ handler receives a `shinyOAuthDB_cleanup_failed` condition containing a
 fixed message and reason, without the original driver error, connection,
 or credential. If the handler errors, the default message is emitted.
 
+## HTTP request failures
+
+BigQuery, PostgREST and ClickHouse HTTP failures raise
+`shinyOAuthDB_request_failed`. Catch this condition inside the Shiny
+operation to inspect its `status`. Recognized service codes and UUID
+request identifiers appear as `service_code` and `request_id`;
+unavailable values are `NULL`. The condition excludes server messages,
+response bodies and credentials.
+
 ## Sign-in settings
 
 The source guides create clients with
@@ -76,7 +87,7 @@ or
 You can also use an existing shinyOAuth client.
 
 See
-[`vignette("authorization", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+[`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md)
 for custom permissions, multiple accounts, and saved query results.
 
 ## See also

@@ -19,8 +19,8 @@ that person’s rows. Click **Stop demo** or interrupt R to remove the
 containers and data.
 
 The package includes PostgreSQL 18, Keycloak configuration and a small
-app. Docker supplies the Linux/libpq 18 runtime too. See [Local Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+app. Docker supplies the Linux/libpq 18 runtime too. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for first-build requirements, certificate prompts and editing the app.
 
 ## Connect your own database
@@ -35,7 +35,7 @@ guide](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md).
 |----|----|
 | `host`, `port`, `dbname` | Your database administrator or existing PostgreSQL connection settings |
 | Issuer | The identity provider’s realm or tenant OpenID configuration |
-| Client ID and secret | A registration for your Shiny app; see [OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| Client ID and secret | A registration for your Shiny app; see [OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) |
 | Scope | The database’s OAuth rule and the matching scope in the identity provider |
 | Username claim | The profile field that matches the database’s identity-to-role mapping |
 | `sslrootcert` | The CA certificate that signed the database’s TLS certificate |

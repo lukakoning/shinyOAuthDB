@@ -32,10 +32,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
-<li><a class="dropdown-item" href="../articles/local-demos.html">Local Docker demos</a></li>
-    <li><a class="dropdown-item" href="../articles/cloud-demos.html">Guided cloud demos</a></li>
-    <li><a class="dropdown-item" href="../articles/oauth-setup.html">OAuth setup</a></li>
-    <li><a class="dropdown-item" href="../articles/authorization.html">Authentication and sessions</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
     <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
   </ul>
 </li>
@@ -82,8 +79,8 @@ through its PostgreSQL interface.</p>
 <code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"cratedb"</span><span class="op">)</span></span></code></pre></div>
 <p>The demo includes CrateDB 6.4.3, Keycloak, a Shiny app and read-only
 database users. Alice and Bob can read a shared table; <strong>Try a
-write</strong> checks that CrateDB rejects their writes. See <a href="local-demos.html">Local Docker demos</a> for accounts and
-cleanup.</p>
+write</strong> checks that CrateDB rejects their writes. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
+accounts and cleanup.</p>
 <p>CrateDB expects the token’s issuer URL to serve its public signing
 keys. The demo’s HTTPS gateway supplies those keys at Keycloak’s issuer
 URL while forwarding normal browser sign-in to Keycloak. It passes the
@@ -125,8 +122,8 @@ HTTPS</td>
 </tr>
 <tr class="even">
 <td>Client ID and secret</td>
-<td>The <a href="oauth-setup.html">Shiny app registration</a> in that
-provider</td>
+<td>The <a href="getting-started.html#register-your-app">Shiny app
+registration</a> in that provider</td>
 </tr>
 </tbody>
 </table>

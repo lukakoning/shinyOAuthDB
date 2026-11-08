@@ -191,7 +191,7 @@ and access-token claims; Entra v2 setup includes the `upn` claim. See
 Oracle’s [registration
 example](https://docs.oracle.com/en/learn/ocidb-auth-msentraid/) and
 [Microsoft app
-registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app).
+registration](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#register-a-microsoft-entra-app).
 
 ``` r
 

@@ -24,8 +24,8 @@ set it to your dataset’s location before querying tables. The default
 `maximum_bytes_billed = "10000000"` limits bytes a query may bill. For
 scripts, supply `project`, `client_id` and optionally those settings,
 set `OAUTHDB_BIGQUERY_CLIENT_SECRET`, and use `prompt = FALSE`. See
-[Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
+[Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app)
 for editing and resuming.
 
 With no account yet, [BigQuery
@@ -182,5 +182,5 @@ fields use list columns.
 Use `raw = TRUE` to inspect the REST result and schema.
 [`?oauth_db_bigquery_api`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md)
 describes parameter types and other options. For saved results or
-background work, see [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md).
+background work, see [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions).

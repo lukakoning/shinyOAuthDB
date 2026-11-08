@@ -22,8 +22,8 @@ The editable local app requests the same role at sign-in and connection,
 then waits for **Run example query**. Queries may resume a warehouse and
 consume credits; stopping the app doesn’t suspend a shared warehouse.
 Optional `database`, `schema` and `driver` arguments customize the
-setup. See [Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md)
+setup. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app)
 for pausing, editing and resuming.
 
 Without an account, check [Snowflake trial
@@ -191,6 +191,6 @@ Connect with
 as above. Set `target` if your client uses named token targets, and
 `required_scopes` to the integration’s role scope. For native Snowflake
 OAuth, the helper derives that scope from `role`; external providers may
-use different scope names. [Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+use different scope names. [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions)
 explains custom targets.

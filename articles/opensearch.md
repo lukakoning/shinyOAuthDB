@@ -19,9 +19,8 @@ shinyOAuthDB::oauth_db_demo("opensearch")
 
 The package starts OpenSearch 3.9.0 with its Security plugin, Keycloak
 and a Shiny app. Alice and Bob see their own documents, and **Try a
-write** shows that their roles cannot change the index. See [Local
-Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+write** shows that their roles cannot change the index. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for accounts and cleanup; allow at least 2 GB of Docker memory for
 OpenSearch.
 
@@ -41,7 +40,7 @@ example.
 |----|----|
 | `url` | The cluster’s HTTPS API endpoint, rather than the Dashboards page |
 | Index, such as `orders` | OpenSearch Dashboards’ index list or your administrator |
-| Issuer, client ID, secret | The [Shiny registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) with the cluster’s trusted provider |
+| Issuer, client ID, secret | The [Shiny registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) with the cluster’s trusted provider |
 | `search.read` | The example API scope; define it in your provider or use your deployment’s scope |
 
 Save `OAUTHDB_OPENSEARCH_ISSUER`, `OAUTHDB_CLIENT_ID` and

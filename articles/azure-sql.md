@@ -23,8 +23,8 @@ first. The editable local app waits for **Run example query** before
 connecting. For scripts, supply the settings above; optional `driver`
 and `database_port` configure the native connection. The Shiny
 callback’s `port` is separate. A confidential registration uses
-`OAUTHDB_AZURE_SQL_CLIENT_SECRET` or masked input. See [Guided cloud
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.md).
+`OAUTHDB_AZURE_SQL_CLIENT_SECRET` or masked input. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app).
 
 If you need an account and database, check the [Azure SQL free
 offer](https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer).
@@ -51,9 +51,8 @@ OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
-Follow [Microsoft app
-registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#register-a-microsoft-entra-app)
-to find the IDs and secret. Add the **Azure SQL Database** delegated
+Follow [Microsoft app registration](#register-a-microsoft-entra-app) to
+find the IDs and secret. Add the **Azure SQL Database** delegated
 `user_impersonation` permission and obtain consent as your tenant
 requires.
 
@@ -66,6 +65,27 @@ requires.
 
 In Azure, allow the app server’s IP or private network to reach SQL.
 Creating an app registration doesn’t open the database firewall.
+
+### Register a Microsoft Entra app
+
+In the [Entra admin center](https://entra.microsoft.com/), open **App
+registrations** and create a registration in your organization’s tenant.
+Copy **Application (client) ID** and **Directory (tenant) ID** from its
+overview. Under **Authentication**, add a **Web** platform with
+`http://localhost:8100` as the redirect URI. Under **Certificates &
+secrets**, create a client secret and copy its **Value** before leaving.
+Microsoft’s [registration
+instructions](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+describe the available account types.
+
+Under **API permissions**, add the delegated permission for your data
+source: **Azure SQL Database** uses `user_impersonation`. Azure
+PostgreSQL uses **Azure OSSRDBMS Database** access; Fabric API
+permissions depend on the operations in the [Fabric
+guide](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.md). An
+administrator may need to grant consent or allow the application. The
+database administrator must separately give the user or their group
+database access.
 
 ## A complete app
 
@@ -177,7 +197,6 @@ with the same arguments and client.
 
 See
 [`?oauth_db_azure_sql`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md)
-for driver settings such as `driver`, `port`, and `timeout`.
-[Authentication and
-sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.md)
+for driver settings such as `driver`, `port`, and `timeout`. [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions)
 covers custom permissions and existing logins.

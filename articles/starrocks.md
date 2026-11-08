@@ -9,8 +9,8 @@ Connect client plugin.
 
 With Docker running, `shinyOAuthDB::oauth_db_demo("starrocks")` starts a
 configured server, Keycloak and an app with Alice and Bob’s accounts.
-See [Local Docker
-demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.md)
+See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for credentials and cleanup. StarRocks uses amd64 images and needs about
 4 GB of Docker memory.
 
@@ -28,7 +28,7 @@ app.
 | `database` | The StarRocks database your users can query |
 | `OAUTHDB_STARROCKS_DRIVER` | The registered driver name from [`odbc::odbcListDrivers()`](https://odbc.r-dbi.org/reference/odbcListDrivers.html) |
 | `OAUTHDB_STARROCKS_SSL_CA` | The CA certificate for that endpoint |
-| Issuer, client ID, secret | Your [OIDC app registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html#use-keycloak-with-a-self-hosted-database) |
+| Issuer, client ID, secret | Your [OIDC app registration](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#register-your-app) |
 
 Save the `OAUTHDB_*` values in `.Renviron` and restart R. The app
 requests the database username from the login; configure the matching
