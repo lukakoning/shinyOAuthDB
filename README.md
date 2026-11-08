@@ -35,7 +35,6 @@ Supported databases and data platforms (links open their setup guides):
 
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) ·
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) ·
-[Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html) ·
 [DuckDB (over Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html) ·
 [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html) ·
@@ -45,6 +44,7 @@ Supported databases and data platforms (links open their setup guides):
 [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html) ·
 [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html) ·
 [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html) ·
+[Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html) ·
 [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html) ·
 [Oracle REST Data Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html) ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html) ·
