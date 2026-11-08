@@ -57,7 +57,8 @@ Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
 Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 · [Azure
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
-·
+· [SAP HANA and HANA
+Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.html) ·
 [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html)
 · [Oracle
 Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html)

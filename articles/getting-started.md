@@ -52,6 +52,7 @@ server and advanced configuration.
 | [Amazon Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md) | Query Redshift with DBI |
 | [Trino and Starburst Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
 | [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md) | Query with RPostgres and DBI |
+| [SAP HANA and HANA Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.md) | Query with visitor JWT access tokens and SAP HANA ODBC |
 | [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md) | Query with database-trusted OAuth tokens and Oracle ODBC |
 | [Oracle REST Data Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md) | Read protected collections and call JSON handlers over HTTPS |
 | [Salesforce CRM and Data Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.md) | Query CRM objects with SOQL and Data Cloud with SQL using each visitor’s Salesforce account |

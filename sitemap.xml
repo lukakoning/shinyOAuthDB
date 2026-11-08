@@ -13,6 +13,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/hana.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html</loc></url>
@@ -49,6 +50,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.html</loc></url>

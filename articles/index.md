@@ -33,6 +33,8 @@
   Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
 - [Oracle REST Data
   Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md):
+- [SAP HANA and HANA
+  Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.md):
 
 ### Cloud platforms
 

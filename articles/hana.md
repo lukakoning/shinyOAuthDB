@@ -1,0 +1,175 @@
+# SAP HANA and HANA Cloud
+
+Use
+[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md)
+to query SAP HANA or SAP HANA Cloud with each visitor’s JWT access
+token. The helper returns a DBI connection; HANA validates the token and
+maps its external identity to a database user. That user’s database
+privileges determine the data they can query.
+
+This guide covers SQL access to the HANA database. SAP BTP browser
+sign-in, SAP application APIs and the separate HANA Cloud data lake
+relational engine have their own setup.
+
+## Before running the app
+
+Install `odbc` in R and a current SAP HANA Client with the HANA ODBC
+driver for your R architecture. Use
+[`odbc::odbcListDrivers()`](https://odbc.r-dbi.org/reference/odbcListDrivers.html)
+to find the installed driver name, commonly `HDBODBC`. On Unix, your
+driver manager may also accept the full path to `libodbcHDB.so` or the
+platform’s equivalent library.
+
+Ask your database administrator for the SQL endpoint and JWT
+configuration:
+
+| Setting | Where to find it |
+|----|----|
+| Server and SQL port | HANA Cloud instance connection details, or your self-hosted HANA administrator; HANA Cloud normally uses port 443 |
+| Tenant database, if needed | Self-hosted HANA connection details; usually omit it for a HANA Cloud endpoint |
+| OAuth issuer | Authorization server trusted by the database’s JWT provider |
+| Client ID and secret | Your [OAuth application registration](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md) |
+| Access scope and token audience | Provider application configuration agreed with the HANA administrator |
+| TLS trust store, if needed | Certificate chain and trust-store format required by your SAP HANA Client TLS provider |
+
+Register an authorization-code client with PKCE at that OAuth provider.
+The local app’s redirect URI is `http://localhost:8100`. Configure the
+provider to issue **JWT access tokens** whose issuer, identity claims
+and audience match the HANA JWT provider. An ID token or an opaque
+access token does not substitute for the access token used by this
+helper.
+
+The example below uses OIDC discovery. Enable refresh-token issuance at
+the provider when requesting `offline_access`, or use the provider’s
+documented refresh setup. There is no shared SAP scope or resource URL:
+`database.read` below is an example scope your administrator must define
+or replace. Configure any required audience in the provider’s
+application settings or its supported authorization parameters.
+
+Save these values in your local `.Renviron` and restart R:
+
+``` text
+OAUTHDB_CLIENT_ID=your-shiny-app-client-id
+OAUTHDB_CLIENT_SECRET=your-shiny-app-client-secret
+OAUTHDB_HANA_ISSUER=https://login.example.org/realms/reporting
+OAUTHDB_HANA_SCOPE=database.read
+OAUTHDB_HANA_SERVER=your-instance.hana.prod-eu10.hanacloud.ondemand.com
+OAUTHDB_HANA_PORT=443
+OAUTHDB_HANA_DRIVER=HDBODBC
+```
+
+## A complete app
+
+This app displays the database user HANA assigned to the visitor.
+Replace the query with a table or view the signed-in user can read.
+
+``` r
+
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+scope <- Sys.getenv("OAUTHDB_HANA_SCOPE")
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_HANA_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "offline_access", scope),
+  required_scopes = scope
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_hana(
+    auth$connection,
+    server = Sys.getenv("OAUTHDB_HANA_SERVER"),
+    port = as.integer(Sys.getenv("OAUTHDB_HANA_PORT", "443")),
+    driver = Sys.getenv("OAUTHDB_HANA_DRIVER", "HDBODBC"),
+    required_scopes = scope
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS DATABASE_USER FROM DUMMY")
+  })
+}
+
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+```
+
+Save the app as `example.R` and run `source("example.R")`. Open
+`http://localhost:8100` in a regular browser; embedded IDE viewers
+cannot complete the OAuth redirects.
+
+For a self-hosted tenant, set its SQL port and add
+`database = "REPORTING"` when required by the connection details. Use
+`schema = "SALES"` to select an initial schema. Set `ssl_trust_store` if
+the client’s configured trust store does not contain the server’s
+certificate chain. The helper always requires encryption, certificate
+validation and the endpoint’s hostname.
+
+## Configure HANA’s JWT provider
+
+The target database needs a JWT provider, trusted signing certificates,
+external-identity mappings and grants for the mapped database users.
+Follow SAP’s [JWT configuration
+procedure](https://help.sap.com/docs/SAP_ASE_PLATFORM/6b94445c94ae495c83a19646e7c3fd56/1c362387bc9e48a6a275146a11e1466e.html)
+for HANA Platform, or the corresponding procedure for your HANA Cloud
+release. Configure the provider to check the intended issuer, signing
+keys and audience and to map the appropriate identity claim.
+
+The Shiny client must obtain the token that this database configuration
+accepts. A successful SAP BTP or application-console login alone does
+not provide a HANA SQL identity. The helper does not create database
+users, grant privileges or configure certificate rotation.
+
+SAP documents JWT login with an empty username and the token in the
+password field for both [on-premise HANA and HANA
+Cloud](https://help.sap.com/docs/SAP_DATA_SERVICES/e54136ab6a4a43e6a370265bf0a2d744/8d553b3a0aca45beb9f6dfb68185ebaa.html).
+The helper uses that form and restricts the client’s
+`authenticationMethods` property to `jwt`; it does not use a saved
+database password, user-store key, session cookie or the host’s Kerberos
+account.
+
+## Connection lifetime and validation
+
+Call `connection <- con()` before each operation. The helper reuses a
+valid SQL connection through ordinary token renewal. HANA continues to
+apply that database session’s identity and privileges; changing token
+claims does not change an already-open SQL session. Sign-out, account
+replacement, loss of required OAuth permissions and Shiny session end
+close the connection through DBI.
+
+Native automatic reconnect is disabled. If a connection becomes invalid,
+the next `con()` opens a new one with a current token. Handle a failed
+query in your app; the helper does not replay it. A retained native
+handle is not a revocable authorization reference, so obtain the
+connection from `con()` rather than keeping it across operations.
+
+Automated tests cover the real R ODBC connection-string boundary and use
+SQLite connections for session-lifecycle tests. Live SAP driver/server
+compatibility has not been verified. Before deploying, check
+`CURRENT_USER` for two visitors with different grants, a denied query,
+token renewal and reconnect, and the configured TLS certificate chain.
+Driver setup follows SAP’s [HANA Cloud ODBC
+guide](https://help.sap.com/docs/hana-cloud/sap-hana-cloud-getting-started-guide/connect-to-sap-hana-database-in-sap-hana-cloud-via-odbc).
