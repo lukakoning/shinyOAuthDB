@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Close ADBC connections and their outstanding DBI or Arrow results when the
+  authorization changes, permissions are lost, or the Shiny session ends.
+
 * Return CrateDB's internal byte columns as numbers, including nulls and empty
   results, and reject values outside the signed byte range in scalar and array
   responses.

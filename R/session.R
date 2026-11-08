@@ -451,6 +451,8 @@ oauth_db_token <- function(
 .odb_disconnect <- function(native, disconnect = NULL) {
   if (is.function(disconnect)) {
     disconnect(native)
+  } else if (inherits(native, "AdbiConnection")) {
+    suppressWarnings(DBI::dbDisconnect(native, force = TRUE))
   } else if (inherits(native, "DBIConnection")) {
     suppressWarnings(DBI::dbDisconnect(native))
   }
