@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,25 +65,22 @@
 
     
     
-<p>Use <code><a href="../reference/oauth_db_hana.html">oauth_db_hana()</a></code> to query SAP HANA or SAP HANA Cloud
-with each visitor’s JWT access token. The helper returns a DBI
-connection; HANA validates the token and maps its external identity to a
-database user. That user’s database privileges determine the data they
-can query.</p>
-<p>This guide covers SQL access to the HANA database. SAP BTP browser
-sign-in, SAP application APIs and the separate HANA Cloud data lake
-relational engine have their own setup.</p>
+<p>SAP HANA is a SQL database available on your own infrastructure or
+through HANA Cloud. shinyOAuthDB lets a Shiny app query it using each
+visitor’s account, so HANA’s database privileges control what the app
+can read.</p>
+<p><code><a href="../reference/oauth_db_hana.html">oauth_db_hana()</a></code> opens a DBI connection for SQL or
+dbplyr. Your sign-in provider issues a signed access token, and HANA
+maps that token’s identity to a database user. The example first shows
+that user so you can check the connection before querying a table.</p>
 <div class="section level2">
 <h2 id="before-running-the-app">Before running the app<a class="anchor" aria-label="anchor" href="#before-running-the-app"></a>
 </h2>
-<p>Install <code>odbc</code> in R and a current SAP HANA Client with the
-HANA ODBC driver for your R architecture. Use
-<code><a href="https://odbc.r-dbi.org/reference/odbcListDrivers.html" class="external-link">odbc::odbcListDrivers()</a></code> to find the installed driver name,
-commonly <code>HDBODBC</code>. On Unix, your driver manager may also
-accept the full path to <code>libodbcHDB.so</code> or the platform’s
-equivalent library.</p>
-<p>Ask your database administrator for the SQL endpoint and JWT
-configuration:</p>
+<p>Install <code>odbc</code> in R and SAP HANA Client’s ODBC driver for
+your R architecture. Use <code><a href="https://odbc.r-dbi.org/reference/odbcListDrivers.html" class="external-link">odbc::odbcListDrivers()</a></code> to find
+its registered name, commonly <code>HDBODBC</code>.</p>
+<p>Ask your administrator to configure HANA to accept signed JWT access
+tokens and map them to database users. You need these settings:</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -96,17 +93,15 @@ configuration:</p>
 <tbody>
 <tr class="odd">
 <td>Server and SQL port</td>
-<td>HANA Cloud instance connection details, or your self-hosted HANA
-administrator; HANA Cloud normally uses port 443</td>
+<td>HANA connection details; HANA Cloud normally uses port 443</td>
 </tr>
 <tr class="even">
 <td>Tenant database, if needed</td>
-<td>Self-hosted HANA connection details; usually omit it for a HANA
-Cloud endpoint</td>
+<td>Self-hosted HANA connection details</td>
 </tr>
 <tr class="odd">
 <td>OAuth issuer</td>
-<td>Authorization server trusted by the database’s JWT provider</td>
+<td>The sign-in service HANA trusts</td>
 </tr>
 <tr class="even">
 <td>Client ID and secret</td>
@@ -115,32 +110,21 @@ application registration</a>
 </td>
 </tr>
 <tr class="odd">
-<td>Access scope and token audience</td>
-<td>Provider application configuration agreed with the HANA
-administrator</td>
+<td>Access scope and audience</td>
+<td>The provider configuration agreed with the HANA administrator</td>
 </tr>
 <tr class="even">
 <td>TLS trust store, if needed</td>
-<td>Certificate chain and trust-store format required by your SAP HANA
-Client TLS provider</td>
+<td>The certificate chain required by your HANA Client</td>
 </tr>
 </tbody>
 </table>
-<p>Register an authorization-code client with PKCE at that OAuth
-provider. The local app’s redirect URI is
-<code>http://localhost:8100</code>. Configure the provider to issue
-<strong>JWT access tokens</strong> whose issuer, identity claims and
-audience match the HANA JWT provider. An ID token or an opaque access
-token does not substitute for the access token used by this helper.</p>
-<p>The example below uses OIDC discovery. Enable refresh-token issuance
-at the provider when requesting <code>offline_access</code>, or use the
-provider’s documented refresh setup. There is no shared SAP scope or
-resource URL: <code>database.read</code> below is an example scope your
-administrator must define or replace. Configure any required audience in
-the provider’s application settings or its supported authorization
-parameters.</p>
-<p>Save these values in your local <code>.Renviron</code> and restart
-R:</p>
+<p>Register <code>http://localhost:8100</code> as the redirect URI. The
+example uses a provider with OpenID Connect and refresh tokens. Its
+<code>database.read</code> scope is a placeholder: ask your
+administrator to define or replace it, and configure the token audience
+for this database.</p>
+<p>Save the settings in <code>.Renviron</code> and restart R:</p>
 <pre class="text"><code>OAUTHDB_CLIENT_ID=your-shiny-app-client-id
 OAUTHDB_CLIENT_SECRET=your-shiny-app-client-secret
 OAUTHDB_HANA_ISSUER=https://login.example.org/realms/reporting
@@ -220,46 +204,28 @@ hostname.</p>
 <div class="section level2">
 <h2 id="configure-hanas-jwt-provider">Configure HANA’s JWT provider<a class="anchor" aria-label="anchor" href="#configure-hanas-jwt-provider"></a>
 </h2>
-<p>The target database needs a JWT provider, trusted signing
-certificates, external-identity mappings and grants for the mapped
-database users. Follow SAP’s <a href="https://help.sap.com/docs/SAP_ASE_PLATFORM/6b94445c94ae495c83a19646e7c3fd56/1c362387bc9e48a6a275146a11e1466e.html" class="external-link">JWT
+<p>The database needs a JWT provider, trusted signing certificates and a
+mapping from external identities to database users. Grant those users
+access to the tables your app will query. Follow SAP’s <a href="https://help.sap.com/docs/SAP_ASE_PLATFORM/6b94445c94ae495c83a19646e7c3fd56/1c362387bc9e48a6a275146a11e1466e.html" class="external-link">JWT
 configuration procedure</a> for HANA Platform, or the corresponding
-procedure for your HANA Cloud release. Configure the provider to check
-the intended issuer, signing keys and audience and to map the
-appropriate identity claim.</p>
-<p>The Shiny client must obtain the token that this database
-configuration accepts. A successful SAP BTP or application-console login
-alone does not provide a HANA SQL identity. The helper does not create
-database users, grant privileges or configure certificate rotation.</p>
-<p>SAP documents JWT login with an empty username and the token in the
-password field for both <a href="https://help.sap.com/docs/SAP_DATA_SERVICES/e54136ab6a4a43e6a370265bf0a2d744/8d553b3a0aca45beb9f6dfb68185ebaa.html" class="external-link">on-premise
-HANA and HANA Cloud</a>. The helper uses that form and restricts the
-client’s <code>authenticationMethods</code> property to
-<code>jwt</code>; it does not use a saved database password, user-store
-key, session cookie or the host’s Kerberos account.</p>
+procedure for your HANA Cloud release.</p>
+<p>The app must obtain a JWT access token with the expected issuer,
+audience and identity claims. Signing in to SAP BTP or another SAP
+application doesn’t by itself establish a HANA SQL identity. This guide
+queries the HANA database; SAP application APIs and the HANA Cloud data
+lake engine have separate setups.</p>
 </div>
 <div class="section level2">
-<h2 id="connection-lifetime-and-validation">Connection lifetime and validation<a class="anchor" aria-label="anchor" href="#connection-lifetime-and-validation"></a>
+<h2 id="connection-lifetime">Connection lifetime<a class="anchor" aria-label="anchor" href="#connection-lifetime"></a>
 </h2>
-<p>Call <code>connection &lt;- con()</code> before each operation. The
-helper reuses a valid SQL connection through ordinary token renewal.
-HANA continues to apply that database session’s identity and privileges;
-changing token claims does not change an already-open SQL session.
-Sign-out, account replacement, loss of required OAuth permissions and
-Shiny session end close the connection through DBI.</p>
-<p>Native automatic reconnect is disabled. If a connection becomes
-invalid, the next <code>con()</code> opens a new one with a current
-token. Handle a failed query in your app; the helper does not replay it.
-A retained native handle is not a revocable authorization reference, so
-obtain the connection from <code>con()</code> rather than keeping it
-across operations.</p>
-<p>Automated tests cover the real R ODBC connection-string boundary and
-use SQLite connections for session-lifecycle tests. Live SAP
-driver/server compatibility has not been verified. Before deploying,
-check <code>CURRENT_USER</code> for two visitors with different grants,
-a denied query, token renewal and reconnect, and the configured TLS
-certificate chain. Driver setup follows SAP’s <a href="https://help.sap.com/docs/hana-cloud/sap-hana-cloud-getting-started-guide/connect-to-sap-hana-database-in-sap-hana-cloud-via-odbc" class="external-link">HANA
-Cloud ODBC guide</a>.</p>
+<p>Call <code>connection &lt;- con()</code> before each operation. A
+valid SQL connection stays open through ordinary token renewal, with the
+identity and privileges established when it connected. Sign-out, account
+changes or the end of the Shiny session close it.</p>
+<p>If the connection breaks, the next <code>con()</code> opens a new one
+with a current token. The helper doesn’t replay a failed query. See
+<code><a href="../reference/oauth_db_hana.html">?oauth_db_hana</a></code> for connection settings and SAP’s <a href="https://help.sap.com/docs/hana-cloud/sap-hana-cloud-getting-started-guide/connect-to-sap-hana-database-in-sap-hana-cloud-via-odbc" class="external-link">HANA
+Cloud ODBC guide</a> for driver setup.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

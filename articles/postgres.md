@@ -1,8 +1,16 @@
-# Self-hosted PostgreSQL with OAuth
+# PostgreSQL
 
-PostgreSQL is an open-source SQL database. Use it from Shiny with each
-visitor’s own login; PostgreSQL checks their token and applies database
-grants and row policies. You can query through DBI or dbplyr.
+PostgreSQL is an open-source SQL database. You can use it as the data
+source for a Shiny app while letting the database decide what each
+visitor can read. For example, a row policy can restrict the same query
+to a different set of rows for each person.
+
+[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md)
+opens a connection with the visitor’s access token and database role.
+You can then query through DBI or dbplyr. This guide uses PostgreSQL’s
+native OAuth support; the [PostgREST
+guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md)
+shows an HTTP alternative that doesn’t need a local PostgreSQL driver.
 
 ## Try it locally
 
@@ -18,17 +26,21 @@ in as `alice` / `alice` or `bob` / `bob`. The same query returns only
 that person’s rows. Click **Stop demo** or interrupt R to remove the
 containers and data.
 
-The package includes PostgreSQL 18, Keycloak configuration and a small
-app. Docker supplies the Linux/libpq 18 runtime too. See [Getting
+Docker supplies PostgreSQL 18, Keycloak sign-in and the required native
+libraries. See [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
-for first-build requirements, certificate prompts and editing the app.
+for first-build requirements and certificate prompts, or
+[`?oauth_db_demo`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
+for editing the app.
 
 ## Connect your own database
 
-Native PostgreSQL OAuth needs PostgreSQL 18 and a server-side token
-validator. An existing password-based PostgreSQL database needs the
-OAuth setup below before you can use it. For Azure’s Entra
-authentication, use the separate [Azure PostgreSQL
+Native OAuth needs PostgreSQL 18 with a token-validation module. Running
+this app in local R also requires Linux and a shared libpq 18 used by
+both RPostgres and shinyOAuthDB; build instructions follow the app. On
+Windows or macOS, use the Docker demo or
+[PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md).
+Azure’s Microsoft sign-in has its own [Azure PostgreSQL
 guide](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md).
 
 | App value | Where to get it |
@@ -48,7 +60,7 @@ and native R runtime instructions follow it.
 Create a shinyOAuth client for your own issuer. Request `profile` and
 configure the provider to include `preferred_username` in the validated
 ID token. This example assumes that username matches the PostgreSQL role
-provisioned for that person, as in the Docker fixture. Set
+provisioned for that person, as in the local demo. Set
 `OAUTHDB_POSTGRES_ISSUER`, `OAUTHDB_CLIENT_ID`, and
 `OAUTHDB_CLIENT_SECRET` before running the app.
 
@@ -119,11 +131,8 @@ changes the requested role. PostgreSQL checks that the access token is
 allowed to use that role and applies its grants and row policies.
 
 If your database roles differ from the provider’s usernames, adapt the
-callback to your server’s identity-to-role mapping. The subjects mapped
-to `alice` and `bob` above are Docker fixture configuration, not a list
-of visitors to hardcode into a deployed app. A fixed `user` is
-appropriate only when the deployment intentionally maps the permitted
-identities to one shared database role.
+callback to the server’s mapping. Use a fixed `user` only when the
+database intentionally maps the permitted identities to a shared role.
 
 ## Prepare PostgreSQL and the identity provider
 
@@ -135,9 +144,9 @@ validate the database audience. Copy the demo files with
 
 Register a Web OAuth client in Keycloak with your Shiny callback URL,
 authorization code flow and PKCE. Configure the database access token’s
-audience and the `database.read` scope. The fixture’s `realm.json`
-provides a complete example, including demo subjects, audience mappers
-and scopes.
+audience and the `database.read` scope. The demo’s `realm.json` provides
+a complete example, including demo subjects, audience mappers and
+scopes.
 
 Configure PostgreSQL’s validator to check token signatures, issuer,
 expiry, audience and the required scope. Map the validated subject to a
@@ -147,18 +156,18 @@ database role. A corresponding `pg_hba.conf` rule looks like:
 hostssl reporting alice,bob 10.0.0.0/24 oauth issuer="https://login.example.org/realms/reporting" scope="database.read" validator=pg_oidc_validator map=keycloak_subjects
 ```
 
-In `pg_ident.conf`, map the real Keycloak subjects to roles:
+In `pg_ident.conf`, map each user’s Keycloak ID (`sub`) to a database
+role:
 
 ``` text
 keycloak_subjects 11111111-1111-4111-8111-111111111111 alice
 keycloak_subjects 22222222-2222-4222-8222-222222222222 bob
 ```
 
-Those subjects are examples from the local fixture; use your provider’s
-real values. Create the roles, grant database access, and configure
-table grants and row policies. The installed demo contains complete
-files under `postgres/config/` and SQL under
-`postgres/sql/01-fixture.sql`.
+Those IDs belong to the demo accounts; use your users’ real IDs. Create
+the roles, grant database access, and configure table grants and row
+policies. The installed demo contains complete files under
+`postgres/config/` and SQL under `postgres/sql/01-fixture.sql`.
 
 ## Build the native R runtime
 
@@ -199,8 +208,4 @@ unsupported. Use separate R processes for separate workers.
 PostgreSQL documents [OAuth
 authentication](https://www.postgresql.org/docs/18/auth-oauth.html) and
 [validator
-modules](https://www.postgresql.org/docs/18/oauth-validators.html). The
-source repository’s [native and browser
-tests](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak)
-exercise the same authentication mechanism with additional failure
-cases.
+modules](https://www.postgresql.org/docs/18/oauth-validators.html).

@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,12 +65,15 @@
 
     
     
-<p>Use Salesforce’s existing user accounts and permissions in a Shiny
-app. <code><a href="../reference/oauth_db_salesforce_api.html">oauth_db_salesforce_api()</a></code> queries CRM objects with
-SOQL. <code><a href="../reference/oauth_db_salesforce_data_cloud_api.html">oauth_db_salesforce_data_cloud_api()</a></code> queries Data
-Cloud, now called Data 360, with SQL. Both use the signed-in visitor’s
-Salesforce access token and return data frames or native API
-results.</p>
+<p>Salesforce CRM stores records such as accounts and contacts in
+objects, which you can query with Salesforce’s query language, SOQL.
+Data Cloud provides a separate SQL query API. shinyOAuthDB lets a Shiny
+app use either source with the signed-in visitor’s Salesforce
+permissions.</p>
+<p>Use <code><a href="../reference/oauth_db_salesforce_api.html">oauth_db_salesforce_api()</a></code> for CRM objects and
+<code><a href="../reference/oauth_db_salesforce_data_cloud_api.html">oauth_db_salesforce_data_cloud_api()</a></code> for Data Cloud. Both
+return data frames or native API results and can share one Salesforce
+sign-in. The example lets the visitor choose which source to query.</p>
 <div class="section level2">
 <h2 id="register-the-shiny-app">Register the Shiny app<a class="anchor" aria-label="anchor" href="#register-the-shiny-app"></a>
 </h2>
@@ -109,13 +112,10 @@ the following OAuth scopes:</p>
 Configure the client-secret requirement to match your registration and
 deployment. The example uses a confidential server app with a client
 secret.</p>
-<p>In the app’s OAuth security settings, enable <strong>Issue JSON Web
-Token (JWT)-based access tokens for named users</strong>. Legacy opaque
-Salesforce tokens can contain <code>!</code>, which shinyOAuth’s
-bearer-token validation rejects. JWT-based access tokens are supported
-for Salesforce REST APIs, including the endpoints used here. This
-setting controls the access-token format; browser sign-in still uses the
-authorization-code flow with PKCE. See Salesforce’s <a href="https://help.salesforce.com/s/articleView?id=sf.jwt_eca_configuration.htm&amp;language=en_US&amp;type=5" class="external-link">JWT
+<p>Enable <strong>Issue JSON Web Token (JWT)-based access tokens for
+named users</strong> in the app’s OAuth security settings. This token
+format works with shinyOAuth’s validation and the APIs used here. See
+Salesforce’s <a href="https://help.salesforce.com/s/articleView?id=sf.jwt_eca_configuration.htm&amp;language=en_US&amp;type=5" class="external-link">JWT
 access-token configuration</a>.</p>
 <p>Users need API access and permission to use the client app. CRM
 object, field and record access still comes from Salesforce. Data Cloud
@@ -141,10 +141,6 @@ OAUTHDB_SALESFORCE_INSTANCE_URL=https://example.my.salesforce.com</code></pre>
 <code>INSTANCE_URL</code> is the trusted Salesforce org origin for API
 calls, without a path. Use the org’s My Domain API URL rather than its
 Lightning UI URL. A login origin and an API origin can differ.</p>
-<p>The client discovers OpenID Connect settings at startup, validates
-signed ID tokens and uses PKCE. shinyOAuth handles acquisition and
-renewal. Supply <code>provider</code> or <code>scopes</code> to replace
-the sign-in defaults.</p>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
@@ -234,13 +230,11 @@ permissions and retention rules.</p>
 <span></span>
 <span><span class="va">count</span> <span class="op">&lt;-</span> <span class="va">crm</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT COUNT() FROM Account"</span>, raw <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">count</span><span class="op">$</span><span class="va">totalSize</span></span></code></pre></div>
-<p>Data frames omit top-level <code>attributes</code> metadata.
-Relationship objects and child-query results stay in list columns.
-Missing scalar values become <code>NA</code>; empty results have no
-field metadata. Use <code>$describe()</code> for field definitions. Raw
-queries return combined native <code>records</code>,
-<code>totalSize</code>, and a completed <code>done</code> flag. Ordinary
-JSON numbers become R numeric values; large integers remain strings.</p>
+<p>Queries return data frames, with relationships and child-query
+results in list columns. Use <code>$describe()</code> for field
+definitions, or <code>raw = TRUE</code> for the native records and
+metadata. Large integers stay as strings; ordinary JSON numbers become R
+numeric values.</p>
 <p>SOQL is supplied as written. The helper does not interpolate
 parameters, create DBI connections, or implement CRM record mutations.
 See Salesforce’s <a href="https://developer.salesforce.com/docs/platform/api-rest/guide/dome-query.html" class="external-link">Query
@@ -250,11 +244,9 @@ More Results</a>.</p>
 <div class="section level2">
 <h2 id="query-data-cloud-with-bound-parameters">Query Data Cloud with bound parameters<a class="anchor" aria-label="anchor" href="#query-data-cloud-with-bound-parameters"></a>
 </h2>
-<p>The client uses Query Connect API on the Salesforce org:
-<code>/services/data/v64.0/ssot/query-sql</code>. Salesforce recommends
-this API over legacy Query V1/V2. Its Salesforce-token authentication
-lets CRM and Data Cloud share one sign-in. It does not require a Direct
-API token exchange.</p>
+<p>The Data Cloud client uses Query Connect API, which accepts the same
+Salesforce sign-in as CRM. You can select a data space when creating
+it.</p>
 <p>Specify a data space with <code>dataspace = "reporting"</code> when
 creating the client. <code>api_version</code> can select another
 supported version, at least <code>64.0</code>.</p>
@@ -269,13 +261,10 @@ supported version, at least <code>64.0</code>.</p>
 <code>value</code> strings, using the SQL types accepted by Salesforce.
 Values are bound separately from SQL. Duplicate names and incomplete
 descriptors are rejected locally.</p>
-<p>BIGINT and NUMERIC columns remain strings, including numeric JSON
-values, so R does not round their digits. Other numeric types become R
-numeric values and booleans become logical. Dates and times remain
-strings; nested and unknown types remain list columns. Empty results
-retain their column names and supported types. <code>raw = TRUE</code>
-returns combined native rows, metadata, and final status; raw numeric
-lexemes remain strings.</p>
+<p>BIGINT and NUMERIC columns stay as strings to preserve precision.
+Dates and times also stay as strings; nested values use list columns.
+See <code><a href="../reference/oauth_db_salesforce_data_cloud_api.html">?oauth_db_salesforce_data_cloud_api</a></code> for other result
+conversions and raw metadata.</p>
 <p>The client submits once, polls the query ID and fetches remaining
 rows with offsets. See the <a href="https://developer.salesforce.com/docs/data/data-cloud-query-guide/references/data-cloud-query-api-reference/c360a-api-queryservices-overview.html" class="external-link">Query
 API overview</a> and <a href="https://developer.salesforce.com/docs/data/connectapi/guide/query-use-case.html" class="external-link">Query
@@ -284,30 +273,19 @@ Connect example</a>.</p>
 <div class="section level2">
 <h2 id="token-renewal-and-query-lifetime">Token renewal and query lifetime<a class="anchor" aria-label="anchor" href="#token-renewal-and-query-lifetime"></a>
 </h2>
-<p>Clients belong to their creating Shiny session. Each operation pins
-its initial authorization and obtains current tokens within it.
-Sign-out, account replacement, lost required scopes and session end
-prevent further access and discard late responses.</p>
-<p>GET requests can refresh and retry once after HTTP 401. SQL
-submission is a POST and is never replayed, including after HTTP 401.
-After a submission failure, check Salesforce before deciding whether to
-run it again. All requests verify HTTPS and refuse redirects. CRM
-continuation paths must belong to the configured org and API
-version.</p>
-<p><code>timeout</code> covers submission, polling and result pages.
-Results are collected synchronously in R memory. A timeout or sign-out
-does not cancel a submitted Data Cloud query, which can keep running on
-Salesforce. Limit result sizes in your queries.</p>
-<p>Salesforce can omit <code>expires_in</code> from its token response.
-shinyOAuth warns and applies its configured fallback lifetime. That
-value is an estimate. Its <code>shinyOAuth.default_expires_in</code>
-option can be set for the deployment’s session policy. Earlier server
-rejection can trigger the GET refresh above. The helpers do not change
-global settings or maintain another token store.</p>
-<p>Errors omit response bodies and tokens. Use <code>ca_bundle</code>
-for a private CA. Tests use documented response shapes and synthetic
-authorizations; live validation still requires a Salesforce
-registration, licenses and data permissions for the intended org.</p>
+<p>Each client uses the current token for the visitor’s Shiny session
+and discards results after sign-out or account changes. Read requests
+can refresh and retry once after HTTP 401. SQL submission doesn’t retry
+automatically; check Salesforce after a submission failure before
+running the query again.</p>
+<p><code>timeout</code> covers submission and result fetching. Results
+must fit in R memory. A timeout or sign-out doesn’t cancel a submitted
+Data Cloud query, so limit result sizes in SQL.</p>
+<p>Salesforce can omit the token’s expiry time. shinyOAuth then warns
+and uses its configured fallback lifetime. See its
+<code>shinyOAuth.default_expires_in</code> option if you need to match a
+deployment’s session policy, and the client function help for token and
+request options.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

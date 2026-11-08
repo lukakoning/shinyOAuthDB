@@ -1,17 +1,18 @@
 # Databricks
 
 Databricks is a hosted data and analytics platform. Its SQL warehouses
-run queries against your tables. Query a Databricks SQL warehouse from
-Shiny using each visitor’s Databricks account.
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md)
-gives you a DBI connection for SQL or dbplyr queries.
+provide the compute that runs queries against your tables. With
+shinyOAuthDB, visitors sign in with their Databricks account and query
+the data their account can access.
 
-The same sign-in works with brickster’s API functions, including
-warehouse listing and query submission.
+[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md)
+opens a DBI connection to a warehouse, so you can use SQL or dbplyr in
+your app. Later examples use the same sign-in to call Databricks APIs
+through the brickster package.
 
 ## Try the guided demo
 
-For guided setup and an editable app, run this in the R console:
+Run this in the R console for an editable app that walks through setup:
 
 ``` r
 
@@ -19,42 +20,29 @@ install.packages(c("brickster", "jsonlite", "processx", "askpass", "bslib"))
 shinyOAuthDB::oauth_db_cloud_demo("databricks")
 ```
 
-The launcher asks for your workspace URL and custom OAuth app
-registration. It uses SQL access with `openid`, `profile`, `email`,
-`offline_access` and `sql` scopes. A public PKCE registration needs no
-secret; a confidential registration uses masked input or
-`OAUTHDB_DATABRICKS_CLIENT_SECRET`. Register the exact callback it
-prints, normally `http://localhost:8100`. This SQL demo requests
-narrower access than the `all-apis` preset below.
+The launcher asks for your workspace URL and OAuth app registration.
+Sign in, choose a SQL warehouse, then click **Run example query** to
+check your Databricks user. You need **CAN USE** on the warehouse.
+Queries can start a stopped warehouse and consume compute credits;
+stopping the local app leaves shared cloud compute running.
 
-After sign-in, choose a SQL warehouse. If listing fails, enter its known
-warehouse ID or HTTP path from **SQL Warehouses \> your warehouse \>
-Connection details**. You need **CAN USE** on that warehouse. Click
-**Run example query** to run `SELECT current_user() AS signed_in_user`;
-listing warehouses doesn’t run SQL. Queries can start a stopped
-warehouse and consume compute credits. Stopping the local app leaves
-shared cloud compute running. Sign out and back in to choose a different
-warehouse after the first query.
-
-Databricks Free Edition doesn’t provide the account-level custom OAuth
-registration this demo needs. Use a full workspace or eligible
-full-platform trial with access to custom registration. See the [Free
-Edition
-limits](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations)
-and
-[`?oauth_db_cloud_demo`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md).
-For editing and resuming demos, see [Getting
+This demo requests SQL access, while the preset below also allows API
+calls. Databricks Free Edition doesn’t provide the custom OAuth
+registration it needs; see the [Free Edition
+limits](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations).
+For registration choices, warehouse settings and resuming an app, see
+[`?oauth_db_cloud_demo`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md)
+and [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app).
 
 ## Register the app
 
-In R, run `install.packages("brickster")` and ask your administrator to
-[register a Databricks OAuth
+Install `brickster` in R. In the Databricks account console, an
+administrator registers a [custom OAuth
 application](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth)
-with a client secret and `http://localhost:8100` as its redirect URI.
-Allow the scopes requested by the preset, including `all-apis` and
-`offline_access`. Users need access to the workspace, warehouse, and
-data.
+under **Settings \> App connections \> Add connection**. For the preset
+below, allow **All APIs** and `offline_access`, register
+`http://localhost:8100`, and generate a client secret.
 
 Save the client ID and secret in a local `.Renviron` file and restart R:
 
@@ -63,14 +51,6 @@ OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
-In the Databricks **account console**, an administrator opens **Settings
-\> App connections \> Add connection**. Register
-`http://localhost:8100`, allow **All APIs** for this preset and generate
-a client secret. Copy the ID and secret from the result; the secret
-can’t be retrieved later. These are [custom OAuth
-connections](https://docs.databricks.com/aws/en/integrations/enable-disable-oauth),
-separate from service-principal machine credentials.
-
 | App value | Where to find it |
 |----|----|
 | `host` | Your workspace browser address, e.g. `example.cloud.databricks.com` |
@@ -78,8 +58,7 @@ separate from service-principal machine credentials.
 | Client ID and secret | The account console’s custom app connection |
 
 Give users **CAN USE** on the warehouse and the appropriate catalog,
-schema and table privileges. The cloud service can’t be reproduced by a
-local Docker demo.
+schema and table privileges.
 
 ## A complete app
 
@@ -188,14 +167,12 @@ Supply `http_path = "/sql/1.0/warehouses/warehouse-id"` instead of
 `warehouse_id` if you have the HTTP path. Set `catalog` and `schema` to
 choose SQL defaults; other connection options go to brickster.
 
-Call `con()` before each operation. When its token changes, the helper
-replaces the connection. On sign-out or session end, `con()` stops
-returning the connection and calls the driver’s cleanup method. The
-brickster driver doesn’t invalidate retained native handles: a saved
-connection can still submit requests with its copied token. Keep using
-`con()` for each operation. See [Getting
-started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions)
-for results saved in the app.
+Call `con()` before each operation. The helper replaces the connection
+when its token changes and stops providing it after sign-out. A saved
+brickster handle can retain its old token, so obtain the connection from
+`con()` each time. See [Getting
+started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#save-query-results)
+for clearing saved results.
 
 ## Azure Databricks with Entra sign-in
 

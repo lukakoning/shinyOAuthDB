@@ -1,35 +1,29 @@
 # Snowflake
 
 Snowflake is a hosted SQL data platform. A warehouse supplies the
-compute for queries; database roles control access. Add Snowflake data
-to a Shiny app using each visitor’s own account and role. Query through
-a DBI connection, or use dbplyr to work with tables.
+compute for queries, while a role determines which data a user can
+access. A Shiny app can use each visitor’s Snowflake account and role to
+apply those same permissions.
 
-The example first shows the signed-in user’s Snowflake username and
-role, so you can check the connection before querying your data.
+[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md)
+provides a DBI connection for SQL or dbplyr. The first example shows the
+signed-in user’s name and role so you can check the connection before
+querying your tables.
 
 ## Try the guided demo
 
-Run `shinyOAuthDB::oauth_db_cloud_demo("snowflake")` in your R console.
-The guide asks for `server`, `role`, `warehouse` and the custom OAuth
-`client_id`; it explains how an administrator registers the exact local
-callback and where to obtain the client secret. It uses a confidential
-integration and masked secret input, or
-`OAUTHDB_SNOWFLAKE_CLIENT_SECRET`. Install `odbc`, `processx`, `askpass`
-and the Snowflake ODBC driver first.
+Run `shinyOAuthDB::oauth_db_cloud_demo("snowflake")` in the R console
+for an editable app. It walks through your account, role, warehouse and
+OAuth registration. Install `odbc`, `bslib`, `processx`, `askpass` and
+the Snowflake ODBC driver first.
 
-The editable local app requests the same role at sign-in and connection,
-then waits for **Run example query**. Queries may resume a warehouse and
-consume credits; stopping the app doesn’t suspend a shared warehouse.
-Optional `database`, `schema` and `driver` arguments customize the
-setup. See [Getting
+Sign in, then click **Run example query**. Queries may resume a
+warehouse and consume credits; stopping the local app doesn’t suspend
+the warehouse. See [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app)
-for pausing, editing and resuming.
-
-Without an account, check [Snowflake trial
-accounts](https://docs.snowflake.com/en/user-guide/admin-trial-account).
-You still need permission to create the OAuth integration and a usable
-role/warehouse. Live trial compatibility remains unverified here.
+for editing and
+[`?oauth_db_cloud_demo`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md)
+for optional settings.
 
 ## Snowflake setup
 
@@ -61,8 +55,7 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 | Client ID and secret | The custom-client security integration, shown below |
 
 If the integration doesn’t exist yet, follow **Create the OAuth
-integration** after the app example. Snowflake runs as a cloud service;
-this guide needs an account rather than a Docker container.
+integration** after the app example.
 
 ## A complete app
 
@@ -125,6 +118,22 @@ runApp(
 Run `source("example.R")` and open `http://localhost:8100`. Sign in to
 run the query; signing out clears the output.
 
+## Query a table
+
+Replace the output expression with SQL for your data. For example, if
+your table is `ANALYTICS.PUBLIC.ORDERS`:
+
+``` r
+
+output$rows <- renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20")
+})
+```
+
+`con()` gets the current user’s connection. Call it inside the render or
+reactive expression before using DBI or dbplyr.
+
 ## Create the OAuth integration
 
 A Snowflake administrator can run this in a SQL worksheet to register a
@@ -152,22 +161,6 @@ non-TLS redirect exception when deploying. Snowflake’s [custom-client
 guide](https://docs.snowflake.com/en/user-guide/oauth-custom) covers
 integration privileges and role restrictions.
 
-## Query a table
-
-Replace the output expression with SQL for your data. For example, if
-your table is `ANALYTICS.PUBLIC.ORDERS`:
-
-``` r
-
-output$rows <- renderTable({
-  connection <- con()
-  DBI::dbGetQuery(connection, "SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20")
-})
-```
-
-`con()` gets the current user’s connection. Call it inside the render or
-reactive expression before using DBI or dbplyr.
-
 ## Connection defaults
 
 Set `schema = "PUBLIC"` on the helper to choose a default schema. Omit
@@ -175,10 +168,6 @@ Set `schema = "PUBLIC"` on the helper to choose a default schema. Omit
 the installed ODBC driver has a different name, set `driver`. See
 [`?oauth_db_snowflake`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md)
 for the full arguments.
-
-The connection uses the Snowflake driver’s HTTPS transport and the
-visitor’s OAuth token. Protocol and authentication overrides are
-rejected in `...`.
 
 ## External OAuth
 

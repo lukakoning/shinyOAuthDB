@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,36 +65,27 @@
 
     
     
+<p>Use Azure SQL in a Shiny app while keeping access to the data under
+your database’s existing permissions. Visitors sign in with their
+Microsoft account, and Azure SQL decides which tables and rows they can
+query.</p>
 <p>Azure SQL is Microsoft’s hosted SQL database; SQL Server can also run
-on your own infrastructure. Let people sign in with their Microsoft
-account and query Azure SQL from your Shiny app. Their database
-permissions determine which data they can see.</p>
-<p><code><a href="../reference/oauth_db_azure_sql.html">oauth_db_azure_sql()</a></code> provides a connection for ordinary
-DBI or dbplyr queries. The app below starts by listing the tables the
-user can access.</p>
+on your own infrastructure. <code><a href="../reference/oauth_db_azure_sql.html">oauth_db_azure_sql()</a></code> gives your
+app a DBI connection for SQL or dbplyr queries. The first example lists
+the tables the signed-in user can access.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
 <p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("azure-sql")</code> in
-your R console. The guide asks for <code>server</code>,
-<code>database</code>, Entra <code>tenant_id</code> and
-<code>client_id</code>, then your registration type. It explains the
-database user/group setup, firewall access and delegated SQL permission
-separately from app consent. You can save a draft while an administrator
-arranges access.</p>
-<p>Install <code>odbc</code>, <code>processx</code>,
-<code>askpass</code> and Microsoft ODBC Driver 18 first. The editable
-local app waits for <strong>Run example query</strong> before
-connecting. For scripts, supply the settings above; optional
-<code>driver</code> and <code>database_port</code> configure the native
-connection. The Shiny callback’s <code>port</code> is separate. A
-confidential registration uses
-<code>OAUTHDB_AZURE_SQL_CLIENT_SECRET</code> or masked input. See <a href="getting-started.html#more-ways-to-try-an-app">Getting
-started</a>.</p>
-<p>If you need an account and database, check the <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/free-offer" class="external-link">Azure
-SQL free offer</a>. Availability and allowances depend on your
-subscription; stopping the local app does not stop Azure billing or
-pause its database.</p>
+the R console to set up an editable local app. It asks for your database
+and Microsoft app registration, and explains where to find each setting.
+You can save a draft while an administrator arranges access.</p>
+<p>The demo needs <code>odbc</code>, <code>bslib</code>,
+<code>processx</code>, <code>askpass</code> and Microsoft ODBC Driver
+18. Sign in, then click <strong>Run example query</strong> to connect.
+Stopping the local app leaves the Azure database running. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for editing and <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for the launcher
+arguments.</p>
 </div>
 <div class="section level2">
 <h2 id="set-up-access">Set up access<a class="anchor" aria-label="anchor" href="#set-up-access"></a>
@@ -230,21 +221,6 @@ database:</p>
 out clears the output.</p>
 </div>
 <div class="section level2">
-<h2 id="give-users-database-access">Give users database access<a class="anchor" aria-label="anchor" href="#give-users-database-access"></a>
-</h2>
-<p>An administrator first sets an Entra administrator on the Azure SQL
-logical server. Connect to the target database with that administrator
-and create an external user or group, then grant the intended access.
-For example:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="kw">CREATE</span> <span class="fu">USER</span> [reporting<span class="op">-</span>readers] <span class="kw">FROM</span> EXTERNAL PROVIDER;</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> <span class="dt">OBJECT</span>:<span class="ch">:dbo</span>.Orders <span class="kw">TO</span> [reporting<span class="op">-</span>readers];</span></code></pre></div>
-<p>Use an existing Entra group name and your actual table. This
-establishes database permissions for its members; OAuth registration
-alone doesn’t. Microsoft’s <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql" class="external-link">Entra
-configuration guide</a> covers administrator setup and external
-users.</p>
-</div>
-<div class="section level2">
 <h2 id="query-with-dbplyr">Query with dbplyr<a class="anchor" aria-label="anchor" href="#query-with-dbplyr"></a>
 </h2>
 <p>In the app, <code>con</code> is a function. Calling
@@ -253,7 +229,7 @@ user’s DBI connection.</p>
 <p>To read an <code>Orders</code> table with dbplyr, install
 <code>dbplyr</code> and <code>dplyr</code>, then replace the output
 expression with:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">tbl</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"Orders"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -262,6 +238,21 @@ expression with:</p>
 <span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
 <p>For SQL queries that include values entered by a user, use DBI
 parameter binding.</p>
+</div>
+<div class="section level2">
+<h2 id="give-users-database-access">Give users database access<a class="anchor" aria-label="anchor" href="#give-users-database-access"></a>
+</h2>
+<p>An administrator first sets an Entra administrator on the Azure SQL
+logical server. Connect to the target database with that administrator
+and create an external user or group, then grant the intended access.
+For example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="kw">CREATE</span> <span class="fu">USER</span> [reporting<span class="op">-</span>readers] <span class="kw">FROM</span> EXTERNAL PROVIDER;</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> <span class="dt">OBJECT</span>:<span class="ch">:dbo</span>.Orders <span class="kw">TO</span> [reporting<span class="op">-</span>readers];</span></code></pre></div>
+<p>Use an existing Entra group name and your actual table. This
+establishes database permissions for its members; OAuth registration
+alone doesn’t. Microsoft’s <a href="https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql" class="external-link">Entra
+configuration guide</a> covers administrator setup and external
+users.</p>
 </div>
 <div class="section level2">
 <h2 id="other-sql-server-deployments">Other SQL Server deployments<a class="anchor" aria-label="anchor" href="#other-sql-server-deployments"></a>

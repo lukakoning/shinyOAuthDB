@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,37 +65,38 @@
 
     
     
-<p>Use <code><a href="../reference/oauth_db_oracle_ords_api.html">oauth_db_oracle_ords_api()</a></code> to read protected Oracle
-REST Data Services (ORDS) resources and call JSON handlers with each
-visitor’s OAuth token. It uses HTTPS without Oracle client libraries.
-For a native DBI connection, see <a href="oracle.html">Oracle
-Database</a>.</p>
+<p>Oracle REST Data Services (ORDS) exposes selected Oracle tables and
+database procedures through web APIs. Use it when your Shiny app needs
+to read Oracle data over HTTPS without installing Oracle client
+libraries.</p>
+<p><code><a href="../reference/oauth_db_oracle_ords_api.html">oauth_db_oracle_ords_api()</a></code> reads collections of records
+and calls custom JSON endpoints with each visitor’s access token. ORDS
+controls access to those endpoints; the database and endpoint code
+determine which data they return. For SQL queries through DBI or dbplyr,
+use the separate <a href="oracle.html">Oracle Database guide</a>.</p>
 <div class="section level2">
 <h2 id="set-up-ords-and-sign-in">Set up ORDS and sign-in<a class="anchor" aria-label="anchor" href="#set-up-ords-and-sign-in"></a>
 </h2>
-<p>An ORDS administrator must REST-enable the required schema resources
-and protect them with ORDS privileges. Configure a JWT profile with the
-expected issuer, audience and signing keys. Map the token’s scopes or
-roles to the resource privileges. ORDS documents external-provider JWT
-profiles from release 23.3, including providers such as OCI IAM Identity
-Domains, Keycloak, Auth0 and Okta. Follow the <a href="https://docs.oracle.com/en/database/oracle/oracle-rest-data-services/26.3/orddg/developing-REST-applications.html" class="external-link">ORDS
-authentication guide</a>.</p>
-<p>Register an authorization-code client with PKCE at the trusted
-provider and add <code>http://localhost:8100</code> as a redirect URI.
-Configure the client to receive a JWT with the audience and access scope
-ORDS expects. Request OpenID Connect scopes for the Shiny sign-in.
-Enable refresh tokens when requesting <code>offline_access</code>, or
-use the provider’s documented alternative.</p>
-<p>Save the app settings in <code>.Renviron</code> and restart R:</p>
+<p>Ask your administrator for an HTTPS ORDS endpoint exposing the
+resources your app needs. The example reads an AutoREST collection,
+which exposes table records as JSON. Use the schema alias URL, including
+any reverse-proxy prefix, and replace <code>orders</code> with your
+collection’s name.</p>
+<p>ORDS must protect the resource and accept JWT access tokens from your
+sign-in provider. External-provider JWT profiles require ORDS 23.3 or
+later; see the <a href="https://docs.oracle.com/en/database/oracle/oracle-rest-data-services/26.3/orddg/developing-REST-applications.html" class="external-link">ORDS
+authentication guide</a> for issuer, audience and privilege
+mappings.</p>
+<p>Register your Shiny app with that provider, using
+<code>http://localhost:8100</code> as the redirect URI. Request the
+access scope for the resource and enable refresh tokens if you use
+<code>offline_access</code>. Save the settings in <code>.Renviron</code>
+and restart R:</p>
 <pre class="text"><code>OAUTHDB_CLIENT_ID=your-shiny-app-client-id
 OAUTHDB_CLIENT_SECRET=your-shiny-app-client-secret
 OAUTHDB_ORDS_ISSUER=https://login.example.org/realms/reporting
 OAUTHDB_ORDS_SCOPE=reports.read
 OAUTHDB_ORDS_URL=https://data.example.org/ords/reporting</code></pre>
-<p>Use the ORDS schema alias URL, including any reverse-proxy prefix.
-The example assumes that <code>orders/</code> is a protected AutoREST
-collection. Register resources and database access rules before running
-it.</p>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
@@ -151,11 +152,10 @@ it.</p>
 <p>Save this as <code>example.R</code>, run
 <code>source("example.R")</code>, and open
 <code>http://localhost:8100</code> in a regular browser. Sign in to read
-one page of the collection. Use <code>offset</code> and
-<code>limit</code> to page explicitly. Responses retain
-<code>items</code>, <code>hasMore</code>, offsets and links as native
-JSON lists; large JSON integers are strings. Server-provided links are
-never followed.</p>
+one page of the collection. Results are JSON lists, with records in
+<code>items</code>. Use <code>offset</code> and <code>limit</code> to
+fetch further pages; the client doesn’t follow pagination links
+automatically.</p>
 <p>For a custom JSON handler, call its relative path:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">ords</span><span class="op">$</span><span class="fu">request</span><span class="op">(</span></span>
@@ -163,13 +163,11 @@ never followed.</p>
 <span>  query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>country <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span>,</span>
 <span>  trailing_slash <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><code>select()</code> appends a trailing slash for AutoREST
-collections. <code>request()</code> uses the path exactly, with
-<code>trailing_slash = TRUE</code> when the resource needs one. The
-client rejects redirects instead of sending credentials to a different
-endpoint. Use <code>raw = TRUE</code> to inspect a successful httr2
-response. POST, PUT and PATCH can send a JSON <code>body</code>; the API
-is not a DBI connection or a SQL-result parser.</p>
+<p><code>select()</code> handles AutoREST collection paths. For a custom
+endpoint, <code>request()</code> uses the path you supply; set
+<code>trailing_slash = TRUE</code> if it needs one. See
+<code><a href="../reference/oauth_db_oracle_ords_api.html">?oauth_db_oracle_ords_api</a></code> for other request methods and raw
+responses.</p>
 </div>
 <div class="section level2">
 <h2 id="user-identity-and-data-access">User identity and data access<a class="anchor" aria-label="anchor" href="#user-identity-and-data-access"></a>
@@ -181,17 +179,11 @@ JWT does not by itself change the database schema used by a handler.
 Configure handler filtering or a supported end-user security context to
 enforce the required per-user data access. Verify two users with
 different permissions before deployment.</p>
-<p>Each operation gets a current token and stays tied to the
-authorization it started with. Responses arriving after sign-out or
-account replacement are discarded. GET and HEAD can refresh and retry
-once after HTTP 401. POST, PUT, PATCH and DELETE are never replayed
-automatically. The client does not follow redirects or pagination links.
-It returns native JSON responses from custom handlers without
-interpreting application-specific success fields.</p>
-<p>Automated tests mock ORDS responses and cover token renewal, scope
-checks, account isolation, routing, errors and request replay rules. No
-live ORDS or Oracle database was available for integration
-validation.</p>
+<p>Each call uses a current token and discards results after sign-out or
+account changes. Read requests can refresh and retry once after HTTP
+401; writes don’t retry automatically. The client returns your custom
+handler’s JSON without interpreting application-specific status
+fields.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

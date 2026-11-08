@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,19 +65,22 @@
 
     
     
-<p>StarRocks is an open-source SQL engine for analytics. Query StarRocks
-with DBI or dbplyr using each visitor’s JWT access token. The connection
-uses StarRocks’s MySQL protocol and MySQL Connector/ODBC’s OpenID
-Connect client plugin.</p>
+<p>StarRocks is an open-source SQL engine for analytics. You can use it
+to query data from a Shiny dashboard with each visitor’s database
+permissions.</p>
+<p><code><a href="../reference/oauth_db_starrocks.html">oauth_db_starrocks()</a></code> opens a DBI connection using the
+visitor’s signed access token. StarRocks verifies the token and applies
+the database user’s privileges. Your app can then use SQL or dbplyr to
+read the data.</p>
 <div class="section level2">
 <h2 id="try-the-local-demo">Try the local demo<a class="anchor" aria-label="anchor" href="#try-the-local-demo"></a>
 </h2>
 <p>With Docker running,
 <code>shinyOAuthDB::oauth_db_demo("starrocks")</code> starts a
-configured server, Keycloak and an app with Alice and Bob’s accounts.
-See <a href="getting-started.html#build-a-small-app">Getting started</a>
-for credentials and cleanup. StarRocks uses amd64 images and needs about
-4 GB of Docker memory.</p>
+configured server, Keycloak sign-in and an app with Alice and Bob’s
+accounts. Docker supplies the database driver too. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
+credentials and cleanup. The StarRocks images use amd64 and need about 4
+GB of Docker memory.</p>
 </div>
 <div class="section level2">
 <h2 id="values-for-your-own-server">Values for your own server<a class="anchor" aria-label="anchor" href="#values-for-your-own-server"></a>
@@ -234,31 +237,19 @@ using this helper.</p>
 <div class="section level2">
 <h2 id="connection-lifetime-and-queries">Connection lifetime and queries<a class="anchor" aria-label="anchor" href="#connection-lifetime-and-queries"></a>
 </h2>
-<p>Call <code>con()</code> before every operation. The helper keeps a
-valid SQL connection through normal token refresh, replaces it when the
-account or resolved username changes, and disconnects it on sign-out or
-session end.</p>
+<p>Get a current connection inside each render or reactive
+expression:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT id, total FROM orders LIMIT 20"</span><span class="op">)</span></span>
 <span><span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">tbl</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"orders"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">total</span> <span class="op">&gt;=</span> <span class="fl">100</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>MySQL Connector/ODBC accepts its JWT through the
-<code>openid-token-file</code> connection option. The helper writes it
-into a private temporary directory only while opening the connection,
-then removes the file on success, error, or interrupt. On Windows the
-directory inherits access rules from R’s temporary directory, which must
-be private to the app user.</p>
-<p>An open SQL session may remain usable after its login token expires,
-depending on the server. Reopen a broken connection through
-<code>con()</code>; do not reconnect, clone, or pool a saved handle
-using its former token file. Queries and mutations are never replayed by
-this package.</p>
-<p>The HTTP SQL API documents Basic authentication. This backend
-deliberately uses the documented JWT plugin through the MySQL protocol;
-it does not assume that a bearer header authenticates the HTTP SQL
-endpoint.</p>
+<p>The helper keeps a valid SQL connection through token renewal and
+replaces it when the account or username changes. Sign-out and session
+end close the connection. If it breaks, call <code>con()</code> to
+reopen it; the helper doesn’t replay failed queries. See
+<code><a href="../reference/oauth_db_starrocks.html">?oauth_db_starrocks</a></code> for driver and connection options.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

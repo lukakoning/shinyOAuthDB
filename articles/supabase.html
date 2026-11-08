@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,16 +65,13 @@
 
     
     
-<p>Supabase exposes PostgreSQL tables, views and functions through its
-REST Data API. Use <code><a href="../reference/oauth_db_supabase_api.html">oauth_db_supabase_api()</a></code> to query with
-each visitor’s access token; database grants and row-level security
-(RLS) decide which rows they can read or change. No PostgreSQL driver is
-needed.</p>
-<p>The client provides the same <code>select()</code>,
-<code>rpc()</code> and <code>request()</code> methods as the <a href="postgrest.html">PostgREST client</a>. It supports hosted projects
-and self-hosted deployments exposed through verified HTTPS, including
-custom domains and reverse proxy paths. It does not provide a SQL
-connection or clients for Storage, Realtime or the Management API.</p>
+<p>Supabase provides a PostgreSQL database with a web API for its
+tables, views and functions. A Shiny app can use this Data API to read
+data with each visitor’s account, without a PostgreSQL driver.</p>
+<p><code><a href="../reference/oauth_db_supabase_api.html">oauth_db_supabase_api()</a></code> sends the visitor’s access token
+with requests. PostgreSQL grants and row-level security policies
+determine which records they can read or change. The first example uses
+a table of notes where each person can read only their own rows.</p>
 <div class="section level2">
 <h2 id="configure-supabase-sign-in">Configure Supabase sign-in<a class="anchor" aria-label="anchor" href="#configure-supabase-sign-in"></a>
 </h2>
@@ -106,13 +103,10 @@ keys settings. It identifies your application and is separate from the
 OAuth client ID and secret. For a public client, leave
 <code>OAUTHDB_CLIENT_SECRET</code> empty. Restart R after editing
 <code>.Renviron</code> and keep the file out of Git.</p>
-<p>The Data API client sends the publishable key in <code>apikey</code>
-and the current visitor access token in
-<code>Authorization: Bearer ...</code>. It waits for sign-in before
-sending requests. A legacy <code>anon</code> JWT also works, including
-on self-hosted projects using legacy API keys. The helper rejects
-<code>sb_secret_...</code> and legacy <code>service_role</code> keys.
-See <a href="https://supabase.com/docs/guides/getting-started/api-keys" class="external-link">Supabase
+<p>Use a publishable key or legacy <code>anon</code> key. The visitor’s
+access token provides their identity; the project key identifies the
+application. Server secret keys and <code>service_role</code> keys
+aren’t accepted. See <a href="https://supabase.com/docs/guides/getting-started/api-keys" class="external-link">Supabase
 API keys</a>.</p>
 </div>
 <div class="section level2">
@@ -190,11 +184,10 @@ tokens and RLS</a>.</p>
 <span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span><span class="op">)</span>, port <span class="op">=</span> <span class="fl">8100</span>, launch.browser <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Open http://localhost:8100 in your regular browser</span></span></code></pre></div>
-<p><code><a href="../reference/oauth_db_supabase_client.html">oauth_db_supabase_client()</a></code> discovers the project’s
-<code>/auth/v1</code> OIDC issuer. shinyOAuth handles the
-authorization-code flow, identity validation and token renewal. Supabase
-issues refresh tokens without requiring an <code>offline_access</code>
-scope. Calls to the Data API use the access token.</p>
+<p>shinyOAuth handles sign-in and token renewal. Supabase supplies
+refresh tokens without an <code>offline_access</code> scope. The Data
+API helper waits for sign-in, then uses the visitor’s current access
+token.</p>
 </div>
 <div class="section level2">
 <h2 id="use-an-existing-third-party-identity-provider">Use an existing third-party identity provider<a class="anchor" aria-label="anchor" href="#use-an-existing-third-party-identity-provider"></a>
@@ -227,9 +220,8 @@ verified JWT claims.</p>
 <h2 id="functions-schemas-and-writes">Functions, schemas and writes<a class="anchor" aria-label="anchor" href="#functions-schemas-and-writes"></a>
 </h2>
 <p>Use <code>schema = "reporting"</code> to select another schema
-exposed by the Data API. The client sends <code>Accept-Profile</code>
-for reads and <code>Content-Profile</code> for writes. The signed-in
-user’s role still needs schema and object privileges.</p>
+exposed by the Data API. The signed-in user’s role still needs schema
+and object privileges.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Call an existing database function with the visitor's permissions.</span></span>
 <span><span class="va">total</span> <span class="op">&lt;-</span> <span class="va">supabase</span><span class="op">$</span><span class="fu">rpc</span><span class="op">(</span><span class="st">"note_total"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>category <span class="op">=</span> <span class="st">"work"</span><span class="op">)</span><span class="op">)</span></span>
@@ -248,11 +240,10 @@ user’s role still needs schema and object privileges.</p>
 resources, counts and result types. The project must expose a function
 before <code>rpc()</code> can call it; this client does not execute
 arbitrary SQL.</p>
-<p>GET and HEAD retry once after HTTP 401 with a renewed visitor token.
-Writes and POST function calls never retry automatically. Requests
-reject redirects and discard responses after account changes, sign-out
-or permission loss. The project key stays attached to the client when a
-visitor changes accounts.</p>
+<p>Reads can refresh and retry once after HTTP 401; writes and POST
+function calls don’t retry automatically. Results are discarded after
+sign-out or account changes. See <code><a href="../reference/oauth_db_supabase_api.html">?oauth_db_supabase_api</a></code> for
+request options.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

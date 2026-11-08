@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -66,66 +66,47 @@
     
     
 <p>Databricks is a hosted data and analytics platform. Its SQL
-warehouses run queries against your tables. Query a Databricks SQL
-warehouse from Shiny using each visitor’s Databricks account.
-<code><a href="../reference/oauth_db_databricks.html">oauth_db_databricks()</a></code> gives you a DBI connection for SQL or
-dbplyr queries.</p>
-<p>The same sign-in works with brickster’s API functions, including
-warehouse listing and query submission.</p>
+warehouses provide the compute that runs queries against your tables.
+With shinyOAuthDB, visitors sign in with their Databricks account and
+query the data their account can access.</p>
+<p><code><a href="../reference/oauth_db_databricks.html">oauth_db_databricks()</a></code> opens a DBI connection to a
+warehouse, so you can use SQL or dbplyr in your app. Later examples use
+the same sign-in to call Databricks APIs through the brickster
+package.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
-<p>For guided setup and an editable app, run this in the R console:</p>
+<p>Run this in the R console for an editable app that walks through
+setup:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"brickster"</span>, <span class="st">"jsonlite"</span>, <span class="st">"processx"</span>, <span class="st">"askpass"</span>, <span class="st">"bslib"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_cloud_demo.html">oauth_db_cloud_demo</a></span><span class="op">(</span><span class="st">"databricks"</span><span class="op">)</span></span></code></pre></div>
-<p>The launcher asks for your workspace URL and custom OAuth app
-registration. It uses SQL access with <code>openid</code>,
-<code>profile</code>, <code>email</code>, <code>offline_access</code>
-and <code>sql</code> scopes. A public PKCE registration needs no secret;
-a confidential registration uses masked input or
-<code>OAUTHDB_DATABRICKS_CLIENT_SECRET</code>. Register the exact
-callback it prints, normally <code>http://localhost:8100</code>. This
-SQL demo requests narrower access than the <code>all-apis</code> preset
-below.</p>
-<p>After sign-in, choose a SQL warehouse. If listing fails, enter its
-known warehouse ID or HTTP path from <strong>SQL Warehouses &gt; your
-warehouse &gt; Connection details</strong>. You need <strong>CAN
-USE</strong> on that warehouse. Click <strong>Run example query</strong>
-to run <code>SELECT current_user() AS signed_in_user</code>; listing
-warehouses doesn’t run SQL. Queries can start a stopped warehouse and
-consume compute credits. Stopping the local app leaves shared cloud
-compute running. Sign out and back in to choose a different warehouse
-after the first query.</p>
-<p>Databricks Free Edition doesn’t provide the account-level custom
-OAuth registration this demo needs. Use a full workspace or eligible
-full-platform trial with access to custom registration. See the <a href="https://docs.databricks.com/aws/en/getting-started/free-edition-limitations" class="external-link">Free
-Edition limits</a> and <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code>. For editing
-and resuming demos, see <a href="getting-started.html#more-ways-to-try-an-app">Getting
+<p>The launcher asks for your workspace URL and OAuth app registration.
+Sign in, choose a SQL warehouse, then click <strong>Run example
+query</strong> to check your Databricks user. You need <strong>CAN
+USE</strong> on the warehouse. Queries can start a stopped warehouse and
+consume compute credits; stopping the local app leaves shared cloud
+compute running.</p>
+<p>This demo requests SQL access, while the preset below also allows API
+calls. Databricks Free Edition doesn’t provide the custom OAuth
+registration it needs; see the <a href="https://docs.databricks.com/aws/en/getting-started/free-edition-limitations" class="external-link">Free
+Edition limits</a>. For registration choices, warehouse settings and
+resuming an app, see <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> and <a href="getting-started.html#more-ways-to-try-an-app">Getting
 started</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="register-the-app">Register the app<a class="anchor" aria-label="anchor" href="#register-the-app"></a>
 </h2>
-<p>In R, run <code>install.packages("brickster")</code> and ask your
-administrator to <a href="https://docs.databricks.com/aws/en/integrations/enable-disable-oauth" class="external-link">register
-a Databricks OAuth application</a> with a client secret and
-<code>http://localhost:8100</code> as its redirect URI. Allow the scopes
-requested by the preset, including <code>all-apis</code> and
-<code>offline_access</code>. Users need access to the workspace,
-warehouse, and data.</p>
+<p>Install <code>brickster</code> in R. In the Databricks account
+console, an administrator registers a <a href="https://docs.databricks.com/aws/en/integrations/enable-disable-oauth" class="external-link">custom
+OAuth application</a> under <strong>Settings &gt; App connections &gt;
+Add connection</strong>. For the preset below, allow <strong>All
+APIs</strong> and <code>offline_access</code>, register
+<code>http://localhost:8100</code>, and generate a client secret.</p>
 <p>Save the client ID and secret in a local <code>.Renviron</code> file
 and restart R:</p>
 <pre class="text"><code><span><span class="va">OAUTHDB_CLIENT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
-<p>In the Databricks <strong>account console</strong>, an administrator
-opens <strong>Settings &gt; App connections &gt; Add
-connection</strong>. Register <code>http://localhost:8100</code>, allow
-<strong>All APIs</strong> for this preset and generate a client secret.
-Copy the ID and secret from the result; the secret can’t be retrieved
-later. These are <a href="https://docs.databricks.com/aws/en/integrations/enable-disable-oauth" class="external-link">custom
-OAuth connections</a>, separate from service-principal machine
-credentials.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -154,8 +135,7 @@ details</strong>; also the last part of its HTTP path</td>
 </tbody>
 </table>
 <p>Give users <strong>CAN USE</strong> on the warehouse and the
-appropriate catalog, schema and table privileges. The cloud service
-can’t be reproduced by a local Docker demo.</p>
+appropriate catalog, schema and table privileges.</p>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
@@ -253,13 +233,11 @@ you want <code><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="
 instead of <code>warehouse_id</code> if you have the HTTP path. Set
 <code>catalog</code> and <code>schema</code> to choose SQL defaults;
 other connection options go to brickster.</p>
-<p>Call <code>con()</code> before each operation. When its token
-changes, the helper replaces the connection. On sign-out or session end,
-<code>con()</code> stops returning the connection and calls the driver’s
-cleanup method. The brickster driver doesn’t invalidate retained native
-handles: a saved connection can still submit requests with its copied
-token. Keep using <code>con()</code> for each operation. See <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
-started</a> for results saved in the app.</p>
+<p>Call <code>con()</code> before each operation. The helper replaces
+the connection when its token changes and stops providing it after
+sign-out. A saved brickster handle can retain its old token, so obtain
+the connection from <code>con()</code> each time. See <a href="getting-started.html#save-query-results">Getting started</a> for
+clearing saved results.</p>
 </div>
 <div class="section level2">
 <h2 id="azure-databricks-with-entra-sign-in">Azure Databricks with Entra sign-in<a class="anchor" aria-label="anchor" href="#azure-databricks-with-entra-sign-in"></a>

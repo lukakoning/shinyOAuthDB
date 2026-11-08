@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Remote DuckDB with OAuth • shinyOAuthDB</title>
+<title>Remote DuckDB • shinyOAuthDB</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Remote DuckDB with OAuth">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Remote DuckDB">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -56,7 +56,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Remote DuckDB with OAuth</h1>
+      <h1>Remote DuckDB</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/lukakoning/shinyOAuthDB/blob/main/vignettes/duckdb.Rmd" class="external-link"><code>vignettes/duckdb.Rmd</code></a></small>
@@ -65,13 +65,14 @@
 
     
     
-<p>DuckDB is an open-source analytical SQL database, often used inside
-R. Here it runs as a remote server through Quack, DuckDB’s network
-protocol. Use <code><a href="../reference/oauth_db_duckdb.html">oauth_db_duckdb()</a></code> to query a remote DuckDB
-Quack server with each visitor’s OAuth access token. The connection
-works with DBI and dbplyr. A local DuckDB file has no OAuth login; this
-helper connects to a server that validates tokens and enforces its own
-data access policy.</p>
+<p>DuckDB is an analytical SQL database, often used to query data inside
+R. If you want several app users to query a shared remote database, you
+can run DuckDB as a server using Quack, its network protocol.</p>
+<p><code><a href="../reference/oauth_db_duckdb.html">oauth_db_duckdb()</a></code> connects your Shiny app to that server
+with each visitor’s access token. You query with DBI or dbplyr, while
+the server checks the token and controls access. This setup needs a
+remote server configured for OAuth; opening a local DuckDB file doesn’t
+provide user sign-in.</p>
 <div class="section level2">
 <h2 id="try-the-local-quack-demo">Try the local Quack demo<a class="anchor" aria-label="anchor" href="#try-the-local-quack-demo"></a>
 </h2>
@@ -79,22 +80,18 @@ data access policy.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"duckdb"</span><span class="op">)</span></span></code></pre></div>
 <p>Sign in as Alice or Bob using the <a href="getting-started.html#build-a-small-app">demo accounts</a>. Both
-can read the shared sample table. <strong>Try a write</strong>
-demonstrates that the server rejects writes. Docker supplies DuckDB
-1.5.4, matching Quack extensions, <code>quack_oauth</code> and Keycloak.
-It uses a prebuilt R client where available; compiling the client on
-other platforms takes longer. The installed
-<code>duckdb/server.py</code> and <code>realm-extended.json</code> show
-the validator, audience and <code>quack:read</code> scope
-configuration.</p>
+can read the shared sample table. <strong>Try a write</strong> checks
+that the server rejects writes. Docker supplies the matching DuckDB
+client and server extensions. See <code><a href="../reference/oauth_db_demo.html">?oauth_db_demo</a></code> for
+editing the app or copying the server configuration.</p>
 </div>
 <div class="section level2">
 <h2 id="before-running-the-app">Before running the app<a class="anchor" aria-label="anchor" href="#before-running-the-app"></a>
 </h2>
-<p>This example needs a remote Quack server that accepts OAuth tokens,
-plus R’s <code>duckdb</code> package (1.5.3 or later) with matching
-<code>quack</code> and <code>httpfs</code> extensions. The server and
-extension setup follows the app.</p>
+<p>You need a Quack server configured to accept OAuth access tokens and
+a matching DuckDB client. Install R’s <code>duckdb</code> package (1.5.3
+or later) with the <code>quack</code> and <code>httpfs</code>
+extensions; installation steps follow the app.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -109,40 +106,41 @@ extension setup follows the app.</p>
 <td>
 <code>host</code>, <code>port</code>
 </td>
-<td>The remote Quack server or its TLS proxy; the example uses HTTPS
-port 443</td>
+<td>The remote Quack server or its TLS proxy</td>
 </tr>
 <tr class="even">
 <td>Table name</td>
-<td>A table in the remote catalog you are allowed to read</td>
+<td>A table in the remote catalog the visitor can read</td>
 </tr>
 <tr class="odd">
 <td>Issuer, client ID, secret</td>
-<td>An <a href="getting-started.html#register-your-app">OAuth
+<td>Your <a href="getting-started.html#register-your-app">app
 registration</a> with the server’s trusted provider</td>
 </tr>
 <tr class="even">
 <td><code>quack:read</code></td>
-<td>The default quack_oauth read scope; your provider must issue it</td>
+<td>The default read scope; use your server’s scope if it differs</td>
 </tr>
 <tr class="odd">
 <td>
 <code>ca_bundle</code>, if needed</td>
-<td>The CA for a privately signed server certificate</td>
+<td>The CA certificate for a privately signed server certificate</td>
 </tr>
 </tbody>
 </table>
-<p>Set <code>OAUTHDB_DUCKDB_ISSUER</code>,
-<code>OAUTHDB_CLIENT_ID</code> and <code>OAUTHDB_CLIENT_SECRET</code> in
-<code>.Renviron</code>, then restart R. A local <code>.duckdb</code>
-file has no user sign-in.</p>
+<p>Register <code>http://localhost:8100</code> as the redirect URI.
+Configure the provider to issue the server’s audience and read scope,
+then save the registration in <code>.Renviron</code> and restart R:</p>
+<pre class="text"><code>OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_DUCKDB_ISSUER=https://login.example.org/realms/reporting</code></pre>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
 </h2>
 <p>Replace the hostname, port and table name for your deployment. This
 example uses port 443 for a TLS proxy; Quack’s default port is 9494.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
@@ -206,94 +204,40 @@ do not prove which remote principal the server authenticated.</p>
 <div class="section level2">
 <h2 id="install-extensions-and-prepare-the-server">Install extensions and prepare the server<a class="anchor" aria-label="anchor" href="#install-extensions-and-prepare-the-server"></a>
 </h2>
-<p>Use compatible DuckDB and Quack versions on both sides. The R client
-needs <code>duckdb</code> 1.5.3 or later and its matching
-<code>quack</code> and <code>httpfs</code> extensions. Quack’s interface
-has changed between releases, so test your chosen versions together.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<p>Use compatible DuckDB and Quack versions on the client and server.
+Install the client extensions before running the Shiny app:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"duckdb"</span><span class="op">)</span></span>
 <span><span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbConnect.html" class="external-link">dbConnect</a></span><span class="op">(</span><span class="fu">duckdb</span><span class="fu">::</span><span class="fu"><a href="https://r.duckdb.org/reference/duckdb.html" class="external-link">duckdb</a></span><span class="op">(</span><span class="op">)</span>, dbdir <span class="op">=</span> <span class="st">":memory:"</span><span class="op">)</span></span>
 <span><span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbExecute.html" class="external-link">dbExecute</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"INSTALL quack"</span><span class="op">)</span></span>
 <span><span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbExecute.html" class="external-link">dbExecute</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"INSTALL httpfs"</span><span class="op">)</span></span>
 <span><span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbDisconnect.html" class="external-link">dbDisconnect</a></span><span class="op">(</span><span class="va">connection</span>, shutdown <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>Keep extensions in a directory the app can use across R sessions, for
-example by setting <code>DUCKDB_EXTENSION_DIRECTORY</code> before
-provisioning and running the app. The helper loads Quack inside a
-private in-memory DuckDB instance.</p>
-<p>On the server, configure an OAuth validator such as <a href="https://github.com/DataZooDE/quack-oauth" class="external-link">quack_oauth</a>. Follow
-that extension’s installation and server configuration instructions for
-your DuckDB version and server platform. A client can connect even when
-quack_oauth is unavailable for its own platform: only the server loads
-it. Configure its trusted issuer and audience, select its authentication
-and authorization callbacks, and define the scopes and data access
-policy each visitor needs. Quack’s default shared token check does not
-validate OAuth tokens.</p>
-<p>Expose the server through TLS with a certificate trusted by the
-DuckDB client, typically through a reverse proxy. See <a href="https://duckdb.org/docs/current/quack/security" class="external-link">Quack
-security</a>. Pass <code>ca_bundle = "path/to/private-ca.pem"</code> if
-the server uses a private CA. The helper explicitly enables TLS,
-including for loopback hosts. For local development only,
-<code>allow_local_http = TRUE</code> permits HTTP on
-<code>localhost</code>, <code>127.0.0.1</code> or
-<code>[::1]</code>.</p>
-<p><code>quack_oauth</code> also has client-side OAuth flows. They are
-unnecessary here: shinyOAuth handles browser sign-in and renewal; the
-helper passes only the resulting access token to Quack. It creates no
-persistent token secrets.</p>
-</div>
-<div class="section level2">
-<h2 id="register-the-shiny-app">Register the Shiny app<a class="anchor" aria-label="anchor" href="#register-the-shiny-app"></a>
-</h2>
-<p>Register an OAuth client with the server’s identity provider and
-allow <code>http://localhost:8100</code> as a redirect URI. Request
-access tokens for the audience configured on the Quack server. An ID
-token or a token issued for another API cannot substitute for this
-access token.</p>
-<p>This example uses an OIDC provider and the <code>quack:read</code>
-scope from quack_oauth’s default policy. Configure the provider to issue
-that scope and the correct audience. Use your server’s scopes if its
-policy differs. Request <code>offline_access</code> too if your provider
-requires it for renewal. For providers requiring a resource parameter or
-named token target, configure that on the shinyOAuth client and pass the
-target name to <code><a href="../reference/oauth_db_duckdb.html">oauth_db_duckdb()</a></code>.</p>
-<p>Save your registration in <code>.Renviron</code> and restart R:</p>
-<pre class="text"><code>OAUTHDB_CLIENT_ID=your-client-id
-OAUTHDB_CLIENT_SECRET=your-client-secret
-OAUTHDB_DUCKDB_ISSUER=https://login.example.org/realms/reporting</code></pre>
+<p>Keep the extensions in a directory the app can use across R sessions,
+using <code>DUCKDB_EXTENSION_DIRECTORY</code> if needed.</p>
+<p>On the server, configure an OAuth validator such as <a href="https://github.com/DataZooDE/quack-oauth" class="external-link">quack_oauth</a>. Set its
+trusted issuer and audience, and define the scopes and data access
+policy for your users. Quack’s shared-token check alone doesn’t validate
+OAuth tokens. Only the server needs the validator; shinyOAuth handles
+browser sign-in and token renewal in the app.</p>
+<p>Expose the server through TLS with a certificate the client trusts.
+Pass <code>ca_bundle</code> for a private CA. See <a href="https://duckdb.org/docs/current/quack/security" class="external-link">Quack security</a>
+and <code><a href="../reference/oauth_db_duckdb.html">?oauth_db_duckdb</a></code> for connection options, including
+local development.</p>
 </div>
 <div class="section level2">
 <h2 id="connection-lifetime">Connection lifetime<a class="anchor" aria-label="anchor" href="#connection-lifetime"></a>
 </h2>
 <p>Call <code>con()</code> before each operation. Quack receives a token
-when attaching, so the helper closes and replaces the connection when
-the access token changes. This ends transactions and discards temporary
-client state on the old connection. Keep a transaction within one
-synchronous operation and get a new handle for the next operation.</p>
-<p>Account changes, lost required permissions, sign-out and Shiny
-session end close the connection and shut down its private DuckDB
-instance. A caller retaining a raw handle must still obtain
-<code>con()</code> before each operation; the server decides whether an
-existing remote session remains authorized. The helper never retries SQL
-statements or replays a transaction.</p>
-<p>Setup errors omit the token-bearing SQL statement. An attachment
-failure can mean an unavailable endpoint, a rejected TLS certificate or
-token, denied catalog access, or an unknown schema. Check server
-diagnostics and confirm the issuer, audience and scopes match the app
-registration.</p>
+when connecting, so the helper replaces the connection after token
+renewal. This ends transactions and discards temporary client state.
+Keep a transaction within one operation and get a current connection for
+the next one.</p>
+<p>Signing out, changing accounts or ending the Shiny session closes the
+connection. The helper doesn’t retry SQL or replay transactions. If
+connection setup fails, check the endpoint, certificate, token audience
+and scopes with the server administrator.</p>
 <p>For several accounts and saved results, see <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
 started</a>.</p>
-</div>
-<div class="section level2">
-<h2 id="test-the-integration-locally">Test the integration locally<a class="anchor" aria-label="anchor" href="#test-the-integration-locally"></a>
-</h2>
-<p>The source checkout includes a <a href="https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/duckdb-oauth" class="external-link">Docker
-fixture</a> with a real quack_oauth server, a JWKS issuer and a TLS
-proxy. It generates its own signed test tokens and certificates. From
-the repository root, run
-<code>Rscript --vanilla tools/check-duckdb-oauth.R</code> with Docker
-running and the test dependencies installed. The checks cover DBI/dbplyr
-reads, rejected writes, invalid tokens and TLS verification without
-production credentials.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

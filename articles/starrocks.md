@@ -1,18 +1,22 @@
 # StarRocks
 
-StarRocks is an open-source SQL engine for analytics. Query StarRocks
-with DBI or dbplyr using each visitor’s JWT access token. The connection
-uses StarRocks’s MySQL protocol and MySQL Connector/ODBC’s OpenID
-Connect client plugin.
+StarRocks is an open-source SQL engine for analytics. You can use it to
+query data from a Shiny dashboard with each visitor’s database
+permissions.
+
+[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md)
+opens a DBI connection using the visitor’s signed access token.
+StarRocks verifies the token and applies the database user’s privileges.
+Your app can then use SQL or dbplyr to read the data.
 
 ## Try the local demo
 
 With Docker running, `shinyOAuthDB::oauth_db_demo("starrocks")` starts a
-configured server, Keycloak and an app with Alice and Bob’s accounts.
-See [Getting
+configured server, Keycloak sign-in and an app with Alice and Bob’s
+accounts. Docker supplies the database driver too. See [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
-for credentials and cleanup. StarRocks uses amd64 images and needs about
-4 GB of Docker memory.
+for credentials and cleanup. The StarRocks images use amd64 and need
+about 4 GB of Docker memory.
 
 ## Values for your own server
 
@@ -142,10 +146,7 @@ needs a different provider configuration before using this helper.
 
 ## Connection lifetime and queries
 
-Call `con()` before every operation. The helper keeps a valid SQL
-connection through normal token refresh, replaces it when the account or
-resolved username changes, and disconnects it on sign-out or session
-end.
+Get a current connection inside each render or reactive expression:
 
 ``` r
 
@@ -156,19 +157,9 @@ dplyr::tbl(connection, "orders") |>
   dplyr::collect()
 ```
 
-MySQL Connector/ODBC accepts its JWT through the `openid-token-file`
-connection option. The helper writes it into a private temporary
-directory only while opening the connection, then removes the file on
-success, error, or interrupt. On Windows the directory inherits access
-rules from R’s temporary directory, which must be private to the app
-user.
-
-An open SQL session may remain usable after its login token expires,
-depending on the server. Reopen a broken connection through `con()`; do
-not reconnect, clone, or pool a saved handle using its former token
-file. Queries and mutations are never replayed by this package.
-
-The HTTP SQL API documents Basic authentication. This backend
-deliberately uses the documented JWT plugin through the MySQL protocol;
-it does not assume that a bearer header authenticates the HTTP SQL
-endpoint.
+The helper keeps a valid SQL connection through token renewal and
+replaces it when the account or username changes. Sign-out and session
+end close the connection. If it breaks, call `con()` to reopen it; the
+helper doesn’t replay failed queries. See
+[`?oauth_db_starrocks`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md)
+for driver and connection options.

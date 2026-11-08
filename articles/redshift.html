@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,39 +65,28 @@
 
     
     
-<p>Amazon Redshift is AWS’s hosted SQL data warehouse. Query Amazon
-Redshift from Shiny using each visitor’s own database access. The
-connection works with DBI, so you can use your existing SQL queries.</p>
-<p>This example signs users in through Microsoft Entra. It requires a
-Redshift deployment already linked to AWS IAM Identity Center.</p>
+<p>Amazon Redshift is AWS’s hosted SQL data warehouse. Use it to supply
+analytics data to a Shiny app with each visitor’s own database
+permissions. <code><a href="../reference/oauth_db_redshift.html">oauth_db_redshift()</a></code> opens a DBI connection for
+your SQL queries.</p>
+<p>This guide signs users in with Microsoft Entra. It needs a Redshift
+deployment linked to AWS IAM Identity Center, with the two services
+configured to recognize those users. Your administrator must arrange
+that connection before the app can use their sign-in.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
-<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("redshift")</code> in
-your R console. The guide first asks whether IAM Identity Center and
-Entra trusted-token integration are ready. Choose <strong>Not ready
-yet</strong> to save a draft and get setup links. An AWS account and SQL
-endpoint alone don’t provide this flow. Once configured, resume with
-<code>identity_center_ready = "yes"</code>.</p>
-<p>The guide asks for <code>server</code>, <code>database</code>,
-<code>tenant_id</code>, accepted API <code>resource</code>, fully
-qualified delegated <code>scope</code> and Shiny OAuth
-<code>client_id</code>. Administrators must coordinate the trusted
-issuer, JWT audience and user mappings; the resource and scope are not
-the Redshift hostname. The generated example uses Microsoft Entra and
-<code>EXT_JWT</code> through <code>IdpTokenAuthPlugin</code>.</p>
-<p>Install <code>odbc</code>, <code>processx</code>,
-<code>askpass</code> and the Redshift ODBC 2.x driver. Optional
-<code>driver</code> and <code>database_port</code> adjust its connection
-settings. A confidential client uses
-<code>OAUTHDB_REDSHIFT_CLIENT_SECRET</code> or masked input. The
-editable app waits for <strong>Run example query</strong>; stopping it
-doesn’t stop Redshift compute or billing. See <a href="getting-started.html#more-ways-to-try-an-app">Getting
-started</a>.</p>
-<p>With no AWS deployment, read <a href="https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html" class="external-link">Getting
-started with Redshift</a>. Trial availability does not establish
-trusted-identity readiness; this guide doesn’t provision resources or
-configure IAM Identity Center.</p>
+<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("redshift")</code> in the
+R console for an editable app. It checks whether your IAM Identity
+Center integration is ready before asking for the database and Microsoft
+sign-in settings. You can save a draft while an administrator configures
+access.</p>
+<p>Install <code>odbc</code>, <code>bslib</code>, <code>processx</code>,
+<code>askpass</code> and the Redshift ODBC 2.x driver. The app waits for
+<strong>Run example query</strong> before connecting; stopping it leaves
+Redshift compute running. See <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for
+launcher arguments and <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for editing the app.</p>
 </div>
 <div class="section level2">
 <h2 id="set-up-access">Set up access<a class="anchor" aria-label="anchor" href="#set-up-access"></a>
@@ -155,10 +144,6 @@ the delegated permission exposed by that registration. These values
 depend on your AWS/Entra integration and aren’t the Redshift hostname.
 Give this exact resource/scope pair to <code>token_targets</code> as
 below.</p>
-<p>OAuth setup spans AWS and the identity provider. The <a href="https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html" class="external-link">AWS
-integration guide</a> explains which tokens
-<code>IdpTokenAuthPlugin</code> accepts. This needs a real AWS
-deployment; there is no local Docker equivalent.</p>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>

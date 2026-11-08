@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -66,34 +66,25 @@
     
     
 <p>Snowflake is a hosted SQL data platform. A warehouse supplies the
-compute for queries; database roles control access. Add Snowflake data
-to a Shiny app using each visitor’s own account and role. Query through
-a DBI connection, or use dbplyr to work with tables.</p>
-<p>The example first shows the signed-in user’s Snowflake username and
-role, so you can check the connection before querying your data.</p>
+compute for queries, while a role determines which data a user can
+access. A Shiny app can use each visitor’s Snowflake account and role to
+apply those same permissions.</p>
+<p><code><a href="../reference/oauth_db_snowflake.html">oauth_db_snowflake()</a></code> provides a DBI connection for SQL
+or dbplyr. The first example shows the signed-in user’s name and role so
+you can check the connection before querying your tables.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
 <p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("snowflake")</code> in
-your R console. The guide asks for <code>server</code>,
-<code>role</code>, <code>warehouse</code> and the custom OAuth
-<code>client_id</code>; it explains how an administrator registers the
-exact local callback and where to obtain the client secret. It uses a
-confidential integration and masked secret input, or
-<code>OAUTHDB_SNOWFLAKE_CLIENT_SECRET</code>. Install <code>odbc</code>,
-<code>processx</code>, <code>askpass</code> and the Snowflake ODBC
-driver first.</p>
-<p>The editable local app requests the same role at sign-in and
-connection, then waits for <strong>Run example query</strong>. Queries
-may resume a warehouse and consume credits; stopping the app doesn’t
-suspend a shared warehouse. Optional <code>database</code>,
-<code>schema</code> and <code>driver</code> arguments customize the
-setup. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
-for pausing, editing and resuming.</p>
-<p>Without an account, check <a href="https://docs.snowflake.com/en/user-guide/admin-trial-account" class="external-link">Snowflake
-trial accounts</a>. You still need permission to create the OAuth
-integration and a usable role/warehouse. Live trial compatibility
-remains unverified here.</p>
+the R console for an editable app. It walks through your account, role,
+warehouse and OAuth registration. Install <code>odbc</code>,
+<code>bslib</code>, <code>processx</code>, <code>askpass</code> and the
+Snowflake ODBC driver first.</p>
+<p>Sign in, then click <strong>Run example query</strong>. Queries may
+resume a warehouse and consume credits; stopping the local app doesn’t
+suspend the warehouse. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for editing and <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for optional
+settings.</p>
 </div>
 <div class="section level2">
 <h2 id="snowflake-setup">Snowflake setup<a class="anchor" aria-label="anchor" href="#snowflake-setup"></a>
@@ -141,8 +132,7 @@ settings</a> describe this option and refresh-token settings.</p>
 </tbody>
 </table>
 <p>If the integration doesn’t exist yet, follow <strong>Create the OAuth
-integration</strong> after the app example. Snowflake runs as a cloud
-service; this guide needs an account rather than a Docker container.</p>
+integration</strong> after the app example.</p>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
@@ -205,21 +195,34 @@ connection helper:</p>
 out clears the output.</p>
 </div>
 <div class="section level2">
+<h2 id="query-a-table">Query a table<a class="anchor" aria-label="anchor" href="#query-a-table"></a>
+</h2>
+<p>Replace the output expression with SQL for your data. For example, if
+your table is <code>ANALYTICS.PUBLIC.ORDERS</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p><code>con()</code> gets the current user’s connection. Call it inside
+the render or reactive expression before using DBI or dbplyr.</p>
+</div>
+<div class="section level2">
 <h2 id="create-the-oauth-integration">Create the OAuth integration<a class="anchor" aria-label="anchor" href="#create-the-oauth-integration"></a>
 </h2>
 <p>A Snowflake administrator can run this in a SQL worksheet to register
 a local development app:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="kw">CREATE</span> SECURITY INTEGRATION shiny_reporting</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="kw">TYPE</span> <span class="op">=</span> OAUTH</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  ENABLED <span class="op">=</span> <span class="kw">TRUE</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  OAUTH_CLIENT <span class="op">=</span> CUSTOM</span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  OAUTH_CLIENT_TYPE <span class="op">=</span> <span class="st">'CONFIDENTIAL'</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  OAUTH_REDIRECT_URI <span class="op">=</span> <span class="st">'http://localhost:8100'</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>  OAUTH_ALLOW_NON_TLS_REDIRECT_URI <span class="op">=</span> <span class="kw">TRUE</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>  OAUTH_ENFORCE_PKCE <span class="op">=</span> <span class="kw">TRUE</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  OAUTH_ISSUE_REFRESH_TOKENS <span class="op">=</span> <span class="kw">TRUE</span>;</span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="kw">SELECT</span> SYSTEM$SHOW_OAUTH_CLIENT_SECRETS(<span class="st">'SHINY_REPORTING'</span>);</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="kw">CREATE</span> SECURITY INTEGRATION shiny_reporting</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="kw">TYPE</span> <span class="op">=</span> OAUTH</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  ENABLED <span class="op">=</span> <span class="kw">TRUE</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  OAUTH_CLIENT <span class="op">=</span> CUSTOM</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  OAUTH_CLIENT_TYPE <span class="op">=</span> <span class="st">'CONFIDENTIAL'</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  OAUTH_REDIRECT_URI <span class="op">=</span> <span class="st">'http://localhost:8100'</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  OAUTH_ALLOW_NON_TLS_REDIRECT_URI <span class="op">=</span> <span class="kw">TRUE</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>  OAUTH_ENFORCE_PKCE <span class="op">=</span> <span class="kw">TRUE</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>  OAUTH_ISSUE_REFRESH_TOKENS <span class="op">=</span> <span class="kw">TRUE</span>;</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="kw">SELECT</span> SYSTEM$SHOW_OAUTH_CLIENT_SECRETS(<span class="st">'SHINY_REPORTING'</span>);</span></code></pre></div>
 <p>Copy <code>OAUTH_CLIENT_ID</code> and
 <code>OAUTH_CLIENT_SECRET</code> into <code>.Renviron</code> as
 <code>OAUTHDB_CLIENT_ID</code> and <code>OAUTHDB_CLIENT_SECRET</code>.
@@ -229,19 +232,6 @@ disable the non-TLS redirect exception when deploying. Snowflake’s <a href="ht
 guide</a> covers integration privileges and role restrictions.</p>
 </div>
 <div class="section level2">
-<h2 id="query-a-table">Query a table<a class="anchor" aria-label="anchor" href="#query-a-table"></a>
-</h2>
-<p>Replace the output expression with SQL for your data. For example, if
-your table is <code>ANALYTICS.PUBLIC.ORDERS</code>:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20"</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p><code>con()</code> gets the current user’s connection. Call it inside
-the render or reactive expression before using DBI or dbplyr.</p>
-</div>
-<div class="section level2">
 <h2 id="connection-defaults">Connection defaults<a class="anchor" aria-label="anchor" href="#connection-defaults"></a>
 </h2>
 <p>Set <code>schema = "PUBLIC"</code> on the helper to choose a default
@@ -249,9 +239,6 @@ schema. Omit <code>warehouse</code>, <code>database</code>, or
 <code>schema</code> to use the account’s defaults. If the installed ODBC
 driver has a different name, set <code>driver</code>. See
 <code><a href="../reference/oauth_db_snowflake.html">?oauth_db_snowflake</a></code> for the full arguments.</p>
-<p>The connection uses the Snowflake driver’s HTTPS transport and the
-visitor’s OAuth token. Protocol and authentication overrides are
-rejected in <code>...</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="external-oauth">External OAuth<a class="anchor" aria-label="anchor" href="#external-oauth"></a>

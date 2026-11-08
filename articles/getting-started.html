@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -324,15 +324,11 @@ redirect URI; the Docker example above uses
 <code>http://localhost:18100</code>. Register the exact address,
 including any path and trailing slash, and run Shiny on the same port.
 When deploying, register your app’s HTTPS address.</p>
-<p>For a self-hosted provider such as Keycloak, register an OpenID
-Connect client with the authorization-code flow and PKCE S256, which
-protects the sign-in code. Set the callback under valid redirect URIs; a
-confidential client also has a secret. See Keycloak’s <a href="https://www.keycloak.org/docs/latest/server_admin/index.html" class="external-link">administration
-guide</a>. The database must trust the provider’s signing keys and
-accept the token’s audience and identity or role claims. The source
-guides explain the required mapping. An ID token describes the login;
-the database helpers need an access token intended for the data
-source.</p>
+<p>For a self-hosted provider such as Keycloak, follow its <a href="https://www.keycloak.org/docs/latest/server_admin/index.html" class="external-link">app
+registration instructions</a> and your source guide. The database must
+trust that provider and accept its tokens. Use an access token intended
+for the data source; an ID token describes the login and serves a
+different purpose.</p>
 </div>
 <div class="section level3">
 <h3 id="save-credentials-and-run-the-app">Save credentials and run the app<a class="anchor" aria-label="anchor" href="#save-credentials-and-run-the-app"></a>
@@ -357,6 +353,9 @@ Keep tokens and secrets out of logs.</p>
 <div class="section level2">
 <h2 id="query-with-dbi-or-dbplyr">Query with DBI or dbplyr<a class="anchor" aria-label="anchor" href="#query-with-dbi-or-dbplyr"></a>
 </h2>
+<p>DBI is R’s common interface for sending SQL queries to a database and
+reading the results. dbplyr lets you write queries with dplyr functions;
+it translates them to SQL for the database to run.</p>
 <p>For sources that support DBI, the helper returns a reactive function,
 usually called <code>con</code>. For example, inside
 <code>server()</code> in an Azure SQL app:</p>
@@ -414,9 +413,8 @@ sign-out, account changes or session end, the helpers stop providing the
 old connection and call its cleanup method. Driver behavior varies, so
 call <code>con()</code> before each operation instead of keeping a
 native connection or copied token for later use. shinyOAuth handles
-token renewal; <code>min_valid_for</code> on a helper sets the minimum
-remaining token lifetime at the start of an operation. It doesn’t
-guarantee validity throughout a long query.</p>
+token renewal. See <code><a href="../reference/oauth_db_connect.html">?oauth_db_connect</a></code> for token lifetime and
+connection options.</p>
 <p>Keep live connections and token callbacks in the Shiny session that
 created them. For background work, use the database package’s supported
 approach and check the current authorization before displaying a result.
@@ -445,9 +443,8 @@ the helper’s <code>target</code> to your client’s name, or use
 example.</p>
 <p><code>required_scopes</code> checks permissions before a helper runs.
 Request those permissions on the OAuth client first; this argument
-doesn’t request consent or grant database privileges. Microsoft’s
-<code>/.default</code> requests configured permissions and isn’t a
-granted scope to check here.</p>
+doesn’t request consent or grant database privileges. The source guide
+lists the scopes its example needs.</p>
 <p>For several saved accounts, see
 <code><a href="https://lukakoning.github.io/shinyOAuth/articles/multiple-authorizations.html" class="external-link">vignette("multiple-authorizations", package = "shinyOAuth")</a></code>.
 Pass a function such as

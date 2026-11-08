@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Self-hosted PostgreSQL with OAuth • shinyOAuthDB</title>
+<title>PostgreSQL • shinyOAuthDB</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Self-hosted PostgreSQL with OAuth">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="PostgreSQL">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -56,7 +56,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Self-hosted PostgreSQL with OAuth</h1>
+      <h1>PostgreSQL</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/lukakoning/shinyOAuthDB/blob/main/vignettes/postgres.Rmd" class="external-link"><code>vignettes/postgres.Rmd</code></a></small>
@@ -65,10 +65,14 @@
 
     
     
-<p>PostgreSQL is an open-source SQL database. Use it from Shiny with
-each visitor’s own login; PostgreSQL checks their token and applies
-database grants and row policies. You can query through DBI or
-dbplyr.</p>
+<p>PostgreSQL is an open-source SQL database. You can use it as the data
+source for a Shiny app while letting the database decide what each
+visitor can read. For example, a row policy can restrict the same query
+to a different set of rows for each person.</p>
+<p><code><a href="../reference/oauth_db_postgres.html">oauth_db_postgres()</a></code> opens a connection with the
+visitor’s access token and database role. You can then query through DBI
+or dbplyr. This guide uses PostgreSQL’s native OAuth support; the <a href="postgrest.html">PostgREST guide</a> shows an HTTP alternative that
+doesn’t need a local PostgreSQL driver.</p>
 <div class="section level2">
 <h2 id="try-it-locally">Try it locally<a class="anchor" aria-label="anchor" href="#try-it-locally"></a>
 </h2>
@@ -80,18 +84,19 @@ ready. Sign in as <code>alice</code> / <code>alice</code> or
 <code>bob</code> / <code>bob</code>. The same query returns only that
 person’s rows. Click <strong>Stop demo</strong> or interrupt R to remove
 the containers and data.</p>
-<p>The package includes PostgreSQL 18, Keycloak configuration and a
-small app. Docker supplies the Linux/libpq 18 runtime too. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
-first-build requirements, certificate prompts and editing the app.</p>
+<p>Docker supplies PostgreSQL 18, Keycloak sign-in and the required
+native libraries. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
+first-build requirements and certificate prompts, or
+<code><a href="../reference/oauth_db_demo.html">?oauth_db_demo</a></code> for editing the app.</p>
 </div>
 <div class="section level2">
 <h2 id="connect-your-own-database">Connect your own database<a class="anchor" aria-label="anchor" href="#connect-your-own-database"></a>
 </h2>
-<p>Native PostgreSQL OAuth needs PostgreSQL 18 and a server-side token
-validator. An existing password-based PostgreSQL database needs the
-OAuth setup below before you can use it. For Azure’s Entra
-authentication, use the separate <a href="azure-postgres.html">Azure
-PostgreSQL guide</a>.</p>
+<p>Native OAuth needs PostgreSQL 18 with a token-validation module.
+Running this app in local R also requires Linux and a shared libpq 18
+used by both RPostgres and shinyOAuthDB; build instructions follow the
+app. On Windows or macOS, use the Docker demo or <a href="postgrest.html">PostgREST</a>. Azure’s Microsoft sign-in has its
+own <a href="azure-postgres.html">Azure PostgreSQL guide</a>.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -144,9 +149,9 @@ and native R runtime instructions follow it.</p>
 <code>profile</code> and configure the provider to include
 <code>preferred_username</code> in the validated ID token. This example
 assumes that username matches the PostgreSQL role provisioned for that
-person, as in the Docker fixture. Set
-<code>OAUTHDB_POSTGRES_ISSUER</code>, <code>OAUTHDB_CLIENT_ID</code>,
-and <code>OAUTHDB_CLIENT_SECRET</code> before running the app.</p>
+person, as in the local demo. Set <code>OAUTHDB_POSTGRES_ISSUER</code>,
+<code>OAUTHDB_CLIENT_ID</code>, and <code>OAUTHDB_CLIENT_SECRET</code>
+before running the app.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
@@ -211,12 +216,9 @@ person changes the requested role. PostgreSQL checks that the access
 token is allowed to use that role and applies its grants and row
 policies.</p>
 <p>If your database roles differ from the provider’s usernames, adapt
-the callback to your server’s identity-to-role mapping. The subjects
-mapped to <code>alice</code> and <code>bob</code> above are Docker
-fixture configuration, not a list of visitors to hardcode into a
-deployed app. A fixed <code>user</code> is appropriate only when the
-deployment intentionally maps the permitted identities to one shared
-database role.</p>
+the callback to the server’s mapping. Use a fixed <code>user</code> only
+when the database intentionally maps the permitted identities to a
+shared role.</p>
 </div>
 <div class="section level2">
 <h2 id="prepare-postgresql-and-the-identity-provider">Prepare PostgreSQL and the identity provider<a class="anchor" aria-label="anchor" href="#prepare-postgresql-and-the-identity-provider"></a>
@@ -230,7 +232,7 @@ patched to validate the database audience. Copy the demo files with
 build.</p>
 <p>Register a Web OAuth client in Keycloak with your Shiny callback URL,
 authorization code flow and PKCE. Configure the database access token’s
-audience and the <code>database.read</code> scope. The fixture’s
+audience and the <code>database.read</code> scope. The demo’s
 <code>realm.json</code> provides a complete example, including demo
 subjects, audience mappers and scopes.</p>
 <p>Configure PostgreSQL’s validator to check token signatures, issuer,
@@ -238,14 +240,14 @@ expiry, audience and the required scope. Map the validated subject to a
 database role. A corresponding <code>pg_hba.conf</code> rule looks
 like:</p>
 <pre class="text"><code>hostssl reporting alice,bob 10.0.0.0/24 oauth issuer="https://login.example.org/realms/reporting" scope="database.read" validator=pg_oidc_validator map=keycloak_subjects</code></pre>
-<p>In <code>pg_ident.conf</code>, map the real Keycloak subjects to
-roles:</p>
+<p>In <code>pg_ident.conf</code>, map each user’s Keycloak ID
+(<code>sub</code>) to a database role:</p>
 <pre class="text"><code>keycloak_subjects 11111111-1111-4111-8111-111111111111 alice
 keycloak_subjects 22222222-2222-4222-8222-222222222222 bob</code></pre>
-<p>Those subjects are examples from the local fixture; use your
-provider’s real values. Create the roles, grant database access, and
-configure table grants and row policies. The installed demo contains
-complete files under <code>postgres/config/</code> and SQL under
+<p>Those IDs belong to the demo accounts; use your users’ real IDs.
+Create the roles, grant database access, and configure table grants and
+row policies. The installed demo contains complete files under
+<code>postgres/config/</code> and SQL under
 <code>postgres/sql/01-fixture.sql</code>.</p>
 </div>
 <div class="section level2">
@@ -285,9 +287,7 @@ retained native handle is unsupported. Use separate R processes for
 separate workers.</p>
 <p>PostgreSQL documents <a href="https://www.postgresql.org/docs/18/auth-oauth.html" class="external-link">OAuth
 authentication</a> and <a href="https://www.postgresql.org/docs/18/oauth-validators.html" class="external-link">validator
-modules</a>. The source repository’s <a href="https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/postgres-keycloak" class="external-link">native
-and browser tests</a> exercise the same authentication mechanism with
-additional failure cases.</p>
+modules</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

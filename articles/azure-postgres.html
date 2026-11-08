@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,34 +65,27 @@
 
     
     
-<p>Azure Database for PostgreSQL hosts the open-source PostgreSQL
-database for you. Connect a Shiny app to Azure Database for PostgreSQL
-using each visitor’s Microsoft account. Queries use RPostgres
-connections, so you can keep your usual DBI or dbplyr code.</p>
+<p>Azure Database for PostgreSQL hosts a PostgreSQL database for you.
+With shinyOAuthDB, people sign in to your Shiny app with their Microsoft
+account and query data using the permissions already assigned to them in
+PostgreSQL.</p>
+<p>The database maps their Microsoft identity to a database role: a user
+or group with permission to read particular data.
+<code><a href="../reference/oauth_db_azure_postgres.html">oauth_db_azure_postgres()</a></code> opens an RPostgres connection for
+that role, which you can use with DBI or dbplyr.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
 <p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("azure-postgres")</code>
-in your R console. The guide asks for <code>server</code>,
-<code>database</code>, mapped database <code>user</code> role,
-<code>sslrootcert</code> (a local trusted CA bundle), Entra
-<code>tenant_id</code> and <code>client_id</code>. It explains the
-difference between registering the Shiny app and creating the Entra
-database principal. A group role still requires each visitor’s own
-sign-in and valid group membership.</p>
-<p>Install <code>RPostgres</code>, <code>processx</code> and
-<code>askpass</code> first. The local editable app opens a verified TLS
-connection only after <strong>Run example query</strong>. Its first
-query reports the database role and database name, so no table is
-needed. For scripts, supply those settings with
-<code>prompt = FALSE</code>; <code>database_port</code> defaults to
-5432. A confidential app uses masked input or
-<code>OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET</code>. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
-for draft setup and editing.</p>
-<p>With no Azure server yet, start with the <a href="https://learn.microsoft.com/en-us/azure/postgresql/overview" class="external-link">service
-overview</a>. Arrange Entra authentication, role grants and network
-access before trying the query. The demo doesn’t provision or stop a
-cloud server.</p>
+in the R console for an editable app that walks through setup. In
+addition to RPostgres, install <code>bslib</code>, <code>processx</code>
+and <code>askpass</code> for the local app.</p>
+<p>The launcher asks for your Azure server, database role and sign-in
+settings. After signing in, click <strong>Run example query</strong> to
+see the connected database and role. It uses your existing Azure server;
+stopping the app leaves that server running. See
+<code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for optional settings and <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for editing and resuming demos.</p>
 </div>
 <div class="section level2">
 <h2 id="set-up-access">Set up access<a class="anchor" aria-label="anchor" href="#set-up-access"></a>
@@ -110,13 +103,9 @@ these values in a local <code>.Renviron</code> file and restart R:</p>
 <span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
 <p>Use the <a href="azure-sql.html#register-a-microsoft-entra-app">Microsoft
 registration steps</a> and configure delegated access to <strong>Azure
-OSSRDBMS Database</strong>. The preset requests
-<code>https://ossrdbms-aad.database.windows.net/.default</code> when
-PostgreSQL is selected alone. When combined with other Microsoft
-services, it requests
-<code>https://ossrdbms-aad.database.windows.net/user_impersonation</code>
-so the consent request contains explicit permissions for every
-service.</p>
+OSSRDBMS Database</strong>. The client preset requests the appropriate
+PostgreSQL permissions; see <code><a href="../reference/oauth_db_microsoft_client.html">?oauth_db_microsoft_client</a></code> when
+combining it with other services.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -216,6 +205,21 @@ path:</p>
 out clears the output.</p>
 </div>
 <div class="section level2">
+<h2 id="read-a-table">Read a table<a class="anchor" aria-label="anchor" href="#read-a-table"></a>
+</h2>
+<p>The first query shows the PostgreSQL role. To read your data, replace
+that output expression with a query for your table:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT * FROM reporting.orders LIMIT 20"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<p>Call <code>con()</code> inside the reactive expression before
+querying. You can also pass the resulting <code>connection</code> to
+<code><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">dplyr::tbl()</a></code> for dbplyr queries. Use DBI parameter binding
+for SQL values entered by users.</p>
+</div>
+<div class="section level2">
 <h2 id="create-the-database-identity">Create the database identity<a class="anchor" aria-label="anchor" href="#create-the-database-identity"></a>
 </h2>
 <p>In Azure PostgreSQL’s <strong>Authentication</strong> settings,
@@ -232,27 +236,8 @@ identity and have the server verify the mapping; don’t let arbitrary
 input choose another role.</p>
 </div>
 <div class="section level2">
-<h2 id="read-a-table">Read a table<a class="anchor" aria-label="anchor" href="#read-a-table"></a>
-</h2>
-<p>The first query shows the PostgreSQL role. To read your data, replace
-that output expression with a query for your table:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT * FROM reporting.orders LIMIT 20"</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p>Call <code>con()</code> inside the reactive expression before
-querying. You can also pass the resulting <code>connection</code> to
-<code><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">dplyr::tbl()</a></code> for dbplyr queries. Use DBI parameter binding
-for SQL values entered by users.</p>
-</div>
-<div class="section level2">
 <h2 id="roles-and-connection-settings">Roles and connection settings<a class="anchor" aria-label="anchor" href="#roles-and-connection-settings"></a>
 </h2>
-<p>The example connects as a group role, <code>reporting-readers</code>.
-Each person still signs in with their own account; PostgreSQL checks
-that they belong to the group. Use the role your administrator has
-created for your users.</p>
 <p>You can omit <code>sslrootcert</code> if libpq already has the
 correct CA bundle configured. Other options, such as <code>port</code>
 and <code>connect_timeout</code>, go to RPostgres. See

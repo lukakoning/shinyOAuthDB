@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,16 +65,14 @@
 
     
     
-<p>Trino is an open-source SQL query engine that connects to other data
-stores. Starburst Enterprise builds on Trino. Use a self-hosted Trino
-cluster or Starburst Enterprise as a data source for Shiny. People sign
-in with the cluster’s identity provider and query using their own
-database permissions.</p>
-<p>You can run Trino and its trusted OAuth identity provider on your own
-infrastructure. The installed package includes a local Trino and
-Keycloak demo, described below.</p>
-<p>The connection uses RTrino, so you can write queries with DBI or
-dbplyr.</p>
+<p>Trino is a SQL query engine that connects to other data stores.
+Starburst Enterprise builds on Trino. Either can provide data to a Shiny
+app while applying the cluster’s existing access rules for each
+visitor.</p>
+<p>People sign in with the cluster’s trusted provider.
+<code><a href="../reference/oauth_db_trino.html">oauth_db_trino()</a></code> then opens an RTrino connection for DBI or
+dbplyr queries. You choose a catalog, which identifies a data source,
+and a schema within that catalog.</p>
 <div class="section level2">
 <h2 id="set-up-sign-in">Set up sign-in<a class="anchor" aria-label="anchor" href="#set-up-sign-in"></a>
 </h2>
@@ -240,16 +238,11 @@ account changes, sign-out, or session end.</p>
 <div class="section level2">
 <h2 id="match-the-clusters-sign-in-configuration">Match the cluster’s sign-in configuration<a class="anchor" aria-label="anchor" href="#match-the-clusters-sign-in-configuration"></a>
 </h2>
-<p>The cluster must trust access tokens from your app’s issuer and
-audience, and map the token’s principal to a Trino user. A successful
-sign-in to the cluster’s web UI alone doesn’t establish this for your
-Shiny app. See <a href="https://trino.io/docs/current/security/oauth2.html" class="external-link">Trino’s OAuth
-configuration</a> for the server settings.</p>
-<p>The <code>user</code> argument must match that mapping. Use a
-function to read the username from the selected account, as in the app
-above. If your provider uses another verified profile field, replace
-<code>email</code> with that field. The helper creates a new connection
-when the username changes.</p>
+<p>The <code>user</code> argument must match the cluster’s
+identity-to-user mapping. Use a function to read the username from the
+selected account, as in the app above. If your provider uses another
+verified profile field, replace <code>email</code> with that field. The
+helper creates a new connection when the username changes.</p>
 <p>Starburst Galaxy needs its own OAuth registration and endpoint setup.
 For saved query results, see <a href="getting-started.html#sessions-saved-results-and-extra-permissions">Getting
 started</a>.</p>

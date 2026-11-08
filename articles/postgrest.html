@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,46 +65,25 @@
 
     
     
-<p>PostgREST turns PostgreSQL tables and functions into an HTTP API.
-Read PostgreSQL tables and views through PostgREST using each visitor’s
-account. PostgREST validates the visitor’s JWT and PostgreSQL applies
-the role’s grants and row-level security policies. The R client uses
-HTTP and does not need RPostgres or PostgreSQL 18’s native OAuth
-support.</p>
-<p>The app passes the signed-in visitor’s access token on every request.
-There is no separate username argument: PostgREST extracts the database
-role from the verified JWT’s configured role claim. A deployment can use
-one role per person, or a shared role with row policies that use the
-token’s user ID (usually <code>sub</code>). The role claim and the user
-ID are configured in the identity provider and database, so the same app
-query can return different rows for different logins.</p>
+<p>PostgREST turns PostgreSQL tables and functions into a web API. It
+lets a Shiny app read database tables over HTTP without installing a
+PostgreSQL driver in R.</p>
+<p>With <code><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code>, each request carries the
+signed-in visitor’s access token. PostgREST uses it to select a database
+role, and PostgreSQL’s grants and row policies control the result. The
+same request can therefore return different rows for different
+people.</p>
 <div class="section level2">
 <h2 id="set-up-the-server-and-sign-in">Set up the server and sign-in<a class="anchor" aria-label="anchor" href="#set-up-the-server-and-sign-in"></a>
 </h2>
-<p>Configure PostgREST to trust your identity provider’s signing keys
-and the token audience intended for this API. Configure its JWT role
-extraction and allow the authenticator role to switch into the database
-roles you expose. Give those roles the necessary schema, table, view,
-and function permissions. See PostgREST’s <a href="https://docs.postgrest.org/en/stable/references/auth.html" class="external-link">authentication
-guide</a> and <a href="https://docs.postgrest.org/en/stable/explanations/db_authz.html" class="external-link">database
-authorization guide</a>.</p>
-<p>Register your Shiny app with that identity provider, using
-<code>http://localhost:8100</code> as the redirect URI for this example.
-Request the audience and scopes that your deployment expects. An
-identity token or a token intended for another API is not a substitute
-for this API’s access token. The example assumes the registration issues
-the right JWT access token through its ordinary authorization-code
-flow.</p>
-<p>Set <code>OAUTHDB_POSTGREST_ISSUER</code>,
-<code>OAUTHDB_POSTGREST_URL</code>, <code>OAUTHDB_CLIENT_ID</code>, and
-<code>OAUTHDB_CLIENT_SECRET</code> in your environment. The API URL must
-use HTTPS; it may include a reverse proxy prefix such as
-<code>/rest/v1</code>. For a private CA, pass <code>ca_bundle</code> to
-<code><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code>.</p>
 <p>For a configured local example, run
 <code>shinyOAuthDB::oauth_db_demo("postgrest")</code>. It includes
-PostgreSQL, PostgREST, Keycloak and an app. <a href="getting-started.html#build-a-small-app">Getting started</a> lists
-the accounts and explains cleanup.</p>
+PostgreSQL, PostgREST, Keycloak and a Shiny app. <a href="getting-started.html#build-a-small-app">Getting started</a> walks
+through a smaller app and lists the demo accounts.</p>
+<p>For your own data, ask your administrator for an HTTPS PostgREST
+endpoint that accepts tokens from your sign-in provider. They must
+configure the database roles and table permissions; a server recipe
+follows the app.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -117,25 +96,28 @@ the accounts and explains cleanup.</p>
 <tbody>
 <tr class="odd">
 <td><code>OAUTHDB_POSTGREST_URL</code></td>
-<td>Your HTTPS PostgREST endpoint, including any proxy path such as
+<td>Your HTTPS API endpoint, including any prefix such as
 <code>/rest/v1</code>
 </td>
 </tr>
 <tr class="even">
 <td>
 <code>schema</code>, table</td>
-<td>The schema exposed by PostgREST and a table the user can read</td>
+<td>A schema exposed by PostgREST and a table the user can read</td>
 </tr>
 <tr class="odd">
 <td>Issuer, client ID, secret</td>
-<td>The <a href="getting-started.html#register-your-app">OIDC
+<td>Your <a href="getting-started.html#register-your-app">app
 registration</a> with the API’s trusted provider</td>
 </tr>
 </tbody>
 </table>
-<p>Store the <code>OAUTHDB_*</code> values in <code>.Renviron</code> and
-restart R. See the server recipe after the app if your PostgreSQL
-database doesn’t yet expose an API.</p>
+<p>Register <code>http://localhost:8100</code> as the redirect URI.
+Request the audience and scopes configured for this API, then save
+<code>OAUTHDB_POSTGREST_ISSUER</code>,
+<code>OAUTHDB_POSTGREST_URL</code>, <code>OAUTHDB_CLIENT_ID</code> and
+<code>OAUTHDB_CLIENT_SECRET</code> in <code>.Renviron</code> and restart
+R. Use <code>ca_bundle</code> for a private CA.</p>
 </div>
 <div class="section level2">
 <h2 id="complete-shiny-app">Complete Shiny app<a class="anchor" aria-label="anchor" href="#complete-shiny-app"></a>
@@ -198,42 +180,13 @@ authorization. Use <code>target</code> if your shinyOAuth client has
 named token targets.</p>
 </div>
 <div class="section level2">
-<h2 id="prepare-postgresql-postgrest-and-keycloak">Prepare PostgreSQL, PostgREST and Keycloak<a class="anchor" aria-label="anchor" href="#prepare-postgresql-postgrest-and-keycloak"></a>
-</h2>
-<p>Copy a working configuration with
-<code>oauth_db_demo("postgrest", action = "files")</code>. In that
-directory, <code>postgrest/fixture.sql</code> creates an
-<code>authenticator</code> login, database roles and a row policy.
-<code>realm.json</code> adds the verified token’s <code>role</code>
-claim; PostgREST switches to that role when executing SQL.</p>
-<p>For your deployment, create a restricted login for PostgREST and let
-it assume only the roles the API exposes. For example:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> reporting_reader NOLOGIN;</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="kw">GRANT</span> reporting_reader <span class="kw">TO</span> authenticator;</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> reporting <span class="kw">TO</span> reporting_reader;</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> reporting.orders <span class="kw">TO</span> reporting_reader;</span></code></pre></div>
-<p>Configure the issuer’s access-token mapper to emit
-<code>role=reporting_reader</code> and the API’s audience. Set
-<code>PGRST_DB_SCHEMAS</code> to the exposed schema,
-<code>PGRST_JWT_SECRET</code> to its public JWK/JWKS material, and
-<code>PGRST_JWT_AUD</code> to that audience. The default role claim is
-<code>role</code>; configure a different claim path only if your tokens
-use one. Plan how to update signing keys when the provider rotates them;
-the demo takes a snapshot at startup. Terminate HTTPS at your API or
-reverse proxy.</p>
-<p>PostgREST’s <a href="https://docs.postgrest.org/en/v14/references/auth.html" class="external-link">authentication
-guide</a> explains key formats and role extraction. PostgreSQL table
-grants and row policies still control which rows the role can
-access.</p>
-</div>
-<div class="section level2">
 <h2 id="filters-embedded-resources-and-pagination">Filters, embedded resources, and pagination<a class="anchor" aria-label="anchor" href="#filters-embedded-resources-and-pagination"></a>
 </h2>
 <p><code>filters</code> contains native PostgREST expressions. Values
 are URL-encoded; they are not SQL fragments interpolated by this
 package. <code>select</code> can include related resources configured
 through foreign keys.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">postgrest</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span></span>
 <span>  <span class="st">"orders"</span>,</span>
 <span>  select <span class="op">=</span> <span class="st">"id,total,customers(name)"</span>,</span>
@@ -254,13 +207,11 @@ through foreign keys.</p>
 size; use its Content-Range header to inspect the returned range. Exact
 counts can be expensive for large tables. See <a href="https://docs.postgrest.org/en/stable/references/api/pagination_count.html" class="external-link">pagination
 and count</a>.</p>
-<p>JSON results become data frames where possible. Large integer
-literals remain strings; decimal precision depends on how the server
-serializes the value. Cast exact decimal values to text in a view or
-function when necessary. Embedded resources may become nested data
-frames or list columns. Empty selections have no column metadata and
-return a zero-column data frame. Dates keep their JSON
-representation.</p>
+<p>Selections return data frames where possible; embedded resources can
+produce nested data frames or list columns. Large integers stay as
+strings. For exact decimals, have the server return text from a view or
+function. See <code><a href="../reference/oauth_db_postgrest_api.html">?oauth_db_postgrest_api</a></code> for result
+formats.</p>
 </div>
 <div class="section level2">
 <h2 id="functions-and-native-api-requests">Functions and native API requests<a class="anchor" aria-label="anchor" href="#functions-and-native-api-requests"></a>
@@ -268,7 +219,7 @@ representation.</p>
 <p>Call an exposed PostgreSQL function through its RPC endpoint. The
 keys in <code>args</code> are its argument names; the result may be a
 scalar, object, or table.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">total</span> <span class="op">&lt;-</span> <span class="va">postgrest</span><span class="op">$</span><span class="fu">rpc</span><span class="op">(</span><span class="st">"order_total"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>order_id <span class="op">=</span> <span class="fl">42L</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># A GET function call runs in a read-only transaction on PostgREST.</span></span>
@@ -286,11 +237,39 @@ scalar, object, or table.</p>
 <span>  prefer <span class="op">=</span> <span class="st">"return=representation"</span>,</span>
 <span>  raw <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>GET and HEAD requests retry once after HTTP 401 using a renewed
-token. Other methods never retry automatically: a function or write may
-already have changed data. Redirects are rejected. Each operation stays
-with the authorization that started it and discards a response if the
-visitor signs out, changes accounts, or loses access while it runs.</p>
+<p>Reads can refresh and retry once after HTTP 401. Writes and POST
+function calls don’t retry automatically, since they may already have
+changed data. Results are discarded if the visitor signs out or changes
+accounts while a request runs.</p>
+</div>
+<div class="section level2">
+<h2 id="prepare-postgresql-postgrest-and-keycloak">Prepare PostgreSQL, PostgREST and Keycloak<a class="anchor" aria-label="anchor" href="#prepare-postgresql-postgrest-and-keycloak"></a>
+</h2>
+<p>Copy a working configuration with
+<code>oauth_db_demo("postgrest", action = "files")</code>. In that
+directory, <code>postgrest/fixture.sql</code> creates an
+<code>authenticator</code> login, database roles and a row policy.
+<code>realm.json</code> adds the verified token’s <code>role</code>
+claim; PostgREST switches to that role when executing SQL.</p>
+<p>For your deployment, create a restricted login for PostgREST and let
+it assume only the roles the API exposes. For example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">ROLE</span> reporting_reader NOLOGIN;</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="kw">GRANT</span> reporting_reader <span class="kw">TO</span> authenticator;</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">USAGE</span> <span class="kw">ON</span> <span class="kw">SCHEMA</span> reporting <span class="kw">TO</span> reporting_reader;</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="kw">GRANT</span> <span class="kw">SELECT</span> <span class="kw">ON</span> reporting.orders <span class="kw">TO</span> reporting_reader;</span></code></pre></div>
+<p>Configure the issuer’s access-token mapper to emit
+<code>role=reporting_reader</code> and the API’s audience. Set
+<code>PGRST_DB_SCHEMAS</code> to the exposed schema,
+<code>PGRST_JWT_SECRET</code> to its public JWK/JWKS material, and
+<code>PGRST_JWT_AUD</code> to that audience. The default role claim is
+<code>role</code>; configure a different claim path only if your tokens
+use one. Plan how to update signing keys when the provider rotates them;
+the demo takes a snapshot at startup. Terminate HTTPS at your API or
+reverse proxy.</p>
+<p>PostgREST’s <a href="https://docs.postgrest.org/en/v14/references/auth.html" class="external-link">authentication
+guide</a> explains key formats and role extraction. PostgreSQL table
+grants and row policies still control which rows the role can
+access.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

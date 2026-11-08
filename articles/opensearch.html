@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>OpenSearch with user OAuth tokens • shinyOAuthDB</title>
+<title>OpenSearch • shinyOAuthDB</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="OpenSearch with user OAuth tokens">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="OpenSearch">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -56,7 +56,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>OpenSearch with user OAuth tokens</h1>
+      <h1>OpenSearch</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/lukakoning/shinyOAuthDB/blob/main/vignettes/opensearch.Rmd" class="external-link"><code>vignettes/opensearch.Rmd</code></a></small>
@@ -65,37 +65,33 @@
 
     
     
-<p>OpenSearch is an open-source search and analytics engine. It stores
-documents in indexes and can search them or query them with its SQL
-plugin. Use <code><a href="../reference/oauth_db_opensearch_api.html">oauth_db_opensearch_api()</a></code> to search OpenSearch
-with each Shiny visitor’s current OAuth access token. It supports Query
-DSL, aggregations and the SQL plugin through HTTPS. You do not need an
-OpenSearch R driver or JDBC.</p>
+<p>OpenSearch stores documents in indexes, where you can search them and
+calculate summaries such as counts or totals. A Shiny app can show
+search results using each visitor’s existing OpenSearch permissions.</p>
+<p><code><a href="../reference/oauth_db_opensearch_api.html">oauth_db_opensearch_api()</a></code> sends the visitor’s access
+token with HTTPS requests. You can use OpenSearch’s JSON search
+language, aggregations, or its SQL plugin. Search results keep their
+document structure, so you can choose which fields to display. No
+database driver is needed.</p>
 <div class="section level2">
 <h2 id="try-opensearch-locally">Try OpenSearch locally<a class="anchor" aria-label="anchor" href="#try-opensearch-locally"></a>
 </h2>
 <p>Start Docker and run:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"opensearch"</span><span class="op">)</span></span></code></pre></div>
-<p>The package starts OpenSearch 3.9.0 with its Security plugin,
-Keycloak and a Shiny app. Alice and Bob see their own documents, and
-<strong>Try a write</strong> shows that their roles cannot change the
-index. See <a href="getting-started.html#build-a-small-app">Getting
-started</a> for accounts and cleanup; allow at least 2 GB of Docker
-memory for OpenSearch.</p>
-<p><code>oauth_db_demo("opensearch", action = "files")</code> copies the
-configuration. <code>opensearch/prepare.py</code> creates the
-signing-key, role and document-permission settings;
-<code>realm-extended.json</code> configures the corresponding Shiny
-client. The signing key is a startup snapshot. For rotating keys, use
-the OIDC authenticator described later in this guide.</p>
+<p>The demo starts OpenSearch with its Security plugin, Keycloak and a
+Shiny app. Alice and Bob see their own documents, and <strong>Try a
+write</strong> checks that their roles cannot change the index. Allow at
+least 2 GB of Docker memory. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
+accounts and cleanup, or <code><a href="../reference/oauth_db_demo.html">?oauth_db_demo</a></code> for editing the
+configuration.</p>
 </div>
 <div class="section level2">
 <h2 id="settings-for-the-example">Settings for the example<a class="anchor" aria-label="anchor" href="#settings-for-the-example"></a>
 </h2>
-<p>The cluster needs the Security plugin, HTTPS and bearer-token
-authentication. Its OIDC/JWT and role configuration follow the app
-example.</p>
+<p>Ask your administrator for an HTTPS cluster with the Security plugin
+and OAuth bearer-token authentication enabled. A cluster that requires
+AWS SigV4 authentication needs a different client.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -108,8 +104,7 @@ example.</p>
 <tbody>
 <tr class="odd">
 <td><code>url</code></td>
-<td>The cluster’s HTTPS API endpoint, rather than the Dashboards
-page</td>
+<td>The cluster’s API endpoint, rather than its Dashboards page</td>
 </tr>
 <tr class="even">
 <td>Index, such as <code>orders</code>
@@ -118,20 +113,22 @@ page</td>
 </tr>
 <tr class="odd">
 <td>Issuer, client ID, secret</td>
-<td>The <a href="getting-started.html#register-your-app">Shiny
+<td>Your <a href="getting-started.html#register-your-app">app
 registration</a> with the cluster’s trusted provider</td>
 </tr>
 <tr class="even">
 <td><code>search.read</code></td>
-<td>The example API scope; define it in your provider or use your
-deployment’s scope</td>
+<td>The example API scope; define it in your provider or replace it</td>
 </tr>
 </tbody>
 </table>
-<p>Save <code>OAUTHDB_OPENSEARCH_ISSUER</code>,
-<code>OAUTHDB_CLIENT_ID</code> and <code>OAUTHDB_CLIENT_SECRET</code> in
-<code>.Renviron</code>, then restart R. AWS endpoints that require SigV4
-need a different client.</p>
+<p>Register <code>http://localhost:8100</code> as the app’s redirect
+URI. The provider must issue tokens with the audience and role claims
+the cluster expects. Save the registration in <code>.Renviron</code> and
+restart R:</p>
+<pre class="text"><code>OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_OPENSEARCH_ISSUER=https://login.example.org/realms/reporting</code></pre>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
@@ -139,7 +136,7 @@ need a different client.</p>
 <p>Replace the cluster URL and index name. This example assumes the
 provider exposes a <code>search.read</code> scope; use your own
 registration’s scopes.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
@@ -202,79 +199,15 @@ it in shinyOAuth and pass the target name to the helper’s
 <code>target</code> argument.</p>
 </div>
 <div class="section level2">
-<h2 id="configure-cluster-authentication-and-permissions">Configure cluster authentication and permissions<a class="anchor" aria-label="anchor" href="#configure-cluster-authentication-and-permissions"></a>
-</h2>
-<p>Enable the Security plugin and configure its <a href="https://docs.opensearch.org/latest/security/authentication-backends/openid-connect/" class="external-link">OpenID
-Connect authentication</a> or <a href="https://docs.opensearch.org/latest/security/authentication-backends/jwt/" class="external-link">JWT
-authentication</a>. The cluster must accept the access tokens issued to
-your Shiny client, validate their issuer and audience, and map their
-subject and backend roles to OpenSearch roles. Enable HTTPS with a
-trusted certificate.</p>
-<p>For JWT authentication, the relevant HTTP authentication settings
-are:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">jwt_auth_domain</span><span class="kw">:</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="at">  </span><span class="fu">http_enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="at">  </span><span class="fu">transport_enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="at">  </span><span class="fu">order</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="at">  </span><span class="fu">http_authenticator</span><span class="kw">:</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> jwt</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="at">    </span><span class="fu">challenge</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="at">    </span><span class="fu">config</span><span class="kw">:</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="at">      </span><span class="fu">jwt_header</span><span class="kw">:</span><span class="at"> Authorization</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="at">      </span><span class="fu">jwt_url_parameter</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="at">      </span><span class="fu">subject_key</span><span class="kw">:</span><span class="at"> sub</span></span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="at">      </span><span class="fu">roles_key</span><span class="kw">:</span><span class="at"> roles</span></span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="at">      </span><span class="fu">required_issuer</span><span class="kw">:</span><span class="at"> https://login.example.org/realms/reporting</span></span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="at">      </span><span class="fu">required_audience</span><span class="kw">:</span><span class="at"> opensearch-reporting</span></span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="fu">      signing_key</span><span class="kw">: </span><span class="ch">|</span></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>        -----BEGIN PUBLIC KEY-----</span>
-<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>        Replace with the trusted issuer's public signing key.</span>
-<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>        -----END PUBLIC KEY-----</span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="at">  </span><span class="fu">authentication_backend</span><span class="kw">:</span></span>
-<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> noop</span></span></code></pre></div>
-<p>This is a configuration fragment, with a placeholder key. Add it to
-the cluster’s HTTP authentication configuration using the Security
-plugin’s administration procedure. For discovery and rotating signing
-keys, configure the OIDC authenticator instead of copying this
-static-key example.</p>
-<p>Map the provider’s role claims to roles granting access to the
-required indexes and operations. OpenSearch document-level and
-field-level security can further limit which documents and fields each
-visitor receives. The helper forwards the token; the server makes these
-decisions. A login to OpenSearch Dashboards alone does not establish API
-access.</p>
-<p>The endpoint must accept OAuth bearer tokens. AWS IAM/SigV4
-authentication requires a different client; this helper does not sign
-AWS requests.</p>
-</div>
-<div class="section level2">
-<h2 id="register-the-shiny-client">Register the Shiny client<a class="anchor" aria-label="anchor" href="#register-the-shiny-client"></a>
-</h2>
-<p>Register an OAuth client with the trusted identity provider. Allow
-<code>http://localhost:8100</code> as its redirect URI and request an
-access token for the audience configured on OpenSearch. Configure any
-role claims the cluster requires. Request your provider’s scopes,
-including <code>offline_access</code> if it requires that scope for
-renewal.</p>
-<p>Save the registration in <code>.Renviron</code> and restart R:</p>
-<pre class="text"><code>OAUTHDB_CLIENT_ID=your-client-id
-OAUTHDB_CLIENT_SECRET=your-client-secret
-OAUTHDB_OPENSEARCH_ISSUER=https://login.example.org/realms/reporting</code></pre>
-</div>
-<div class="section level2">
 <h2 id="search-results-and-aggregations">Search results and aggregations<a class="anchor" aria-label="anchor" href="#search-results-and-aggregations"></a>
 </h2>
-<p>Results retain their native structure: <code>result$hits$hits</code>
-contains documents and metadata, <code>result$hits$total</code> contains
-the total and its relation, and <code>result$aggregations</code>
-contains aggregation results. Arrays stay lists and large JSON integers
-remain strings. This avoids flattening nested documents or losing
-precision. Select the fields you need when building a table.</p>
-<p>An empty <code>body = list()</code> becomes <code><a href="https://rdrr.io/r/base/Paren.html" class="external-link">{}</a></code>. Use
-named R lists for JSON objects and unnamed lists for JSON arrays,
-including single-element arrays. For a nested empty JSON object, use
-<code>structure(list(), names = character())</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p>A search returns documents in <code>result$hits$hits</code>, totals
+in <code>result$hits$total</code>, and summaries in
+<code>result$aggregations</code>. Nested values stay as lists and large
+JSON integers remain strings. Select the fields you need when building a
+table.</p>
+<p>For example, aggregate an <code>orders</code> index by country:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span></span>
 <span>  <span class="st">"orders"</span>,</span>
 <span>  body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -283,70 +216,84 @@ including single-element arrays. For a nested empty JSON object, use
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="va">aggregations</span><span class="op">$</span><span class="va">countries</span><span class="op">$</span><span class="va">buckets</span></span></code></pre></div>
-<p>An index can be a pattern or a vector such as
-<code>c("orders-*", "archive")</code>. Omitting it uses the cluster-wide
-endpoint; permissions may reject searches spanning restricted indexes.
-Paginate explicitly with <code>from</code>/<code>size</code>, or a
-stable sort and <code>search_after</code>. The helper never fetches
-additional pages automatically. Searches reporting a timeout or failed
-shards raise an error. Use <code>raw = TRUE</code> to inspect their
-native response, or <code>$request()</code> for responses reduced with
-<code>filter_path</code>.</p>
+<p>An index can be a name, a pattern or a vector such as
+<code>c("orders-*", "archive")</code>. Each search returns one page. Use
+<code>from</code>/<code>size</code> or a stable sort with
+<code>search_after</code> to fetch more. See
+<code><a href="../reference/oauth_db_opensearch_api.html">?oauth_db_opensearch_api</a></code> for native JSON requests and
+pagination options.</p>
 </div>
 <div class="section level2">
 <h2 id="sql-and-native-json-requests">SQL and native JSON requests<a class="anchor" aria-label="anchor" href="#sql-and-native-json-requests"></a>
 </h2>
-<p>SQL requires the server’s SQL plugin and permissions for its APIs,
-index reads and required index metadata. The response preserves
-<code>schema</code>, <code>datarows</code>, totals and any cursor, using
-the plugin’s JDBC JSON format:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>With the SQL plugin enabled, you can query an index using SQL. The
+user needs permission for SQL, index reads and the required index
+metadata:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">sql</span><span class="op">(</span></span>
 <span>  <span class="st">"SELECT owner, total FROM orders WHERE country = ?"</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"keyword"</span>, value <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">page</span><span class="op">$</span><span class="va">schema</span></span>
 <span><span class="va">page</span><span class="op">$</span><span class="va">datarows</span></span></code></pre></div>
-<p>Parameters use the plugin’s native typed descriptors and
-<code>?</code> placeholders; values are not interpolated into SQL. Dates
-and other values requiring a specific representation should be encoded
-according to the server’s type.</p>
-<p>Use <code>$request()</code> for other JSON APIs. For example, a
-paginated SQL request uses
-<code>list(query = "SELECT owner FROM orders", fetch_size = 20L)</code>
-as its body, followed by <code>list(cursor = page$cursor)</code> to
-obtain another page from the same SQL endpoint. Close an unfinished
-cursor by posting its value to
-<code>c("_plugins", "_sql", "close")</code>. Consume or close cursors
-before switching accounts; the client does not store cursor state or
-close server resources automatically. Bulk NDJSON needs a separate
-native client.</p>
+<p>The result keeps the plugin’s <code>schema</code>,
+<code>datarows</code> and any cursor. Parameters use <code>?</code>
+placeholders with the plugin’s typed descriptors, as above. Use
+<code>$request()</code> for other JSON APIs or cursor pagination; close
+unfinished cursors before switching accounts. See
+<code><a href="../reference/oauth_db_opensearch_api.html">?oauth_db_opensearch_api</a></code> for request methods.</p>
+</div>
+<div class="section level2">
+<h2 id="configure-cluster-authentication-and-permissions">Configure cluster authentication and permissions<a class="anchor" aria-label="anchor" href="#configure-cluster-authentication-and-permissions"></a>
+</h2>
+<p>Configure the Security plugin’s <a href="https://docs.opensearch.org/latest/security/authentication-backends/openid-connect/" class="external-link">OpenID
+Connect authentication</a> or <a href="https://docs.opensearch.org/latest/security/authentication-backends/jwt/" class="external-link">JWT
+authentication</a>. The cluster must verify the token’s issuer and
+audience, then map its user and role claims to OpenSearch roles.</p>
+<p>For JWT authentication, an HTTP authentication configuration
+includes:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">jwt_auth_domain</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="at">  </span><span class="fu">http_enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="at">  </span><span class="fu">transport_enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="at">  </span><span class="fu">order</span><span class="kw">:</span><span class="at"> </span><span class="dv">0</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="at">  </span><span class="fu">http_authenticator</span><span class="kw">:</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> jwt</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="at">    </span><span class="fu">challenge</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="at">    </span><span class="fu">config</span><span class="kw">:</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="at">      </span><span class="fu">jwt_header</span><span class="kw">:</span><span class="at"> Authorization</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="at">      </span><span class="fu">jwt_url_parameter</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="at">      </span><span class="fu">subject_key</span><span class="kw">:</span><span class="at"> sub</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="at">      </span><span class="fu">roles_key</span><span class="kw">:</span><span class="at"> roles</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="at">      </span><span class="fu">required_issuer</span><span class="kw">:</span><span class="at"> https://login.example.org/realms/reporting</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="at">      </span><span class="fu">required_audience</span><span class="kw">:</span><span class="at"> opensearch-reporting</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="fu">      signing_key</span><span class="kw">: </span><span class="ch">|</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>        -----BEGIN PUBLIC KEY-----</span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>        Replace with the trusted issuer's public signing key.</span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>        -----END PUBLIC KEY-----</span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="at">  </span><span class="fu">authentication_backend</span><span class="kw">:</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> noop</span></span></code></pre></div>
+<p>Replace the placeholder key and apply the fragment using the Security
+plugin’s administration procedure. This static-key setup is also used by
+the local demo. For discovery and rotating signing keys, use the OIDC
+authenticator.</p>
+<p>Grant roles access to the indexes and operations they need.
+Document-level and field-level security can further restrict the records
+and fields a visitor receives. A Dashboards login alone doesn’t
+configure this API access.</p>
 </div>
 <div class="section level2">
 <h2 id="tokens-errors-and-tls">Tokens, errors and TLS<a class="anchor" aria-label="anchor" href="#tokens-errors-and-tls"></a>
 </h2>
-<p>Each operation obtains a current token and checks the authorization
-again after the response arrives. Responses from an ended or replaced
-authorization are discarded. GET and HEAD may renew once after HTTP 401;
-POST searches, SQL, writes and other mutations are never replayed. A
-timeout or sign-out stops local access; submitted work can continue on
-the server.</p>
-<p>HTTP errors report a status and safe diagnostics without echoing
-response bodies or credentials. <code>raw = TRUE</code> returns an httr2
-response for successful requests. Use it with httr2 response helpers
-when inspecting native JSON.</p>
-<p>Pass <code>ca_bundle = "path/to/private-ca.pem"</code> for a private
-CA. On Windows, if the default Schannel curl backend does not accept
-your PEM CA bundle, set <code>CURL_SSL_BACKEND=openssl</code> in
-<code>.Renviron</code> and restart R before loading the package.
-Certificate and hostname verification remain enabled.</p>
-<p>The source checkout’s <a href="https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/opensearch-oauth" class="external-link">OpenSearch
-OAuth fixture</a> tests real signed JWTs, document and field
-permissions, SQL and TLS. With Docker and the R test dependencies
-installed, run
-<code>Rscript --vanilla tools/check-opensearch-oauth.R</code> from the
-repository root. It creates its own certificates and tokens; no
-production credentials are used.</p>
+<p>Requests use the visitor’s current token and discard results after
+sign-out or account changes. POST searches and SQL don’t retry
+automatically. A timeout or sign-out stops the app waiting for results;
+work already submitted can continue on the server.</p>
+<p>Pass <code>ca_bundle</code> for a private certificate authority. If a
+Windows curl build can’t use your PEM bundle, set
+<code>CURL_SSL_BACKEND=openssl</code> in <code>.Renviron</code> and
+restart R before loading the package. See
+<code><a href="../reference/oauth_db_opensearch_api.html">?oauth_db_opensearch_api</a></code> for raw responses and error
+handling.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

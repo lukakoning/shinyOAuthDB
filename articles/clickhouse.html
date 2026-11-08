@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,48 +65,36 @@
 
     
     
-<p>ClickHouse is a SQL database for analytics. This guide uses a service
-configured to accept OAuth JWT access tokens. Run SQL against a
-JWT-enabled ClickHouse service using each visitor’s account. The client
-uses ClickHouse’s HTTPS interface and returns data frames without an
-ODBC or native ClickHouse driver.</p>
+<p>ClickHouse is a SQL database for analytics. You can use it to supply
+data to a Shiny dashboard while keeping each visitor’s database
+permissions. The app sends the visitor’s access token with its queries,
+and ClickHouse checks which roles and data they can use.</p>
+<p><code><a href="../reference/oauth_db_clickhouse_api.html">oauth_db_clickhouse_api()</a></code> queries over HTTPS and returns
+data frames, without a database driver. This guide needs a service
+configured to accept JWT access tokens, which are tokens signed by a
+trusted sign-in provider.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
-<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("clickhouse")</code> in
-your R console. This guided example uses Microsoft Entra as the custom
-JWT issuer. It first asks whether your qualifying Cloud service already
-trusts that issuer and maps its audience and role claims. Choose
-<strong>Not ready yet</strong> to save a draft and get setup links, then
-resume with <code>jwt_ready = "yes"</code> when configured.</p>
-<p>The remaining settings are <code>url</code> (HTTPS database query
-endpoint), <code>tenant_id</code>, accepted API <code>resource</code>,
-full delegated <code>scope</code> and Shiny <code>client_id</code>. The
-API resource’s token version, issuer, audience and role values must
-match the service configuration. With Entra v2 access tokens, configure
-the resource API to issue v2 tokens; its App ID URI and token audience
-can differ. Your administrators should verify the mapping.</p>
-<p>Install <code>processx</code>, <code>jsonlite</code> and
-<code>askpass</code>; no database driver is needed. A confidential
-client uses masked input or
-<code>OAUTHDB_CLICKHOUSE_CLIENT_SECRET</code>. The local editable app
-waits for <strong>Run example query</strong> and leaves the Cloud
-service running when stopped. An optional <code>database</code> selects
-a default for later table queries. See <a href="getting-started.html#more-ways-to-try-an-app">Getting
-started</a>.</p>
-<p>A standard trial or built-in <code>clickhouse-client --login</code>
-does not establish this custom-provider flow. Check the <a href="https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud" class="external-link">documented
-availability</a> before arranging an account for this demo. Other OIDC
-providers can use the manual example below; their client configuration
-differs from this guide.</p>
+<p>For an editable app using Microsoft Entra sign-in, run
+<code>shinyOAuthDB::oauth_db_cloud_demo("clickhouse")</code> in the R
+console. Install <code>bslib</code>, <code>processx</code>,
+<code>jsonlite</code> and <code>askpass</code> first.</p>
+<p>The ClickHouse service must already trust your Entra tokens. The
+launcher explains the setup and can save a draft while an administrator
+configures it. After sign-in, click <strong>Run example query</strong>
+to send SQL. The manual app below can use another trusted provider. See
+<code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for launcher settings and <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for editing the app.</p>
 </div>
 <div class="section level2">
 <h2 id="prepare-a-jwt-enabled-service">Prepare a JWT-enabled service<a class="anchor" aria-label="anchor" href="#prepare-a-jwt-enabled-service"></a>
 </h2>
-<p>Custom identity providers need a qualifying <strong>ClickHouse Cloud
-Enterprise</strong> service. An ordinary ClickHouse Docker container
-doesn’t supply this authentication feature. The service configuration
-follows the app.</p>
+<p>You need a ClickHouse Cloud Enterprise service configured for a
+custom JWT provider. A standard Docker server doesn’t provide this
+feature; check <a href="https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud" class="external-link">JWT
+authentication availability</a> with your administrator before
+registering the app.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -119,26 +107,27 @@ follows the app.</p>
 <tbody>
 <tr class="odd">
 <td><code>OAUTHDB_CLICKHOUSE_URL</code></td>
-<td>Your service’s <strong>Connect</strong> dialog, HTTPS endpoint,
+<td>The service’s <strong>Connect</strong> dialog, HTTPS query endpoint,
 commonly port 8443</td>
 </tr>
 <tr class="even">
 <td><code>OAUTHDB_CLICKHOUSE_ISSUER</code></td>
-<td>The issuer trusted by the service’s JWT settings</td>
+<td>The sign-in provider trusted by the service</td>
 </tr>
 <tr class="odd">
 <td>Client ID and secret</td>
 <td>Your <a href="getting-started.html#register-your-app">Shiny
-registration</a> with that identity provider</td>
+registration</a> with that provider</td>
 </tr>
 <tr class="even">
 <td>Database roles</td>
-<td>Existing ClickHouse roles mapped from the token’s role claims</td>
+<td>ClickHouse roles mapped from the token’s role claims</td>
 </tr>
 </tbody>
 </table>
-<p>Save the <code>OAUTHDB_*</code> values in <code>.Renviron</code> and
-restart R. You need no additional R database driver.</p>
+<p>Register <code>http://localhost:8100</code> as the redirect URI. Save
+the <code>OAUTHDB_*</code> values in <code>.Renviron</code> and restart
+R. The server configuration follows the app example.</p>
 </div>
 <div class="section level2">
 <h2 id="complete-shiny-app">Complete Shiny app<a class="anchor" aria-label="anchor" href="#complete-shiny-app"></a>
@@ -202,34 +191,23 @@ your curl TLS backend.</p>
 <div class="section level2">
 <h2 id="enable-service-jwt-authentication">Enable service JWT authentication<a class="anchor" aria-label="anchor" href="#enable-service-jwt-authentication"></a>
 </h2>
-<p>Custom identity providers currently require <strong>ClickHouse Cloud
-Enterprise</strong> and service version 26.4 or later, or 26.8 for EC
-signing keys. Configure the trusted issuer, audience, and public HTTPS
-JWKS endpoint in the service’s JWT authentication settings. Map the
-provider’s roles claim to roles that exist in ClickHouse, and grant
-those roles the required database permissions. See <a href="https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud" class="external-link">JWT
-authentication and availability</a>.</p>
-<p>Use the database’s HTTPS query endpoint, commonly port 8443. A Cloud
-management API key, database password, or the fact that a server speaks
-ClickHouse SQL does not establish JWT database authentication. This
-helper requires a deployment that accepts the visitor’s bearer access
-token.</p>
-<p>Register your Shiny app with the trusted identity provider, using
-<code>http://localhost:8100</code> for the local redirect URI. Configure
-the audience, scopes, and role claims that ClickHouse expects. The
-example assumes the provider issues the intended JWT access token
-through its normal authorization-code flow; it does not invoke
-<code>clickhouse-client --login</code>.</p>
-<p>Set <code>OAUTHDB_CLICKHOUSE_ISSUER</code>,
-<code>OAUTHDB_CLICKHOUSE_URL</code>, <code>OAUTHDB_CLIENT_ID</code>, and
-<code>OAUTHDB_CLIENT_SECRET</code> in your environment.</p>
+<p>Custom providers require ClickHouse Cloud Enterprise and service
+version 26.4 or later, or 26.8 for EC signing keys. Configure the
+issuer, audience and public signing-key endpoint, then map the token’s
+role claims to ClickHouse roles with the required database privileges.
+Follow the <a href="https://clickhouse.com/blog/introducing-jwt-authentication-in-clickhouse-cloud" class="external-link">JWT
+setup instructions</a>.</p>
+<p>Configure the provider to issue access tokens with those claims. With
+Entra v2 tokens, check the resource API’s token version and audience;
+the App ID URI and the audience inside the token can differ. The
+administrator who configures ClickHouse and the provider must agree on
+these values.</p>
 </div>
 <div class="section level2">
 <h2 id="native-typed-parameters">Native typed parameters<a class="anchor" aria-label="anchor" href="#native-typed-parameters"></a>
 </h2>
-<p>SQL goes in the POST body. Parameter values are supplied separately
-through ClickHouse’s <code>param_</code> mechanism and are never
-interpolated into SQL.</p>
+<p>Use ClickHouse’s typed placeholders and pass values in
+<code>parameters</code>. The client sends them separately from SQL:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="va">clickhouse</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span></span>
 <span>  <span class="st">"SELECT id, total FROM reporting.orders WHERE country = {country:String} AND id &gt; {after:UInt64} LIMIT 20"</span>,</span>
@@ -244,33 +222,25 @@ interpolated into SQL.</p>
 <span>  <span class="st">"SELECT {at:DateTime('UTC')} AS at, {precise:DateTime64(6, 'UTC')} AS precise"</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>at <span class="op">=</span> <span class="va">at</span>, precise <span class="op">=</span> <span class="va">at</span> <span class="op">+</span> <span class="fl">0.125</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Supply one R scalar per parameter. Missing values use the native
-nullable representation; declare a compatible <code>Nullable(...)</code>
-type in SQL. Supply large integers and exact decimals as strings.</p>
-<p><code>POSIXct</code> values are formatted as UTC wall-clock strings,
-regardless of their R display timezone. Use <code>DateTime('UTC')</code>
-for whole seconds and <code>DateTime64(6, 'UTC')</code> for fractional
-seconds; encoding retains up to six fractional digits. Always specify
-<code>'UTC'</code> in the SQL placeholder. An unqualified type uses the
-server or session timezone, and a different timezone annotation changes
-the instant represented by the formatted string. In the example, noon in
-Amsterdam becomes <code>11:00:00</code> UTC.</p>
-<p>Array and tuple parameters use native ClickHouse literal strings
-wrapped in <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code>, such as
-<code>parameters = list(ids = I("[1,2,3]"))</code>. <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code>
-preserves a value already encoded in ClickHouse’s escaped format; it
-remains a bound HTTP parameter and is never interpolated into SQL.</p>
+<p>Supply large integers and exact decimals as strings. Missing values
+need a compatible <code>Nullable(...)</code> type in SQL. For R
+timestamps, specify <code>DateTime('UTC')</code> or
+<code>DateTime64(6, 'UTC')</code> in the placeholder: the client formats
+<code>POSIXct</code> values in UTC, regardless of their display
+timezone.</p>
+<p>See <code><a href="../reference/oauth_db_clickhouse_api.html">?oauth_db_clickhouse_api</a></code> for arrays, tuples and
+other parameter types.</p>
 </div>
 <div class="section level2">
 <h2 id="results-and-statements">Results and statements<a class="anchor" aria-label="anchor" href="#results-and-statements"></a>
 </h2>
-<p>The client requests JSONCompact, which retains column order and
-duplicate column names. Omit FORMAT clauses and output-format overrides
-from your SQL. Integers of 64 bits or more and decimals remain strings;
-smaller integers and floats become R numbers. Dates become
-<code>Date</code>, timestamps keep their server string representation,
-and complex values become list columns. Empty queries preserve their
-column metadata.</p>
+<p>Queries return data frames. Integers of 64 bits or more and decimals
+stay as strings to preserve precision. Dates become <code>Date</code>;
+timestamps keep their server string format, and complex values use list
+columns. Leave <code>FORMAT</code> clauses out of SQL so the client can
+read the response.</p>
+<p>Use <code>$execute()</code> for statements whose result rows you
+don’t need:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">clickhouse</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span></span>
 <span>  <span class="st">"SELECT count() AS rows FROM reporting.orders"</span>,</span>
@@ -283,18 +253,11 @@ column metadata.</p>
 <span>  <span class="st">"INSERT INTO reporting.reviewed_orders (id) VALUES ({id:UInt64})"</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"9007199254740993"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><code>execute()</code> invisibly returns the httr2 response for
-successful statements. All requests obtain a current token for the
-authorization that started them. Authorization changes discard late
-responses. SQL requests never retry automatically, including after HTTP
-401, because a statement may already have executed. Redirects are
-rejected.</p>
-<p>Response buffering and complete JSON parsing prevent returning
-partial rows after a server exception. Operations collect results in R
-memory. A timeout or sign-out does not guarantee cancellation of a
-submitted query. Configure query limits in ClickHouse for long-running
-work. See the <a href="https://clickhouse.com/docs/interfaces/http" class="external-link">HTTP
-interface</a>.</p>
+<p>SQL requests don’t retry automatically, since the statement may
+already have executed. A timeout or sign-out doesn’t cancel submitted
+work; set query limits on the server for long-running operations. See
+<code><a href="../reference/oauth_db_clickhouse_api.html">?oauth_db_clickhouse_api</a></code> for raw responses and other
+options.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

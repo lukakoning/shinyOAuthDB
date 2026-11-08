@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,46 +65,41 @@
 
     
     
-<p>BigQuery is Google’s hosted analytics database. You submit SQL query
-jobs without managing a database server. Run GoogleSQL in a Shiny app
-using each visitor’s Google account. <code>bigquery$query()</code>
-returns a data frame you can display with
-<code><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable()</a></code>.</p>
-<p>The first app checks which Google account is signed in. You can then
-use the same client to query your tables.</p>
+<p>BigQuery is Google’s hosted analytics database. It runs SQL queries
+as jobs, so you can query data without managing a database server. A
+Shiny app can use each visitor’s Google account and existing data
+permissions.</p>
+<p>You choose a Google Cloud project to run and bill the queries. The
+data can live in that project or another one the user can access.
+<code><a href="../reference/oauth_db_bigquery_api.html">oauth_db_bigquery_api()</a></code> sends the queries and returns data
+frames; the first example checks the signed-in account before reading
+any tables.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
-<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("bigquery")</code> in
-your R console. The guide asks for the query <code>project</code> ID and
-OAuth <code>client_id</code>, explains the consent screen and test
-users, then asks for the Web client’s secret through masked input.
-Install <code>processx</code>, <code>jsonlite</code> and
-<code>askpass</code> first. No database driver is needed. You can save a
-draft while arranging access.</p>
-<p>The editable app runs <code>SELECT SESSION_USER()</code> only after
-you click <strong>Run example query</strong>. Its default
-<code>location = "US"</code> suits the identity query; set it to your
-dataset’s location before querying tables. The default
-<code>maximum_bytes_billed = "10000000"</code> limits bytes a query may
-bill. For scripts, supply <code>project</code>, <code>client_id</code>
-and optionally those settings, set
-<code>OAUTHDB_BIGQUERY_CLIENT_SECRET</code>, and use
-<code>prompt = FALSE</code>. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
-for editing and resuming.</p>
-<p>With no account yet, <a href="https://docs.cloud.google.com/bigquery/docs/sandbox" class="external-link">BigQuery
-sandbox</a> offers a starting point without a billing account. You still
-need to enable the API, configure your Web OAuth client and have
-permission to run jobs. The full OAuth demo has not been verified
-against a sandbox account.</p>
+<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("bigquery")</code> in the
+R console for an editable app. Install <code>bslib</code>,
+<code>processx</code>, <code>jsonlite</code> and <code>askpass</code>
+first; no database driver is needed. The launcher walks you through the
+query project and Google app registration.</p>
+<p>After sign-in, click <strong>Run example query</strong> to check the
+Google account. The demo initially uses the <code>US</code> query
+location; change it to your dataset’s location before querying tables.
+See <a href="getting-started.html#more-ways-to-try-an-app">Getting
+started</a> for editing and <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for saved
+settings and script arguments.</p>
 </div>
 <div class="section level2">
 <h2 id="google-cloud-setup">Google Cloud setup<a class="anchor" aria-label="anchor" href="#google-cloud-setup"></a>
 </h2>
-<p>Create a <a href="https://developers.google.com/identity/protocols/oauth2/web-server" class="external-link">Web
-OAuth client</a> in Google Cloud and configure its consent screen.
-Register <code>http://localhost:8100</code> as the redirect URI and
-enable the BigQuery API for the query project.</p>
+<p>Enable the BigQuery API for the query project. In Google Cloud
+Console, open <strong>Google Auth Platform</strong> and configure
+<strong>Branding</strong> and <strong>Audience</strong>. If the app is
+in testing, add the Google accounts that will try it. Under
+<strong>Clients</strong>, create a <strong>Web application</strong> with
+<code>http://localhost:8100</code> as an authorized redirect URI.
+Google’s <a href="https://developers.google.com/identity/protocols/oauth2/web-server" class="external-link">web-app
+OAuth guide</a> explains consent and deployment requirements.</p>
 <p>Users need permission to run query jobs in that project and read the
 data. BigQuery bills queries to this project. Set <code>location</code>
 to match your datasets; this example uses <code>"EU"</code>.</p>
@@ -112,14 +107,6 @@ to match your datasets; this example uses <code>"EU"</code>.</p>
 and restart R:</p>
 <pre class="text"><code><span><span class="va">OAUTHDB_CLIENT_ID</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">id</span></span>
 <span><span class="va">OAUTHDB_CLIENT_SECRET</span><span class="op">=</span><span class="va">your</span><span class="op">-</span><span class="va">client</span><span class="op">-</span><span class="va">secret</span></span></code></pre>
-<p>In Google Cloud Console, select the app project and open
-<strong>Google Auth Platform</strong>. Configure
-<strong>Branding</strong> and <strong>Audience</strong>; if the app is
-in testing, add the Google accounts that will try it. Under
-<strong>Clients</strong>, create a <strong>Web application</strong> and
-add <code>http://localhost:8100</code> to authorized redirect URIs. Copy
-its client ID and secret. Google’s <a href="https://developers.google.com/identity/protocols/oauth2/web-server" class="external-link">web-app
-OAuth guide</a> explains consent and deployment requirements.</p>
 <table class="table">
 <colgroup>
 <col width="50%">

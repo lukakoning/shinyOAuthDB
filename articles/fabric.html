@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -65,32 +65,26 @@
 
     
     
-<p>Microsoft Fabric brings SQL warehouses, lakehouses and other
-analytics services into one platform. Use Fabric data in a Shiny app
-with each visitor’s Microsoft account. For a Warehouse, Lakehouse SQL
-endpoint, or SQL Database, query with DBI or dbplyr. For other Fabric
-work, call fabricQueryR functions with the same sign-in.</p>
+<p>Microsoft Fabric stores and queries analytics data in warehouses,
+lakehouses and other services. You can use that data in a Shiny app with
+each visitor’s Microsoft account and existing access permissions.</p>
+<p>Start with a SQL endpoint: a Warehouse, Lakehouse SQL endpoint or SQL
+Database can supply a DBI connection for SQL and dbplyr queries. Later
+in this guide, the same sign-in lets you call fabricQueryR functions to
+list workspaces or read Lakehouse tables.</p>
 <div class="section level2">
 <h2 id="try-the-guided-demo">Try the guided demo<a class="anchor" aria-label="anchor" href="#try-the-guided-demo"></a>
 </h2>
-<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("fabric")</code> in your
-R console. The guide asks for the SQL <code>server</code>,
-<code>database</code>, Entra <code>tenant_id</code> and
-<code>client_id</code>, then whether your registration is public PKCE or
-confidential. It shows where to find each value, registration
-instructions and your local callback. You can pause until an
-administrator grants access.</p>
+<p>Run <code>shinyOAuthDB::oauth_db_cloud_demo("fabric")</code> in the R
+console for an editable local app. The launcher helps you find the SQL
+endpoint and Microsoft app registration, then waits for <strong>Run
+example query</strong> before querying.</p>
 <p>Install <code>fabricQueryR</code>, <code>odbc</code>,
-<code>processx</code> and, for masked secrets, <code>askpass</code>;
-install Microsoft ODBC Driver 18 on your computer too. The app opens
-locally and runs its identity query only when you click <strong>Run
-example query</strong>. For scripted setup, pass those names as
-arguments; <code>driver</code> can override the installed driver’s name.
-See <a href="getting-started.html#more-ways-to-try-an-app">Getting
-started</a>.</p>
-<p>If you have no workspace, check <a href="https://learn.microsoft.com/en-us/fabric/get-started/fabric-trial" class="external-link">Fabric
-trial eligibility</a>. You still need an Entra app registration and
-permission to use a SQL item.</p>
+<code>bslib</code>, <code>processx</code>, <code>askpass</code> and
+Microsoft ODBC Driver 18 first. You need an existing Fabric item and
+permission to use its data. See <a href="getting-started.html#more-ways-to-try-an-app">Getting started</a>
+for editing and <code><a href="../reference/oauth_db_cloud_demo.html">?oauth_db_cloud_demo</a></code> for the launcher
+settings.</p>
 </div>
 <div class="section level2">
 <h2 id="set-up-sql-access">Set up SQL access<a class="anchor" aria-label="anchor" href="#set-up-sql-access"></a>
@@ -310,32 +304,17 @@ those methods. See fabricQueryR’s help for their arguments.</p>
 <div class="section level2">
 <h2 id="connection-options">Connection options<a class="anchor" aria-label="anchor" href="#connection-options"></a>
 </h2>
-<p>The SQL helper uses ODBC by default for DBI and dbplyr. Use ODBC for
-dbplyr’s SQL Server translations: the ADBC connection does not currently
-select that dialect and can generate SQL that Fabric rejects, such as
-<code>LIMIT</code>.</p>
-<p>For ADBC queries through DBI or Arrow, install <code>adbi</code> and
-<code>adbcdrivermanager</code>, plus version 1.5.0 or later of the
-external <code>mssql</code> driver. The driver can be installed with
-<code>dbc install mssql</code>; the R packages do not install it. Pass
-<code>backend = "adbc"</code> to <code><a href="../reference/oauth_db_fabric_sql.html">oauth_db_fabric_sql()</a></code>.
-Options such as <code>timeout</code> and <code>read_only</code> go to
+<p>The SQL helper uses ODBC by default, including SQL Server
+translations for dbplyr. Set <code>timeout</code> and
+<code>read_only</code> on the helper if your app needs different
+connection settings. For ADBC and Arrow connections, see
+<code><a href="../reference/oauth_db_fabric_sql.html">?oauth_db_fabric_sql</a></code> and
 <code><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_sql_connect.html" class="external-link">fabricQueryR::fabric_sql_connect()</a></code>.</p>
-<p>Call <code>con()</code> before each operation. An ADBC connection
-reopens with a current token on access after token renewal; ODBC keeps
-valid database sessions open across ordinary renewal. A replacement
-closes outstanding results, so consume and release them before starting
-another operation.</p>
-<p>ADBC can retain native Arrow types through
-<code><a href="https://dbi.r-dbi.org/reference/dbGetQueryArrow.html" class="external-link">DBI::dbGetQueryArrow()</a></code>. Direct
-<code><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">DBI::dbGetQuery()</a></code> reads use the driver’s conversions and do
-not apply fabricQueryR’s exact numeric policy. For that policy, call
-<code><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_sql_query.html" class="external-link">fabricQueryR::fabric_sql_query()</a></code> through
-<code><a href="../reference/oauth_db_fabric_api.html">oauth_db_fabric_api()</a></code> with <code>backend = "adbc"</code>
-and <code>numeric_policy = "exact"</code>.</p>
-<p>The helper manages its own DBI connection. Your app must close
-connections it opens through fabricQueryR functions or resource
-methods.</p>
+<p>Call <code>con()</code> before each operation. ODBC keeps a valid
+database session open through token renewal; ADBC replaces it on the
+next access. Consume and close outstanding results before starting
+another operation. Your app must also close any connections it opens
+directly through fabricQueryR functions or resource methods.</p>
 </div>
 <div class="section level2">
 <h2 id="use-an-existing-sign-in">Use an existing sign-in<a class="anchor" aria-label="anchor" href="#use-an-existing-sign-in"></a>

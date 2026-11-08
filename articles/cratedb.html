@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>CrateDB with visitor JWTs • shinyOAuthDB</title>
+<title>CrateDB • shinyOAuthDB</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="CrateDB with visitor JWTs">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="CrateDB">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -33,7 +33,7 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-guides" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Guides</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-guides">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting started</a></li>
-    <li><a class="dropdown-item" href="../articles/index.html">All database guides</a></li>
+    <li><a class="dropdown-item" href="../articles/index.html">All data source guides</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
@@ -56,7 +56,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>CrateDB with visitor JWTs</h1>
+      <h1>CrateDB</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/lukakoning/shinyOAuthDB/blob/main/vignettes/cratedb.Rmd" class="external-link"><code>vignettes/cratedb.Rmd</code></a></small>
@@ -66,35 +66,31 @@
     
     
 <p>CrateDB is a distributed SQL database for analytics and operational
-data. Use <code><a href="../reference/oauth_db_cratedb_api.html">oauth_db_cratedb_api()</a></code> to run SQL through
-CrateDB’s HTTPS interface with each visitor’s JWT access token. CrateDB
-maps the token to a database user and enforces that user’s privileges.
-This is an HTTP query client; CrateDB’s JWT authentication does not work
-through its PostgreSQL interface.</p>
+data. A Shiny app can query it on behalf of the person who signed in,
+using that person’s existing database privileges.</p>
+<p><code><a href="../reference/oauth_db_cratedb_api.html">oauth_db_cratedb_api()</a></code> sends SQL over HTTPS and returns
+data frames. CrateDB checks the visitor’s signed access token, matches
+it to a database user and applies that user’s permissions. No R database
+driver is needed.</p>
 <div class="section level2">
 <h2 id="try-cratedb-locally">Try CrateDB locally<a class="anchor" aria-label="anchor" href="#try-cratedb-locally"></a>
 </h2>
 <p>With Docker running:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"cratedb"</span><span class="op">)</span></span></code></pre></div>
-<p>The demo includes CrateDB 6.4.3, Keycloak, a Shiny app and read-only
-database users. Alice and Bob can read a shared table; <strong>Try a
+<p>The demo starts CrateDB, Keycloak sign-in and a Shiny app with sample
+data. Alice and Bob can read a shared table; <strong>Try a
 write</strong> checks that CrateDB rejects their writes. See <a href="getting-started.html#build-a-small-app">Getting started</a> for
-accounts and cleanup.</p>
-<p>CrateDB expects the token’s issuer URL to serve its public signing
-keys. The demo’s HTTPS gateway supplies those keys at Keycloak’s issuer
-URL while forwarding normal browser sign-in to Keycloak. It passes the
-original access token to CrateDB. Inspect <code>cratedb/server.py</code>
-and <code>realm-extended.json</code> with
-<code>oauth_db_demo("cratedb", action = "files")</code> for the complete
-setup.</p>
+accounts and cleanup. To inspect or change the configuration, copy it
+with <code>oauth_db_demo("cratedb", action = "files")</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="collect-the-connection-settings">Collect the connection settings<a class="anchor" aria-label="anchor" href="#collect-the-connection-settings"></a>
 </h2>
-<p>Your server must enable JWT authentication for its HTTP SQL
-interface. The required user claims and configuration follow the app
-example.</p>
+<p>Ask your administrator for a CrateDB server with JWT authentication
+enabled on its HTTP SQL interface. Use the HTTPS endpoint ending in
+<code>/_sql</code>; CrateDB’s PostgreSQL interface doesn’t support this
+sign-in.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -107,8 +103,7 @@ example.</p>
 <tbody>
 <tr class="odd">
 <td><code>url</code></td>
-<td>CrateDB’s HTTP endpoint with <code>/_sql</code>, exposed through
-HTTPS</td>
+<td>The server’s HTTPS SQL endpoint</td>
 </tr>
 <tr class="even">
 <td>
@@ -118,30 +113,31 @@ HTTPS</td>
 </tr>
 <tr class="odd">
 <td><code>OAUTHDB_CRATEDB_ISSUER</code></td>
-<td>Your compatible OAuth provider’s issuer URL</td>
+<td>The sign-in provider configured for this database</td>
 </tr>
 <tr class="even">
 <td>Client ID and secret</td>
-<td>The <a href="getting-started.html#register-your-app">Shiny app
-registration</a> in that provider</td>
+<td>Your <a href="getting-started.html#register-your-app">Shiny app
+registration</a> with that provider</td>
 </tr>
 </tbody>
 </table>
-<p>Put the <code>OAUTHDB_*</code> values in <code>.Renviron</code> and
-restart R. CrateDB needs a <code>username</code> claim and specific
-signing-key discovery; check the setup section before reusing tokens
-from an existing provider.</p>
+<p>Register <code>http://localhost:8100</code> as the app’s redirect
+URI. Save the registration in <code>.Renviron</code> and restart R:</p>
+<pre class="text"><code>OAUTHDB_CRATEDB_ISSUER=https://identity.example.org/
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret</code></pre>
+<p>CrateDB needs a particular username claim and signing-key endpoint.
+The server setup below explains these requirements for your
+administrator.</p>
 </div>
 <div class="section level2">
 <h2 id="a-complete-app">A complete app<a class="anchor" aria-label="anchor" href="#a-complete-app"></a>
 </h2>
-<p>This example assumes an OIDC provider configured to issue compatible
-JWT access tokens. Replace the SQL endpoint and table for your
-deployment. Add the provider’s API scopes, resource or named token
-target to the client as needed. Pass <code>target</code> and
-<code>required_scopes</code> to the helper when using them. CrateDB’s
-user grants remain the authority for data access.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<p>The app reads an <code>orders</code> table after sign-in. Replace the
+SQL endpoint and table name, and use the scopes configured for your
+database. Save the code as <code>example.R</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
@@ -198,92 +194,59 @@ before querying and clears the output on sign-out. Use
 <code>ca_bundle</code> for a private CA.</p>
 </div>
 <div class="section level2">
-<h2 id="configure-cratedb-and-compatible-token-claims">Configure CrateDB and compatible token claims<a class="anchor" aria-label="anchor" href="#configure-cratedb-and-compatible-token-claims"></a>
-</h2>
-<p>Enable host-based authentication and configure
-<code>method: jwt</code> rules with <code>protocol: http</code> for the
-intended users. Expose <code>/_sql</code> through verified TLS, either
-directly on CrateDB or through a reverse proxy. For example, an HTTP
-rule for Alice in <code>crate.yml</code> looks like this:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">auth.host_based.enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">auth.host_based.config</span><span class="kw">:</span></span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="at">  </span><span class="fu">alice</span><span class="kw">:</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> alice</span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="at">    </span><span class="fu">method</span><span class="kw">:</span><span class="at"> jwt</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="at">    </span><span class="fu">protocol</span><span class="kw">:</span><span class="at"> http</span></span></code></pre></div>
-<p>Keep separate administrative authentication rules appropriate to your
-deployment. Create the database user and grant only the privileges
-needed:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="kw">CREATE</span> <span class="fu">USER</span> alice <span class="kw">WITH</span> (jwt <span class="op">=</span> {</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="ot">"iss"</span> <span class="op">=</span> <span class="st">'https://identity.example.org/'</span>,</span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="ot">"username"</span> <span class="op">=</span> <span class="st">'alice'</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="ot">"aud"</span> <span class="op">=</span> <span class="st">'reporting-api'</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>});</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="kw">GRANT</span> DQL <span class="kw">ON</span> <span class="kw">TABLE</span> doc.orders <span class="kw">TO</span> alice;</span></code></pre></div>
-<p>The access token must have matching <code>iss</code>,
-<code>username</code> and <code>aud</code> claims, a <code>kid</code>
-header and a signing key CrateDB can obtain from the provider’s JWK
-endpoint. Configure token expiry with <code>exp</code>. In particular,
-CrateDB expects <code>username</code>; a provider returning only
-<code>sub</code> or <code>preferred_username</code> needs a suitable
-claim mapping. Its JWT documentation describes <code>iss</code> as the
-JWK endpoint. Verify key discovery with your provider and CrateDB
-version before using the app; the helper does not rewrite token claims
-or exchange an incompatible token.</p>
-<p>Global <code>auth.host_based.jwt.iss</code> settings override
-per-user JWT properties. See the server’s <a href="https://cratedb.com/docs/crate/reference/en/latest/admin/auth/methods.html#jwt-authentication-method" class="external-link">JWT
-authentication documentation</a> and <a href="https://cratedb.com/docs/crate/reference/en/latest/sql/statements/create-user.html" class="external-link">user
-settings</a>.</p>
-<p>Register an OAuth client with the identity provider. Allow
-<code>http://localhost:8100</code> as its development redirect URI, and
-configure the access-token audience and claims required above. Save your
-registration in <code>.Renviron</code> and restart R:</p>
-<pre class="text"><code>OAUTHDB_CRATEDB_ISSUER=https://identity.example.org/
-OAUTHDB_CLIENT_ID=your-client-id
-OAUTHDB_CLIENT_SECRET=your-client-secret</code></pre>
-</div>
-<div class="section level2">
 <h2 id="parameters-results-and-lifetime">Parameters, results and lifetime<a class="anchor" aria-label="anchor" href="#parameters-results-and-lifetime"></a>
 </h2>
 <p>Use <code>$1</code>, <code>$2</code>, … or <code>?</code>
-placeholders with an unnamed list of parameters. Values are sent as JSON
-separately from SQL; named lists inside a parameter represent objects,
-and unnamed lists or atomic vectors represent arrays. Missing values
-become JSON null. Dates and POSIXct timestamps become ISO strings, with
-timestamps expressed in UTC. Cast the placeholders to the desired SQL
-types. For exact numbers, pass strings and cast them explicitly:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+placeholders with an unnamed list of values. The client sends values
+separately from SQL. For large integers and exact decimals, pass strings
+and cast the placeholders to the intended SQL type:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">crate</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span></span>
 <span>  <span class="st">"SELECT * FROM orders WHERE id = $1::bigint"</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"9007199254740993"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>BIGINT and NUMERIC results remain strings, preserving their exact
-digits. Smaller numeric columns become R numbers and booleans become
-logical. Timestamps and dates retain epoch-millisecond strings. Arrays,
-objects and other complex types remain list columns with numbers
-represented as strings. Empty results keep their types; duplicate column
-names stay unchanged. Use <code>$query(..., raw = TRUE)</code> for
-column metadata and the original row layout. <code>$execute()</code>
-invisibly returns the affected row count, or <code>-1</code> when
-unknown.</p>
-<p>shinyOAuth obtains or renews a token before each request. Account
-changes, lost required scopes, sign-out and session end stop local
-access. A response arriving after its authorization changes is
-discarded. The helper never replays SQL after a 401, redirect, timeout
-or other failure. A statement may already have changed data even if its
-response was lost, so check the server outcome before manually
-resubmitting a write.</p>
+<p>BIGINT and NUMERIC results stay as strings to preserve their digits.
+Dates and timestamps use epoch-millisecond strings; arrays and objects
+remain list columns. See <code><a href="../reference/oauth_db_cratedb_api.html">?oauth_db_cratedb_api</a></code> for other
+conversions, raw results and <code>$execute()</code>.</p>
+<p>Each request uses a current token and discards results if the user
+signs out or changes accounts. SQL requests don’t retry automatically.
+After a write fails, check whether it took effect before submitting it
+again.</p>
 </div>
 <div class="section level2">
-<h2 id="run-the-real-server-checks">Run the real-server checks<a class="anchor" aria-label="anchor" href="#run-the-real-server-checks"></a>
+<h2 id="configure-cratedb-and-compatible-token-claims">Configure CrateDB and compatible token claims<a class="anchor" aria-label="anchor" href="#configure-cratedb-and-compatible-token-claims"></a>
 </h2>
-<p>The source repository includes a <a href="https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/cratedb-oauth" class="external-link">CrateDB
-Docker fixture</a> with signed visitor tokens, native CrateDB JWT
-validation and a TLS proxy. From the checkout root, run
-<code>Rscript tools/check-cratedb-oauth.R</code> with Docker running and
-the test dependencies installed. No production credentials are needed.
-The checks cover user privileges, exact types, token changes, rejected
-credentials, TLS verification and lost write responses.</p>
+<p>Enable host-based authentication with <code>method: jwt</code> and
+<code>protocol: http</code> for the intended users. Expose the SQL
+endpoint through HTTPS. For example, an HTTP rule for Alice in
+<code>crate.yml</code> looks like this:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">auth.host_based.enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="fu">auth.host_based.config</span><span class="kw">:</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="at">  </span><span class="fu">alice</span><span class="kw">:</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> alice</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="at">    </span><span class="fu">method</span><span class="kw">:</span><span class="at"> jwt</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="at">    </span><span class="fu">protocol</span><span class="kw">:</span><span class="at"> http</span></span></code></pre></div>
+<p>Create the database user and grant access to the required tables:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="kw">CREATE</span> <span class="fu">USER</span> alice <span class="kw">WITH</span> (jwt <span class="op">=</span> {</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="ot">"iss"</span> <span class="op">=</span> <span class="st">'https://identity.example.org/'</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="ot">"username"</span> <span class="op">=</span> <span class="st">'alice'</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="ot">"aud"</span> <span class="op">=</span> <span class="st">'reporting-api'</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>});</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="kw">GRANT</span> DQL <span class="kw">ON</span> <span class="kw">TABLE</span> doc.orders <span class="kw">TO</span> alice;</span></code></pre></div>
+<p>The token’s <code>iss</code>, <code>username</code> and
+<code>aud</code> must match the user’s configuration. It also needs an
+expiry (<code>exp</code>) and a <code>kid</code> identifying its signing
+key. A provider that only issues <code>sub</code> or
+<code>preferred_username</code> needs a mapping to the
+<code>username</code> claim CrateDB expects.</p>
+<p>CrateDB expects the issuer URL to serve its public signing keys. The
+local demo uses a gateway to make Keycloak’s keys available there. Check
+this with your provider before reusing an existing login. Global
+<code>auth.host_based.jwt.iss</code> settings override per-user
+properties; see <a href="https://cratedb.com/docs/crate/reference/en/latest/admin/auth/methods.html#jwt-authentication-method" class="external-link">JWT
+authentication</a> and <a href="https://cratedb.com/docs/crate/reference/en/latest/sql/statements/create-user.html" class="external-link">user
+settings</a>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
