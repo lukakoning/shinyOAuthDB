@@ -153,6 +153,7 @@ server <- function(input, output, session) {
   con <- oauth_db_postgres(
     auth$connection,
     host = "localhost",
+    port = 5432L,
     dbname = "oauthdb_fixture",
     user = function() req(auth$token@userinfo$preferred_username),
     issuer = issuer,

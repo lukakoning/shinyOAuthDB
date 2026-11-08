@@ -153,6 +153,7 @@ server <- function(input, output, session) {
   con <- oauth_db_starrocks(
     auth$connection,
     server = "localhost",
+    port = 9030L,
     database = "reporting",
     user = function() req(auth$token@userinfo$preferred_username),
     driver = "/usr/lib/x86_64-linux-gnu/odbc/libmyodbc9w.so",

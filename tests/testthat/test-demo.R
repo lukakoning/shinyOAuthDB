@@ -150,6 +150,52 @@ test_that("local app files use host endpoints and preserve edits", {
   )
 })
 
+test_that("local PostgreSQL and StarRocks apps pass the published port to their helpers", {
+  local_mocked_bindings(
+    oauth_provider_oidc_discover = function(issuer, ...) {
+      shinyOAuth::oauth_provider(
+        name = "fixture",
+        auth_url = "https://fixture.example/auth",
+        token_url = "https://fixture.example/token"
+      )
+    },
+    .package = "shinyOAuth"
+  )
+  for (backend in c("postgres", "starrocks")) {
+    path <- withr::local_tempdir()
+    suppressMessages(oauth_db_demo(
+      backend,
+      app = "local",
+      action = "files",
+      path = path
+    ))
+    app <- new.env(parent = globalenv())
+    sys.source(file.path(path, "local-app", backend, "app.R"), envir = app)
+    app$oauth_module_server <- function(...) {
+      shiny::reactiveValues(
+        error = NULL,
+        token = NULL,
+        connection = function() NULL,
+        request_login = function() NULL,
+        logout = function() NULL
+      )
+    }
+    observed_port <- NULL
+    app[[paste0("oauth_db_", backend)]] <- function(
+      authorization,
+      ...,
+      port = NULL
+    ) {
+      observed_port <<- port
+      function() shiny::req(FALSE)
+    }
+    shiny::testServer(app$server, {
+      session$flushReact()
+    })
+    expect_identical(observed_port, 19444L, info = backend)
+  }
+})
+
 test_that("local mode starts infrastructure, copies the CA and cleans up R failures", {
   path <- file.path(withr::local_tempdir(), "local demo with spaces")
   calls <- list()

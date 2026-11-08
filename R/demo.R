@@ -623,12 +623,7 @@ oauth_db_demo <- function(
     code <- gsub("localhost:5432", "localhost:19444", code, fixed = TRUE)
     code <- gsub("localhost:9030", "localhost:19444", code, fixed = TRUE)
     if (database == "postgres") {
-      code <- sub(
-        'host = "localhost", dbname =',
-        'host = "localhost", port = 19444L, dbname =',
-        code,
-        fixed = TRUE
-      )
+      code <- gsub("5432L", "19444L", code, fixed = TRUE)
     }
     if (database == "starrocks") {
       code <- gsub(
@@ -644,12 +639,6 @@ oauth_db_demo <- function(
           "plugin_dir = ",
           if (nzchar(plugins)) encodeString(plugins, quote = '"') else "NULL"
         ),
-        code,
-        fixed = TRUE
-      )
-      code <- sub(
-        'server = "localhost", database =',
-        'server = "localhost", port = 19444L, database =',
         code,
         fixed = TRUE
       )

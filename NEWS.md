@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Use the published relay port in generated local PostgreSQL and StarRocks
+  apps, independent of argument line breaks in the Docker app templates.
+
 * Convert CrateDB query results to data frames once, while retaining cell
   validation for raw results and execution counts.
 
