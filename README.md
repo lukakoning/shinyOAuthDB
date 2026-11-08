@@ -60,14 +60,6 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
-This installs the package from source and compiles its C code. On Windows,
-install [Rtools for your R version](https://cran.r-project.org/bin/windows/Rtools/)
-first; on macOS, install the Xcode Command Line Tools with `xcode-select --install`.
-Linux needs R's development tools, including a C compiler and `make`.
-These build tools are needed even when using a backend without a database driver.
-Native PostgreSQL OAuth also needs the Linux/libpq 18 setup described in the
-[PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html).
-
 ## Example usage with PostgreSQL
 
 Below is a minimal example of a Shiny app that queries a PostgreSQL database.
