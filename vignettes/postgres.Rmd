@@ -1,8 +1,8 @@
 ---
-title: "Self-hosted PostgreSQL with OAuth"
+title: "PostgreSQL"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Self-hosted PostgreSQL with OAuth}
+  %\VignetteIndexEntry{PostgreSQL}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

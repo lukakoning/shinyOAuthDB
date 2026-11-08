@@ -1,5 +1,18 @@
 # Validation record
 
+## 8 November 2026: guide and function-reference navigation
+
+The guide menu now uses **All data source guides**, with **Databases and
+related services** and **Cloud platforms** as its source categories.
+PostgreSQL's article title is **PostgreSQL**. The reference groups related
+functions by data source, with shared helpers listed separately.
+
+With pkgdown 2.1.3, the full website builds successfully. Inventory checks
+account for all 38 exported functions, package help and 22 guides without
+duplicate entries. Rendered-page checks confirm each topic's group, the
+PostgreSQL title and the navigation label. Documentation checks parse 87 R
+blocks and resolve 193 local links and 48 section anchors.
+
 ## 8 November 2026: writing review of all vignettes
 
 Reviewed and edited all 22 vignettes to explain purpose and basic concepts
