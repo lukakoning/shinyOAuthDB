@@ -11,16 +11,14 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Trino is an open-source SQL query engine that connects to other data
-stores. Starburst Enterprise builds on Trino. Use a self-hosted Trino cluster or Starburst Enterprise as a data source for Shiny.
-People sign in with the cluster's identity provider and query using their
-own database permissions.
+Trino is a SQL query engine that connects to other data stores. Starburst
+Enterprise builds on Trino. Either can provide data to a Shiny app while
+applying the cluster's existing access rules for each visitor.
 
-You can run Trino and its trusted OAuth identity provider on your own
-infrastructure. The installed package includes a local Trino and Keycloak
-demo, described below.
-
-The connection uses RTrino, so you can write queries with DBI or dbplyr.
+People sign in with the cluster's trusted provider.
+`oauth_db_trino()` then opens an RTrino connection for DBI or dbplyr
+queries. You choose a catalog, which identifies a data source, and a schema
+within that catalog.
 
 ## Set up sign-in
 
@@ -160,14 +158,9 @@ account changes, sign-out, or session end.
 
 ## Match the cluster's sign-in configuration
 
-The cluster must trust access tokens from your app's issuer and audience,
-and map the token's principal to a Trino user. A successful sign-in to the
-cluster's web UI alone doesn't establish this for your Shiny app.
-See [Trino's OAuth configuration](https://trino.io/docs/current/security/oauth2.html)
-for the server settings.
-
-The `user` argument must match that mapping. Use a function to read the
-username from the selected account, as in the app above. If your provider
+The `user` argument must match the cluster's identity-to-user mapping.
+Use a function to read the username from the selected account, as in the
+app above. If your provider
 uses another verified profile field, replace `email` with that field.
 The helper creates a new connection when the username changes.
 

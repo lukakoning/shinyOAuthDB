@@ -202,15 +202,11 @@ Docker example above uses `http://localhost:18100`. Register the exact
 address, including any path and trailing slash, and run Shiny on the same
 port. When deploying, register your app's HTTPS address.
 
-For a self-hosted provider such as Keycloak, register an OpenID Connect
-client with the authorization-code flow and PKCE S256, which protects the
-sign-in code. Set the callback under valid redirect URIs; a confidential
-client also has a secret. See Keycloak's
-[administration guide](https://www.keycloak.org/docs/latest/server_admin/index.html).
-The database must trust the provider's signing keys and accept the token's
-audience and identity or role claims. The source guides explain the required
-mapping. An ID token describes the login; the database helpers need an
-access token intended for the data source.
+For a self-hosted provider such as Keycloak, follow its
+[app registration instructions](https://www.keycloak.org/docs/latest/server_admin/index.html)
+and your source guide. The database must trust that provider and accept
+its tokens. Use an access token intended for the data source; an ID token
+describes the login and serves a different purpose.
 
 ### Save credentials and run the app
 
@@ -233,6 +229,10 @@ audience and scopes, the user's database grants, and network access from
 the Shiny server to the data source. Keep tokens and secrets out of logs.
 
 ## Query with DBI or dbplyr
+
+DBI is R's common interface for sending SQL queries to a database and
+reading the results. dbplyr lets you write queries with dplyr functions;
+it translates them to SQL for the database to run.
 
 For sources that support DBI, the helper returns a reactive function,
 usually called `con`. For example, inside `server()` in an Azure SQL app:
@@ -287,9 +287,8 @@ Keep connections and API clients inside `server()`. On sign-out, account
 changes or session end, the helpers stop providing the old connection and
 call its cleanup method. Driver behavior varies, so call `con()` before
 each operation instead of keeping a native connection or copied token for
-later use. shinyOAuth handles token renewal; `min_valid_for` on a helper
-sets the minimum remaining token lifetime at the start of an operation.
-It doesn't guarantee validity throughout a long query.
+later use. shinyOAuth handles token renewal. See `?oauth_db_connect` for
+token lifetime and connection options.
 
 Keep live connections and token callbacks in the Shiny session that
 created them. For background work, use the database package's supported
@@ -316,8 +315,8 @@ has an example.
 
 `required_scopes` checks permissions before a helper runs. Request those
 permissions on the OAuth client first; this argument doesn't request
-consent or grant database privileges. Microsoft's `/.default` requests
-configured permissions and isn't a granted scope to check here.
+consent or grant database privileges. The source guide lists the scopes
+its example needs.
 
 For several saved accounts, see
 `vignette("multiple-authorizations", package = "shinyOAuth")`.

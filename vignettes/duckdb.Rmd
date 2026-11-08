@@ -1,8 +1,8 @@
 ---
-title: "Remote DuckDB with OAuth"
+title: "Remote DuckDB"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Remote DuckDB with OAuth}
+  %\VignetteIndexEntry{Remote DuckDB}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,12 +11,15 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-DuckDB is an open-source analytical SQL database, often used inside R.
-Here it runs as a remote server through Quack, DuckDB's network protocol.
-Use `oauth_db_duckdb()` to query a remote DuckDB Quack server with each
-visitor's OAuth access token. The connection works with DBI and dbplyr.
-A local DuckDB file has no OAuth login; this helper connects to a server
-that validates tokens and enforces its own data access policy.
+DuckDB is an analytical SQL database, often used to query data inside R.
+If you want several app users to query a shared remote database, you can
+run DuckDB as a server using Quack, its network protocol.
+
+`oauth_db_duckdb()` connects your Shiny app to that server with each
+visitor's access token. You query with DBI or dbplyr, while the server
+checks the token and controls access. This setup needs a remote server
+configured for OAuth; opening a local DuckDB file doesn't provide user
+sign-in.
 
 ## Try the local Quack demo
 
@@ -27,29 +30,34 @@ shinyOAuthDB::oauth_db_demo("duckdb")
 ```
 
 Sign in as Alice or Bob using the [demo accounts](getting-started.html#build-a-small-app).
-Both can read the shared sample table. **Try a write** demonstrates that
-the server rejects writes. Docker supplies DuckDB 1.5.4, matching Quack
-extensions, `quack_oauth` and Keycloak. It uses a prebuilt R client where
-available; compiling the client on other platforms takes longer.
-The installed `duckdb/server.py` and `realm-extended.json`
-show the validator, audience and `quack:read` scope configuration.
+Both can read the shared sample table. **Try a write** checks that the
+server rejects writes. Docker supplies the matching DuckDB client and
+server extensions. See `?oauth_db_demo` for editing the app or copying the
+server configuration.
 
 ## Before running the app
 
-This example needs a remote Quack server that accepts OAuth tokens, plus
-R's `duckdb` package (1.5.3 or later) with matching `quack` and `httpfs`
-extensions. The server and extension setup follows the app.
+You need a Quack server configured to accept OAuth access tokens and a
+matching DuckDB client. Install R's `duckdb` package (1.5.3 or later) with
+the `quack` and `httpfs` extensions; installation steps follow the app.
 
 | Setting | Where to get it |
 | --- | --- |
-| `host`, `port` | The remote Quack server or its TLS proxy; the example uses HTTPS port 443 |
-| Table name | A table in the remote catalog you are allowed to read |
-| Issuer, client ID, secret | An [OAuth registration](getting-started.html#register-your-app) with the server's trusted provider |
-| `quack:read` | The default quack_oauth read scope; your provider must issue it |
-| `ca_bundle`, if needed | The CA for a privately signed server certificate |
+| `host`, `port` | The remote Quack server or its TLS proxy |
+| Table name | A table in the remote catalog the visitor can read |
+| Issuer, client ID, secret | Your [app registration](getting-started.html#register-your-app) with the server's trusted provider |
+| `quack:read` | The default read scope; use your server's scope if it differs |
+| `ca_bundle`, if needed | The CA certificate for a privately signed server certificate |
 
-Set `OAUTHDB_DUCKDB_ISSUER`, `OAUTHDB_CLIENT_ID` and `OAUTHDB_CLIENT_SECRET`
-in `.Renviron`, then restart R. A local `.duckdb` file has no user sign-in.
+Register `http://localhost:8100` as the redirect URI. Configure the provider
+to issue the server's audience and read scope, then save the registration
+in `.Renviron` and restart R:
+
+```text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+OAUTHDB_DUCKDB_ISSUER=https://login.example.org/realms/reporting
+```
 
 ## A complete app
 
@@ -119,12 +127,10 @@ select another remote schema. Table queries use the attached catalog;
 standalone expressions such as `SELECT current_user` can run locally and
 do not prove which remote principal the server authenticated.
 
-
 ## Install extensions and prepare the server
 
-Use compatible DuckDB and Quack versions on both sides. The R client needs
-`duckdb` 1.5.3 or later and its matching `quack` and `httpfs` extensions. Quack's interface
-has changed between releases, so test your chosen versions together.
+Use compatible DuckDB and Quack versions on the client and server. Install
+the client extensions before running the Shiny app:
 
 ```{r install}
 install.packages("duckdb")
@@ -134,83 +140,31 @@ DBI::dbExecute(connection, "INSTALL httpfs")
 DBI::dbDisconnect(connection, shutdown = TRUE)
 ```
 
-Keep extensions in a directory the app can use across R sessions, for example
-by setting `DUCKDB_EXTENSION_DIRECTORY` before provisioning and running the
-app. The helper loads Quack inside a private in-memory DuckDB instance.
+Keep the extensions in a directory the app can use across R sessions,
+using `DUCKDB_EXTENSION_DIRECTORY` if needed.
 
 On the server, configure an OAuth validator such as
-[quack_oauth](https://github.com/DataZooDE/quack-oauth). Follow that
-extension's installation and server configuration instructions for your
-DuckDB version and server platform. A client can connect even when
-quack_oauth is unavailable for its own platform: only the server loads it.
-Configure its trusted issuer and audience, select its
-authentication and authorization callbacks, and define the scopes and
-data access policy each visitor needs. Quack's default shared token check
-does not validate OAuth tokens.
+[quack_oauth](https://github.com/DataZooDE/quack-oauth). Set its trusted
+issuer and audience, and define the scopes and data access policy for your
+users. Quack's shared-token check alone doesn't validate OAuth tokens.
+Only the server needs the validator; shinyOAuth handles browser sign-in
+and token renewal in the app.
 
-Expose the server through TLS with a certificate trusted by the DuckDB
-client, typically through a reverse proxy. See
-[Quack security](https://duckdb.org/docs/current/quack/security).
-Pass `ca_bundle = "path/to/private-ca.pem"` if the server uses a private CA.
-The helper explicitly enables TLS, including for loopback hosts.
-For local development only, `allow_local_http = TRUE` permits HTTP on
-`localhost`, `127.0.0.1` or `[::1]`.
-
-`quack_oauth` also has client-side OAuth flows. They are unnecessary here:
-shinyOAuth handles browser sign-in and renewal; the helper passes only the
-resulting access token to Quack. It creates no persistent token secrets.
-
-## Register the Shiny app
-
-Register an OAuth client with the server's identity provider and allow
-`http://localhost:8100` as a redirect URI. Request access tokens for the
-audience configured on the Quack server. An ID token or a token issued for
-another API cannot substitute for this access token.
-
-This example uses an OIDC provider and the `quack:read` scope from
-quack_oauth's default policy. Configure the provider to issue that scope
-and the correct audience. Use your server's scopes if its policy differs.
-Request `offline_access` too if your provider requires it for renewal.
-For providers requiring a resource parameter or named token target, configure
-that on the shinyOAuth client and pass the target name to `oauth_db_duckdb()`.
-
-Save your registration in `.Renviron` and restart R:
-
-```text
-OAUTHDB_CLIENT_ID=your-client-id
-OAUTHDB_CLIENT_SECRET=your-client-secret
-OAUTHDB_DUCKDB_ISSUER=https://login.example.org/realms/reporting
-```
-
+Expose the server through TLS with a certificate the client trusts. Pass
+`ca_bundle` for a private CA. See [Quack security](https://duckdb.org/docs/current/quack/security)
+and `?oauth_db_duckdb` for connection options, including local development.
 
 ## Connection lifetime
 
-Call `con()` before each operation. Quack receives a token when attaching,
-so the helper closes and replaces the connection when the access token
-changes. This ends transactions and discards temporary client state on
-the old connection. Keep a transaction within one synchronous operation
-and get a new handle for the next operation.
+Call `con()` before each operation. Quack receives a token when connecting,
+so the helper replaces the connection after token renewal. This ends
+transactions and discards temporary client state. Keep a transaction
+within one operation and get a current connection for the next one.
 
-Account changes, lost required permissions, sign-out and Shiny session end
-close the connection and shut down its private DuckDB instance. A caller
-retaining a raw handle must still obtain `con()` before each operation;
-the server decides whether an existing remote session remains authorized.
-The helper never retries SQL statements or replays a transaction.
-
-Setup errors omit the token-bearing SQL statement. An attachment failure
-can mean an unavailable endpoint, a rejected TLS certificate or token,
-denied catalog access, or an unknown schema. Check server diagnostics and
-confirm the issuer, audience and scopes match the app registration.
+Signing out, changing accounts or ending the Shiny session closes the
+connection. The helper doesn't retry SQL or replay transactions. If
+connection setup fails, check the endpoint, certificate, token audience
+and scopes with the server administrator.
 
 For several accounts and saved results, see
 [Getting started](getting-started.html#sessions-saved-results-and-extra-permissions).
-
-## Test the integration locally
-
-The source checkout includes a
-[Docker fixture](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/duckdb-oauth)
-with a real quack_oauth server, a JWKS issuer and a TLS proxy. It generates
-its own signed test tokens and certificates. From the repository root, run
-`Rscript --vanilla tools/check-duckdb-oauth.R` with Docker running and the
-test dependencies installed. The checks cover DBI/dbplyr reads, rejected
-writes, invalid tokens and TLS verification without production credentials.

@@ -11,69 +11,32 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use `oauth_db_oracle()` to query Oracle Database with each visitor's OAuth
-access token. It returns a DBI connection for SQL and dbplyr. Oracle must
-trust the token's provider and map the visitor to database privileges.
+A Shiny app can query Oracle Database using the signed-in visitor's
+permissions. This lets you use the database's existing access rules when
+building a dashboard or reporting app.
 
-The helper supports two authorization models:
-
-| Model | Oracle setup | Helper argument |
-| --- | --- | --- |
-| Global schema | A database global user mapped to an external identity; existing Entra configurations use this model | `authorization_model = "global"` (default) |
-| End-user context | Oracle Deep Data Security direct logon with user data roles, including configured OCI IAM OAuth and Keycloak integrations | `authorization_model = "end_user"` |
-
-For OAuth-protected HTTP resources, use the separate
-[Oracle REST Data Services guide](oracle-ords.html).
+`oauth_db_oracle()` opens a DBI connection for SQL and dbplyr. Oracle checks
+the visitor's access token and maps their identity to database privileges.
+Your administrator must configure that mapping before the app can connect.
+For access over HTTPS without an Oracle driver, see
+[Oracle REST Data Services](oracle-ords.html).
 
 ## Set up the database and driver
 
-Ask your administrator for a TCPS listener address, port, service name,
-trusted identity provider and database access scope. The server needs the
-corresponding global-schema or data-role mappings. Signing in to the Shiny
-app does not create those mappings.
-
-Choose the provider setup that matches your deployment:
-
-- **Microsoft Entra:** configure the
-  [Entra database integration](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/configuring-oracle-database-microsoft-entra-id-integration.html).
-  Existing global-schema configurations use `"global"`; Deep Data Security
-  direct-logon configurations use `"end_user"`.
-- **OCI IAM Identity Domains OAuth:** configure `IDENTITY_PROVIDER_TYPE=OCI_IAM`
-  and the database's OAuth application and domain. Oracle documents the
-  [OAuth configuration parameter](https://docs.oracle.com/en/database/oracle/oracle-database/26/refrn/IDENTITY_PROVIDER_OAUTH_CONFIG.html)
-  from Oracle 26ai RU 23.26.2. Follow the database's supported administrative
-  setup, particularly for Autonomous Database. This is an OAuth bearer-token
-  flow, separate from OCI IAM proof-of-possession authentication.
-- **Keycloak:** Oracle's current 26ai Deep Data Security guide documents
-  `IDENTITY_PROVIDER_TYPE=OAUTH2` with issuer, JWKS, audience and claim
-  mappings. Keycloak is the initial supported configurable provider; this
-  integration is unavailable on Autonomous Database. Follow
-  [database IAM configuration](https://docs.oracle.com/en/database/oracle/oracle-database/26/ddscg/configure-database-iam-integration.html)
-  and the [direct-login procedure](https://docs.oracle.com/en/database/oracle/oracle-database/26/ddscg/configure-sql-client-end-user-direct-logon.html).
-
-Install the R package `odbc` and Oracle Instant Client's **Basic** and
-**ODBC** packages for the architecture of your R process. Register the
-Oracle ODBC driver and find its name with `odbc::odbcListDrivers()`.
-Use a current supported Oracle client with the required token integration.
-The Entra thick-client path is documented from 19c 19.16, excluding the
-21c thick client. OCI IAM OAuth and configurable-provider Deep Data Security
-require newer database features and a compatible current client. Check
-your actual server release, update level and driver against Oracle's
+Install `odbc` in R and Oracle Instant Client's **Basic** and **ODBC**
+packages for your R architecture. Register the driver, then find its name
+with `odbc::odbcListDrivers()`. Check the
 [ODBC setup guide](https://docs.oracle.com/en/database/oracle/oracle-database/26/odbcd/using-oracle-database-odbc-driver.html)
-and [client support table](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/supported-client-drivers-entra-ad-connections.html).
+for a client version compatible with your database's OAuth integration.
 
-The client needs a trusted TLS certificate chain. Depending on the client,
-platform and database, use its configured trust store or pass an Oracle
-wallet directory as `wallet_location`. A database requiring mutual TLS
-also needs the client certificate in that wallet. Use `server_cert_dn`
-when your administrator supplies the expected certificate distinguished
-name; otherwise the client matches the hostname. Certificate matching
-is always enabled.
+Your administrator needs to configure Oracle to trust the sign-in provider
+and map users to database privileges. This example uses Oracle Deep Data
+Security direct logon, which gives the database an end-user identity.
+The authorization models and provider-specific setup follow the app.
 
-For OCI IAM OAuth, Oracle's direct-login procedure specifies the server
-certificate DN. Copy it from the administrator's connection details (or
-the downloaded Autonomous wallet alias) into `server_cert_dn` when calling
-the helper. Use the matching wallet when the service requires mutual TLS.
+Ask for an encrypted connection's host, port and service name. If the
+database needs an Oracle wallet or a particular server certificate name,
+get those settings too.
 
 ## Register the Shiny application
 
@@ -112,8 +75,8 @@ OAUTHDB_ORACLE_DRIVER=Oracle in instantclient_19_30
 
 ## A complete app
 
-The scope name below is checked literally. Configure the token audience
-on the authorization server for this client and database:
+The app first displays the Oracle end-user identity. Save it as
+`example.R`, using your database's connection settings:
 
 ```{r app}
 library(shiny)
@@ -178,6 +141,31 @@ certificate DN arguments, then run `source("example.R")`. Open
 shows the Oracle end-user identity. Replace the query with a table or view
 the user can read.
 
+## Choose an Oracle authorization model
+
+The model must match the database configuration:
+
+| Model | What Oracle establishes | Helper argument |
+| --- | --- | --- |
+| Global schema | A global database user mapped to the external identity | `authorization_model = "global"` (the default) |
+| End-user context | An individual identity for Deep Data Security policies | `authorization_model = "end_user"` |
+
+The app above uses end-user context. For a global-schema deployment, change
+the argument and query `SELECT USER FROM DUAL` to inspect the database user.
+
+Provider setup depends on the Oracle release and deployment:
+
+| Provider | Database configuration |
+| --- | --- |
+| Microsoft Entra | Follow the [Entra integration guide](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/configuring-oracle-database-microsoft-entra-id-integration.html) and its [client support table](https://docs.oracle.com/en/database/oracle/oracle-database/26/dbseg/supported-client-drivers-entra-ad-connections.html) |
+| OCI IAM Identity Domains | Configure [OCI IAM OAuth](https://docs.oracle.com/en/database/oracle/oracle-database/26/refrn/IDENTITY_PROVIDER_OAUTH_CONFIG.html), available from Oracle 26ai RU 23.26.2 |
+| Keycloak | Use Oracle 26ai's [Deep Data Security provider configuration](https://docs.oracle.com/en/database/oracle/oracle-database/26/ddscg/configure-database-iam-integration.html) and [direct-logon setup](https://docs.oracle.com/en/database/oracle/oracle-database/26/ddscg/configure-sql-client-end-user-direct-logon.html); this integration isn't available on Autonomous Database |
+
+For OCI IAM OAuth, supply the administrator's server certificate name as
+`server_cert_dn`. If the service requires mutual TLS, also supply its
+wallet directory as `wallet_location`. Other deployments can use the
+client's configured trust store or an Oracle wallet; see `?oauth_db_oracle`.
+
 ## Microsoft Entra alternative
 
 For Entra, use the Microsoft client with a custom database resource target.
@@ -208,45 +196,22 @@ not the Shiny application's client ID. In the app's connection helper, set
 `authorization_model = "global"` and query `SELECT USER FROM DUAL` to
 inspect the database schema identity. For Deep Data Security use
 `authorization_model = "end_user"` and retain the end-user identity query.
-Keep `/.default` consent markers in client settings; `required_scopes`
-now treats every provider's scope names literally.
+Use the exact granted database scope in `required_scopes`; keep
+`/.default` in the client's consent settings.
 
 ## Connections and token files
 
-shinyOAuth handles browser sign-in and token renewal. The adapter obtains
-the current access token when opening a connection. It supplies a separate
-Oracle Net descriptor containing `TOKEN_AUTH=OAUTH` and the location of a
-temporary token file. It does not change shared Oracle configuration files
-or the process's `TNS_ADMIN` environment variable.
+Call `con()` before each operation. Global-schema connections stay open
+through ordinary token renewal. End-user connections reopen when the token
+changes, so the database receives updated role claims. Sign-out, account
+changes and session end close both types.
 
-The token file is removed after connection opening, including on error
-or interrupt. On Unix, its directory is private (`0700`) and the file has
-mode `0600`. On Windows, use a private R temporary directory because
-access rules are inherited from its parent directory.
+The helper verifies the selected authorization model when connecting. An
+end-user connection requires Oracle to establish the matching end-user
+context; a successful global-schema login alone isn't sufficient.
 
-Before returning a connection, the helper verifies the chosen model:
-
-- `"global"` requires `SYS_CONTEXT('USERENV', 'AUTHENTICATION_METHOD')` to
-  report `TOKEN_GLOBAL`.
-- `"end_user"` reads only issuer, subject and audience from Oracle's
-  system-managed `ORA_END_USER_CONTEXT.USER.TOKEN` and requires them to
-  match the submitted JWT. Local decoding establishes the expected claims;
-  Oracle validates the token and establishes the context. Missing or
-  mismatched context closes the connection, even if a global-schema login
-  succeeded. This prevents global-user precedence from silently bypassing
-  the requested Deep Data Security model.
-
-Global-schema connections survive ordinary token renewal. End-user
-connections reopen on the next `con()` call when the token changes, so
-updated role claims reach the database. This does not replay completed
-reactive queries. Account changes, permission loss, sign-out and Shiny
-session end close both types. Always call `con()` before each operation.
-
-The helper disables Oracle ODBC failover. Reopen a broken connection by
-calling `con()` so the new connection gets a current token. It does not
-implement OCI IAM proof-of-possession authentication, password login,
-proxy-user connections or application-mediated two-token contexts.
-
-Automated checks cover ODBC arguments, token and context verification,
-credential cleanup and the Shiny lifecycle. Live Oracle/client/provider
-compatibility remains unverified; there is no local Oracle identity demo.
+The Oracle driver receives the token through a temporary file, which the
+helper removes after connecting. On Windows, keep R's temporary directory
+private to the app's operating-system user. If a connection breaks, call
+`con()` to reopen it with a current token. See `?oauth_db_oracle` for driver,
+wallet and token-file settings.

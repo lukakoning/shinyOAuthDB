@@ -1,5 +1,20 @@
 # Validation record
 
+## 8 November 2026: writing review of all vignettes
+
+Reviewed and edited all 22 vignettes to explain purpose and basic concepts
+before setup and advanced options. Removed 3,698 words, including repeated
+demo settings, implementation details and test-suite descriptions. All 107
+existing code blocks retain their contents.
+
+The README and source-guide app tests pass with R 4.5.1 and shinyOAuth
+0.7.0.9000 from the validation library. Documentation checks parse 87 R
+blocks and resolve 193 local links and 48 section anchors. All 22 vignettes
+render with html_vignette, and pkgdown builds the articles and function
+reference. All 545 rendered local article links and fragments resolve.
+Live Docker and cloud sign-in were not rerun for these prose and
+organization changes.
+
 ## 8 November 2026: getting-started guide and article organization
 
 Checked on Windows with R 4.5.1 and shinyOAuth 0.7.0.9000 from the repository's

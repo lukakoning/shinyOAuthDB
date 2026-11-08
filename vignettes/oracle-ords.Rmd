@@ -11,28 +11,32 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Use `oauth_db_oracle_ords_api()` to read protected Oracle REST Data Services
-(ORDS) resources and call JSON handlers with each visitor's OAuth token.
-It uses HTTPS without Oracle client libraries. For a native DBI connection,
-see [Oracle Database](oracle.html).
+Oracle REST Data Services (ORDS) exposes selected Oracle tables and
+database procedures through web APIs. Use it when your Shiny app needs to
+read Oracle data over HTTPS without installing Oracle client libraries.
+
+`oauth_db_oracle_ords_api()` reads collections of records and calls custom
+JSON endpoints with each visitor's access token. ORDS controls access to
+those endpoints; the database and endpoint code determine which data they
+return. For SQL queries through DBI or dbplyr, use the separate
+[Oracle Database guide](oracle.html).
 
 ## Set up ORDS and sign-in
 
-An ORDS administrator must REST-enable the required schema resources and
-protect them with ORDS privileges. Configure a JWT profile with the
-expected issuer, audience and signing keys. Map the token's scopes or
-roles to the resource privileges. ORDS documents external-provider JWT
-profiles from release 23.3, including providers such as OCI IAM Identity
-Domains, Keycloak, Auth0 and Okta. Follow the
-[ORDS authentication guide](https://docs.oracle.com/en/database/oracle/oracle-rest-data-services/26.3/orddg/developing-REST-applications.html).
+Ask your administrator for an HTTPS ORDS endpoint exposing the resources
+your app needs. The example reads an AutoREST collection, which exposes
+table records as JSON. Use the schema alias URL, including any reverse-proxy
+prefix, and replace `orders` with your collection's name.
 
-Register an authorization-code client with PKCE at the trusted provider
-and add `http://localhost:8100` as a redirect URI. Configure the client to
-receive a JWT with the audience and access scope ORDS expects. Request
-OpenID Connect scopes for the Shiny sign-in. Enable refresh tokens when
-requesting `offline_access`, or use the provider's documented alternative.
+ORDS must protect the resource and accept JWT access tokens from your
+sign-in provider. External-provider JWT profiles require ORDS 23.3 or
+later; see the [ORDS authentication guide](https://docs.oracle.com/en/database/oracle/oracle-rest-data-services/26.3/orddg/developing-REST-applications.html)
+for issuer, audience and privilege mappings.
 
-Save the app settings in `.Renviron` and restart R:
+Register your Shiny app with that provider, using `http://localhost:8100`
+as the redirect URI. Request the access scope for the resource and enable
+refresh tokens if you use `offline_access`. Save the settings in
+`.Renviron` and restart R:
 
 ```text
 OAUTHDB_CLIENT_ID=your-shiny-app-client-id
@@ -41,10 +45,6 @@ OAUTHDB_ORDS_ISSUER=https://login.example.org/realms/reporting
 OAUTHDB_ORDS_SCOPE=reports.read
 OAUTHDB_ORDS_URL=https://data.example.org/ords/reporting
 ```
-
-Use the ORDS schema alias URL, including any reverse-proxy prefix.
-The example assumes that `orders/` is a protected AutoREST collection.
-Register resources and database access rules before running it.
 
 ## A complete app
 
@@ -100,9 +100,9 @@ runApp(
 
 Save this as `example.R`, run `source("example.R")`, and open
 `http://localhost:8100` in a regular browser. Sign in to read one page of
-the collection. Use `offset` and `limit` to page explicitly. Responses
-retain `items`, `hasMore`, offsets and links as native JSON lists; large
-JSON integers are strings. Server-provided links are never followed.
+the collection. Results are JSON lists, with records in `items`. Use
+`offset` and `limit` to fetch further pages; the client doesn't follow
+pagination links automatically.
 
 For a custom JSON handler, call its relative path:
 
@@ -114,12 +114,10 @@ result <- ords$request(
 )
 ```
 
-`select()` appends a trailing slash for AutoREST collections. `request()`
-uses the path exactly, with `trailing_slash = TRUE` when the resource needs
-one. The client rejects redirects instead of sending credentials to a
-different endpoint. Use `raw = TRUE` to inspect a successful httr2 response.
-POST, PUT and PATCH can send a JSON `body`; the API is not a DBI connection
-or a SQL-result parser.
+`select()` handles AutoREST collection paths. For a custom endpoint,
+`request()` uses the path you supply; set `trailing_slash = TRUE` if it
+needs one. See `?oauth_db_oracle_ords_api` for other request methods and
+raw responses.
 
 ## User identity and data access
 
@@ -130,13 +128,7 @@ the database schema used by a handler. Configure handler filtering or a
 supported end-user security context to enforce the required per-user data
 access. Verify two users with different permissions before deployment.
 
-Each operation gets a current token and stays tied to the authorization it
-started with. Responses arriving after sign-out or account replacement are
-discarded. GET and HEAD can refresh and retry once after HTTP 401. POST,
-PUT, PATCH and DELETE are never replayed automatically. The client does not
-follow redirects or pagination links. It returns native JSON responses from
-custom handlers without interpreting application-specific success fields.
-
-Automated tests mock ORDS responses and cover token renewal, scope checks,
-account isolation, routing, errors and request replay rules. No live ORDS
-or Oracle database was available for integration validation.
+Each call uses a current token and discards results after sign-out or
+account changes. Read requests can refresh and retry once after HTTP 401;
+writes don't retry automatically. The client returns your custom handler's
+JSON without interpreting application-specific status fields.

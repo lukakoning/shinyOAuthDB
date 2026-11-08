@@ -11,41 +11,36 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-BigQuery is Google's hosted analytics database. You submit SQL query jobs
-without managing a database server. Run GoogleSQL in a Shiny app using each visitor's Google account.
-`bigquery$query()` returns a data frame you can display with
-`renderTable()`.
+BigQuery is Google's hosted analytics database. It runs SQL queries as
+jobs, so you can query data without managing a database server. A Shiny
+app can use each visitor's Google account and existing data permissions.
 
-The first app checks which Google account is signed in. You can then use
-the same client to query your tables.
+You choose a Google Cloud project to run and bill the queries. The data
+can live in that project or another one the user can access.
+`oauth_db_bigquery_api()` sends the queries and returns data frames; the
+first example checks the signed-in account before reading any tables.
 
 ## Try the guided demo
 
-Run `shinyOAuthDB::oauth_db_cloud_demo("bigquery")` in your R console.
-The guide asks for the query `project` ID and OAuth `client_id`, explains
-the consent screen and test users, then asks for the Web client's secret
-through masked input. Install `processx`, `jsonlite` and `askpass` first.
-No database driver is needed. You can save a draft while arranging access.
+Run `shinyOAuthDB::oauth_db_cloud_demo("bigquery")` in the R console for
+an editable app. Install `bslib`, `processx`, `jsonlite` and `askpass` first;
+no database driver is needed. The launcher walks you through the query
+project and Google app registration.
 
-The editable app runs `SELECT SESSION_USER()` only after you click
-**Run example query**. Its default `location = "US"` suits the identity
-query; set it to your dataset's location before querying tables. The default
-`maximum_bytes_billed = "10000000"` limits bytes a query may bill.
-For scripts, supply `project`, `client_id` and optionally those settings,
-set `OAUTHDB_BIGQUERY_CLIENT_SECRET`, and use `prompt = FALSE`.
-See [Getting started](getting-started.html#more-ways-to-try-an-app) for editing and resuming.
-
-With no account yet, [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox)
-offers a starting point without a billing account. You still need to enable
-the API, configure your Web OAuth client and have permission to run jobs.
-The full OAuth demo has not been verified against a sandbox account.
+After sign-in, click **Run example query** to check the Google account.
+The demo initially uses the `US` query location; change it to your dataset's
+location before querying tables. See
+[Getting started](getting-started.html#more-ways-to-try-an-app) for editing
+and `?oauth_db_cloud_demo` for saved settings and script arguments.
 
 ## Google Cloud setup
 
-Create a [Web OAuth client](https://developers.google.com/identity/protocols/oauth2/web-server)
-in Google Cloud and configure its consent screen. Register
-`http://localhost:8100` as the redirect URI and enable the BigQuery API
-for the query project.
+Enable the BigQuery API for the query project. In Google Cloud Console,
+open **Google Auth Platform** and configure **Branding** and **Audience**.
+If the app is in testing, add the Google accounts that will try it. Under
+**Clients**, create a **Web application** with `http://localhost:8100` as
+an authorized redirect URI. Google's [web-app OAuth guide](https://developers.google.com/identity/protocols/oauth2/web-server)
+explains consent and deployment requirements.
 
 Users need permission to run query jobs in that project and read the data.
 BigQuery bills queries to this project. Set `location` to match your
@@ -57,13 +52,6 @@ Save the client ID and secret in a local `.Renviron` file and restart R:
 OAUTHDB_CLIENT_ID=your-client-id
 OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
-
-In Google Cloud Console, select the app project and open **Google Auth
-Platform**. Configure **Branding** and **Audience**; if the app is in testing,
-add the Google accounts that will try it. Under **Clients**, create a **Web
-application** and add `http://localhost:8100` to authorized redirect URIs.
-Copy its client ID and secret. Google's [web-app OAuth guide](https://developers.google.com/identity/protocols/oauth2/web-server)
-explains consent and deployment requirements.
 
 | Setting | Where to find it |
 | --- | --- |

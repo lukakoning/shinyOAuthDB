@@ -11,16 +11,14 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Supabase exposes PostgreSQL tables, views and functions through its REST
-Data API. Use `oauth_db_supabase_api()` to query with each visitor's access
-token; database grants and row-level security (RLS) decide which rows they
-can read or change. No PostgreSQL driver is needed.
+Supabase provides a PostgreSQL database with a web API for its tables,
+views and functions. A Shiny app can use this Data API to read data with
+each visitor's account, without a PostgreSQL driver.
 
-The client provides the same `select()`, `rpc()` and `request()` methods as
-the [PostgREST client](postgrest.html). It supports hosted projects and
-self-hosted deployments exposed through verified HTTPS, including custom
-domains and reverse proxy paths. It does not provide a SQL connection or
-clients for Storage, Realtime or the Management API.
+`oauth_db_supabase_api()` sends the visitor's access token with requests.
+PostgreSQL grants and row-level security policies determine which records
+they can read or change. The first example uses a table of notes where
+each person can read only their own rows.
 
 ## Configure Supabase sign-in
 
@@ -57,11 +55,9 @@ application and is separate from the OAuth client ID and secret. For a
 public client, leave `OAUTHDB_CLIENT_SECRET` empty. Restart R after editing
 `.Renviron` and keep the file out of Git.
 
-The Data API client sends the publishable key in `apikey` and the current
-visitor access token in `Authorization: Bearer ...`. It waits for sign-in
-before sending requests. A legacy `anon` JWT also works, including on
-self-hosted projects using legacy API keys. The helper rejects
-`sb_secret_...` and legacy `service_role` keys. See
+Use a publishable key or legacy `anon` key. The visitor's access token
+provides their identity; the project key identifies the application.
+Server secret keys and `service_role` keys aren't accepted. See
 [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys).
 
 ## Prepare a table with user permissions
@@ -141,10 +137,9 @@ runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
 # Open http://localhost:8100 in your regular browser
 ```
 
-`oauth_db_supabase_client()` discovers the project's `/auth/v1` OIDC issuer.
-shinyOAuth handles the authorization-code flow, identity validation and
-token renewal. Supabase issues refresh tokens without requiring an
-`offline_access` scope. Calls to the Data API use the access token.
+shinyOAuth handles sign-in and token renewal. Supabase supplies refresh
+tokens without an `offline_access` scope. The Data API helper waits for
+sign-in, then uses the visitor's current access token.
 
 ## Use an existing third-party identity provider
 
@@ -178,7 +173,6 @@ their policies against the appropriate verified JWT claims.
 ## Functions, schemas and writes
 
 Use `schema = "reporting"` to select another schema exposed by the Data API.
-The client sends `Accept-Profile` for reads and `Content-Profile` for writes.
 The signed-in user's role still needs schema and object privileges.
 
 ```{r native-requests}
@@ -201,8 +195,6 @@ to fetch more. The [PostgREST guide](postgrest.html) covers filters, embedded
 resources, counts and result types. The project must expose a function
 before `rpc()` can call it; this client does not execute arbitrary SQL.
 
-GET and HEAD retry once after HTTP 401 with a renewed visitor token.
-Writes and POST function calls never retry automatically. Requests reject
-redirects and discard responses after account changes, sign-out or permission
-loss. The project key stays attached to the client when a visitor changes
-accounts.
+Reads can refresh and retry once after HTTP 401; writes and POST function
+calls don't retry automatically. Results are discarded after sign-out or
+account changes. See `?oauth_db_supabase_api` for request options.

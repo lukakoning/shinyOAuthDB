@@ -11,31 +11,27 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Azure Database for PostgreSQL hosts the open-source PostgreSQL database
-for you. Connect a Shiny app to Azure Database for PostgreSQL using each visitor's
-Microsoft account. Queries use RPostgres connections, so you can keep your
-usual DBI or dbplyr code.
+Azure Database for PostgreSQL hosts a PostgreSQL database for you. With
+shinyOAuthDB, people sign in to your Shiny app with their Microsoft account
+and query data using the permissions already assigned to them in PostgreSQL.
+
+The database maps their Microsoft identity to a database role: a user or
+group with permission to read particular data. `oauth_db_azure_postgres()`
+opens an RPostgres connection for that role, which you can use with DBI or
+dbplyr.
 
 ## Try the guided demo
 
-Run `shinyOAuthDB::oauth_db_cloud_demo("azure-postgres")` in your R console.
-The guide asks for `server`, `database`, mapped database `user` role,
-`sslrootcert` (a local trusted CA bundle), Entra `tenant_id` and `client_id`.
-It explains the difference between registering the Shiny app and creating
-the Entra database principal. A group role still requires each visitor's
-own sign-in and valid group membership.
+Run `shinyOAuthDB::oauth_db_cloud_demo("azure-postgres")` in the R console
+for an editable app that walks through setup. In addition to RPostgres,
+install `bslib`, `processx` and `askpass` for the local app.
 
-Install `RPostgres`, `processx` and `askpass` first. The local editable app
-opens a verified TLS connection only after **Run example query**. Its first
-query reports the database role and database name, so no table is needed.
-For scripts, supply those settings with `prompt = FALSE`; `database_port`
-defaults to 5432. A confidential app uses masked input or
-`OAUTHDB_AZURE_POSTGRES_CLIENT_SECRET`.
-See [Getting started](getting-started.html#more-ways-to-try-an-app) for draft setup and editing.
-
-With no Azure server yet, start with the [service overview](https://learn.microsoft.com/en-us/azure/postgresql/overview).
-Arrange Entra authentication, role grants and network access before trying
-the query. The demo doesn't provision or stop a cloud server.
+The launcher asks for your Azure server, database role and sign-in settings.
+After signing in, click **Run example query** to see the connected database
+and role. It uses your existing Azure server; stopping the app leaves that
+server running. See `?oauth_db_cloud_demo` for optional settings and
+[Getting started](getting-started.html#more-ways-to-try-an-app) for editing
+and resuming demos.
 
 ## Set up access
 
@@ -55,11 +51,9 @@ OAUTHDB_CLIENT_SECRET=your-client-secret
 ```
 
 Use the [Microsoft registration steps](azure-sql.html#register-a-microsoft-entra-app)
-and configure delegated access to **Azure OSSRDBMS Database**. The preset
-requests `https://ossrdbms-aad.database.windows.net/.default` when PostgreSQL
-is selected alone. When combined with other Microsoft services, it requests
-`https://ossrdbms-aad.database.windows.net/user_impersonation` so the consent
-request contains explicit permissions for every service.
+and configure delegated access to **Azure OSSRDBMS Database**. The client
+preset requests the appropriate PostgreSQL permissions; see
+`?oauth_db_microsoft_client` when combining it with other services.
 
 | Value in the app | Where to find it |
 | --- | --- |
@@ -132,20 +126,6 @@ Run `source("example.R")` and open
 `http://localhost:8100`. Sign in to run the query; signing out clears the
 output.
 
-## Create the database identity
-
-In Azure PostgreSQL's **Authentication** settings, enable Entra and set an
-Entra administrator. That administrator creates the database principals
-for the people or groups who will use the app. Azure provides
-`pgaadauth_create_principal` for this; its [Entra setup guide](https://learn.microsoft.com/en-us/azure/postgresql/security/security-entra-configure)
-shows the supported commands and group mapping. Grant the resulting role
-database/schema access and SELECT on the intended tables.
-
-Use that exact database role as `user` in the app. The example's shared
-group role assumes the server maps signed-in members to that group. With
-individual roles, choose a role for the current identity and have the
-server verify the mapping; don't let arbitrary input choose another role.
-
 ## Read a table
 
 The first query shows the PostgreSQL role. To read your data, replace that
@@ -162,11 +142,21 @@ Call `con()` inside the reactive expression before querying. You can also
 pass the resulting `connection` to `dplyr::tbl()` for dbplyr queries.
 Use DBI parameter binding for SQL values entered by users.
 
-## Roles and connection settings
+## Create the database identity
 
-The example connects as a group role, `reporting-readers`. Each person
-still signs in with their own account; PostgreSQL checks that they belong
-to the group. Use the role your administrator has created for your users.
+In Azure PostgreSQL's **Authentication** settings, enable Entra and set an
+Entra administrator. That administrator creates the database principals
+for the people or groups who will use the app. Azure provides
+`pgaadauth_create_principal` for this; its [Entra setup guide](https://learn.microsoft.com/en-us/azure/postgresql/security/security-entra-configure)
+shows the supported commands and group mapping. Grant the resulting role
+database/schema access and SELECT on the intended tables.
+
+Use that exact database role as `user` in the app. The example's shared
+group role assumes the server maps signed-in members to that group. With
+individual roles, choose a role for the current identity and have the
+server verify the mapping; don't let arbitrary input choose another role.
+
+## Roles and connection settings
 
 You can omit `sslrootcert` if libpq already has the correct CA bundle
 configured. Other options, such as `port` and `connect_timeout`, go to

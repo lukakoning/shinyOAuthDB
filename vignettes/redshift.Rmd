@@ -11,35 +11,27 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-Amazon Redshift is AWS's hosted SQL data warehouse. Query Amazon Redshift from Shiny using each visitor's own database access.
-The connection works with DBI, so you can use your existing SQL queries.
+Amazon Redshift is AWS's hosted SQL data warehouse. Use it to supply
+analytics data to a Shiny app with each visitor's own database permissions.
+`oauth_db_redshift()` opens a DBI connection for your SQL queries.
 
-This example signs users in through Microsoft Entra. It requires a Redshift
-deployment already linked to AWS IAM Identity Center.
+This guide signs users in with Microsoft Entra. It needs a Redshift
+deployment linked to AWS IAM Identity Center, with the two services
+configured to recognize those users. Your administrator must arrange
+that connection before the app can use their sign-in.
 
 ## Try the guided demo
 
-Run `shinyOAuthDB::oauth_db_cloud_demo("redshift")` in your R console.
-The guide first asks whether IAM Identity Center and Entra trusted-token
-integration are ready. Choose **Not ready yet** to save a draft and get
-setup links. An AWS account and SQL endpoint alone don't provide this flow.
-Once configured, resume with `identity_center_ready = "yes"`.
+Run `shinyOAuthDB::oauth_db_cloud_demo("redshift")` in the R console for
+an editable app. It checks whether your IAM Identity Center integration is
+ready before asking for the database and Microsoft sign-in settings. You
+can save a draft while an administrator configures access.
 
-The guide asks for `server`, `database`, `tenant_id`, accepted API `resource`,
-fully qualified delegated `scope` and Shiny OAuth `client_id`. Administrators
-must coordinate the trusted issuer, JWT audience and user mappings; the
-resource and scope are not the Redshift hostname. The generated example uses
-Microsoft Entra and `EXT_JWT` through `IdpTokenAuthPlugin`.
-
-Install `odbc`, `processx`, `askpass` and the Redshift ODBC 2.x driver.
-Optional `driver` and `database_port` adjust its connection settings.
-A confidential client uses `OAUTHDB_REDSHIFT_CLIENT_SECRET` or masked input.
-The editable app waits for **Run example query**; stopping it doesn't stop
-Redshift compute or billing. See [Getting started](getting-started.html#more-ways-to-try-an-app).
-
-With no AWS deployment, read [Getting started with Redshift](https://docs.aws.amazon.com/redshift/latest/gsg/getting-started.html).
-Trial availability does not establish trusted-identity readiness; this guide
-doesn't provision resources or configure IAM Identity Center.
+Install `odbc`, `bslib`, `processx`, `askpass` and the Redshift ODBC 2.x
+driver. The app waits for **Run example query** before connecting; stopping
+it leaves Redshift compute running. See `?oauth_db_cloud_demo` for launcher
+arguments and [Getting started](getting-started.html#more-ways-to-try-an-app)
+for editing the app.
 
 ## Set up access
 
@@ -75,10 +67,6 @@ For Entra, the resource is the accepted API identifier; the scope is the
 delegated permission exposed by that registration. These values depend
 on your AWS/Entra integration and aren't the Redshift hostname. Give this
 exact resource/scope pair to `token_targets` as below.
-
-OAuth setup spans AWS and the identity provider. The [AWS integration guide](https://docs.aws.amazon.com/redshift/latest/mgmt/redshift-iam-access-control-idp-connect-oauth.html)
-explains which tokens `IdpTokenAuthPlugin` accepts. This needs a real AWS
-deployment; there is no local Docker equivalent.
 
 ## A complete app
 
