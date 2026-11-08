@@ -23,6 +23,7 @@ if (!file.exists(file.path(root, "DESCRIPTION"))) {
 }
 source(file.path(root, "tools", "validation.R"))
 validation_check_dependencies()
+source_before <- validation_source(root)
 output <- file.path(root, ".validation")
 dir.create(output, showWarnings = FALSE)
 
@@ -46,7 +47,7 @@ results <- testthat::test_local(
   stop_on_warning = FALSE
 )
 counts <- as.data.frame(results)
-validation_check_results(counts, output)
+validation_check_results(counts, output, source_before = source_before)
 if (tests_only) {
   quit(status = 0L)
 }
@@ -70,6 +71,7 @@ cat(
   length(check$notes),
   "notes\n"
 )
+validation_check_source(source_before, validation_source(root), output)
 
 if (length(check$errors) || length(check$warnings) || length(check$notes)) {
   quit(status = 1L)
