@@ -164,8 +164,10 @@ above.
 
 [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html)
-explains the basic Shiny app pattern. Use the links above for setup per
-database or data platform, and see [OAuth
+explains the basic Shiny app pattern.
+
+Use the links above for setup per database or data platform, and see
+[OAuth
 setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html)
 for configuring app registrations, and [Authentication and
 sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
