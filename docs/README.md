@@ -19,6 +19,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Oracle Database | [OAuth access tokens and Oracle ODBC](../vignettes/oracle.Rmd) |
 | Oracle REST Data Services | [JWT-protected HTTP resources](../vignettes/oracle-ords.Rmd) |
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
+| Supabase | [Data API queries and Supabase OAuth sign-in](../vignettes/supabase.Rmd) |
 | StarRocks | [JWT authentication and DBI queries](../vignettes/starrocks.Rmd) |
 | ClickHouse | [HTTPS SQL queries with JWT](../vignettes/clickhouse.Rmd) |
 | DuckDB | [Remote Quack servers and OAuth](../vignettes/duckdb.Rmd) |
@@ -40,5 +41,6 @@ For existing apps and package development:
 - [Validation record](validation.md)
 - [Snowflake backend decision](snowflake-backends.md)
 - [Backend research notes](backend-candidates.md)
+- [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
 - [Guided cloud demos: implementation notes](cloud-demos.md)

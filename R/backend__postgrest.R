@@ -91,12 +91,20 @@ oauth_db_postgrest_api <- function(
   "OAuthPostgRESTAPI",
   cloneable = FALSE,
   public = list(
-    initialize = function(provider, url, schema, timeout, ca_bundle) {
+    initialize = function(
+      provider,
+      url,
+      schema,
+      timeout,
+      ca_bundle,
+      api_key = NULL
+    ) {
       private$provider <- provider
       private$url <- url
       private$schema <- schema
       private$timeout <- timeout
       private$ca_bundle <- ca_bundle
+      private$api_key <- api_key
     },
     select = function(
       table,
@@ -200,6 +208,9 @@ oauth_db_postgrest_api <- function(
       req <- httr2::request(paste0(private$url, "/", path))
       req <- httr2::req_method(req, method)
       req <- httr2::req_headers(req, Accept = "application/json")
+      if (!is.null(private$api_key)) {
+        req <- httr2::req_headers(req, apikey = private$api_key)
+      }
       if (length(query)) {
         req <- do.call(httr2::req_url_query, c(list(req), query))
       }
@@ -246,6 +257,7 @@ oauth_db_postgrest_api <- function(
     url = NULL,
     schema = NULL,
     timeout = NULL,
-    ca_bundle = NULL
+    ca_bundle = NULL,
+    api_key = NULL
   )
 )

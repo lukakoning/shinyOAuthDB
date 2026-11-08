@@ -31,7 +31,7 @@ articles:
   - title: Self-hosted databases and APIs
     contents: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch, oracle, oracle-ords]
   - title: Cloud platforms
-    contents: [fabric, databricks, snowflake, bigquery, azure-sql, azure-postgres, redshift, clickhouse]
+    contents: [fabric, databricks, snowflake, bigquery, azure-sql, azure-postgres, redshift, clickhouse, supabase]
 reference:
   - title: Demos
     contents: [oauth_db_demo, oauth_db_cloud_demo]
@@ -42,10 +42,10 @@ reference:
   - title: API clients
     contents: [oauth_db_bigquery_api, oauth_db_clickhouse_api, oauth_db_cratedb_api,
       oauth_db_databricks_api, oauth_db_fabric_api, oauth_db_libsql_api,
-      oauth_db_opensearch_api, oauth_db_oracle_ords_api, oauth_db_postgrest_api]
+      oauth_db_opensearch_api, oauth_db_oracle_ords_api, oauth_db_postgrest_api, oauth_db_supabase_api]
   - title: Sign-in clients and providers
     contents: [oauth_db_microsoft_client, oauth_db_bigquery_client,
       oauth_db_databricks_client, oauth_db_databricks_provider,
-      oauth_db_snowflake_client, oauth_db_snowflake_provider]
+      oauth_db_snowflake_client, oauth_db_snowflake_provider, oauth_db_supabase_client]
   - title: Credentials and package help
     contents: [oauth_db_fabric, oauth_db_token, shinyOAuthDB-package]

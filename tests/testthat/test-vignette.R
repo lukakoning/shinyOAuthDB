@@ -28,6 +28,7 @@ vignette_sources <- c(
   oracle = "odbc",
   "oracle-ords" = NA_character_,
   postgrest = NA_character_,
+  supabase = NA_character_,
   starrocks = "odbc",
   clickhouse = NA_character_,
   postgres = "RPostgres",

@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_supabase_api()` for Supabase tables, views and functions using
+  project publishable keys and each visitor's access token. Add
+  `oauth_db_supabase_client()` for the project's OAuth server, with a setup
+  guide covering native sign-in, third-party providers and row-level security.
+
 * Generalize `oauth_db_oracle()` to database-trusted OAuth JWTs, including
   configured OCI IAM OAuth and Keycloak direct-logon integrations. Add
   `authorization_model = "end_user"` to verify Oracle Deep Data Security

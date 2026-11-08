@@ -11,7 +11,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     Supports Azure SQL, Microsoft Fabric,
     BigQuery, Redshift, Databricks, Snowflake, Trino, and PostgreSQL, including self-hosted
     PostgreSQL with native OAuth and Azure PostgreSQL. Reads PostgreSQL tables
-    and calls exposed database functions through PostgREST. Supports StarRocks
+    and calls exposed database functions through PostgREST and Supabase's
+    Data API with visitor access tokens and project publishable keys. Supports StarRocks
     JWT authentication through MySQL Connector/ODBC, and ClickHouse queries
     through JWT-enabled HTTPS endpoints. Connects to remote DuckDB servers
     through the Quack protocol with OAuth access tokens. Queries remote

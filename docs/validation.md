@@ -29,6 +29,34 @@ responses, and real SQLite connections for lifecycle behavior. See the
 provider and version requirements in `docs/oracle-backend.md` before testing
 a configured deployment.
 
+## 8 November 2026: Supabase Data API and OAuth sign-in
+
+Checked on Windows 11 with R 4.5.1 and shinyOAuth 0.7.0.9000.
+The Data API helper reuses PostgREST and sends the project API key separately
+from the visitor's current access token. Native sign-in uses Supabase's
+OIDC discovery document; third-party providers can supply an authorization
+without using the Supabase OAuth server.
+
+| Check | Result |
+| --- | --- |
+| Full source regression suite | 5,750 passing assertions across 351 scenarios; zero failures, errors, warnings or skips in the isolated Supabase source |
+| Focused Supabase, PostgREST and source-guide tests | Pass in the working checkout and in a clean source copy containing only the Supabase changes |
+| API backend compatibility | Supabase and ORDS tests pass together in the combined checkout |
+| Request authentication | Project keys remain separate from visitor bearer tokens across renewal, account changes and independent clients; ordinary PostgREST requests have no project key header |
+| Authorization lifecycle | Queries wait for sign-in; late account-switched responses, permission loss and cross-session access are rejected |
+| Key and endpoint validation | Reject secret/service-role keys, malformed legacy keys, insecure URLs and service URLs supplied in place of the project base |
+| OAuth configuration | Mocked HTTPS discovery with the real shinyOAuth provider validates endpoints, PKCE, nonce and ID-token settings for public and confidential clients |
+| Request behavior | Read-only refresh retry, no mutation replay, native RPC arguments and schema headers, exact JSON integers, and sanitized errors pass |
+| Air and Jarl | Repository checks pass |
+| Documentation | R examples parse, local links resolve, and the Supabase app constructs and waits for sign-in |
+| Isolated `R CMD check --no-manual --no-tests` | Zero errors, warnings or notes; vignettes build and rebuild successfully |
+
+No hosted Supabase account, native browser sign-in, or self-hosted gateway
+was tested. Real refresh-token rotation, RLS enforcement for two users,
+third-party JWT mappings and custom-domain configurations still need a
+configured project. Research sources and setup requirements are recorded
+in [the Supabase backend decision](supabase-backend.md).
+
 ## 8 November 2026: Oracle Database with Entra access tokens
 
 Checked on Windows 11 with R 4.5.1. `oauth_db_oracle()` uses the Oracle

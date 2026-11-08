@@ -43,6 +43,7 @@ server and advanced configuration.
 | --- | --- |
 | [Self-hosted PostgreSQL](postgres.html) | Try the Docker/Keycloak demo or connect your own PostgreSQL 18 server |
 | [PostgREST](postgrest.html) | Read PostgreSQL tables and call functions over HTTP |
+| [Supabase](supabase.html) | Read tables and call functions through the Data API with each visitor's permissions |
 | [StarRocks](starrocks.html) | Query with JWT authentication and MySQL Connector/ODBC |
 | [ClickHouse](clickhouse.html) | Run SQL over HTTPS with a visitor token |
 | [CrateDB](cratedb.html) | Run SQL over HTTPS with JWT authentication and database user privileges |
