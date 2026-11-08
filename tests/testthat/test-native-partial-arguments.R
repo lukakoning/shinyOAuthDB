@@ -61,6 +61,10 @@ test_that("PostgreSQL service abbreviations cannot reach libpq", {
   skip_if_not_installed("RPostgres")
   captured <- NULL
   local_mocked_bindings(
+    dbGetInfo = function(...) list(client.version = package_version("16.0")),
+    .package = "DBI"
+  )
+  local_mocked_bindings(
     connection_create = function(keys, values, ...) {
       captured <<- stats::setNames(values, keys)
       stop(errorCondition("Native boundary reached", class = "native_boundary"))
@@ -91,7 +95,79 @@ test_that("PostgreSQL service abbreviations cannot reach libpq", {
     expect_identical(captured[["host"]], "fixed.example")
     expect_identical(captured[["connect_timeout"]], "12")
     expect_identical(captured[["sslmode"]], "verify-full")
+    expect_identical(captured[["gssencmode"]], "disable")
+    expect_identical(captured[["require_auth"]], "password")
   })
+})
+
+test_that("Azure PostgreSQL rejects native authentication overrides before token acquisition", {
+  skip_if_not_installed("RPostgres")
+  connections <- 0L
+  local_mocked_bindings(
+    connection_create = function(...) {
+      connections <<- connections + 1L
+      stop("An authentication override reached libpq")
+    },
+    .package = "RPostgres"
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    for (name in c(
+      "gssencmode",
+      "Gss.Enc.Mode",
+      "require_auth",
+      "Require.Auth",
+      "sslcert",
+      "sslkey",
+      "hostaddr",
+      "options",
+      "oauth_client_id"
+    )) {
+      expect_error(
+        do.call(
+          oauth_db_azure_postgres,
+          c(
+            list(
+              auth$connection,
+              "fixed.example",
+              "reports",
+              "reader",
+              target = NULL
+            ),
+            stats::setNames(list("alternate-authentication"), name)
+          )
+        ),
+        "cannot be overridden",
+        class = "shinyOAuthDB_invalid_configuration"
+      )
+    }
+    expect_identical(connections, 0L)
+    expect_identical(auth$calls$acquire, 0L)
+  })
+})
+
+test_that("Azure PostgreSQL fails closed on libpq without authentication enforcement", {
+  skip_if_not_installed("RPostgres")
+  local_mocked_bindings(
+    dbGetInfo = function(...) list(client.version = package_version("15.9")),
+    dbConnect = function(...) {
+      stop("An unsupported libpq runtime must not connect")
+    },
+    .package = "DBI"
+  )
+  expect_error(
+    .odb_backend_postgres(
+      function() stop("The runtime check must precede token acquisition"),
+      "fixed.example",
+      "reports",
+      "reader",
+      5432L,
+      NULL,
+      list()
+    ),
+    "libpq 16 or later",
+    class = "shinyOAuthDB_missing_dependency"
+  )
 })
 
 test_that("Fabric rejects abbreviations of its owned native formals", {

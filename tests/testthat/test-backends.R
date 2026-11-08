@@ -308,6 +308,7 @@ test_that("Azure PostgreSQL uses the provisioned role with certificate verificat
   skip_if_not_installed("RPostgres")
   state <- new.env(parent = emptyenv())
   local_mocked_bindings(
+    dbGetInfo = function(...) list(client.version = package_version("16.0")),
     dbConnect = function(drv, ...) {
       state$args <- list(...)
       "native"

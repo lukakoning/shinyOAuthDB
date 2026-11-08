@@ -169,5 +169,10 @@ You can omit `sslrootcert` if libpq already has the correct CA bundle
 configured. Other options, such as `port` and `connect_timeout`, go to
 RPostgres. See `?oauth_db_azure_postgres` for the connection arguments.
 
+Use RPostgres linked to libpq 16 or later. The helper requires the server
+to request the visitor's access token as its password over verified TLS;
+Kerberos, certificate-only and trust authentication cannot replace it.
+Authentication and TLS settings cannot be changed through `...`.
+
 For custom sign-in settings or saved query results, see
 [Authentication and sessions](authorization.html).

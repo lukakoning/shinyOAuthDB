@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Require token-based password authentication over verified TLS for Azure
+  PostgreSQL. Disable GSS encryption and reject native authentication/TLS
+  overrides. This helper now requires RPostgres linked to libpq 16 or later.
+
 * Reject incomplete BigQuery dataset listings when the API reports unreachable
   locations, including on later result pages.
 

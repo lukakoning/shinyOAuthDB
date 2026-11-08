@@ -329,16 +329,20 @@ oauth_db_postgres <- function(
 #' @param user Database role created for the user or their group.
 #' @param sslrootcert CA certificate bundle path, or `NULL` to use libpq's
 #'   configured bundle.
-#' @param ... RPostgres connection options, such as `connect_timeout`.
+#' @param ... RPostgres result options (`bigint`, `check_interrupts`,
+#'   `timezone`, `timezone_out`), `connect_timeout`, `application_name`, or
+#'   TCP keepalive options. Authentication and TLS options cannot be overridden.
 #' @return A reactive function returning an RPostgres DBI connection.
 #' @details
-#' Install RPostgres and use [oauth_db_microsoft_client()] with
+#' Install RPostgres linked to libpq 16 or later. Use [oauth_db_microsoft_client()] with
 #' `services = "postgres"`. The server must accept Entra authentication,
 #' and the database role must already exist.
 #'
 #' Create the helper inside `server()` and get `connection <- con()`
 #' inside a render or reactive expression before querying.
-#' The connection uses verified TLS.
+#' The connection uses verified TLS and requires password authentication with
+#' the visitor's access token. GSS encryption is disabled, and the server
+#' cannot select Kerberos, certificate-only, or trust authentication instead.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_azure_postgres(
@@ -387,10 +391,30 @@ oauth_db_azure_postgres <- function(
       "drv",
       "user",
       "password",
-      "sslmode"
+      "sslmode",
+      "gssencmode",
+      "require_auth"
     ),
     partial = "service"
   )
+  allowed <- c(
+    "bigint",
+    "check_interrupts",
+    "timezone",
+    "timezone_out",
+    "connect_timeout",
+    "application_name",
+    "keepalives",
+    "keepalives_idle",
+    "keepalives_interval",
+    "keepalives_count",
+    "tcp_user_timeout"
+  )
+  if (length(setdiff(names(options), allowed))) {
+    .odb_abort(
+      "Only RPostgres result, connection timeout, application_name and TCP keepalive options are accepted in ...; authentication and TLS settings cannot be overridden."
+    )
+  }
   .odb_bind(
     authorization,
     .odb_backend_postgres,
@@ -416,14 +440,23 @@ oauth_db_azure_postgres <- function(
   sslrootcert,
   options
 ) {
+  driver <- RPostgres::Postgres()
+  if (DBI::dbGetInfo(driver)$client.version < package_version("16.0")) {
+    .odb_abort(
+      "Azure PostgreSQL OAuth requires RPostgres linked to libpq 16 or later to enforce token authentication. Update RPostgres or its libpq runtime.",
+      "missing_dependency"
+    )
+  }
   args <- list(
-    drv = RPostgres::Postgres(),
+    drv = driver,
     host = host,
     dbname = dbname,
     user = user,
     port = port,
     password = token(),
-    sslmode = "verify-full"
+    sslmode = "verify-full",
+    gssencmode = "disable",
+    require_auth = "password"
   )
   if (!is.null(sslrootcert)) {
     args$sslrootcert <- sslrootcert

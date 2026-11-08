@@ -58,4 +58,4 @@ Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0
 NeedsCompilation: yes
 SystemRequirements: Optional native PostgreSQL OAuth: Linux, shared libpq 18
-    and development headers, pkg-config
+    and development headers, pkg-config. Azure PostgreSQL: libpq 16 or later

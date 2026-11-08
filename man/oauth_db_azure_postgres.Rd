@@ -29,7 +29,9 @@ that calls \code{auth$connection(id)}.}
 
 \item{user}{Database role created for the user or their group.}
 
-\item{...}{RPostgres connection options, such as \code{connect_timeout}.}
+\item{...}{RPostgres result options (\code{bigint}, \code{check_interrupts},
+\code{timezone}, \code{timezone_out}), \code{connect_timeout}, \code{application_name}, or
+TCP keepalive options. Authentication and TLS options cannot be overridden.}
 
 \item{port}{Database port.}
 
@@ -56,13 +58,15 @@ Query Azure Database for PostgreSQL with a visitor's Microsoft account.
 The connection works with DBI or dbplyr through RPostgres.
 }
 \details{
-Install RPostgres and use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with
+Install RPostgres linked to libpq 16 or later. Use \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} with
 \code{services = "postgres"}. The server must accept Entra authentication,
 and the database role must already exist.
 
 Create the helper inside \code{server()} and get \code{connection <- con()}
 inside a render or reactive expression before querying.
-The connection uses verified TLS.
+The connection uses verified TLS and requires password authentication with
+the visitor's access token. GSS encryption is disabled, and the server
+cannot select Kerberos, certificate-only, or trust authentication instead.
 }
 \examples{
 \dontrun{
