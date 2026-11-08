@@ -52,8 +52,8 @@ local Docker demo.
 
 ## A complete app
 
-Save this as `app.R`. Replace the workspace host and copy the warehouse
-ID from the warehouse’s connection details:
+Save this as `example.R`. Replace the workspace host and copy the
+warehouse ID from the warehouse’s connection details:
 
 ``` r
 
@@ -69,11 +69,15 @@ client <- oauth_db_databricks_client(
   redirect_uri = "http://localhost:8100"
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -92,12 +96,18 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)` from the app directory and open
-`http://localhost:8100`. Sign in to run the query; signing out clears
-the output.
+Run `source("example.R")` and open `http://localhost:8100`. Sign in to
+run the query; signing out clears the output.
 
 The query shows the Databricks user. Replace it with SQL for your
 tables. For dbplyr, get `connection <- con()` first, then pass it to

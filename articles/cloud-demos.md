@@ -24,6 +24,9 @@ For example, start the Fabric guide with:
 ``` r
 
 shinyOAuthDB::oauth_db_cloud_demo("fabric")
+
+# Open the printed app URL in your regular browser.
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
 The guide uses `cli` messages and asks only for missing settings. Enter
@@ -160,8 +163,12 @@ code. You can also choose a directory:
 
 ``` r
 
-path <- shinyOAuthDB::oauth_db_cloud_demo("databricks",
-  action = "files", path = "my-databricks-demo", prompt = FALSE)
+path <- shinyOAuthDB::oauth_db_cloud_demo(
+  "databricks",
+  action = "files",
+  path = "my-databricks-demo",
+  prompt = FALSE
+)
 file.edit(file.path(path, "app.R"))
 shinyOAuthDB::oauth_db_cloud_demo("databricks", path = path)
 ```

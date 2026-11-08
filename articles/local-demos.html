@@ -82,12 +82,13 @@ index and access policy. Docker supplies bslib; local R mode needs bslib
 <h2 id="start-a-demo">Start a demo<a class="anchor" aria-label="anchor" href="#start-a-demo"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="op">)</span>             <span class="co"># PostgreSQL 18</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="op">)</span> <span class="co"># PostgreSQL 18</span></span></code></pre></div>
 <p>Wait for the launcher to print the app address, then open
-<code>http://localhost:18100</code>. The first build downloads images
-and R packages; PostgreSQL also compiles its native OAuth libraries.
-Builds need internet access and several GB of disk space. Later starts
-reuse Docker’s cache.</p>
+<code>http://localhost:18100</code> in a regular browser. Embedded
+RStudio/Positron viewers cannot complete OAuth redirects. The first
+build downloads images and R packages; PostgreSQL also compiles its
+native OAuth libraries. Builds need internet access and several GB of
+disk space. Later starts reuse Docker’s cache.</p>
 <table class="table">
 <thead><tr class="header">
 <th>Account</th>
@@ -124,25 +125,46 @@ launcher doesn’t change your computer’s certificate store.</p>
 <h2 id="run-the-minimal-example">Run the minimal example<a class="anchor" aria-label="anchor" href="#run-the-minimal-example"></a>
 </h2>
 <p>The <a href="https://lukakoning.github.io/shinyOAuthDB/">README</a>
-shows a smaller app with just sign-in, sign-out and a query. Its code is
-included in the package as <code>examples/postgres/app.R</code>. To run
-it with the PostgreSQL demo’s database, driver and certificates, copy it
-into a fresh Docker setup:</p>
+shows a smaller app with just sign-in, sign-out and a query. Run the
+packaged copy in local R:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgres"</span>, action <span class="op">=</span> <span class="st">"files"</span>,</span>
-<span>                                  path <span class="op">=</span> <span class="st">"postgres-minimal"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples"</span>, <span class="st">"postgres"</span>, <span class="st">"app.R"</span>, package <span class="op">=</span> <span class="st">"shinyOAuthDB"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">"postgres"</span>, <span class="st">"app.R"</span><span class="op">)</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span></span>
+<span>  <span class="st">"examples"</span>,</span>
+<span>  <span class="st">"postgres"</span>,</span>
+<span>  <span class="st">"example.R"</span>,</span>
+<span>  package <span class="op">=</span> <span class="st">"shinyOAuthDB"</span></span>
+<span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The first line after <code><a href="https://rdrr.io/r/base/library.html" class="external-link">library()</a></code> calls
+<code>oauth_db_demo("postgrest", action = "services")</code>. This
+starts PostgreSQL, PostgREST and Keycloak in Docker, waits until they
+are ready, and returns settings for the app. Shiny runs in your R
+installation. PostgREST exposes PostgreSQL tables over HTTP on loopback,
+so no native database driver is needed. Open
+<code>http://localhost:18100</code> in a regular browser and use the
+accounts above. Embedded RStudio/Positron viewers cannot complete OAuth
+redirects.</p>
+<p>The app registers <code>demo$stop()</code> with
+<code><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">shiny::onStop()</a></code>. Interrupting Shiny removes its Docker
+services and sample data. If you run setup separately, call
+<code>demo$stop()</code> when finished; the launcher also prints a
+recovery command with the configuration path.</p>
+<p>To edit the app, copy the example to a new directory first:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.copy</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"examples"</span>, <span class="st">"postgres"</span>, <span class="st">"example.R"</span>, package <span class="op">=</span> <span class="st">"shinyOAuthDB"</span><span class="op">)</span>,</span>
+<span>  <span class="st">"postgres-example.R"</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgres"</span>, path <span class="op">=</span> <span class="va">path</span><span class="op">)</span></span></code></pre></div>
-<p>Choose a new empty directory for <code>path</code> so the copy
-doesn’t replace an app you have edited. Open
-<code>http://localhost:18100</code> and use the same accounts shown
-above. Interrupt the R call to stop the app and its Docker services. To
-edit this version before starting it, open
-<code>file.edit(file.path(path, "postgres", "app.R"))</code> after
-copying it.</p>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/file.edit.html" class="external-link">file.edit</a></span><span class="op">(</span><span class="st">"postgres-example.R"</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"postgres-example.R"</span><span class="op">)</span></span></code></pre></div>
+<p>Services mode keeps curl’s TLS settings and the system certificate
+store unchanged. Browser sign-in uses the existing HTTPS issuer. R
+accesses Keycloak’s token, UserInfo and signing-key endpoints over HTTP
+on loopback only; the helper enables shinyOAuth’s loopback development
+option and permits loopback hosts while this demo is active. The data
+API uses HTTP at exactly <code>127.0.0.1:19444</code>, accepted only
+while the demo handle is active. <code>demo$stop()</code> restores those
+R options and removes the HTTP exception. Other demo modes keep their
+existing HTTPS setup.</p>
 </div>
 <div class="section level2">
 <h2 id="run-and-edit-shiny-in-local-r">Run and edit Shiny in local R<a class="anchor" aria-label="anchor" href="#run-and-edit-shiny-in-local-r"></a>
@@ -154,7 +176,7 @@ computer, using your installed R packages. Docker still runs the
 database, Keycloak and the services needed by that database.</p>
 <p>PostgREST is an easy first example: it queries PostgreSQL over HTTPS,
 so your local R installation doesn’t need a database driver.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"callr"</span><span class="op">)</span></span>
 <span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, app <span class="op">=</span> <span class="st">"local"</span><span class="op">)</span></span></code></pre></div>
 <p>The launcher prints the path to your editable <code>app.R</code>.
@@ -162,8 +184,12 @@ Open it in your editor, change the query or UI, save it and reload the
 browser. The local Shiny process watches that file for changes. Sign in
 with the same Alice and Bob accounts as above.</p>
 <p>To open the file before starting the demo:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, app <span class="op">=</span> <span class="st">"local"</span>, action <span class="op">=</span> <span class="st">"files"</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span></span>
+<span>  <span class="st">"postgrest"</span>,</span>
+<span>  app <span class="op">=</span> <span class="st">"local"</span>,</span>
+<span>  action <span class="op">=</span> <span class="st">"files"</span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/file.edit.html" class="external-link">file.edit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">"local-app"</span>, <span class="st">"postgrest"</span>, <span class="st">"app.R"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, app <span class="op">=</span> <span class="st">"local"</span>, path <span class="op">=</span> <span class="va">path</span><span class="op">)</span></span></code></pre></div>
 <p>Your edits stay between runs. Local mode uses a separate default
@@ -330,7 +356,7 @@ enforces user grants. For another provider, follow its <a href="cratedb.html">to
 Cleanup removes that demo’s containers, network and database volumes.
 Docker images and the copied configuration stay for the next run.</p>
 <p>If R exits forcibly, restart R and stop the same database:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgres"</span>, action <span class="op">=</span> <span class="st">"stop"</span><span class="op">)</span></span>
 <span><span class="co"># For the local app example:</span></span>
 <span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, app <span class="op">=</span> <span class="st">"local"</span>, action <span class="op">=</span> <span class="st">"stop"</span><span class="op">)</span></span></code></pre></div>
@@ -342,7 +368,7 @@ containers.</p>
 <h2 id="change-the-app-or-inspect-the-configuration">Change the app or inspect the configuration<a class="anchor" aria-label="anchor" href="#change-the-app-or-inspect-the-configuration"></a>
 </h2>
 <p>Copy the files without starting Docker:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgres"</span>, action <span class="op">=</span> <span class="st">"files"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/file.edit.html" class="external-link">file.edit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">"postgres"</span>, <span class="st">"app.R"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgres"</span>, path <span class="op">=</span> <span class="va">path</span><span class="op">)</span></span></code></pre></div>

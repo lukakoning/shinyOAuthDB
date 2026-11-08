@@ -76,8 +76,8 @@ initial identity query still creates a job and needs a query project.
 
 ## A complete app
 
-Save this as `app.R`, replacing `"billing-project"` with your project
-ID:
+Save this as `example.R`, replacing `"billing-project"` with your
+project ID:
 
 ``` r
 
@@ -91,11 +91,15 @@ client <- oauth_db_bigquery_client(
   redirect_uri = "http://localhost:8100"
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -112,12 +116,18 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)` from the app directory and open
-`http://localhost:8100`. Sign in to run the query; signing out clears
-the output.
+Run `source("example.R")` and open `http://localhost:8100`. Sign in to
+run the query; signing out clears the output.
 
 ## Query your data
 

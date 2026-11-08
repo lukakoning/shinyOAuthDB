@@ -158,11 +158,15 @@ registration’s scopes.</p>
 <span>  scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"openid"</span>, <span class="st">"search.read"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/textOutput.html" class="external-link">verbatimTextOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
-<span><span class="op">)</span>, id <span class="op">=</span> <span class="st">"auth"</span>, client <span class="op">=</span> <span class="va">client</span><span class="op">)</span></span>
+<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/textOutput.html" class="external-link">verbatimTextOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
+<span>  client <span class="op">=</span> <span class="va">client</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span><span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -170,22 +174,34 @@ registration’s scopes.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">search</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_opensearch_api.html">oauth_db_opensearch_api</a></span><span class="op">(</span></span>
-<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, url <span class="op">=</span> <span class="st">"https://search.example.org"</span>,</span>
+<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
+<span>    url <span class="op">=</span> <span class="st">"https://search.example.org"</span>,</span>
 <span>    required_scopes <span class="op">=</span> <span class="st">"search.read"</span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderPrint.html" class="external-link">renderPrint</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span><span class="st">"orders"</span>, body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      size <span class="op">=</span> <span class="fl">20L</span>, query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>term <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>country <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">result</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span></span>
+<span>      <span class="st">"orders"</span>,</span>
+<span>      body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>        size <span class="op">=</span> <span class="fl">20L</span>,</span>
+<span>        query <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>term <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>country <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
 <span>    <span class="va">result</span><span class="op">$</span><span class="va">hits</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>port <span class="op">=</span> <span class="fl">8100</span><span class="op">)</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span><span class="op">)</span></span></code></pre></div>
-<p>Run <code>shiny::runApp(port = 8100)</code>. The app waits for
-sign-in before making requests and clears the output on sign-out. If
-your provider requires a resource parameter or named token target,
-configure it in shinyOAuth and pass the target name to the helper’s
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span><span class="op">)</span>,</span>
+<span>  port <span class="op">=</span> <span class="fl">8100</span>,</span>
+<span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open the app in your regular browser at http://localhost:8100</span></span>
+<span><span class="co"># (viewers in RStudio/Positron/etc. cannot perform necessary redirects)</span></span></code></pre></div>
+<p>Run <code>source("example.R")</code>. The app waits for sign-in
+before making requests and clears the output on sign-out. If your
+provider requires a resource parameter or named token target, configure
+it in shinyOAuth and pass the target name to the helper’s
 <code>target</code> argument.</p>
 </div>
 <div class="section level2">
@@ -262,10 +278,13 @@ named R lists for JSON objects and unnamed lists for JSON arrays,
 including single-element arrays. For a nested empty JSON object, use
 <code>structure(list(), names = character())</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span><span class="st">"orders"</span>, body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  size <span class="op">=</span> <span class="fl">0L</span>,</span>
-<span>  aggs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>countries <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>terms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>field <span class="op">=</span> <span class="st">"country"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">search</span><span class="op">(</span></span>
+<span>  <span class="st">"orders"</span>,</span>
+<span>  body <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    size <span class="op">=</span> <span class="fl">0L</span>,</span>
+<span>    aggs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>countries <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>terms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>field <span class="op">=</span> <span class="st">"country"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="va">result</span><span class="op">$</span><span class="va">aggregations</span><span class="op">$</span><span class="va">countries</span><span class="op">$</span><span class="va">buckets</span></span></code></pre></div>
 <p>An index can be a pattern or a vector such as
 <code>c("orders-*", "archive")</code>. Omitting it uses the cluster-wide
@@ -285,8 +304,10 @@ index reads and required index metadata. The response preserves
 <code>schema</code>, <code>datarows</code>, totals and any cursor, using
 the plugin’s JDBC JSON format:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">sql</span><span class="op">(</span><span class="st">"SELECT owner, total FROM orders WHERE country = ?"</span>,</span>
-<span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"keyword"</span>, value <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="va">search</span><span class="op">$</span><span class="fu">sql</span><span class="op">(</span></span>
+<span>  <span class="st">"SELECT owner, total FROM orders WHERE country = ?"</span>,</span>
+<span>  parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"keyword"</span>, value <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="va">page</span><span class="op">$</span><span class="va">schema</span></span>
 <span><span class="va">page</span><span class="op">$</span><span class="va">datarows</span></span></code></pre></div>
 <p>Parameters use the plugin’s native typed descriptors and

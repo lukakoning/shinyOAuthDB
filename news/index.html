@@ -42,7 +42,9 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Keep the README app focused on sign-in and a PostgreSQL query. Ship that minimal example in the package with Docker run instructions. Runnable demos keep their styled UI.</p></li>
+<ul><li><p>Launch the documented apps with <code>runApp(..., launch.browser = FALSE)</code> and explain that OAuth sign-in needs a regular browser. Keep the README’s follow-up links in a short Learn more section.</p></li>
+<li><p>Add <code>oauth_db_demo(action = "services")</code> to start Docker infrastructure and return settings for an app running in the current R session. The README example now starts PostgreSQL and PostgREST itself, works without a native database driver, and stops its services when Shiny stops.</p></li>
+<li><p>Keep the README app focused on sign-in and a PostgreSQL query. Ship that minimal example in the package with Docker run instructions. Runnable demos keep their styled UI.</p></li>
 <li><p>Use <code>alice</code> / <code>alice</code> and <code>bob</code> / <code>bob</code> for demo sign-in, with explicit username/password tables. Remove “Your” from cloud demo titles and keep sign-in guidance in sync with completed queries and warehouse selection.</p></li>
 <li><p>Give all local and cloud demos a responsive bslib layout, with sign-in controls, visible example queries/requests and platform-specific connection details. Local R and cloud apps require bslib 0.9.0 or later.</p></li>
 <li><p>Clarify each local demo’s purpose, demo accounts and expected data access. Show editing and restart commands in the console, and let users retry a failed write check without losing the Shiny session.</p></li>

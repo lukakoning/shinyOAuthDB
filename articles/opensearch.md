@@ -71,11 +71,15 @@ client <- oauth_client(
   scopes = c("openid", "search.read")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  verbatimTextOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    verbatimTextOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -83,24 +87,36 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   search <- oauth_db_opensearch_api(
-    auth$connection, url = "https://search.example.org",
+    auth$connection,
+    url = "https://search.example.org",
     required_scopes = "search.read"
   )
   output$rows <- renderPrint({
-    result <- search$search("orders", body = list(
-      size = 20L, query = list(term = list(country = "NL"))
-    ))
+    result <- search$search(
+      "orders",
+      body = list(
+        size = 20L,
+        query = list(term = list(country = "NL"))
+      )
+    )
     result$hits
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before
-making requests and clears the output on sign-out. If your provider
-requires a resource parameter or named token target, configure it in
-shinyOAuth and pass the target name to the helper’s `target` argument.
+Run `source("example.R")`. The app waits for sign-in before making
+requests and clears the output on sign-out. If your provider requires a
+resource parameter or named token target, configure it in shinyOAuth and
+pass the target name to the helper’s `target` argument.
 
 ## Configure cluster authentication and permissions
 
@@ -187,10 +203,13 @@ arrays. For a nested empty JSON object, use
 
 ``` r
 
-result <- search$search("orders", body = list(
-  size = 0L,
-  aggs = list(countries = list(terms = list(field = "country")))
-))
+result <- search$search(
+  "orders",
+  body = list(
+    size = 0L,
+    aggs = list(countries = list(terms = list(field = "country")))
+  )
+)
 result$aggregations$countries$buckets
 ```
 
@@ -211,8 +230,10 @@ reads and required index metadata. The response preserves `schema`,
 
 ``` r
 
-page <- search$sql("SELECT owner, total FROM orders WHERE country = ?",
-  parameters = list(list(type = "keyword", value = "NL")))
+page <- search$sql(
+  "SELECT owner, total FROM orders WHERE country = ?",
+  parameters = list(list(type = "keyword", value = "NL"))
+)
 page$schema
 page$datarows
 ```

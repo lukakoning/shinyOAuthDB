@@ -16,14 +16,15 @@ index and access policy. Docker supplies bslib; local R mode needs bslib
 
 ``` r
 
-shinyOAuthDB::oauth_db_demo()             # PostgreSQL 18
+shinyOAuthDB::oauth_db_demo() # PostgreSQL 18
 ```
 
 Wait for the launcher to print the app address, then open
-`http://localhost:18100`. The first build downloads images and R
-packages; PostgreSQL also compiles its native OAuth libraries. Builds
-need internet access and several GB of disk space. Later starts reuse
-Docker’s cache.
+`http://localhost:18100` in a regular browser. Embedded RStudio/Positron
+viewers cannot complete OAuth redirects. The first build downloads
+images and R packages; PostgreSQL also compiles its native OAuth
+libraries. Builds need internet access and several GB of disk space.
+Later starts reuse Docker’s cache.
 
 | Account | Password | Rows shown by the app                |
 |---------|----------|--------------------------------------|
@@ -43,27 +44,54 @@ launcher doesn’t change your computer’s certificate store.
 ## Run the minimal example
 
 The [README](https://lukakoning.github.io/shinyOAuthDB/) shows a smaller
-app with just sign-in, sign-out and a query. Its code is included in the
-package as `examples/postgres/app.R`. To run it with the PostgreSQL
-demo’s database, driver and certificates, copy it into a fresh Docker
-setup:
+app with just sign-in, sign-out and a query. Run the packaged copy in
+local R:
 
 ``` r
 
-path <- shinyOAuthDB::oauth_db_demo("postgres", action = "files",
-                                  path = "postgres-minimal")
-file.copy(
-  system.file("examples", "postgres", "app.R", package = "shinyOAuthDB"),
-  file.path(path, "postgres", "app.R"), overwrite = TRUE
-)
-shinyOAuthDB::oauth_db_demo("postgres", path = path)
+source(system.file(
+  "examples",
+  "postgres",
+  "example.R",
+  package = "shinyOAuthDB"
+))
 ```
 
-Choose a new empty directory for `path` so the copy doesn’t replace an
-app you have edited. Open `http://localhost:18100` and use the same
-accounts shown above. Interrupt the R call to stop the app and its
-Docker services. To edit this version before starting it, open
-`file.edit(file.path(path, "postgres", "app.R"))` after copying it.
+The first line after [`library()`](https://rdrr.io/r/base/library.html)
+calls `oauth_db_demo("postgrest", action = "services")`. This starts
+PostgreSQL, PostgREST and Keycloak in Docker, waits until they are
+ready, and returns settings for the app. Shiny runs in your R
+installation. PostgREST exposes PostgreSQL tables over HTTP on loopback,
+so no native database driver is needed. Open `http://localhost:18100` in
+a regular browser and use the accounts above. Embedded RStudio/Positron
+viewers cannot complete OAuth redirects.
+
+The app registers `demo$stop()` with
+[`shiny::onStop()`](https://rdrr.io/pkg/shiny/man/onStop.html).
+Interrupting Shiny removes its Docker services and sample data. If you
+run setup separately, call `demo$stop()` when finished; the launcher
+also prints a recovery command with the configuration path.
+
+To edit the app, copy the example to a new directory first:
+
+``` r
+
+file.copy(
+  system.file("examples", "postgres", "example.R", package = "shinyOAuthDB"),
+  "postgres-example.R"
+)
+file.edit("postgres-example.R")
+source("postgres-example.R")
+```
+
+Services mode keeps curl’s TLS settings and the system certificate store
+unchanged. Browser sign-in uses the existing HTTPS issuer. R accesses
+Keycloak’s token, UserInfo and signing-key endpoints over HTTP on
+loopback only; the helper enables shinyOAuth’s loopback development
+option and permits loopback hosts while this demo is active. The data
+API uses HTTP at exactly `127.0.0.1:19444`, accepted only while the demo
+handle is active. `demo$stop()` restores those R options and removes the
+HTTP exception. Other demo modes keep their existing HTTPS setup.
 
 ## Run and edit Shiny in local R
 
@@ -90,7 +118,11 @@ To open the file before starting the demo:
 
 ``` r
 
-path <- shinyOAuthDB::oauth_db_demo("postgrest", app = "local", action = "files")
+path <- shinyOAuthDB::oauth_db_demo(
+  "postgrest",
+  app = "local",
+  action = "files"
+)
 file.edit(file.path(path, "local-app", "postgrest", "app.R"))
 shinyOAuthDB::oauth_db_demo("postgrest", app = "local", path = path)
 ```

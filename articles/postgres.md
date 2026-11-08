@@ -68,11 +68,15 @@ client <- oauth_client(
   scopes = c("openid", "profile", "database.read")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -81,13 +85,15 @@ server <- function(input, output, session) {
 
   con <- oauth_db_postgres(
     auth$connection,
-    host = "postgres.example.org", dbname = "reporting",
+    host = "postgres.example.org",
+    dbname = "reporting",
     user = function() {
       reference <- req(auth$connection())
       identity <- reference$identity(claims = "preferred_username")
       req(identity$id_token_claims$preferred_username)
     },
-    issuer = issuer, scope = "database.read",
+    issuer = issuer,
+    scope = "database.read",
     sslrootcert = "path/to/ca.pem"
   )
   output$rows <- renderTable({
@@ -96,7 +102,14 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
 `user` is the database role requested when opening a PostgreSQL

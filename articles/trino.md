@@ -49,8 +49,8 @@ have a different audience from the Shiny app.
 
 ## A complete app
 
-Save this as `app.R`. Replace the cluster URL, catalog, and schema, and
-use the scopes your registration allows:
+Save this as `example.R`. Replace the cluster URL, catalog, and schema,
+and use the scopes your registration allows:
 
 ``` r
 
@@ -69,11 +69,15 @@ client <- oauth_client(
   scopes = c("openid", "profile", "email", "offline_access")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -93,12 +97,18 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)` from the app directory and open
-`http://localhost:8100`. Sign in to run the query; signing out clears
-the output.
+Run `source("example.R")` and open `http://localhost:8100`. Sign in to
+run the query; signing out clears the output.
 
 The query shows the Trino user. Replace it with SQL for your data.
 `con()` returns the DBI connection; call it inside the render or

@@ -156,7 +156,11 @@ the app.</p>
 <span><span class="va">audience</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_LIBSQL_AUDIENCE"</span><span class="op">)</span></span>
 <span><span class="va">provider</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_provider_oidc_discover.html" class="external-link">oauth_provider_oidc_discover</a></span><span class="op">(</span></span>
 <span>  issuer <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_LIBSQL_ISSUER"</span><span class="op">)</span>,</span>
-<span>  extra_auth_params <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">audience</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>audience <span class="op">=</span> <span class="va">audience</span><span class="op">)</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  extra_auth_params <span class="op">=</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">audience</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>audience <span class="op">=</span> <span class="va">audience</span><span class="op">)</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu">oauth_client</span><span class="op">(</span></span>
 <span>  <span class="va">provider</span>,</span>
@@ -166,11 +170,15 @@ the app.</p>
 <span>  scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"openid"</span>, <span class="st">"sqlite.read"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
-<span><span class="op">)</span>, id <span class="op">=</span> <span class="st">"auth"</span>, client <span class="op">=</span> <span class="va">client</span><span class="op">)</span></span>
+<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
+<span>  client <span class="op">=</span> <span class="va">client</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span><span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -178,18 +186,28 @@ the app.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">libsql</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_libsql_api.html">oauth_db_libsql_api</a></span><span class="op">(</span></span>
-<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, url <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_LIBSQL_URL"</span><span class="op">)</span>,</span>
+<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
+<span>    url <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_LIBSQL_URL"</span><span class="op">)</span>,</span>
 <span>    required_scopes <span class="op">=</span> <span class="st">"sqlite.read"</span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">libsql</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT id, total FROM orders WHERE country = :country LIMIT 20"</span>,</span>
-<span>      parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>country <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">libsql</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span></span>
+<span>      <span class="st">"SELECT id, total FROM orders WHERE country = :country LIMIT 20"</span>,</span>
+<span>      parameters <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>country <span class="op">=</span> <span class="st">"NL"</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>port <span class="op">=</span> <span class="fl">8100</span><span class="op">)</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span><span class="op">)</span></span></code></pre></div>
-<p>Run <code>shiny::runApp(port = 8100)</code>. The app waits for
-sign-in before sending SQL and clears the output on sign-out. Request
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span><span class="op">)</span>,</span>
+<span>  port <span class="op">=</span> <span class="fl">8100</span>,</span>
+<span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open the app in your regular browser at http://localhost:8100</span></span>
+<span><span class="co"># (viewers in RStudio/Positron/etc. cannot perform necessary redirects)</span></span></code></pre></div>
+<p>Run <code>source("example.R")</code>. The app waits for sign-in
+before sending SQL and clears the output on sign-out. Request
 <code>offline_access</code> too if your provider requires it to renew
 tokens.</p>
 </div>
@@ -277,7 +295,10 @@ fully named list for named parameters. Values travel separately from
 SQL; no interpolation is needed.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">libsql</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT * FROM orders WHERE country = ?"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"NL"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">libsql</span><span class="op">$</span><span class="fu">execute</span><span class="op">(</span><span class="st">"INSERT INTO events(value) VALUES (:value)"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="st">"signed in"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">libsql</span><span class="op">$</span><span class="fu">execute</span><span class="op">(</span></span>
+<span>  <span class="st">"INSERT INTO events(value) VALUES (:value)"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="st">"signed in"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="va">libsql</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT ? AS exact_integer"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"9223372036854775807"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">libsql</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT ? AS bytes, ? AS missing"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">255</span><span class="op">)</span><span class="op">)</span>, <span class="cn">NULL</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Ordinary character values bind as text. Logical values bind as

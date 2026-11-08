@@ -75,14 +75,17 @@
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lukakoning/shinyOAuthDB"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example-usage-with-postgresql">Example usage with PostgreSQL<a class="anchor" aria-label="anchor" href="#example-usage-with-postgresql"></a>
 </h2>
-<p>Start <a href="https://docs.docker.com/get-started/get-docker/" class="external-link">Docker</a> with Linux containers, then run this app in R. The setup call starts PostgreSQL, Keycloak sign-in and PostgREST, which lets R read PostgreSQL over HTTP without installing a database driver. PostgreSQL applies each user’s permissions.</p>
-<p>Pass <code>auth$connection</code> to <code><a href="reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code>, then use <code>$select()</code> to read a table as the signed-in user.</p>
+<p>Below is a minimal example of a Shiny app that queries a PostgreSQL database.</p>
+<p>It launches PostgreSQL and Keycloak sign-in in Docker (so install and launch <a href="https://docs.docker.com/engine/install/" class="external-link">Docker</a> if you wish to run it).</p>
+<p>This example uses PostgREST since it does not require a database driver to be installed, but you could also use DBI with a PostgreSQL driver. See the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html">PostgreSQL guide</a> for that.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
@@ -92,16 +95,21 @@
 <span></span>
 <span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu">oauth_client</span><span class="op">(</span></span>
 <span>  <span class="va">demo</span><span class="op">$</span><span class="va">provider</span>,</span>
-<span>  client_id <span class="op">=</span> <span class="st">"shiny-db"</span>, client_secret <span class="op">=</span> <span class="st">"demo-client-secret"</span>,</span>
+<span>  client_id <span class="op">=</span> <span class="st">"shiny-db"</span>,</span>
+<span>  client_secret <span class="op">=</span> <span class="st">"demo-client-secret"</span>,</span>
 <span>  redirect_uri <span class="op">=</span> <span class="st">"http://localhost:18100"</span>,</span>
 <span>  scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"openid"</span>, <span class="st">"profile"</span>, <span class="st">"database.read"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
-<span><span class="op">)</span>, id <span class="op">=</span> <span class="st">"auth"</span>, client <span class="op">=</span> <span class="va">client</span><span class="op">)</span></span>
+<span><span class="va">ui</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_ui.html" class="external-link">oauth_ui</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
+<span>  client <span class="op">=</span> <span class="va">client</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span><span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -109,28 +117,32 @@
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">postgres</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api</a></span><span class="op">(</span></span>
-<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, url <span class="op">=</span> <span class="va">demo</span><span class="op">$</span><span class="va">url</span></span>
+<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
+<span>    url <span class="op">=</span> <span class="va">demo</span><span class="op">$</span><span class="va">url</span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
 <span>    <span class="va">postgres</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="st">"visible_rows"</span>, order <span class="op">=</span> <span class="st">"row_id.asc"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>port <span class="op">=</span> <span class="fl">18100</span><span class="op">)</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span>,</span>
-<span>         onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span>, onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span>,</span>
+<span>  port <span class="op">=</span> <span class="fl">18100</span>,</span>
+<span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open the app in your regular browser at http://localhost:18100</span></span>
+<span><span class="co"># (viewers in RStudio/Positron/etc. cannot perform necessary redirects)</span></span></code></pre></div>
 <p>Sign in as <code>alice</code> / <code>alice</code> or <code>bob</code> / <code>bob</code> (username / password). The first build takes a few minutes; your browser may ask you to accept the local sign-in certificate. Stopping the app removes its Docker services. Call <code>demo$stop()</code> to stop the services manually.</p>
-<p>The package includes this example as <code>examples/postgres/app.R</code>; <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example">run it directly</a> or edit a copy. For your own server, follow the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html">PostgREST guide</a>. For native PostgreSQL connections with DBI, see the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html">PostgreSQL guide</a>.</p>
+<p>The package includes this example as <code>examples/postgres/example.R</code>; <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html#run-the-minimal-example">run it directly</a> or edit a copy. For your own server, follow the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html">PostgREST guide</a>.</p>
 </div>
 <div class="section level2">
-<h2 id="try-the-demo">Try the demo<a class="anchor" aria-label="anchor" href="#try-the-demo"></a>
+<h2 id="learn-more">Learn more<a class="anchor" aria-label="anchor" href="#learn-more"></a>
 </h2>
-<p>With <a href="https://docs.docker.com/get-started/get-docker/" class="external-link">Docker</a> running Linux containers, run the following in R. The first build takes several minutes.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">shinyOAuthDB</span><span class="fu">::</span><span class="fu"><a href="reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>This starts PostgreSQL, Keycloak sign-in and a styled version of the app. Open <a href="http://localhost:18100" class="external-link uri">http://localhost:18100</a> and sign in as <code>alice</code> / <code>alice</code> or <code>bob</code> / <code>bob</code> (username / password). Each account sees only its own rows. Your browser may ask you to accept the local test certificate. Click <strong>Stop demo</strong> or interrupt R to remove the containers and sample data.</p>
-<p>See <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html">Local Docker demos</a> for other databases, editing the app in local R and troubleshooting.</p>
-<p>For a cloud platform, <code>shinyOAuthDB::oauth_db_cloud_demo("fabric")</code> guides you through sign-in setup and opens an editable local app. See <a href="https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html">Guided cloud demos</a> for the supported platforms and their setup requirements.</p>
-<p><a href="https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html">Getting started</a> explains the Shiny pattern. <a href="https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html">OAuth setup</a> explains app registrations and sign-in settings. <a href="https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html">Authentication and sessions</a> covers multiple accounts, saved results and advanced permissions.</p>
+<p><code><a href="reference/oauth_db_demo.html">oauth_db_demo()</a></code> runs local Docker demos for PostgreSQL and other databases. <code><a href="reference/oauth_db_cloud_demo.html">oauth_db_cloud_demo()</a></code> guides demos for several cloud platforms using an existing account. See <a href="https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html">Local Docker demos</a> and <a href="https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html">Guided cloud demos</a>.</p>
+<p><a href="https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html">Getting started</a> explains the app pattern. Use the database links above for platform setup, <a href="https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html">OAuth setup</a> for app registrations, and <a href="https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html">Authentication and sessions</a> for multiple accounts and advanced permissions.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

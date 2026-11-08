@@ -74,11 +74,15 @@ client <- oauth_client(
   scopes = c("openid", "profile", "email", "offline_access")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -89,14 +93,23 @@ server <- function(input, output, session) {
     url = Sys.getenv("OAUTHDB_CLICKHOUSE_URL")
   )
   output$rows <- renderTable({
-    clickhouse$query("SELECT currentUser() AS database_user, version() AS server_version")
+    clickhouse$query(
+      "SELECT currentUser() AS database_user, version() AS server_version"
+    )
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Save the example as `app.R` and run `shiny::runApp(port = 8100)`. Set
+Save the example as `example.R` and run `source("example.R")`. Set
 `database` when creating the API client to choose a default database.
 Use `target` for a named shinyOAuth token target, and `ca_bundle` for a
 private certificate authority supported by your curl TLS backend.
@@ -140,8 +153,10 @@ rows <- clickhouse$query(
   "SELECT id, total FROM reporting.orders WHERE country = {country:String} AND id > {after:UInt64} LIMIT 20",
   parameters = list(country = "NL", after = "9007199254740993")
 )
-day <- clickhouse$query("SELECT {day:Date} AS day",
-  parameters = list(day = as.Date("2026-11-03")))
+day <- clickhouse$query(
+  "SELECT {day:Date} AS day",
+  parameters = list(day = as.Date("2026-11-03"))
+)
 at <- as.POSIXct("2026-11-03 12:00:00", tz = "Europe/Amsterdam")
 times <- clickhouse$query(
   "SELECT {at:DateTime('UTC')} AS at, {precise:DateTime64(6, 'UTC')} AS precise",
@@ -179,7 +194,10 @@ become list columns. Empty queries preserve their column metadata.
 
 ``` r
 
-result <- clickhouse$query("SELECT count() AS rows FROM reporting.orders", raw = TRUE)
+result <- clickhouse$query(
+  "SELECT count() AS rows FROM reporting.orders",
+  raw = TRUE
+)
 result$meta
 result$statistics
 

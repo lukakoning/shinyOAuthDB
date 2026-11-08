@@ -67,7 +67,11 @@ library(shinyOAuthDB)
 audience <- Sys.getenv("OAUTHDB_LIBSQL_AUDIENCE")
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_LIBSQL_ISSUER"),
-  extra_auth_params = if (nzchar(audience)) list(audience = audience) else list()
+  extra_auth_params = if (nzchar(audience)) {
+    list(audience = audience)
+  } else {
+    list()
+  }
 )
 client <- oauth_client(
   provider,
@@ -77,11 +81,15 @@ client <- oauth_client(
   scopes = c("openid", "sqlite.read")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -89,21 +97,31 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   libsql <- oauth_db_libsql_api(
-    auth$connection, url = Sys.getenv("OAUTHDB_LIBSQL_URL"),
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_LIBSQL_URL"),
     required_scopes = "sqlite.read"
   )
   output$rows <- renderTable({
-    libsql$query("SELECT id, total FROM orders WHERE country = :country LIMIT 20",
-      parameters = list(country = "NL"))
+    libsql$query(
+      "SELECT id, total FROM orders WHERE country = :country LIMIT 20",
+      parameters = list(country = "NL")
+    )
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before
-sending SQL and clears the output on sign-out. Request `offline_access`
-too if your provider requires it to renew tokens.
+Run `source("example.R")`. The app waits for sign-in before sending SQL
+and clears the output on sign-out. Request `offline_access` too if your
+provider requires it to renew tokens.
 
 ## Configure a compatible token issuer
 
@@ -192,7 +210,10 @@ interpolation is needed.
 ``` r
 
 libsql$query("SELECT * FROM orders WHERE country = ?", list("NL"))
-libsql$execute("INSERT INTO events(value) VALUES (:value)", list(value = "signed in"))
+libsql$execute(
+  "INSERT INTO events(value) VALUES (:value)",
+  list(value = "signed in")
+)
 libsql$query("SELECT ? AS exact_integer", list(I("9223372036854775807")))
 libsql$query("SELECT ? AS bytes, ? AS missing", list(as.raw(c(0, 255)), NULL))
 ```

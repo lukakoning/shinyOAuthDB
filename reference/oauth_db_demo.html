@@ -59,7 +59,7 @@ no source checkout or cloud account is needed.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">oauth_db_demo</span><span class="op">(</span></span>
 <span>  database <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"postgres"</span>, <span class="st">"postgrest"</span>, <span class="st">"trino"</span>, <span class="st">"starrocks"</span>, <span class="st">"duckdb"</span>, <span class="st">"libsql"</span>,</span>
 <span>    <span class="st">"cratedb"</span>, <span class="st">"opensearch"</span><span class="op">)</span>,</span>
-<span>  action <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"start"</span>, <span class="st">"stop"</span>, <span class="st">"files"</span><span class="op">)</span>,</span>
+<span>  action <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"start"</span>, <span class="st">"stop"</span>, <span class="st">"files"</span>, <span class="st">"services"</span><span class="op">)</span>,</span>
 <span>  path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  launch_browser <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  build <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -80,7 +80,9 @@ or <code>"opensearch"</code>.</p></dd>
 <dt id="arg-action">action<a class="anchor" aria-label="anchor" href="#arg-action"></a></dt>
 <dd><p><code>"start"</code> runs the demo until you stop it or interrupt R.
 <code>"stop"</code> removes its containers and data, including after a forced exit.
-<code>"files"</code> copies the configuration without starting Docker.</p></dd>
+<code>"files"</code> copies the configuration without starting Docker.
+<code>"services"</code> starts only the Docker services and returns settings for
+an app you run in the current R session; <code>app</code> is ignored in this mode.</p></dd>
 
 
 <dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
@@ -90,7 +92,8 @@ the app or configuration. An unrelated nonempty directory is refused.</p></dd>
 
 
 <dt id="arg-launch-browser">launch_browser<a class="anchor" aria-label="anchor" href="#arg-launch-browser"></a></dt>
-<dd><p>Open the app in your browser once it is ready.</p></dd>
+<dd><p>Open the app in your browser once it is ready.
+Services-only mode leaves browser launch to your app.</p></dd>
 
 
 <dt id="arg-build">build<a class="anchor" aria-label="anchor" href="#arg-build"></a></dt>
@@ -106,7 +109,11 @@ Local mode creates an editable app under <code>local-app/&lt;database&gt;/</code
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Invisibly, the directory containing the demo configuration.</p>
+    <p>Invisibly, the directory containing the demo configuration.
+With <code>action = "services"</code>, an environment containing <code>provider</code> (a
+configured shinyOAuth provider), <code>url</code> (the local data endpoint),
+<code>host</code>, <code>port</code>, <code>ca_bundle</code> (for HTTPS endpoints), <code>path</code> and a <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code>
+function instead.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -154,6 +161,30 @@ or the parent R session's TLS settings. Local mode requires Compose 2.24.4
 or later and publishes its database endpoint on loopback port 19444.</p>
     </div>
     <div class="section level2">
+    <h2 id="run-your-own-app-with-docker-services">Run your own app with Docker services<a class="anchor" aria-label="anchor" href="#run-your-own-app-with-docker-services"></a></h2>
+
+
+<p>Use <code>action = "services"</code> to start the database and sign-in infrastructure
+without starting Shiny or blocking R. Use the returned <code>provider</code> in
+<code>shinyOAuth::oauth_client()</code> and <code>url</code> in an API helper.
+This mode needs Compose 2.24.4 or later but does not install or require
+local database drivers. Native database clients still need their usual
+runtime; PostgREST works in local R on Windows, macOS and Linux.</p>
+<p>Browser sign-in uses HTTPS. The returned provider uses Keycloak's HTTP
+endpoints on loopback port 18080 for R's token, UserInfo and signing-key
+requests. It retains the HTTPS issuer and validates signed ID tokens.
+This avoids changing R's certificate store or curl settings. PostgREST's
+services-only endpoint uses HTTP on <code>127.0.0.1:19444</code>, permitted only while
+its demo handle is active. Other data endpoints retain HTTPS and supply
+<code>ca_bundle</code> for clients that support custom certificate authorities.</p>
+<p>During this demo, shinyOAuth's host policy permits loopback hosts and
+its loopback-only OIDC development option is enabled. <code>demo$stop()</code>
+removes the containers and data and restores these options. Register
+it with <code><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">shiny::onStop()</a></code> when your app starts. Services are also stopped
+when the returned object is garbage collected or R exits. Run one demo
+at a time, and stop it before starting another.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="oauth_db_postgres.html">oauth_db_postgres()</a></code>, <code><a href="oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code>,
 <code><a href="oauth_db_trino.html">oauth_db_trino()</a></code>, <code><a href="oauth_db_starrocks.html">oauth_db_starrocks()</a></code>, <code><a href="oauth_db_duckdb.html">oauth_db_duckdb()</a></code>,
@@ -177,6 +208,11 @@ or later and publishes its database endpoint on loopback port 19444.</p>
 <span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu">oauth_db_demo</span><span class="op">(</span><span class="st">"postgrest"</span>, app <span class="op">=</span> <span class="st">"local"</span>, action <span class="op">=</span> <span class="st">"files"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/file.edit.html" class="external-link">file.edit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">path</span>, <span class="st">"local-app"</span>, <span class="st">"postgrest"</span>, <span class="st">"app.R"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">oauth_db_demo</span><span class="op">(</span><span class="st">"postgrest"</span>, app <span class="op">=</span> <span class="st">"local"</span>, path <span class="op">=</span> <span class="va">path</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Run your own app against PostgreSQL through PostgREST:</span></span></span>
+<span class="r-in"><span><span class="va">demo</span> <span class="op">&lt;-</span> <span class="fu">oauth_db_demo</span><span class="op">(</span><span class="st">"postgrest"</span>, action <span class="op">=</span> <span class="st">"services"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">demo</span><span class="op">$</span><span class="va">provider</span></span></span>
+<span class="r-in"><span><span class="va">demo</span><span class="op">$</span><span class="va">url</span></span></span>
+<span class="r-in"><span><span class="va">demo</span><span class="op">$</span><span class="kw">stop</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

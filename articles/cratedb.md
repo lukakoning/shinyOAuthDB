@@ -71,11 +71,15 @@ client <- oauth_client(
   scopes = c("openid", "profile")
 )
 
-ui <- oauth_ui(fluidPage(
-  actionButton("login", "Sign in"),
-  actionButton("logout", "Sign out"),
-  tableOutput("rows")
-), id = "auth", client = client)
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
 server <- function(input, output, session) {
   auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
@@ -83,20 +87,30 @@ server <- function(input, output, session) {
   observeEvent(input$logout, auth$logout())
 
   crate <- oauth_db_cratedb_api(
-    auth$connection, url = "https://crate.example.org:4200/_sql", schema = "doc"
+    auth$connection,
+    url = "https://crate.example.org:4200/_sql",
+    schema = "doc"
   )
   output$rows <- renderTable({
-    crate$query("SELECT id, total FROM orders WHERE country = $1 LIMIT 20",
-      parameters = list("NL"))
+    crate$query(
+      "SELECT id, total FROM orders WHERE country = $1 LIMIT 20",
+      parameters = list("NL")
+    )
   })
 }
 
-shinyApp(ui, server, options = list(port = 8100), uiPattern = ".*")
+runApp(
+  shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at http://localhost:8100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
-Run `shiny::runApp(port = 8100)`. The app waits for sign-in before
-querying and clears the output on sign-out. Use `ca_bundle` for a
-private CA.
+Run `source("example.R")`. The app waits for sign-in before querying and
+clears the output on sign-out. Use `ca_bundle` for a private CA.
 
 ## Configure CrateDB and compatible token claims
 
@@ -165,8 +179,10 @@ strings and cast them explicitly:
 
 ``` r
 
-crate$query("SELECT * FROM orders WHERE id = $1::bigint",
-  parameters = list("9007199254740993"))
+crate$query(
+  "SELECT * FROM orders WHERE id = $1::bigint",
+  parameters = list("9007199254740993")
+)
 ```
 
 BIGINT and NUMERIC results remain strings, preserving their exact

@@ -11,7 +11,7 @@ checkout or cloud account is needed.
 oauth_db_demo(
   database = c("postgres", "postgrest", "trino", "starrocks", "duckdb", "libsql",
     "cratedb", "opensearch"),
-  action = c("start", "stop", "files"),
+  action = c("start", "stop", "files", "services"),
   path = NULL,
   launch_browser = interactive(),
   build = TRUE,
@@ -32,6 +32,9 @@ oauth_db_demo(
   `"start"` runs the demo until you stop it or interrupt R. `"stop"`
   removes its containers and data, including after a forced exit.
   `"files"` copies the configuration without starting Docker.
+  `"services"` starts only the Docker services and returns settings for
+  an app you run in the current R session; `app` is ignored in this
+  mode.
 
 - path:
 
@@ -42,7 +45,8 @@ oauth_db_demo(
 
 - launch_browser:
 
-  Open the app in your browser once it is ready.
+  Open the app in your browser once it is ready. Services-only mode
+  leaves browser launch to your app.
 
 - build:
 
@@ -58,7 +62,11 @@ oauth_db_demo(
 
 ## Value
 
-Invisibly, the directory containing the demo configuration.
+Invisibly, the directory containing the demo configuration. With
+`action = "services"`, an environment containing `provider` (a
+configured shinyOAuth provider), `url` (the local data endpoint),
+`host`, `port`, `ca_bundle` (for HTTPS endpoints), `path` and a
+[`stop()`](https://rdrr.io/r/base/stop.html) function instead.
 
 ## Details
 
@@ -111,6 +119,32 @@ or the parent R session's TLS settings. Local mode requires Compose
 2.24.4 or later and publishes its database endpoint on loopback port
 19444.
 
+## Run your own app with Docker services
+
+Use `action = "services"` to start the database and sign-in
+infrastructure without starting Shiny or blocking R. Use the returned
+`provider` in `shinyOAuth::oauth_client()` and `url` in an API helper.
+This mode needs Compose 2.24.4 or later but does not install or require
+local database drivers. Native database clients still need their usual
+runtime; PostgREST works in local R on Windows, macOS and Linux.
+
+Browser sign-in uses HTTPS. The returned provider uses Keycloak's HTTP
+endpoints on loopback port 18080 for R's token, UserInfo and signing-key
+requests. It retains the HTTPS issuer and validates signed ID tokens.
+This avoids changing R's certificate store or curl settings. PostgREST's
+services-only endpoint uses HTTP on `127.0.0.1:19444`, permitted only
+while its demo handle is active. Other data endpoints retain HTTPS and
+supply `ca_bundle` for clients that support custom certificate
+authorities.
+
+During this demo, shinyOAuth's host policy permits loopback hosts and
+its loopback-only OIDC development option is enabled. `demo$stop()`
+removes the containers and data and restores these options. Register it
+with [`shiny::onStop()`](https://rdrr.io/pkg/shiny/man/onStop.html) when
+your app starts. Services are also stopped when the returned object is
+garbage collected or R exits. Run one demo at a time, and stop it before
+starting another.
+
 ## See also
 
 [`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
@@ -140,5 +174,10 @@ path <- oauth_db_demo(action = "files")
 path <- oauth_db_demo("postgrest", app = "local", action = "files")
 file.edit(file.path(path, "local-app", "postgrest", "app.R"))
 oauth_db_demo("postgrest", app = "local", path = path)
+# Run your own app against PostgreSQL through PostgREST:
+demo <- oauth_db_demo("postgrest", action = "services")
+demo$provider
+demo$url
+demo$stop()
 } # }
 ```

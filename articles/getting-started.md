@@ -78,8 +78,10 @@ Use [OAuth
 setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.md)
 for the registration steps and terminology. Save the credentials in a
 local `.Renviron` file as shown in the guide and restart R. Copy the
-example into `app.R`, replace the connection settings, and run
-`shiny::runApp(port = 8100)` from that directory.
+example into `example.R`, replace the connection settings, and run
+`source("example.R")`. Open `http://localhost:8100` in a regular
+browser. Embedded RStudio/Positron viewers cannot complete OAuth
+redirects.
 
 The people signing in need access to the data. OAuth consent lets the
 app act on their behalf; their database permissions determine what they
