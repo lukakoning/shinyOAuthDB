@@ -356,6 +356,18 @@ oauth_db_token <- function(
       operation_scopes <- union(required_scopes, .odb_scopes(scopes))
       current(captured)
       if (.check_only) {
+        if (
+          !shiny::isolate(.odb_authorization_has_scopes(
+            pinned,
+            operation_scopes,
+            target
+          ))
+        ) {
+          .odb_abort(
+            "The authorization no longer grants this operation's permissions.",
+            "authorization_unavailable"
+          )
+        }
         return(invisible(NULL))
       }
       # Operation permissions notify only their consumers; token bytes and

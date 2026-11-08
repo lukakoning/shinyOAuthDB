@@ -350,29 +350,56 @@ oauth_db_fabric_api <- function(
           "password"
         )
       )
-      provider <- self$token_provider()
-      do.call(.fn, c(args, list(token = provider)))
+      assert_current <- private$read(.pin = TRUE)
+      checks <- new.env(parent = emptyenv())
+      checks$active <- TRUE
+      checks$callbacks <- list()
+      provider <- private$make_token_provider(checks)
+      result <- withVisible(do.call(.fn, c(args, list(token = provider))))
+      .odb_api_result(result, function() {
+        assert_current()
+        for (check in checks$callbacks) {
+          check()
+        }
+        checks$active <- FALSE
+        checks$callbacks <- list()
+      })
     },
     token_provider = function() {
-      assert_current <- private$read(.pin = TRUE)
-      # Resolve target callbacks on use so retained resources can recover
-      # permissions while remaining bound to their original authorization.
-      providers <- lapply(private$providers, function(accessor) {
-        function(force_refresh = FALSE, scopes = character()) {
-          assert_current()
-          provider <- accessor()
-          assert_current()
-          provider(force_refresh = force_refresh, scopes = scopes)
-        }
-      })
-      .odb_fabric_api_provider(providers, private$groups)
+      private$make_token_provider()
     },
     print = function(...) {
       cat("<OAuthFabricAPI>\n")
       invisible(self)
     }
   ),
-  private = list(read = NULL, providers = NULL, groups = NULL)
+  private = list(
+    read = NULL,
+    providers = NULL,
+    groups = NULL,
+    make_token_provider = function(checks = NULL) {
+      assert_current <- private$read(.pin = TRUE)
+      # Resolve target callbacks on use so retained resources can recover
+      # permissions while remaining bound to their original authorization.
+      providers <- lapply(seq_along(private$providers), function(index) {
+        accessor <- private$providers[[index]]
+        function(force_refresh = FALSE, scopes = character()) {
+          assert_current()
+          provider <- accessor()
+          assert_current()
+          value <- provider(force_refresh = force_refresh, scopes = scopes)
+          if (!is.null(checks) && checks$active) {
+            key <- paste(c(index, sort(scopes)), collapse = "\r")
+            checks$callbacks[[key]] <- function() {
+              provider(scopes = scopes, .check_only = TRUE)
+            }
+          }
+          value
+        }
+      })
+      .odb_fabric_api_provider(providers, private$groups)
+    }
+  )
 )
 
 .odb_fabric_api_groups <- function(targets, required_scopes) {

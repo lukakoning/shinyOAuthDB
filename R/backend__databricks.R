@@ -180,13 +180,6 @@ oauth_db_databricks_api <- function(
     required_scopes <- .odb_microsoft_scopes(required_scopes)
   }
   .odb_require("brickster", version = "0.2.14")
-  bearer <- oauth_db_token(
-    authorization,
-    target = target,
-    required_scopes = required_scopes,
-    min_valid_for = min_valid_for,
-    session = session
-  )
   provider <- .odb_http_provider(
     authorization,
     target,
@@ -194,15 +187,14 @@ oauth_db_databricks_api <- function(
     min_valid_for,
     session
   )
-  .odb_databricks_api$new(bearer, host, provider)
+  .odb_databricks_api$new(host, provider)
 }
 
 .odb_databricks_api <- R6::R6Class(
   "OAuthDatabricksAPI",
   cloneable = FALSE,
   public = list(
-    initialize = function(bearer, host, provider) {
-      private$bearer <- bearer
+    initialize = function(host, provider) {
       private$host <- host
       private$provider <- provider
     },
@@ -228,15 +220,20 @@ oauth_db_databricks_api <- function(
         ),
         injected = c("host", "token")
       )
-      token <- private$bearer()
-      do.call(.fn, c(args, list(host = private$host, token = token)))
+      provider <- private$provider()
+      token <- provider()
+      result <- withVisible(do.call(
+        .fn,
+        c(args, list(host = private$host, token = token))
+      ))
+      .odb_api_result(result, function() provider(.check_only = TRUE))
     },
     print = function(...) {
       cat("<OAuthDatabricksAPI>\n")
       invisible(self)
     }
   ),
-  private = list(bearer = NULL, host = NULL, provider = NULL)
+  private = list(host = NULL, provider = NULL)
 )
 
 .odb_databricks_warehouses <- function(token, host, timeout) {

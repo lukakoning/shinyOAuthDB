@@ -36,6 +36,22 @@
   args
 }
 
+.odb_api_result <- function(result, check) {
+  checked <- function(value, .visible = TRUE) {
+    tryCatch(shiny::isolate(check()), error = function(error) {
+      tryCatch(.odb_disconnect(value), error = function(error) NULL)
+      stop(error)
+    })
+    if (.visible) value else invisible(value)
+  }
+  if (promises::is.promising(result$value)) {
+    value <- promises::then(result$value, onFulfilled = checked)
+  } else {
+    return(checked(result$value, result$visible))
+  }
+  if (result$visible) value else invisible(value)
+}
+
 .odb_api_authorization <- function(authorization, session) {
   owner <- .odb_root_session(session)
   closed <- FALSE
