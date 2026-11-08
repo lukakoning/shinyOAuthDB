@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Refresh the Docker demo runtime to include the current transport protections,
+  corrected local app ports, strict date decoding and exact row-count checks.
+
 * Check CrateDB row-count limits before numeric conversion so counts above
   `2^53` cannot round into the supported range.
 

@@ -8,7 +8,7 @@ remotes::install_github(
   upgrade = "never"
 )
 remotes::install_github(
-  "lukakoning/shinyOAuthDB@190021f4d4a68b964f941cc94c6ed16089249c91",
+  "lukakoning/shinyOAuthDB@3d567584ab6ec518ba81e835a61ad86fe8ae282d",
   upgrade = "never"
 )
 stopifnot(requireNamespace("shinyOAuth"), requireNamespace("shinyOAuthDB"))
