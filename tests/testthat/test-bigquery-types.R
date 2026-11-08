@@ -129,7 +129,12 @@ test_that("BigQuery rejects invalid scalars in ordinary, repeated and nested fie
     list(type = "TIMESTAMP", value = "NaN"),
     list(type = "TIMESTAMP", value = "Infinity"),
     list(type = "TIMESTAMP", value = "-Inf"),
-    list(type = "TIMESTAMP", value = "1e400")
+    list(type = "TIMESTAMP", value = "1e400"),
+    list(type = "DATE", value = "PRIVATE_INVALID_DATE"),
+    list(type = "DATE", value = "2026-02-01TRAILER"),
+    list(type = "DATE", value = "2026-02-30"),
+    list(type = "DATE", value = "1900-02-29"),
+    list(type = "DATE", value = "2026-1-01")
   )
   body <- NULL
   httr2::local_mocked_responses(function(req) bq_test_response(body))
@@ -150,14 +155,50 @@ test_that("BigQuery rejects invalid scalars in ordinary, repeated and nested fie
   })
 })
 
-test_that("BigQuery scalar decoding preserves NULL, NaN, infinities and empty types", {
+test_that("BigQuery rejects invalid dates after valid rows as well as before them", {
   body <- NULL
   httr2::local_mocked_responses(function(req) bq_test_response(body))
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session)
     api <- oauth_db_bigquery_api(auth$connection, "billing")
-    for (type in c("BOOL", "BOOLEAN", "FLOAT", "FLOAT64", "TIMESTAMP")) {
-      if (type %in% c("BOOL", "BOOLEAN")) {
+    for (invalid in c(
+      "2026-02-30",
+      "2026-02-01TRAILER",
+      "PRIVATE_INVALID_DATE"
+    )) {
+      for (values in list(c("2026-01-01", invalid), c(invalid, "2026-01-01"))) {
+        body <<- bq_test_result(values)
+        body$schema <<- list(fields = list(list(name = "day", type = "DATE")))
+        expect_error(
+          api$query("SELECT day"),
+          class = "shinyOAuthDB_invalid_response"
+        )
+      }
+    }
+  })
+})
+
+test_that("BigQuery scalar decoding preserves NULL, dates, NaN, infinities and empty types", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) bq_test_response(body))
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing")
+    for (type in c(
+      "DATE",
+      "BOOL",
+      "BOOLEAN",
+      "FLOAT",
+      "FLOAT64",
+      "TIMESTAMP"
+    )) {
+      if (type == "DATE") {
+        values <- list("0001-01-01", "2000-02-29", "9999-12-31", NULL)
+        expected <- as.Date(
+          c("0001-01-01", "2000-02-29", "9999-12-31", NA),
+          format = "%Y-%m-%d"
+        )
+      } else if (type %in% c("BOOL", "BOOLEAN")) {
         values <- list("true", "FALSE", NULL)
         expected <- c(TRUE, FALSE, NA)
       } else if (type == "TIMESTAMP") {

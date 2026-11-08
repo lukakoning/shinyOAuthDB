@@ -358,9 +358,7 @@ oauth_db_clickhouse_api <- function(
     return(ifelse(is.na(text), NA, tolower(text) %in% c("true", "1")))
   }
   if (type %in% c("Date", "Date32")) {
-    return(tryCatch(as.Date(text), error = function(e) {
-      .odb_abort("ClickHouse returned an invalid date.", "invalid_response")
-    }))
+    return(.odb_http_date(text, "ClickHouse"))
   }
   text
 }

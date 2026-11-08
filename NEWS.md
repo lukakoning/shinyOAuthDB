@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reject malformed BigQuery and ClickHouse dates, including invalid calendar
+  dates and trailing text, while preserving nulls and typed empty results.
+
 * Use the published relay port in generated local PostgreSQL and StarRocks
   apps, independent of argument line breaks in the Docker app templates.
 

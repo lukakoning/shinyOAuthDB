@@ -806,7 +806,7 @@ oauth_db_bigquery_client <- function(
     BIGNUMERIC = ,
     DECIMAL = ,
     BIGDECIMAL = text,
-    DATE = as.Date(text),
+    DATE = .odb_http_date(text, "BigQuery"),
     text
   )
 }

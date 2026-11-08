@@ -289,3 +289,30 @@
     }
   )
 }
+
+.odb_http_date <- function(text, service) {
+  invalid <- function() {
+    .odb_abort(
+      paste0(service, " returned an invalid date."),
+      "invalid_response"
+    )
+  }
+  present <- !is.na(text)
+  if (any(present & !grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", text))) {
+    invalid()
+  }
+  value <- tryCatch(as.Date(text, format = "%Y-%m-%d"), error = function(e) {
+    invalid()
+  })
+  parts <- as.POSIXlt(value, tz = "UTC")
+  canonical <- sprintf(
+    "%04d-%02d-%02d",
+    parts$year + 1900L,
+    parts$mon + 1L,
+    parts$mday
+  )
+  if (any(present & (is.na(value) | canonical != text))) {
+    invalid()
+  }
+  value
+}

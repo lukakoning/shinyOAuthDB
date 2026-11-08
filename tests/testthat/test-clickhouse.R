@@ -17,6 +17,75 @@ clickhouse_test_response <- function() {
   )))
 }
 
+test_that("ClickHouse rejects malformed dates in all date wrappers and result modes", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) {
+    odb_http_response(as.character(jsonlite::toJSON(
+      body,
+      auto_unbox = TRUE,
+      null = "null"
+    )))
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_clickhouse_api(
+      auth$connection,
+      "https://clickhouse.example"
+    )
+    operations <- list(
+      function() api$query("SELECT day"),
+      function() api$query("SELECT day", raw = TRUE),
+      function() api$execute("SELECT day")
+    )
+    for (type in c(
+      "Date",
+      "Date32",
+      "Nullable(Date)",
+      "LowCardinality(Nullable(Date32))"
+    )) {
+      body <<- list(
+        meta = list(list(name = "day", type = type)),
+        data = list(list("2000-02-29"), list(NULL)),
+        rows = 2L
+      )
+      expect_identical(
+        api$query("SELECT day")$day,
+        as.Date(c("2000-02-29", NA))
+      )
+      body$data <<- list()
+      body$rows <<- 0L
+      expect_identical(api$query("SELECT day")$day, as.Date(character()))
+      for (invalid in c(
+        "2026-02-30",
+        "1900-02-29",
+        "2026-02-01TRAILER",
+        "2026-1-01",
+        "PRIVATE_INVALID_DATE"
+      )) {
+        for (values in list(
+          c("2026-01-01", invalid),
+          c(invalid, "2026-01-01")
+        )) {
+          body$data <<- lapply(values, list)
+          body$rows <<- 2L
+          for (operation in operations) {
+            error <- expect_error(
+              operation(),
+              class = "shinyOAuthDB_invalid_response"
+            )
+            expect_false(grepl(
+              "PRIVATE_",
+              conditionMessage(error),
+              fixed = TRUE
+            ))
+            expect_null(error$parent)
+          }
+        }
+      }
+    }
+  })
+})
+
 test_that("ClickHouse sends SQL and parameters separately with per-user bearer authentication", {
   requests <- list()
   httr2::local_mocked_responses(function(req) {
