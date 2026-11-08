@@ -31,7 +31,7 @@ The editable local app requests the same role at sign-in and connection,
 then waits for **Run example query**. Queries may resume a warehouse and
 consume credits; stopping the app doesn't suspend a shared warehouse.
 Optional `database`, `schema` and `driver` arguments customize the setup.
-See [Guided cloud demos](cloud-demos.html) for pausing, editing and resuming.
+See [Getting started](getting-started.html#more-ways-to-try-an-app) for pausing, editing and resuming.
 
 Without an account, check [Snowflake trial accounts](https://docs.snowflake.com/en/user-guide/admin-trial-account).
 You still need permission to create the OAuth integration and a usable
@@ -191,4 +191,4 @@ Connect with `oauth_db_snowflake()` as above. Set `target` if your client
 uses named token targets, and `required_scopes` to the integration's role
 scope. For native Snowflake OAuth, the helper derives that scope from
 `role`; external providers may use different scope names.
-[Authentication and sessions](authorization.html) explains custom targets.
+[Getting started](getting-started.html#sessions-saved-results-and-extra-permissions) explains custom targets.

@@ -69,7 +69,8 @@ Redshift uses \code{identity_center_ready}, \code{server}, \code{database}, \cod
 ClickHouse uses \code{jwt_ready}, \code{url}, \code{tenant_id}, \code{resource}, \code{scope} and
 optionally \code{database}. The Redshift and ClickHouse examples use Entra
 and require an existing trusted-token integration.
-See the guided cloud demos vignette.}
+See the platform's source guide, linked from
+\code{vignette("getting-started", package = "shinyOAuthDB")}.}
 }
 \value{
 Invisibly, the demo directory, including after pausing incomplete

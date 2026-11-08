@@ -22,8 +22,8 @@ Keycloak and a Shiny app with demo accounts and sample data. The installed
 package includes the configuration; Docker provides R and native libraries.
 PostgREST, Trino, StarRocks, DuckDB Quack, libSQL, CrateDB and OpenSearch
 demos use the same launcher.
-See the \href{https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html}{local demo guide}
-for accounts, editing and cleanup.
+See \href{https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app}{Getting started}
+for demo accounts and cleanup, and \code{\link[=oauth_db_demo]{oauth_db_demo()}} for editing options.
 }
 
 \section{Start with your source}{
@@ -62,13 +62,23 @@ a fixed message and reason, without the original driver error, connection,
 or credential. If the handler errors, the default message is emitted.
 }
 
+\section{HTTP request failures}{
+
+BigQuery, PostgREST and ClickHouse HTTP failures raise
+\code{shinyOAuthDB_request_failed}. Catch this condition inside the Shiny
+operation to inspect its \code{status}. Recognized service codes and UUID
+request identifiers appear as \code{service_code} and \code{request_id}; unavailable
+values are \code{NULL}. The condition excludes server messages, response bodies
+and credentials.
+}
+
 \section{Sign-in settings}{
 
 The source guides create clients with \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}},
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}}, \code{\link[=oauth_db_databricks_client]{oauth_db_databricks_client()}}, or
 \code{\link[=oauth_db_snowflake_client]{oauth_db_snowflake_client()}}. You can also use an existing shinyOAuth client.
 
-See \code{vignette("authorization", package = "shinyOAuthDB")} for custom
+See \code{vignette("getting-started", package = "shinyOAuthDB")} for custom
 permissions, multiple accounts, and saved query results.
 }
 

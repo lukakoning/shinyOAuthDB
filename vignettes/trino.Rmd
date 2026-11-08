@@ -42,14 +42,14 @@ OAUTHDB_TRINO_ISSUER=https://your-identity-provider.example.org
 ```
 
 Try `shinyOAuthDB::oauth_db_demo("trino")` for a local cluster, sign-in and
-sample data. See [Local Docker demos](local-demos.html) for accounts and cleanup.
+sample data. See [Getting started](getting-started.html#build-a-small-app) for accounts and cleanup.
 
 | Setting | Where to get it |
 | --- | --- |
 | `host` | The coordinator's HTTPS URL and port from your cluster administrator |
 | `catalog` | The data source name shown by Trino's `SHOW CATALOGS` |
 | `schema` | A schema listed by `SHOW SCHEMAS FROM your_catalog` |
-| Issuer, client ID, secret | The cluster's trusted provider and your [Shiny client registration](oauth-setup.html) |
+| Issuer, client ID, secret | The cluster's trusted provider and your [Shiny client registration](getting-started.html#register-your-app) |
 | User field | The profile claim selected by the cluster's principal mapping |
 
 Ask the administrator to check OAuth and impersonation rules as described
@@ -173,4 +173,4 @@ The helper creates a new connection when the username changes.
 
 Starburst Galaxy needs its own OAuth registration and endpoint setup.
 For saved query results, see
-[Authentication and sessions](authorization.html).
+[Getting started](getting-started.html#sessions-saved-results-and-extra-permissions).

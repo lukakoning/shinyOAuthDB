@@ -11,103 +11,320 @@ vignette: >
 knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
 ```
 
-With shinyOAuthDB, people sign in to your app and query a database with their
-own permissions. You can use DBI, dbplyr, or the platform's R package to read
-the data.
+shinyOAuthDB helps you build Shiny apps that query a database or data
+platform using each app user's own account. People sign in with the account
+they already use for that data source, and your app queries data on their
+behalf.
 
-## Try an app on your computer
+This is useful when your organization already manages data permissions in
+the database. For example, if an analyst can only read sales for their
+region, your Shiny app can use the same restriction. You keep those access
+rules in the database rather than maintaining another set in the app.
 
-Install the package, then start Docker with Linux containers and run:
+## How sign-in and data access work
 
-```{r first-demo}
-shinyOAuthDB::oauth_db_demo()
-```
+shinyOAuthDB works with shinyOAuth, which handles the browser sign-in and
+token renewal. shinyOAuthDB connects that sign-in to your database queries
+or API calls:
 
-The package starts PostgreSQL, Keycloak sign-in and a small Shiny app with
-demo accounts. Open `http://localhost:18100` when ready. See
-[Local Docker demos](local-demos.html) for the passwords, other databases,
-editing the app and cleanup. No repository clone or cloud account is needed.
+1. Your app sends the user to a sign-in service, such as Microsoft Entra,
+   Google, or Keycloak. This service is the OAuth *provider*.
+2. The user signs in and, if asked, approves the access your app requests.
+   They enter their password with the provider; your app doesn't collect it.
+3. The browser returns to your app. shinyOAuth obtains an *access token*,
+   a temporary credential for making requests on that user's behalf.
+4. shinyOAuthDB supplies that token when opening a database connection or
+   making an API request. The data source checks it and applies the user's
+   permissions.
 
-To run an editable app in local R with its database in Docker, try
-`shinyOAuthDB::oauth_db_demo("postgrest", app = "local")`. The
-[local app guide](local-demos.html#run-and-edit-shiny-in-local-r) lists the
-required R packages and explains how to edit and reload the app.
+The data source must be configured to accept tokens from that provider.
+Signing in successfully doesn't give someone access to a database or table;
+they also need the relevant database permissions.
 
-For your own data, choose a guide below. Each starts with the database's
-purpose, the settings you need and a complete app, then explains the
-server and advanced configuration.
-
-## Choose your source
-
-| Source | What you can do |
-| --- | --- |
-| [Self-hosted PostgreSQL](postgres.html) | Try the Docker/Keycloak demo or connect your own PostgreSQL 18 server |
-| [PostgREST](postgrest.html) | Read PostgreSQL tables and call functions over HTTP |
-| [Supabase](supabase.html) | Read tables and call functions through the Data API with each visitor's permissions |
-| [StarRocks](starrocks.html) | Query with JWT authentication and MySQL Connector/ODBC |
-| [ClickHouse](clickhouse.html) | Run SQL over HTTPS with a visitor token |
-| [CrateDB](cratedb.html) | Run SQL over HTTPS with JWT authentication and database user privileges |
-| [DuckDB](duckdb.html) | Query a remote Quack server with OAuth access tokens |
-| [libSQL and Turso](libsql.html) | Run SQLite SQL over HTTPS with compatible user tokens |
-| [OpenSearch](opensearch.html) | Search indexes, run aggregations and query the SQL plugin |
-| [Azure SQL and SQL Server](azure-sql.html) | Query with DBI or dbplyr |
-| [Microsoft Fabric](fabric.html) | Query SQL endpoints, read OneLake tables, and call fabricQueryR functions |
-| [Databricks](databricks.html) | Query SQL warehouses and call brickster functions |
-| [Snowflake](snowflake.html) | Query with a user's Snowflake account and role |
-| [Google BigQuery](bigquery.html) | Run GoogleSQL and get data frames |
-| [Amazon Redshift](redshift.html) | Query Redshift with DBI |
-| [Trino and Starburst Enterprise](trino.html) | Query a self-hosted Trino or Starburst Enterprise cluster with RTrino and DBI |
-| [Azure PostgreSQL](azure-postgres.html) | Query with RPostgres and DBI |
-| [SAP HANA and HANA Cloud](hana.html) | Query with visitor JWT access tokens and SAP HANA ODBC |
-| [Oracle Database](oracle.html) | Query with database-trusted OAuth tokens and Oracle ODBC |
-| [Oracle REST Data Services](oracle-ords.html) | Read protected collections and call JSON handlers over HTTPS |
-| [Salesforce CRM and Data Cloud](salesforce.html) | Query CRM objects with SOQL and Data Cloud with SQL using each visitor's Salesforce account |
-
-## Install shinyOAuthDB
+## Install
 
 ```{r installation}
-install.packages("remotes")
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
-This also installs shinyOAuth. Your source may need another R package or a
-database driver; its guide lists those requirements.
+This also installs shinyOAuth. Some data sources need an additional R
+package or database driver; their guides list the requirements. Add
+`build_vignettes = TRUE` to the installation call if you want to read the
+guides locally with `vignette()`.
 
-For locally browsable guides, add `build_vignettes = TRUE` to the GitHub
-installation call. The Docker demos supply their own R environment and database drivers.
+## Build a small app
 
-## Run your first app
+The README's example reads a PostgreSQL table through PostgREST, an HTTP
+API for PostgreSQL. It runs Shiny in your R session and starts the database
+and Keycloak sign-in service in Docker. You don't need a cloud account or a
+database driver.
 
-Start with the guide for your data source. You'll register an OAuth
-application, which gives your Shiny app a client ID and client secret.
-The registration also records the redirect URI: the address where the
-browser returns after sign-in. The examples use `http://localhost:8100`.
+Install and start Docker with Linux containers and Docker Compose 2.24.4
+or later. Also install `jsonlite` in R for the API responses:
 
-Use [OAuth setup](oauth-setup.html) for the registration steps and terminology.
-Save the credentials in a local `.Renviron` file as shown in the guide
-and restart R. Copy the example into `example.R`, replace the connection
-settings, and run `source("example.R")`.
-Open `http://localhost:8100` in a regular browser. Embedded RStudio/Positron
-viewers cannot complete OAuth redirects.
+```{r demo-dependency}
+install.packages("jsonlite")
+```
 
-The people signing in need access to the data. OAuth consent lets the app
-act on their behalf; their database permissions determine what they can read.
+Save the following as `example.R` and run `source("example.R")`:
 
-## How it fits into Shiny
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
 
-Create the sign-in `client` outside `server()`. Inside `server()`,
-`oauth_module_server()` handles each visitor's login. Pass its
-`auth$connection` function to a database helper or API client.
+# Start PostgreSQL, PostgREST and Keycloak in Docker
+demo <- oauth_db_demo("postgrest", action = "services")
 
-A DBI helper returns a function such as `con`. In a render or reactive
-expression, call `connection <- con()` before using DBI or dbplyr.
-The helper reuses that visitor's connection. When their authorization or
-Shiny session ends, it stops returning the connection and calls the driver's
-cleanup method. A saved Databricks connection can retain its token; call
-`con()` before each operation rather than keeping the native handle.
+client <- oauth_client(
+  demo$provider,
+  client_id = "shiny-db",
+  client_secret = "demo-client-secret",
+  redirect_uri = "http://localhost:18100",
+  scopes = c("openid", "profile", "database.read")
+)
 
-API clients either offer query methods, such as BigQuery's `$query()`,
-or call functions from the platform's R package through `$call()`.
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
 
-For an existing login, several accounts, or query results saved between
-button clicks, see [Authentication and sessions](authorization.html).
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  postgres <- oauth_db_postgrest_api(
+    auth$connection,
+    url = demo$url
+  )
+  output$rows <- renderTable({
+    postgres$select("visible_rows", order = "row_id.asc")
+  })
+}
+
+runApp(
+  shinyApp(
+    ui, server,
+    uiPattern = ".*",
+    onStart = function() { onStop(demo$stop) }
+  ),
+  port = 18100,
+  launch.browser = FALSE
+)
+```
+
+The first Docker build takes a few minutes and needs internet access and
+several GB of disk space. When Shiny is ready, open
+`http://localhost:18100` in your regular browser. Embedded RStudio/Positron
+viewers can't complete the sign-in redirects. Your browser may ask you to
+accept Keycloak's generated local test certificate.
+
+Sign in as `alice` with password `alice`. The table shows
+`alice-visible-1` and `alice-visible-2`. Sign out, then sign in as
+`bob` with password `bob`: you'll see Bob's rows instead. The app sends
+the same request for both users; PostgreSQL's row policies determine the
+result.
+
+Stop the Shiny app to remove the Docker services and sample data. The
+`onStop(demo$stop)` call arranges this cleanup. If you start the services
+separately, call `demo$stop()` when finished. These accounts and the client
+secret are public demo settings; use your own registration for a real app.
+
+## What each part of the app does
+
+`client` holds the settings for your app's OAuth registration: where users
+sign in, the app's identity, and the access it requests. Create it outside
+`server()`, since every visitor uses the same registration.
+
+`oauth_ui()` wraps your Shiny UI so shinyOAuth can handle the browser's
+return from sign-in. Its `id = "auth"` matches the ID passed to
+`oauth_module_server()`; `uiPattern = ".*"` lets Shiny serve the callback
+paths too.
+
+Inside `server()`, `oauth_module_server()` manages sign-in for that
+visitor's Shiny session. With `auto_redirect = FALSE`, the app waits for
+the **Sign in** button. The two observers connect the buttons to
+`auth$request_login()` and `auth$logout()`.
+
+`auth$connection` is a function that provides the current authorization.
+Pass the function, without parentheses, to `oauth_db_postgrest_api()` so
+the API client can check it each time it needs a token. Create this helper
+inside `server()` to keep it with the visitor who signed in.
+
+Finally, `$select()` reads the table and returns a data frame for
+`renderTable()`. Before sign-in, the helper waits quietly, like
+`shiny::req()`. Because the call runs inside a reactive output, Shiny
+updates the table when the authorization changes and clears it on sign-out.
+See `?oauth_db_postgrest_api` for filters and other request methods.
+
+## Connect your own data
+
+### Choose your source
+
+Each guide has the source's setup requirements and a complete app. You can
+keep the same sign-in/UI pattern and replace the demo's provider, client
+settings and data helper with the ones in your guide.
+
+| Data source | Setup guide |
+| --- | --- |
+| PostgreSQL | [Native OAuth](postgres.html), [PostgREST](postgrest.html), [Supabase](supabase.html), [Azure PostgreSQL](azure-postgres.html) |
+| SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
+| Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
+| Query engines | [Trino and Starburst](trino.html), [StarRocks](starrocks.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
+| Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
+
+### Register your app
+
+An OAuth app registration tells the provider which application is asking
+for access. Create one, or ask your administrator for one, using the
+instructions in your source guide. These are the settings you'll encounter:
+
+| Setting | What it means |
+| --- | --- |
+| Client ID | The provider's identifier for your app |
+| Client secret | Your app's credential, kept on the Shiny server; some registrations don't use one |
+| Redirect URI | The exact address where the browser returns after sign-in |
+| Issuer | The URL identifying the service that issues the tokens |
+| Scopes | Permissions your app requests during sign-in |
+| Audience | The database or API the access token is intended for |
+
+Most source guides use `http://localhost:8100` as the redirect URI; the
+Docker example above uses `http://localhost:18100`. Register the exact
+address, including any path and trailing slash, and run Shiny on the same
+port. When deploying, register your app's HTTPS address.
+
+For a self-hosted provider such as Keycloak, register an OpenID Connect
+client with the authorization-code flow and PKCE S256, which protects the
+sign-in code. Set the callback under valid redirect URIs; a confidential
+client also has a secret. See Keycloak's
+[administration guide](https://www.keycloak.org/docs/latest/server_admin/index.html).
+The database must trust the provider's signing keys and accept the token's
+audience and identity or role claims. The source guides explain the required
+mapping. An ID token describes the login; the database helpers need an
+access token intended for the data source.
+
+### Save credentials and run the app
+
+Open your app project's environment file with `file.edit(".Renviron")`
+and add the values requested by your source guide, for example:
+
+```text
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+Keep `.Renviron` out of Git and restart R after editing it. The source
+examples read these values with `Sys.getenv()`. On a hosting service, set
+the variables in the app's environment settings.
+
+Copy your source guide's app into `example.R`, replace its connection
+settings, and run `source("example.R")`. Open the registered address in a
+regular browser. If sign-in works but a query fails, check the token's
+audience and scopes, the user's database grants, and network access from
+the Shiny server to the data source. Keep tokens and secrets out of logs.
+
+## Query with DBI or dbplyr
+
+For sources that support DBI, the helper returns a reactive function,
+usually called `con`. For example, inside `server()` in an Azure SQL app:
+
+```{r dbi-pattern}
+con <- oauth_db_azure_sql(
+  auth$connection,
+  server = "example.database.windows.net",
+  database = "Reporting"
+)
+
+output$rows <- renderTable({
+  connection <- con()
+  DBI::dbGetQuery(connection, "SELECT TOP (10) * FROM sales")
+})
+```
+
+Call `con()` inside each render or reactive expression that queries data.
+It checks the current authorization and reuses the visitor's connection
+when possible. For dbplyr, pass `connection` to `dplyr::tbl()` and use
+`dplyr::collect()` when you need a data frame.
+
+Other sources provide API clients: BigQuery has `$query()`, while Fabric
+and Databricks can call functions from their supporting R packages through
+`$call()`. The source guide and helper's function help describe the methods.
+
+## More ways to try an app
+
+`oauth_db_demo()` runs a complete local app in Docker, including its R
+packages and drivers. Use `oauth_db_demo("postgrest", app = "local")` for
+an editable app running in local R with its services in Docker. That mode
+also needs `callr` and `bslib` (0.9.0 or later). Run one demo at a time,
+since they share ports. See `?oauth_db_demo` for supported databases,
+copying files with `action = "files"`, and recovery with `action = "stop"`.
+
+For a cloud workspace, `oauth_db_cloud_demo("databricks")` guides setup
+in the R console and launches an editable local app without Docker.
+It also supports Fabric, BigQuery, Snowflake, Azure SQL, Azure PostgreSQL,
+Redshift and ClickHouse; their source guides list the requirements.
+Enter `?` for help or `cancel` to save an incomplete setup. The launcher
+prints a command to resume it. Edit the copied `app.R`, save and reload
+the browser to change the query.
+
+Cloud demos use real accounts and existing resources. Queries can consume
+compute or query allowances; stopping the demo ends the local app while
+shared cloud services keep running. See `?oauth_db_cloud_demo` for offline
+drafts, saved settings and script arguments.
+
+## Sessions, saved results and extra permissions
+
+Keep connections and API clients inside `server()`. On sign-out, account
+changes or session end, the helpers stop providing the old connection and
+call its cleanup method. Driver behavior varies, so call `con()` before
+each operation instead of keeping a native connection or copied token for
+later use. shinyOAuth handles token renewal; `min_valid_for` on a helper
+sets the minimum remaining token lifetime at the start of an operation.
+It doesn't guarantee validity throughout a long query.
+
+Keep live connections and token callbacks in the Shiny session that
+created them. For background work, use the database package's supported
+approach and check the current authorization before displaying a result.
+Signing out doesn't necessarily cancel work already submitted to a platform.
+
+### Save query results
+
+Closing a connection doesn't erase data you've already fetched. If you
+store results in `reactiveVal()`, `eventReactive()` or a cache, clear or
+hide them on sign-out, account changes and loss of required permissions.
+A shared cache keyed only by SQL can expose one user's results to another.
+The source checkout's `playground/example-query-button.R` shows a query
+button that clears saved results when access changes.
+
+### Use an existing login or several accounts
+
+The `*_client()` functions are optional presets; you can keep an existing
+shinyOAuth client if it obtains suitable tokens. A named token *target*
+selects the service a token is for, such as `"sql"` or `"storage"` in
+Microsoft's presets. Set the helper's `target` to your client's name, or
+use `target = NULL` for its default token. The [Fabric guide](fabric.html#use-an-existing-sign-in)
+has an example.
+
+`required_scopes` checks permissions before a helper runs. Request those
+permissions on the OAuth client first; this argument doesn't request
+consent or grant database privileges. Microsoft's `/.default` requests
+configured permissions and isn't a granted scope to check here.
+
+For several saved accounts, see
+`vignette("multiple-authorizations", package = "shinyOAuth")`.
+Pass a function such as
+`function() auth$connection(shiny::req(input$authorization_id))` to the
+database helper. Select IDs from `auth$connections()`; these identify
+saved authorizations, separately from token targets.
+
+For another database driver or R package that accepts tokens, see
+`?oauth_db_connect` and `?oauth_db_token`.

@@ -33,7 +33,7 @@ query; set it to your dataset's location before querying tables. The default
 `maximum_bytes_billed = "10000000"` limits bytes a query may bill.
 For scripts, supply `project`, `client_id` and optionally those settings,
 set `OAUTHDB_BIGQUERY_CLIENT_SECRET`, and use `prompt = FALSE`.
-See [Guided cloud demos](cloud-demos.html) for editing and resuming.
+See [Getting started](getting-started.html#more-ways-to-try-an-app) for editing and resuming.
 
 With no account yet, [BigQuery sandbox](https://docs.cloud.google.com/bigquery/docs/sandbox)
 offers a starting point without a billing account. You still need to enable
@@ -180,4 +180,4 @@ list columns.
 Use `raw = TRUE` to inspect the REST result and schema.
 `?oauth_db_bigquery_api` describes parameter types and other options.
 For saved results or background work, see
-[Authentication and sessions](authorization.html).
+[Getting started](getting-started.html#sessions-saved-results-and-extra-permissions).

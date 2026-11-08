@@ -28,11 +28,9 @@ contributor notes; pkgdown builds separately into `_site/`.
 | CrateDB | [JWT-authenticated HTTP SQL](../vignettes/cratedb.Rmd) |
 | OpenSearch | [Search, SQL and user permissions](../vignettes/opensearch.Rmd) |
 
-[Getting started](../vignettes/getting-started.Rmd) covers installation and
-the Shiny pattern. [Authentication and sessions](../vignettes/authorization.Rmd)
-covers custom sign-in, multiple accounts, and saved query results.
-The [OAuth setup guide](../vignettes/oauth-setup.Rmd) explains registration
-values; [Local Docker demos](../vignettes/local-demos.Rmd) covers packaged apps.
+[Getting started](../vignettes/getting-started.Rmd) explains the package,
+walks through the README app, and covers OAuth settings, sessions and demos.
+The source guides above cover each database's setup and query methods.
 The [playground](../playground/README.md) contains runnable scripts.
 
 For existing apps and package development:

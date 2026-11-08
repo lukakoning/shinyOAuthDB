@@ -15,7 +15,7 @@ certificate.
 Click **Stop demo** or interrupt R to remove containers and data. After a
 forced exit, use `oauth_db_demo("postgres", action = "stop")`.
 
-See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
+See [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
 for editing the packaged app, alternate databases and build requirements.
 The [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 explains how to configure your own server.

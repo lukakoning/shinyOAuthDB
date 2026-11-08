@@ -94,7 +94,7 @@ dispatch error. The documented-app tests check this signed-out state.
 Each backend guide should introduce the source, show where settings come
 from, present one small complete app and then explain server setup and
 advanced options. Put shared registration terminology in
-`vignettes/oauth-setup.Rmd`.
+`vignettes/getting-started.Rmd`.
 
 ## Selected mutation checks
 

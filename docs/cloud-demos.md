@@ -2,7 +2,8 @@
 
 Implementation notes for the cloud guides. The package exports
 `oauth_db_cloud_demo("databricks")`; see the
-[user guide](../vignettes/cloud-demos.Rmd) for each platform's settings and limits.
+[getting started guide](../vignettes/getting-started.Rmd#more-ways-to-try-an-app)
+for the launcher workflow and the source guides for platform settings and limits.
 Fabric, BigQuery, Snowflake, Azure SQL, Azure PostgreSQL, Redshift and
 ClickHouse now use the same saved-draft and console runner, with their own
 field help, registration steps and editable connection/query files.

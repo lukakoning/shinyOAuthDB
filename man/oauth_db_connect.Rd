@@ -63,6 +63,11 @@ copied credentials. Call \code{con()} before each operation.
 A valid DBI connection stays open through token refresh. If the connection
 becomes invalid, the next call opens a new one.
 
+While token refresh is running, reactive outputs wait and can resume
+when it finishes. A button-triggered query may need another click.
+\code{min_valid_for} checks token lifetime at the start of an operation;
+it does not guarantee validity throughout a long query.
+
 This helper supplies the token when opening a connection. For a function
 that takes a token on each request, use \code{\link[=oauth_db_token]{oauth_db_token()}} or a platform
 API client.
@@ -85,7 +90,7 @@ con <- oauth_db_connect(
 }
 \seealso{
 \code{\link[=oauth_db_token]{oauth_db_token()}}. For saved results and connection lifetime, see
-\code{vignette("authorization", package = "shinyOAuthDB")}.
+\code{vignette("getting-started", package = "shinyOAuthDB")}.
 
 Other advanced connection helpers:
 \code{\link[=oauth_db_fabric]{oauth_db_fabric()}},

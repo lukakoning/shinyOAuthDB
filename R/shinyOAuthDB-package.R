@@ -14,8 +14,8 @@
 #' package includes the configuration; Docker provides R and native libraries.
 #' PostgREST, Trino, StarRocks, DuckDB Quack, libSQL, CrateDB and OpenSearch
 #' demos use the same launcher.
-#' See the [local demo guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
-#' for accounts, editing and cleanup.
+#' See [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
+#' for demo accounts and cleanup, and [oauth_db_demo()] for editing options.
 #'
 #' @section Start with your source:
 #' `vignette("getting-started", package = "shinyOAuthDB")` links to a guide
@@ -45,12 +45,20 @@
 #' a fixed message and reason, without the original driver error, connection,
 #' or credential. If the handler errors, the default message is emitted.
 #'
+#' @section HTTP request failures:
+#' BigQuery, PostgREST and ClickHouse HTTP failures raise
+#' `shinyOAuthDB_request_failed`. Catch this condition inside the Shiny
+#' operation to inspect its `status`. Recognized service codes and UUID
+#' request identifiers appear as `service_code` and `request_id`; unavailable
+#' values are `NULL`. The condition excludes server messages, response bodies
+#' and credentials.
+#'
 #' @section Sign-in settings:
 #' The source guides create clients with [oauth_db_microsoft_client()],
 #' [oauth_db_bigquery_client()], [oauth_db_databricks_client()], or
 #' [oauth_db_snowflake_client()]. You can also use an existing shinyOAuth client.
 #'
-#' See `vignette("authorization", package = "shinyOAuthDB")` for custom
+#' See `vignette("getting-started", package = "shinyOAuthDB")` for custom
 #' permissions, multiple accounts, and saved query results.
 #'
 #' @keywords package

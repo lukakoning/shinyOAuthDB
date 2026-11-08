@@ -1,5 +1,10 @@
 url: https://lukakoning.github.io/shinyOAuthDB/
 destination: _site
+redirects:
+  - [articles/oauth-setup.html, 'articles/getting-started.html#register-your-app']
+  - [articles/authorization.html, 'articles/getting-started.html#sessions-saved-results-and-extra-permissions']
+  - [articles/local-demos.html, 'articles/getting-started.html#build-a-small-app']
+  - [articles/cloud-demos.html, 'articles/getting-started.html#more-ways-to-try-an-app']
 template:
   bootstrap: 5
 home:
@@ -15,19 +20,13 @@ navbar:
     articles:
       text: Guides
       menu:
-        - text: Local Docker demos
-          href: articles/local-demos.html
-        - text: Guided cloud demos
-          href: articles/cloud-demos.html
-        - text: OAuth setup
-          href: articles/oauth-setup.html
-        - text: Authentication and sessions
-          href: articles/authorization.html
+        - text: Getting started
+          href: articles/getting-started.html
         - text: All database guides
           href: articles/index.html
 articles:
   - title: Start here
-    contents: [getting-started, local-demos, cloud-demos, oauth-setup, authorization]
+    contents: [getting-started]
   - title: Self-hosted databases and APIs
     contents: [postgres, postgrest, trino, starrocks, duckdb, libsql, cratedb, opensearch, oracle, oracle-ords, hana]
   - title: Cloud platforms

@@ -58,7 +58,7 @@ output$rows <- shiny::renderPrint({
 }
 \seealso{
 \code{\link[=oauth_db_fabric_api]{oauth_db_fabric_api()}}, \code{\link[=oauth_db_databricks_api]{oauth_db_databricks_api()}}.
-See \code{vignette("authorization", package = "shinyOAuthDB")} for token lifetime.
+See \code{vignette("getting-started", package = "shinyOAuthDB")} for token lifetime.
 
 Other advanced connection helpers:
 \code{\link[=oauth_db_connect]{oauth_db_connect()}},

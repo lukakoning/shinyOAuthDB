@@ -29,7 +29,8 @@ over HTTP on loopback only, without building an R app image.
 | `<database>/app.R` | The small Shiny app you can edit |
 | `install.R` | Pinned R package sources used in the app containers |
 
-The [demo guide](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
-has passwords, cleanup and troubleshooting. These configurations use public
+[Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app)
+has passwords and cleanup; `?oauth_db_demo` describes the launcher options.
+These configurations use public
 test credentials and bind browser ports to loopback. Replace credentials
 and certificates before adapting them for a deployment.

@@ -33,7 +33,7 @@ The package includes libSQL 0.24.33, a Shiny app and a Keycloak configuration
 that issues compatible Ed25519-signed access tokens. Alice and Bob both
 receive `id=default` and `a=ro`, with no access-token audience. They can
 read the shared sample table; **Try a write** confirms that libSQL refuses
-writes. See [Local Docker demos](local-demos.html) for passwords and cleanup.
+writes. See [Getting started](getting-started.html#build-a-small-app) for passwords and cleanup.
 
 Use `oauth_db_demo("libsql", action = "files")` to inspect
 `realm-extended.json` and `libsql/server.py`. A separate provisioning client
@@ -50,7 +50,7 @@ formats; the compatibility section after the app explains both.
 | --- | --- |
 | `OAUTHDB_LIBSQL_URL` | Turso database details or `turso db show your-database --url`; for self-hosting, your server's HTTPS URL |
 | `OAUTHDB_LIBSQL_ISSUER` | The provider configured to issue compatible database tokens |
-| Client ID and secret | Your [OAuth app registration](oauth-setup.html) |
+| Client ID and secret | Your [OAuth app registration](getting-started.html#register-your-app) |
 | `OAUTHDB_LIBSQL_AUDIENCE` | The provider's API audience, if required; leave empty for the self-hosted format below |
 | `sqlite.read` | An example scope your provider must define or replace |
 

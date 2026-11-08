@@ -23,7 +23,7 @@ For a local database with real Keycloak sign-in, run
 supplies the app and Docker configuration. The same command accepts
 `"postgrest"`, `"trino"`, `"starrocks"`, `"duckdb"`, `"libsql"`, `"cratedb"`
 or `"opensearch"`; see
-[Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html).
+[Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#build-a-small-app).
 
 Follow [your source guide](../vignettes/getting-started.Rmd#choose-your-source)
 to install the client and driver and register the OAuth app. Users need

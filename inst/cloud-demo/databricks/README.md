@@ -13,8 +13,8 @@ query**. The first query reports your database identity without needing
 a table. Running SQL can start a stopped warehouse and use compute credits.
 Stopping this local app doesn't stop or change your shared warehouse.
 
-The [cloud demo guide](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html)
-explains registration, Free Edition limits and common setup problems.
+The [Databricks guide](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html#try-the-guided-demo)
+explains registration, Free Edition limits and warehouse selection.
 
 **Back to setup** opens a console menu of saved settings. Choose a setting
 by number, `0` to continue, or `cancel` to save and return to R. Your other

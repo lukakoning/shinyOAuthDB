@@ -34,6 +34,11 @@
 #' A valid DBI connection stays open through token refresh. If the connection
 #' becomes invalid, the next call opens a new one.
 #'
+#' While token refresh is running, reactive outputs wait and can resume
+#' when it finishes. A button-triggered query may need another click.
+#' `min_valid_for` checks token lifetime at the start of an operation;
+#' it does not guarantee validity throughout a long query.
+#'
 #' This helper supplies the token when opening a connection. For a function
 #' that takes a token on each request, use [oauth_db_token()] or a platform
 #' API client.
@@ -53,7 +58,7 @@
 #' )
 #' }
 #' @seealso [oauth_db_token()]. For saved results and connection lifetime, see
-#'   `vignette("authorization", package = "shinyOAuthDB")`.
+#'   `vignette("getting-started", package = "shinyOAuthDB")`.
 #' @family advanced connection helpers
 #' @export
 oauth_db_connect <- function(
@@ -118,7 +123,7 @@ oauth_db_connect <- function(
 #' })
 #' }
 #' @seealso [oauth_db_fabric_api()], [oauth_db_databricks_api()].
-#'   See `vignette("authorization", package = "shinyOAuthDB")` for token lifetime.
+#'   See `vignette("getting-started", package = "shinyOAuthDB")` for token lifetime.
 #' @family advanced connection helpers
 #' @export
 oauth_db_token <- function(

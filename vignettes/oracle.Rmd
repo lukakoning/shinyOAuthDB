@@ -186,7 +186,7 @@ delegated permission, commonly `session:scope:connect`. Your administrator
 must configure global-schema or data-role mappings and access-token claims;
 Entra v2 setup includes the `upn` claim. See Oracle's
 [registration example](https://docs.oracle.com/en/learn/ocidb-auth-msentraid/)
-and [Microsoft app registration](oauth-setup.html#register-a-microsoft-entra-app).
+and [Microsoft app registration](azure-sql.html#register-a-microsoft-entra-app).
 
 ```{r entra-client}
 resource <- Sys.getenv("OAUTHDB_ORACLE_RESOURCE")

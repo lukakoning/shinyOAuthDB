@@ -82,7 +82,7 @@ client <- oauth_db_microsoft_client(
 \seealso{
 \code{vignette("getting-started", package = "shinyOAuthDB")} links to
 each source's setup. For custom permissions and targets, see
-\code{vignette("authorization", package = "shinyOAuthDB")}.
+\code{vignette("getting-started", package = "shinyOAuthDB")}.
 
 Other sign-in configuration:
 \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}},

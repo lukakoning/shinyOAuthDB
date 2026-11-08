@@ -1,5 +1,20 @@
 # Validation record
 
+## 8 November 2026: getting-started guide and article organization
+
+Checked on Windows with R 4.5.1 and shinyOAuth 0.7.0.9000 from the repository's
+validation library. The README and source-guide app tests pass. The new
+getting-started app parses identically to the tested README and packaged
+PostgreSQL example.
+
+Documentation checks parse 87 R blocks and resolve 192 local links and 48
+section anchors. The getting-started vignette renders with html_vignette;
+pkgdown builds all 22 articles and the function reference. The article
+inventory contains getting started and 21 data-source guides. Rendered
+homepage links and redirects from the four retired article URLs resolve.
+Help pages were regenerated with roxygen2. Live Docker and cloud sign-in
+were not rerun for this documentation change.
+
 ## 8 November 2026: SAP HANA and HANA Cloud
 
 Checked on Windows 11 with R 4.5.1, shinyOAuth 0.7.0.9000 and odbc 1.6.4.1.

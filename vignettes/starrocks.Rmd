@@ -15,7 +15,7 @@ OpenID Connect client plugin.
 
 With Docker running, `shinyOAuthDB::oauth_db_demo("starrocks")` starts a
 configured server, Keycloak and an app with Alice and Bob's accounts.
-See [Local Docker demos](local-demos.html) for credentials and cleanup.
+See [Getting started](getting-started.html#build-a-small-app) for credentials and cleanup.
 StarRocks uses amd64 images and needs about 4 GB of Docker memory.
 
 ## Values for your own server
@@ -31,7 +31,7 @@ server setup follows the app.
 | `database` | The StarRocks database your users can query |
 | `OAUTHDB_STARROCKS_DRIVER` | The registered driver name from `odbc::odbcListDrivers()` |
 | `OAUTHDB_STARROCKS_SSL_CA` | The CA certificate for that endpoint |
-| Issuer, client ID, secret | Your [OIDC app registration](oauth-setup.html#use-keycloak-with-a-self-hosted-database) |
+| Issuer, client ID, secret | Your [OIDC app registration](getting-started.html#register-your-app) |
 
 Save the `OAUTHDB_*` values in `.Renviron` and restart R. The app requests
 the database username from the login; configure the matching principal

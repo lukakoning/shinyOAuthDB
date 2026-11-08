@@ -33,7 +33,7 @@ ui <- oauth_ui(
         href = if (exists("demo_guide")) {
           demo_guide
         } else {
-          "https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html"
+          "https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app"
         }
       )),
       actionButton("setup", "Back to setup"),

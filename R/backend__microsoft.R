@@ -42,7 +42,7 @@
 #' }
 #' @seealso `vignette("getting-started", package = "shinyOAuthDB")` links to
 #'   each source's setup. For custom permissions and targets, see
-#'   `vignette("authorization", package = "shinyOAuthDB")`.
+#'   `vignette("getting-started", package = "shinyOAuthDB")`.
 #' @family sign-in configuration
 #' @export
 oauth_db_microsoft_client <- function(

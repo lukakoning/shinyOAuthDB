@@ -140,12 +140,9 @@ For other databases and data platforms, refer to the links above.
 ## Learn more
 
 [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html)
-explains the basic Shiny app pattern. 
-
-Use the links above for setup per database or data platform, and see
-[OAuth setup](https://lukakoning.github.io/shinyOAuthDB/articles/oauth-setup.html)
-for configuring app registrations, and [Authentication and sessions](https://lukakoning.github.io/shinyOAuthDB/articles/authorization.html)
-for multiple accounts and advanced permissions.
+walks through this app, explains OAuth settings, and covers connections,
+sessions and saved results. Use the source guides above for the setup and
+query methods specific to your database or data platform.
 
 ### More demos
 
@@ -155,7 +152,7 @@ The package includes various demo apps.
 `oauth_db_cloud_demo()` guides demos for several cloud platforms, during which
 you will be walked through first setup with your existing platform workspace and account.
 
-See [Local Docker demos](https://lukakoning.github.io/shinyOAuthDB/articles/local-demos.html)
-and [Guided cloud demos](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-demos.html).
+See [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app),
+`?oauth_db_demo` and `?oauth_db_cloud_demo` for the demo options.
 
 
