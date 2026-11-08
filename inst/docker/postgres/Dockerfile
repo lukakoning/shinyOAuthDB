@@ -69,6 +69,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY install.R /tmp/install.R
 RUN Rscript /tmp/install.R && Rscript -e 'install.packages("RPostgres", repos="https://cloud.r-project.org", type="source"); stopifnot(requireNamespace("RPostgres"))'
 RUN Rscript -e 'if (!requireNamespace("bslib", quietly=TRUE) || packageVersion("bslib") < "0.9.0") install.packages("bslib", repos="https://cloud.r-project.org"); stopifnot(packageVersion("bslib") >= "0.9.0")'
+COPY package-source /tmp/demo-package
+RUN Rscript /tmp/demo-package/install.R
 COPY entrypoint.sh /usr/local/bin/demo-entrypoint.sh
 WORKDIR /demo
 ENTRYPOINT ["bash", "/usr/local/bin/demo-entrypoint.sh"]

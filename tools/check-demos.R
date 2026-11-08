@@ -37,6 +37,7 @@ stopifnot(
 )
 shared <- database %in% c("duckdb", "libsql", "cratedb")
 permission_demo <- shared || database == "opensearch"
+source("tools/demo-source.R")
 
 check_demo <- function() {
   output <- file.path(
@@ -45,24 +46,31 @@ check_demo <- function() {
     paste0(database, if (mode == "local") "-local")
   )
   dir.create(output, recursive = TRUE, showWarnings = FALSE)
+  unlink(file.path(output, c("result.json", "package-source.json")))
   library <- tempfile("demo-library-")
   dir.create(library)
   pkgbuild::rcmd_build_tools("INSTALL", c(paste0("--library=", library), "."))
   libpath <- c(library, .libPaths())
   path <- tempfile(paste0("demo with spaces-", database, "-"))
+  callr::r(
+    function(database, path, mode) {
+      shinyOAuthDB::oauth_db_demo(
+        database,
+        app = mode,
+        action = "files",
+        path = path
+      )
+    },
+    args = list(database, path, mode),
+    libpath = libpath
+  )
+  candidate <- if (mode == "docker") {
+    demo_source_prepare(".", path, output)
+  } else {
+    NULL
+  }
+  runtime <- NULL
   if (mode == "local") {
-    callr::r(
-      function(database, path) {
-        shinyOAuthDB::oauth_db_demo(
-          database,
-          app = "local",
-          action = "files",
-          path = path
-        )
-      },
-      args = list(database, path),
-      libpath = libpath
-    )
     local_app <- file.path(path, "local-app", database, "app.R")
     code <- readLines(local_app)
     code <- sub('h2\\("[^"]*"', 'h2("Local R editable app"', code)
@@ -165,6 +173,25 @@ check_demo <- function() {
       stop("Demo startup failed. See ", output, "/docker.log", call. = FALSE)
     }
     Sys.sleep(0.2)
+  }
+  if (mode == "docker") {
+    project <- paste0(
+      "shinyoauthdb-demo-",
+      database,
+      "-",
+      substr(
+        openssl::sha256(charToRaw(normalizePath(path, winslash = "/"))),
+        1L,
+        8L
+      )
+    )
+    runtime <- demo_source_identity(Sys.which("docker"), project, candidate)
+    jsonlite::write_json(
+      runtime,
+      file.path(output, "package-source.json"),
+      auto_unbox = TRUE,
+      pretty = TRUE
+    )
   }
   if (mode == "local") {
     project <- paste0(
@@ -421,6 +448,7 @@ check_demo <- function() {
       local_edits = if (mode == "local") TRUE else NULL,
       accounts = c("alice", "bob"),
       installed_package = TRUE,
+      package_source = runtime,
       sign_in = TRUE,
       isolated_rows = !shared,
       data_policy = if (shared) "shared-read-only" else "per-user rows",

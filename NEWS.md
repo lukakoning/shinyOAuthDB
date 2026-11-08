@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Install the checkout's source archive in Docker demo browser checks and
+  verify its hash in the running app container before testing sign-in.
+
 * Decode Turso's null-valued floating-point results as `NaN`, preserving SQL
   NULL values and rejecting malformed float cells in ordinary and raw results.
 
