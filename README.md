@@ -130,6 +130,7 @@ local sign-in certificate. Stopping the app removes its Docker services.
 
 For your own PostgreSQL server, follow the [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 or [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) guides.
+For other databases and data platforms, refer to the links above.
 
 ## Learn more
 
