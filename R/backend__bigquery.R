@@ -758,9 +758,46 @@ oauth_db_bigquery_client <- function(
   }
   text <- vapply(
     values,
-    function(x) if (is.null(x)) NA_character_ else as.character(x),
+    function(x) {
+      if (is.null(x)) {
+        return(NA_character_)
+      }
+      if (!is.atomic(x) || length(x) != 1L) {
+        .odb_abort(
+          "BigQuery returned a non-scalar column value.",
+          "invalid_response"
+        )
+      }
+      as.character(x)
+    },
     ""
   )
+  if (type %in% c("BOOLEAN", "BOOL")) {
+    if (any(!is.na(text) & !tolower(text) %in% c("true", "false"))) {
+      .odb_abort("BigQuery returned an invalid Boolean.", "invalid_response")
+    }
+    return(as.logical(toupper(text)))
+  }
+  if (type %in% c("FLOAT", "FLOAT64", "TIMESTAMP")) {
+    value <- suppressWarnings(as.numeric(text))
+    decimal <- "^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?$"
+    valid <- is.na(text) | (grepl(decimal, text) & is.finite(value))
+    if (type != "TIMESTAMP") {
+      valid <- valid |
+        tolower(text) %in%
+          c("nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity")
+    }
+    if (!all(valid)) {
+      .odb_abort(
+        "BigQuery returned an invalid number or timestamp.",
+        "invalid_response"
+      )
+    }
+    if (type == "TIMESTAMP") {
+      return(as.POSIXct(value, origin = "1970-01-01", tz = "UTC"))
+    }
+    return(value)
+  }
   switch(
     type,
     INTEGER = ,
@@ -769,12 +806,7 @@ oauth_db_bigquery_client <- function(
     BIGNUMERIC = ,
     DECIMAL = ,
     BIGDECIMAL = text,
-    FLOAT = ,
-    FLOAT64 = as.numeric(text),
-    BOOLEAN = ,
-    BOOL = as.logical(toupper(text)),
     DATE = as.Date(text),
-    TIMESTAMP = as.POSIXct(as.numeric(text), origin = "1970-01-01", tz = "UTC"),
     text
   )
 }

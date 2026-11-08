@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reject malformed BigQuery Boolean, floating-point and timestamp results,
+  including nested values, instead of silently introducing missing data.
+  Preserve SQL NULLs and valid floating-point NaN and infinity values.
+
 * Return the complete CrateDB SQL endpoint from services-mode demos so
   `demo$url` can be passed directly to `oauth_db_cratedb_api()`.
 

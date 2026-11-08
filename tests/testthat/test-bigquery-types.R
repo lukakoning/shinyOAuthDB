@@ -99,3 +99,90 @@ test_that("BigQuery timestamps retain UTC and STRUCT aliases retain named fields
     expect_identical(rows$record, list(list(id = "9223372036854775807")))
   })
 })
+
+test_that("BigQuery rejects invalid scalars in ordinary, repeated and nested fields", {
+  payload <- function(type, value, shape) {
+    field <- list(name = "value", type = type)
+    cell <- list(v = value)
+    if (grepl("repeated", shape, fixed = TRUE)) {
+      field$mode <- "REPEATED"
+      cell <- list(v = list(cell))
+    }
+    if (startsWith(shape, "record")) {
+      field <- list(name = "record", type = "RECORD", fields = list(field))
+      cell <- list(v = list(f = list(cell)))
+    }
+    result <- bq_test_result("fixture")
+    result$schema <- list(fields = list(field))
+    result$rows <- list(list(f = list(cell)))
+    result
+  }
+  invalid <- list(
+    list(type = "BOOL", value = "PRIVATE_INVALID_BOOLEAN"),
+    list(type = "BOOLEAN", value = "1"),
+    list(type = "BOOL", value = list("true")),
+    list(type = "FLOAT64", value = "PRIVATE_INVALID_NUMBER"),
+    list(type = "FLOAT", value = "1e400"),
+    list(type = "FLOAT64", value = "0x10"),
+    list(type = "FLOAT64", value = ""),
+    list(type = "TIMESTAMP", value = "PRIVATE_INVALID_TIMESTAMP"),
+    list(type = "TIMESTAMP", value = "NaN"),
+    list(type = "TIMESTAMP", value = "Infinity"),
+    list(type = "TIMESTAMP", value = "-Inf"),
+    list(type = "TIMESTAMP", value = "1e400")
+  )
+  body <- NULL
+  httr2::local_mocked_responses(function(req) bq_test_response(body))
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing")
+    for (case in invalid) {
+      for (shape in c("scalar", "repeated", "record", "record-repeated")) {
+        body <<- payload(case$type, case$value, shape)
+        error <- expect_error(
+          api$query("SELECT value"),
+          class = "shinyOAuthDB_invalid_response"
+        )
+        expect_false(grepl("PRIVATE_", conditionMessage(error), fixed = TRUE))
+        expect_null(error$parent)
+      }
+    }
+  })
+})
+
+test_that("BigQuery scalar decoding preserves NULL, NaN, infinities and empty types", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) bq_test_response(body))
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    api <- oauth_db_bigquery_api(auth$connection, "billing")
+    for (type in c("BOOL", "BOOLEAN", "FLOAT", "FLOAT64", "TIMESTAMP")) {
+      if (type %in% c("BOOL", "BOOLEAN")) {
+        values <- list("true", "FALSE", NULL)
+        expected <- c(TRUE, FALSE, NA)
+      } else if (type == "TIMESTAMP") {
+        values <- list("0", "-1.25", "1700000000.125", NULL)
+        expected <- as.POSIXct(
+          c(0, -1.25, 1700000000.125, NA),
+          origin = "1970-01-01",
+          tz = "UTC"
+        )
+      } else {
+        values <- list("0", "-1.25e2", "NaN", "Infinity", "-Infinity", NULL)
+        expected <- c(0, -125, NaN, Inf, -Inf, NA_real_)
+      }
+      body <<- bq_test_result(rep("fixture", length(values)))
+      body$schema <<- list(fields = list(list(name = "value", type = type)))
+      body$rows <<- lapply(values, function(value) {
+        list(f = list(list(v = value)))
+      })
+      expect_identical(api$query("SELECT value")$value, expected)
+      body$rows <<- list()
+      body$totalRows <<- "0"
+      expect_identical(
+        api$query("SELECT value WHERE FALSE")$value,
+        expected[0L]
+      )
+    }
+  })
+})
