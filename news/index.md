@@ -2,6 +2,37 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Refresh the Docker demo runtime to include the current transport
+  protections, corrected local app ports, strict date decoding and exact
+  row-count checks.
+
+- Check CrateDB row-count limits before numeric conversion so counts
+  above `2^53` cannot round into the supported range.
+
+- Reject malformed BigQuery and ClickHouse dates, including invalid
+  calendar dates and trailing text, while preserving nulls and typed
+  empty results.
+
+- Use the published relay port in generated local PostgreSQL and
+  StarRocks apps, independent of argument line breaks in the Docker app
+  templates.
+
+- Convert CrateDB query results to data frames once, while retaining
+  cell validation for raw results and execution counts.
+
+- Reject malformed BigQuery Boolean, floating-point and timestamp
+  results, including nested values, instead of silently introducing
+  missing data. Preserve SQL NULLs and valid floating-point NaN and
+  infinity values.
+
+- Return the complete CrateDB SQL endpoint from services-mode demos so
+  `demo$url` can be passed directly to
+  [`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md).
+
+- Prevent libcurl from replaying PostgREST, OpenSearch, ClickHouse and
+  CrateDB writes after a reused connection drops its response. Apply the
+  existing libSQL protection through the shared HTTP transport.
+
 - Reject Snowflake ODBC protocol overrides before acquiring a token or
   opening a native connection, preserving the driver’s HTTPS default.
 

@@ -42,7 +42,15 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Reject Snowflake ODBC protocol overrides before acquiring a token or opening a native connection, preserving the driver’s HTTPS default.</p></li>
+<ul><li><p>Refresh the Docker demo runtime to include the current transport protections, corrected local app ports, strict date decoding and exact row-count checks.</p></li>
+<li><p>Check CrateDB row-count limits before numeric conversion so counts above <code>2^53</code> cannot round into the supported range.</p></li>
+<li><p>Reject malformed BigQuery and ClickHouse dates, including invalid calendar dates and trailing text, while preserving nulls and typed empty results.</p></li>
+<li><p>Use the published relay port in generated local PostgreSQL and StarRocks apps, independent of argument line breaks in the Docker app templates.</p></li>
+<li><p>Convert CrateDB query results to data frames once, while retaining cell validation for raw results and execution counts.</p></li>
+<li><p>Reject malformed BigQuery Boolean, floating-point and timestamp results, including nested values, instead of silently introducing missing data. Preserve SQL NULLs and valid floating-point NaN and infinity values.</p></li>
+<li><p>Return the complete CrateDB SQL endpoint from services-mode demos so <code>demo$url</code> can be passed directly to <code><a href="../reference/oauth_db_cratedb_api.html">oauth_db_cratedb_api()</a></code>.</p></li>
+<li><p>Prevent libcurl from replaying PostgREST, OpenSearch, ClickHouse and CrateDB writes after a reused connection drops its response. Apply the existing libSQL protection through the shared HTTP transport.</p></li>
+<li><p>Reject Snowflake ODBC protocol overrides before acquiring a token or opening a native connection, preserving the driver’s HTTPS default.</p></li>
 <li><p>Require token-based password authentication over verified TLS for Azure PostgreSQL. Disable GSS encryption and reject native authentication/TLS overrides. This helper now requires RPostgres linked to libpq 16 or later.</p></li>
 <li><p>Reject incomplete BigQuery dataset listings when the API reports unreachable locations, including on later result pages.</p></li>
 <li><p>Restore services-mode OAuth options and revoke its PostgREST HTTP exception when stopping through <code>oauth_db_demo(action = "stop")</code>. Retained handles recognize the shutdown, and failed Docker cleanup remains retryable.</p></li>
