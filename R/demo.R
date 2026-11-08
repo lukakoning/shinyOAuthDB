@@ -94,6 +94,8 @@
 #' it with `shiny::onStop()` when your app starts. Services are also stopped
 #' when the returned object is garbage collected or R exits. Run one demo
 #' at a time, and stop it before starting another.
+#' Using `action = "stop"` with the same database and `path` also retires
+#' any services handle in the current R process and restores its options.
 #' @examples
 #' \dontrun{
 #' oauth_db_demo()
@@ -259,6 +261,10 @@ oauth_db_demo <- function(
         call. = FALSE
       )
     }
+    state <- .odb_demo_services[[.odb_demo_services_key(path, database)]]
+    if (!is.null(state)) {
+      .odb_demo_services_release(state)
+    }
     cli::cli_alert_success(
       "Demo services and sample data removed. Your app files are kept at {.path {path}}.",
       wrap = TRUE
@@ -363,6 +369,39 @@ oauth_db_demo <- function(
 .odb_demo_http <- new.env(parent = emptyenv())
 .odb_demo_http$active <- 0L
 
+.odb_demo_services <- new.env(parent = emptyenv())
+
+.odb_demo_services_key <- function(path, database) {
+  paste(
+    database,
+    normalizePath(path, winslash = "/", mustWork = TRUE),
+    sep = "\r"
+  )
+}
+
+.odb_demo_services_restore <- function(state) {
+  for (name in names(state$previous)) {
+    if (identical(getOption(name), state$policy[[name]])) {
+      options(state$previous[name])
+    }
+  }
+  invisible(NULL)
+}
+
+.odb_demo_services_release <- function(state) {
+  if (!state$stopped) {
+    state$stopped <- TRUE
+    if (state$postgrest) {
+      .odb_demo_http$active <- .odb_demo_http$active - 1L
+    }
+    .odb_demo_services_restore(state)
+    if (identical(.odb_demo_services[[state$key]], state)) {
+      rm(list = state$key, envir = .odb_demo_services)
+    }
+  }
+  invisible(NULL)
+}
+
 .odb_demo_postgrest_url <- function(url) {
   if (identical(url, "http://127.0.0.1:19444") && .odb_demo_http$active > 0L) {
     return(url)
@@ -371,20 +410,19 @@ oauth_db_demo <- function(
 }
 
 .odb_demo_services_settings <- function(path, cleanup, database) {
-  policy <- list(
+  # The registry holds state only, so it cannot keep the handle alive and
+  # prevent its garbage-collection finalizer from stopping Docker.
+  state <- new.env(parent = emptyenv())
+  state$key <- .odb_demo_services_key(path, database)
+  state$postgrest <- database == "postgrest"
+  state$stopped <- FALSE
+  state$policy <- list(
     shinyOAuth.allowed_hosts = c("localhost", "127.0.0.1", "::1"),
     shinyOAuth.allow_insecure_oidc_loopback = TRUE
   )
-  previous <- options(policy)
-  restore <- function() {
-    for (name in names(previous)) {
-      if (identical(getOption(name), policy[[name]])) {
-        options(previous[name])
-      }
-    }
-  }
+  state$previous <- options(state$policy)
   ready <- FALSE
-  on.exit(if (!ready) restore(), add = TRUE)
+  on.exit(if (!ready) .odb_demo_services_restore(state), add = TRUE)
   issuer <- "https://localhost:18443/realms/shinyoauthdb"
   backchannel <- "http://localhost:18080/realms/shinyoauthdb/protocol/openid-connect"
   provider <- shinyOAuth::oauth_provider(
@@ -419,25 +457,21 @@ oauth_db_demo <- function(
   if (postgrest) {
     .odb_demo_http$active <- .odb_demo_http$active + 1L
   }
-  stopped <- FALSE
   settings$stop <- function() {
-    if (!stopped) {
+    if (!state$stopped) {
       if (cleanup() != 0L) {
         stop(
           "Docker could not stop the demo. Retry demo$stop() when Docker is available.",
           call. = FALSE
         )
       }
-      stopped <<- TRUE
-      if (postgrest) {
-        .odb_demo_http$active <- .odb_demo_http$active - 1L
-      }
-      restore()
+      .odb_demo_services_release(state)
       cli::cli_alert_success("Demo services and sample data removed.")
     }
     invisible(NULL)
   }
   reg.finalizer(settings, .odb_demo_services_finalize, onexit = TRUE)
+  .odb_demo_services[[state$key]] <- state
   ready <- TRUE
   settings
 }

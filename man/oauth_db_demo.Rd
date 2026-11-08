@@ -123,6 +123,8 @@ removes the containers and data and restores these options. Register
 it with \code{shiny::onStop()} when your app starts. Services are also stopped
 when the returned object is garbage collected or R exits. Run one demo
 at a time, and stop it before starting another.
+Using \code{action = "stop"} with the same database and \code{path} also retires
+any services handle in the current R process and restores its options.
 }
 
 \examples{

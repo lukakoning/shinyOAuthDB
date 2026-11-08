@@ -169,6 +169,66 @@ test_that("discarded service handles clean up their containers", {
   expect_false(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
 })
 
+test_that("standalone stop retires live services and blocks retained HTTP clients", {
+  withr::local_options(list(
+    shinyOAuth.allowed_hosts = c(
+      "existing.example",
+      "example.invalid",
+      "localhost"
+    ),
+    shinyOAuth.allow_insecure_oidc_loopback = FALSE
+  ))
+  previous <- options()[c(
+    "shinyOAuth.allowed_hosts",
+    "shinyOAuth.allow_insecure_oidc_loopback"
+  )]
+  stops <- requests <- 0L
+  fail_stop <- TRUE
+  local_mocked_bindings(
+    .odb_demo_docker = function() "docker",
+    .odb_demo_command = function(docker, args, check = TRUE) {
+      if ("down" %in% args) {
+        stops <<- stops + 1L
+        if (fail_stop) return(1L)
+      }
+      0L
+    }
+  )
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    odb_http_response('[{"marker":"visible"}]')
+  })
+  path <- file.path(withr::local_tempdir(), "services with spaces")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    demo <- suppressMessages(oauth_db_demo(
+      "postgrest",
+      action = "services",
+      path = path
+    ))
+    withr::defer({
+      fail_stop <<- FALSE
+      suppressMessages(demo$stop())
+    })
+    api <- oauth_db_postgrest_api(auth$connection, demo$url)
+    expect_identical(api$select("visible_rows")$marker, "visible")
+    expect_error(
+      oauth_db_demo("postgrest", action = "stop", path = path),
+      "could not stop"
+    )
+    expect_true(getOption("shinyOAuth.allow_insecure_oidc_loopback"))
+    expect_identical(api$select("visible_rows")$marker, "visible")
+    fail_stop <<- FALSE
+    suppressMessages(oauth_db_demo("postgrest", action = "stop", path = path))
+    expect_identical(options()[names(previous)], previous)
+    expect_error(api$select("visible_rows"), "HTTPS")
+    expect_error(oauth_db_postgrest_api(auth$connection, demo$url), "HTTPS")
+    expect_identical(requests, 2L)
+    demo$stop()
+    expect_identical(stops, 2L)
+  })
+})
+
 test_that("the PostgREST HTTP exception is confined to its active demo", {
   endpoint <- "http://127.0.0.1:19444"
   expect_error(.odb_demo_postgrest_url(endpoint), "HTTPS")
