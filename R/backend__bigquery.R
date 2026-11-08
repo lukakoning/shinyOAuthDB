@@ -24,6 +24,8 @@
 #' reactive expressions. Use [oauth_db_bigquery_client()] for Google sign-in.
 #' Users need permission to create query jobs in `project` and read the data.
 #' The client uses BigQuery's REST API; bigrquery and ODBC aren't required.
+#' Dataset discovery fails if BigQuery reports unreachable locations, so a
+#' partial listing cannot appear as a complete or empty collection.
 #' @section Query parameters:
 #' Supply named R values in `parameters`, such as `list(country = "NL")`
 #' for SQL containing `@country`. Supported values include character,
@@ -421,6 +423,12 @@ oauth_db_bigquery_client <- function(
       "error" %in% names(result)
   ) {
     fail()
+  }
+  if (field == "datasets" && length(result$unreachable)) {
+    .odb_abort(
+      "BigQuery dataset discovery is incomplete because some locations were unreachable. Retry when those locations are available.",
+      "query_failed"
+    )
   }
   items <- result[[field]]
   if (field %in% names(result) && (!is.list(items) || !is.null(names(items)))) {

@@ -65,6 +65,8 @@ Create the client inside \code{server()} and call its methods inside render or
 reactive expressions. Use \code{\link[=oauth_db_bigquery_client]{oauth_db_bigquery_client()}} for Google sign-in.
 Users need permission to create query jobs in \code{project} and read the data.
 The client uses BigQuery's REST API; bigrquery and ODBC aren't required.
+Dataset discovery fails if BigQuery reports unreachable locations, so a
+partial listing cannot appear as a complete or empty collection.
 }
 \section{Query parameters}{
 

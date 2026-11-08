@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reject incomplete BigQuery dataset listings when the API reports unreachable
+  locations, including on later result pages.
+
 * Restore services-mode OAuth options and revoke its PostgREST HTTP exception
   when stopping through `oauth_db_demo(action = "stop")`. Retained handles
   recognize the shutdown, and failed Docker cleanup remains retryable.

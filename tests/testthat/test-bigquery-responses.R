@@ -208,3 +208,65 @@ test_that("BigQuery metadata accepts empty collections and empty intermediate pa
     }
   }
 })
+
+test_that("BigQuery rejects dataset listings that omit unreachable locations", {
+  for (page in c(1L, 2L)) {
+    for (empty in c(FALSE, TRUE)) {
+      local({
+        requests <- 0L
+        httr2::local_mocked_responses(function(req) {
+          requests <<- requests + 1L
+          result <- list(kind = "bigquery#datasetList")
+          if (!empty) {
+            result$datasets <- list(list(
+              datasetReference = list(
+                projectId = "billing",
+                datasetId = "reports"
+              )
+            ))
+          }
+          if (requests < page) {
+            result$nextPageToken <- "next"
+          } else {
+            result$unreachable <- list("PRIVATE_LOCATION_CANARY")
+          }
+          bq_test_response(result)
+        })
+        odb_test_domain(function(session) {
+          auth <- odb_test_authorization(session)
+          api <- oauth_db_bigquery_api(auth$connection, "billing")
+          error <- expect_error(
+            api$datasets(),
+            "discovery is incomplete",
+            class = "shinyOAuthDB_query_failed"
+          )
+          expect_false(grepl(
+            "PRIVATE_LOCATION_CANARY",
+            conditionMessage(error),
+            fixed = TRUE
+          ))
+          expect_null(error$parent)
+          expect_identical(requests, page)
+        })
+      })
+    }
+  }
+})
+
+test_that("BigQuery accepts dataset discovery without unreachable locations", {
+  for (unreachable in list(NULL, list())) {
+    local({
+      httr2::local_mocked_responses(function(req) {
+        bq_test_response(list(
+          kind = "bigquery#datasetList",
+          unreachable = unreachable
+        ))
+      })
+      odb_test_domain(function(session) {
+        auth <- odb_test_authorization(session)
+        api <- oauth_db_bigquery_api(auth$connection, "billing")
+        expect_identical(api$datasets(), character())
+      })
+    })
+  }
+})
