@@ -81,15 +81,15 @@ set in the app.</p>
 and token renewal. shinyOAuthDB connects that sign-in to your database
 queries or API calls:</p>
 <ol style="list-style-type: decimal">
-<li>Your app sends the user to a sign-in service, such as Microsoft
-Entra, Google, or Keycloak. This service is the OAuth
+<li>Your Shiny app sends the user to a sign-in service, such as
+Microsoft Entra, Google, or Keycloak. This service is the OAuth
 <em>provider</em>.</li>
 <li>The user signs in and, if asked, approves the access your app
 requests. They enter their password with the provider; your app doesn’t
 collect it.</li>
-<li>The browser returns to your app. shinyOAuth obtains an <em>access
-token</em>, a temporary credential for making requests on that user’s
-behalf.</li>
+<li>The browser returns to your Shiny app. shinyOAuth obtains an
+<em>access token</em>, a temporary credential for making requests on
+that user’s behalf.</li>
 <li>shinyOAuthDB supplies that token when opening a database connection
 or making an API request. The data source checks it and applies the
 user’s permissions.</li>

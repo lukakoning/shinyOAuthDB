@@ -17,12 +17,13 @@ shinyOAuthDB works with shinyOAuth, which handles the browser sign-in
 and token renewal. shinyOAuthDB connects that sign-in to your database
 queries or API calls:
 
-1.  Your app sends the user to a sign-in service, such as Microsoft
-    Entra, Google, or Keycloak. This service is the OAuth *provider*.
+1.  Your Shiny app sends the user to a sign-in service, such as
+    Microsoft Entra, Google, or Keycloak. This service is the OAuth
+    *provider*.
 2.  The user signs in and, if asked, approves the access your app
     requests. They enter their password with the provider; your app
     doesn’t collect it.
-3.  The browser returns to your app. shinyOAuth obtains an *access
+3.  The browser returns to your Shiny app. shinyOAuth obtains an *access
     token*, a temporary credential for making requests on that user’s
     behalf.
 4.  shinyOAuthDB supplies that token when opening a database connection
