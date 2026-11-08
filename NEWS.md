@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reopen Fabric ADBC connections with a current token on access after token
+  renewal, without replaying completed reactive queries. ODBC connections
+  continue to reuse valid database sessions across ordinary token renewal.
+
 * Close ADBC connections and their outstanding DBI or Arrow results when the
   authorization changes, permissions are lost, or the Shiny session ends.
 

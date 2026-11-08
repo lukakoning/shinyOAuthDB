@@ -52,3 +52,65 @@ test_that("custom cleanup still owns ADBC connections", {
   expect_identical(cleaned, native)
   expect_true(DBI::dbIsValid(native))
 })
+
+test_that("Fabric ADBC renews fixed credentials without replaying reactive queries", {
+  skip_if_not_installed("adbi")
+  skip_if_not_installed("duckdb")
+  skip_if_not_installed("RSQLite")
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  tokens <- character()
+  local_mocked_bindings(
+    fabric_sql_connect = function(token, backend = "odbc", ...) {
+      tokens <<- c(tokens, token("https://database.windows.net//.default"))
+      if (backend == "adbc") {
+        DBI::dbConnect(adbi::adbi(duckdb::duckdb_adbc()))
+      } else {
+        DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+      }
+    },
+    .package = "fabricQueryR"
+  )
+
+  for (backend in c("adbc", "odbc")) {
+    tokens <- character()
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session, refresh_token = "fixture-refresh")
+      con <- oauth_db_fabric_sql(
+        auth$connection,
+        server = "example.datawarehouse.fabric.microsoft.com",
+        database = "Reporting",
+        backend = backend,
+        target = NULL
+      )
+      queried <- 0L
+      rows <- shiny::reactive({
+        connection <- con()
+        queried <<- queried + 1L
+        DBI::dbGetQuery(connection, "SELECT 42 AS answer")
+      })
+      expect_equal(rows()$answer, 42)
+      first <- con()
+      expect_identical(tokens, "fixture-A")
+      auth$token(auth$make_token("renewed-A"))
+      session$flushReact()
+      expect_equal(rows()$answer, 42)
+      expect_identical(queried, 1L)
+
+      second <- con()
+      if (backend == "adbc") {
+        expect_false(DBI::dbIsValid(first))
+        expect_false(identical(first, second))
+        expect_identical(tokens, c("fixture-A", "renewed-A"))
+        expect_identical(con(), second)
+        auth$token(auth$make_token("expiring-A", lifetime = 30))
+        renewed <- con()
+        expect_false(DBI::dbIsValid(second))
+        expect_true(DBI::dbIsValid(renewed))
+        expect_identical(tail(tokens, 1L), "fixture-A-acquired")
+      } else {
+        expect_identical(second, first)
+        expect_identical(tokens, "fixture-A")
+      }
+    })
+  }
+})

@@ -5,7 +5,8 @@
 #'
 #' @inheritParams oauth_db_azure_sql
 #' @param ... Arguments for `fabricQueryR::fabric_sql_connect()`, such as
-#'   `backend`, `read_only`, and `timeout`.
+#'   `read_only` and `timeout`.
+#' @param backend SQL driver interface: `"odbc"` (default) or `"adbc"`.
 #' @return A reactive function returning a DBI connection.
 #' @details
 #' Install fabricQueryR and the SQL driver. Copy the server and database
@@ -18,6 +19,8 @@
 #' @section SQL drivers:
 #' The default backend uses odbc. To use ADBC, install fabricQueryR's ADBC
 #' dependencies and the MSSQL driver, then pass `backend = "adbc"`.
+#' ADBC connections reopen with a current token when `con()` is next called
+#' after token renewal. This closes outstanding results on the old connection.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_fabric_sql(
@@ -40,15 +43,18 @@ oauth_db_fabric_sql <- function(
   server,
   database = NULL,
   ...,
+  backend = c("odbc", "adbc"),
   target = "sql",
   required_scopes = character(),
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 ) {
   .odb_require("fabricQueryR", version = "1.0.1")
+  backend <- match.arg(backend)
   options <- .odb_options(
     list(...),
     blocked = c(
+      "backend",
       "server",
       "addr",
       "address",
@@ -89,9 +95,12 @@ oauth_db_fabric_sql <- function(
     server = server,
     database = database,
     provider_scopes = required_scopes,
-    options = options,
+    options = c(list(backend = backend), options),
     target = target,
     required_scopes = .odb_microsoft_scopes(required_scopes),
+    cache_key = if (backend == "adbc") {
+      function(token) openssl::sha256(charToRaw(token()))
+    },
     min_valid_for = min_valid_for,
     session = session
   )

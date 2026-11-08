@@ -9,6 +9,7 @@ oauth_db_fabric_sql(
   server,
   database = NULL,
   ...,
+  backend = c("odbc", "adbc"),
   target = "sql",
   required_scopes = character(),
   min_valid_for = 60,
@@ -25,7 +26,9 @@ that calls \code{auth$connection(id)}.}
 \item{database}{Database name.}
 
 \item{...}{Arguments for \code{fabricQueryR::fabric_sql_connect()}, such as
-\code{backend}, \code{read_only}, and \code{timeout}.}
+\code{read_only} and \code{timeout}.}
+
+\item{backend}{SQL driver interface: \code{"odbc"} (default) or \code{"adbc"}.}
 
 \item{target}{Token target name in the shinyOAuth client. \code{NULL} uses its
 default token, including for clients without named targets.}
@@ -59,6 +62,8 @@ connection and closes it when the authorization or session ends.
 
 The default backend uses odbc. To use ADBC, install fabricQueryR's ADBC
 dependencies and the MSSQL driver, then pass \code{backend = "adbc"}.
+ADBC connections reopen with a current token when \code{con()} is next called
+after token renewal. This closes outstanding results on the old connection.
 }
 
 \examples{
