@@ -316,6 +316,10 @@ oauth_db_task <- function(
 .odb_task_function <- function(value) {
   envir <- environment(value)
   if (is.null(envir) || identical(envir, baseenv()) || isNamespace(envir)) {
+    metadata <- attributes(value)
+    metadata[c("srcref", "wholeSrcref", "srcfile")] <- NULL
+    .odb_task_plain(metadata, functions = FALSE)
+    attributes(value) <- metadata
     return(value)
   }
   globals <- codetools::findGlobals(value, merge = FALSE)
@@ -343,7 +347,11 @@ oauth_db_task <- function(
   if (is.function(value)) {
     return(.odb_task_function(value))
   }
-  .odb_task_plain(value)
+  .odb_task_plain(
+    value,
+    functions = !(isS4(value) || is.call(value) || is.expression(value))
+  )
+  .odb_task_plain(attributes(value), functions = FALSE)
   if (is.list(value)) {
     result <- lapply(value, .odb_task_snapshot)
     attributes(result) <- attributes(value)

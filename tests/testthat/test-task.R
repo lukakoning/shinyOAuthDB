@@ -543,6 +543,47 @@ test_that("a cancelled settings generation cannot become current again", {
   })
 })
 
+test_that("embedded callbacks cannot carry app environments into workers", {
+  app <- new.env(parent = globalenv())
+  app$private_marker <- "must-not-cross-the-worker-boundary"
+  callback <- eval(quote(function() 1L), app)
+  methods::setClass(
+    "OAuthDBTaskSnapshotFixture",
+    slots = c(callback = "function")
+  )
+  withr::defer(methods::removeClass("OAuthDBTaskSnapshotFixture"))
+  forbidden <- list(
+    structure(1L, callback = callback),
+    structure(list(1L), callback = callback),
+    as.call(list(as.name("list"), callback)),
+    as.expression(list(callback)),
+    methods::new("OAuthDBTaskSnapshotFixture", callback = callback)
+  )
+  for (value in forbidden) {
+    expect_error(.odb_task_snapshot(value), "not a function or native handle")
+  }
+  namespace_callback <- get("identity", baseenv())
+  attr(namespace_callback, "private") <- app
+  expect_error(.odb_task_snapshot(namespace_callback), "ordinary data")
+  snapshot <- .odb_task_snapshot(list(
+    callback,
+    as.pairlist(list(callback)),
+    structure(data.frame(value = 1L), label = "ordinary metadata"),
+    quote(list(value = 1L)),
+    expression(value + 1L)
+  ))
+  expect_identical(snapshot[[1L]](), 1L)
+  expect_identical(snapshot[[2L]][[1L]](), 1L)
+  expect_identical(attr(snapshot[[3L]], "label"), "ordinary metadata")
+  expect_identical(snapshot[[4L]], quote(list(value = 1L)))
+  expect_identical(snapshot[[5L]], expression(value + 1L))
+  expect_false(grepl(
+    app$private_marker,
+    rawToChar(serialize(snapshot, NULL, ascii = TRUE)),
+    fixed = TRUE
+  ))
+})
+
 test_that("worker usernames retain the native backend's calling convention", {
   for (callback in c(TRUE, FALSE)) {
     worker <- list(
