@@ -221,7 +221,8 @@
   service,
   timeout,
   ca_bundle = NULL,
-  retry_401 = FALSE
+  retry_401 = FALSE,
+  sensitive = character()
 ) {
   deadline <- .odb_http_time() + timeout
   req <- httr2::req_options(req, followlocation = FALSE)
@@ -233,7 +234,7 @@
     req <- httr2::req_options(req, cainfo = ca_bundle)
   }
   req <- httr2::req_error(req, is_error = function(resp) FALSE)
-  credentials <- character()
+  credentials <- sensitive
   perform <- function(value) {
     force(value)
     credentials <<- union(credentials, value)

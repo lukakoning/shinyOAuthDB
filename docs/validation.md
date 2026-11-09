@@ -1,5 +1,34 @@
 # Validation record
 
+## 9 November 2026: Elasticsearch JWT access
+
+The new REST client uses the visitor's access token with an Elasticsearch
+JWT realm, plus the realm's optional application shared secret. SQL and
+ES|QL use Elasticsearch's own endpoints and bound parameter arrays. The
+client preserves native JSON, checks incomplete results and shares the
+package's authorization lifetime, TLS and retry rules.
+
+`tools/check-elasticsearch-oauth.R` passes 44 assertions against a real
+Elasticsearch 9.2.0 Docker deployment with a disposable trial license.
+Native JWT validation checks issuer, audience, subjects, signature and
+expiry. The check verifies separate Alice/Bob permissions, document and
+field restrictions, aggregations, SQL, ES|QL, denied and permitted writes,
+realm client authentication, safe-read token renewal and verified TLS.
+The containers, network and generated credentials are removed afterward.
+
+The fixture signs user tokens locally. It does not exercise browser
+sign-in, a live provider's JWKS rotation or Elastic Cloud Hosted.
+Elastic Cloud Serverless cannot use this setup because it has no JWT
+realms. The setup guide documents these deployment boundaries.
+
+An isolated Elasticsearch-only source tree passes 574 assertions in 45
+tests across the Elasticsearch, shared HTTP contract, OpenSearch and guide
+app suites, with no warnings or skipped tests. R CMD check with tests run
+separately reports zero errors, warnings and notes. Documentation checks
+parse 91 R blocks and resolve 198 local links and 50 section anchors.
+The Elasticsearch guide and reference page render with pkgdown. Air,
+Jarl, actionlint and whitespace checks pass.
+
 ## 9 November 2026: backend validation table
 
 The getting-started guide now distinguishes local real-database fixtures,

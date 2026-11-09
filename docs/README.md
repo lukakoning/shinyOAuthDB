@@ -27,6 +27,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | libSQL and Turso | [Remote SQLite SQL and compatible tokens](../vignettes/libsql.Rmd) |
 | CrateDB | [JWT-authenticated HTTP SQL](../vignettes/cratedb.Rmd) |
 | OpenSearch | [Search, SQL and user permissions](../vignettes/opensearch.Rmd) |
+| Elasticsearch | [JWT realms, searches, SQL and ES\|QL](../vignettes/elasticsearch.Rmd) |
 
 [Getting started](../vignettes/getting-started.Rmd) explains the package,
 walks through the README app, and covers OAuth settings, sessions and demos.

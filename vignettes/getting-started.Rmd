@@ -196,7 +196,7 @@ and the parts of each integration that still need deployment validation.
 | SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
 | Query engines | [Trino and Starburst](trino.html), [StarRocks](starrocks.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
-| Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
+| Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [Elasticsearch](elasticsearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
 
 ### Register your app
 
@@ -370,6 +370,7 @@ configurations, rather than a list of every supported server version.
 | libSQL | libSQL 0.24.33; real signed tokens, database permissions and HTTPS | Hosted Turso external-provider sign-in is not established by this fixture |
 | CrateDB | CrateDB 6.4.3; native JWT validation, privileges and HTTPS | Uses a local issuer/JWKS gateway |
 | OpenSearch | OpenSearch 3.9.0; Security plugin JWT validation, document/field permissions and HTTPS | Uses a local signing-key configuration; AWS SigV4 requires another client |
+| Elasticsearch | Elasticsearch 9.2.0; native JWT realm, document/field permissions, search, SQL, ES\|QL and verified HTTPS | Signed fixture tokens; browser sign-in, live JWKS rotation and Elastic Cloud Hosted are untested; Serverless has no JWT realms |
 | ClickHouse | Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed parameters and failed write responses | The fixture proxy supplies authentication; it does not validate ClickHouse Cloud's custom-JWT feature |
 | Azure PostgreSQL | PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10; real TLS and recovery after credential replacement | Entra token validation and a hosted Azure server are not exercised |
 | Databricks | brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow and pagination | MiniLake accepts every token and does not enforce grants; it does not validate Databricks authentication |

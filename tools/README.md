@@ -13,6 +13,7 @@ Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-libsql-oauth.R
 Rscript --vanilla tools/check-cratedb-oauth.R
 Rscript --vanilla tools/check-opensearch-oauth.R
+Rscript --vanilla tools/check-elasticsearch-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
 
@@ -44,6 +45,11 @@ aggregations, SQL parameters and TLS through the public helper. The
 [fixture](../integration/opensearch-oauth/README.md) generates disposable
 keys and tokens. Set `OAUTHDB_OPENSEARCH_TEST_IMAGE` or
 `OAUTHDB_OPENSEARCH_TEST_PORT` to override its image or loopback port.
+
+`check-elasticsearch-oauth.R` checks a native Elasticsearch JWT realm with
+verified HTTPS, visitor-specific document and field permissions, SQL and
+ES|QL through the public client. It generates disposable tokens and a trial
+deployment; see the [Elasticsearch fixture](../integration/elasticsearch-oauth/README.md).
 
 With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a

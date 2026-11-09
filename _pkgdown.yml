@@ -28,7 +28,7 @@ articles:
   - title: Start here
     contents: [getting-started]
   - title: Databases and related services
-    contents: [cratedb, duckdb, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, starrocks, trino]
+    contents: [cratedb, duckdb, elasticsearch, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, starrocks, trino]
   - title: Cloud platforms
     contents: [redshift, azure-postgres, azure-sql, clickhouse, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
@@ -49,6 +49,8 @@ reference:
       oauth_db_databricks_api, oauth_db_databricks_provider]
   - title: DuckDB
     contents: [oauth_db_duckdb]
+  - title: Elasticsearch
+    contents: [oauth_db_elasticsearch_api]
   - title: Google BigQuery
     contents: [oauth_db_bigquery_client, oauth_db_bigquery_api]
   - title: libSQL and Turso

@@ -37,6 +37,7 @@ vignette_sources <- c(
   libsql = NA_character_,
   cratedb = NA_character_,
   opensearch = NA_character_,
+  elasticsearch = NA_character_,
   salesforce = NA_character_
 )
 

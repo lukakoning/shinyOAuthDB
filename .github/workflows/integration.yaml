@@ -79,7 +79,7 @@ jobs:
           for backend in postgrest trino starrocks minilake; do
             run_check bash integration/local/run-integration.sh "$backend"
           done
-          for check in duckdb duckdb-oauth libsql-oauth cratedb-oauth opensearch-oauth clickhouse-parameters clickhouse-http; do
+          for check in duckdb duckdb-oauth libsql-oauth cratedb-oauth opensearch-oauth elasticsearch-oauth clickhouse-parameters clickhouse-http; do
             run_check Rscript --vanilla "tools/check-$check.R"
           done
           for backend in postgres postgrest trino starrocks duckdb libsql cratedb opensearch; do
