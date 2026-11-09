@@ -68,7 +68,9 @@ Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
 · [Azure
 MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.html)
-· [SAP HANA and HANA
+· [Azure Cosmos DB for
+NoSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cosmos.html) ·
+[SAP HANA and HANA
 Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.html) ·
 [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html)
 · [Oracle

@@ -37,6 +37,13 @@
 - [`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md)
   : Query SQL Server as the signed-in user
 
+## Azure Cosmos DB for NoSQL
+
+- [`oauth_db_cosmos_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cosmos_client.md)
+  : Set up Microsoft sign-in for Azure Cosmos DB
+- [`oauth_db_cosmos_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cosmos_api.md)
+  : Query Azure Cosmos DB for NoSQL as the signed-in user
+
 ## ClickHouse
 
 - [`oauth_db_clickhouse_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_clickhouse_api.md)

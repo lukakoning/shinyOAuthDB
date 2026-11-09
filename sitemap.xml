@@ -10,6 +10,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cosmos.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/dremio.html</loc></url>
@@ -50,6 +51,8 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_sql_postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cockroachdb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cosmos_api.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cosmos_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.html</loc></url>

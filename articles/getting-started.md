@@ -230,6 +230,7 @@ validation.
 | CockroachDB | [CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.md) |
 | MongoDB | [Workforce OIDC](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.md) |
 | Neo4j | [Cypher and graph queries](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.md) |
+| Azure Cosmos DB for NoSQL | [Microsoft Entra tokens and document queries](https://lukakoning.github.io/shinyOAuthDB/articles/cosmos.md) |
 | MySQL | [Azure Database for MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.md) |
 | Cloud data platforms | [Fabric and Power BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.md), [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md), [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.md), [BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.md), [Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.md), [Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md) |
 | Query engines | [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md), [Dremio](https://lukakoning.github.io/shinyOAuthDB/articles/dremio.md), [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md), [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.md), [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md), [DuckDB over Quack](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md) |
@@ -595,6 +596,7 @@ version.
 | Databricks | brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow and pagination | MiniLake accepts every token and does not enforce grants; it does not validate Databricks authentication |
 | Fabric and Power BI | fabricQueryR 1.0.1 routing, callbacks and generated-app checks | Platform calls are mocked; hosted service permissions and native drivers need deployment checks |
 | BigQuery | Mocked REST responses cover parameters, polling, pagination, result types and account changes | Google browser sign-in, IAM grants and billed query execution are not covered by these mocks |
+| Azure Cosmos DB for NoSQL | Mocked REST requests and responses cover Entra authorization headers, partition keys, queries, pagination, point reads and account changes | Tenant consent, browser sign-in, cloud data-plane RBAC and live queries remain unvalidated |
 | Azure SQL, Snowflake and Redshift | R ODBC connection arguments, credential handling and lifecycle tests | Real vendor drivers and cloud database authentication remain outside the mocked connection boundary |
 | Athena | JWT_TIP ODBC arguments, cache/TLS settings, token replacement and session cleanup; complete app construction | Live AWS Identity Center exchange, user permissions, driver credential caches and billed queries need a configured deployment |
 | Supabase, Oracle REST Data Services and Salesforce | Mocked HTTP responses and complete app definitions | Hosted provider sign-in, server policies and real refresh behavior need configured deployments |

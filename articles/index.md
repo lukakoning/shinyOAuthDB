@@ -44,6 +44,8 @@
   PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md):
 - [Azure SQL and SQL
   Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.md):
+- [Azure Cosmos DB for
+  NoSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cosmos.md):
 - [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md):
 - [Google Cloud
   SQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.md):

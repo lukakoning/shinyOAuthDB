@@ -303,16 +303,21 @@ PostgreSQL</a>, <a href="cloud-sql.html">Google Cloud SQL</a>
 <td><a href="neo4j.html">Cypher and graph queries</a></td>
 </tr>
 <tr class="even">
+<td>Azure Cosmos DB for NoSQL</td>
+<td><a href="cosmos.html">Microsoft Entra tokens and document
+queries</a></td>
+</tr>
+<tr class="odd">
 <td>MySQL</td>
 <td><a href="azure-mysql.html">Azure Database for MySQL</a></td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Cloud data platforms</td>
 <td>
 <a href="fabric.html">Fabric and Power BI</a>, <a href="databricks.html">Databricks</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="athena.html">Athena</a>, <a href="redshift.html">Redshift</a>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Query engines</td>
 <td>
 <a href="trino.html">Trino and Starburst</a>, <a href="dremio.html">Dremio</a>, <a href="starrocks.html">StarRocks</a>,
@@ -320,7 +325,7 @@ PostgreSQL</a>, <a href="cloud-sql.html">Google Cloud SQL</a>
 Quack</a>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Other databases and APIs</td>
 <td>
 <a href="libsql.html">libSQL and Turso</a>, <a href="cratedb.html">CrateDB</a>, <a href="opensearch.html">OpenSearch</a>, <a href="elasticsearch.html">Elasticsearch</a>, <a href="hana.html">SAP
@@ -807,26 +812,34 @@ types and account changes</td>
 not covered by these mocks</td>
 </tr>
 <tr class="odd">
+<td>Azure Cosmos DB for NoSQL</td>
+<td>Mocked REST requests and responses cover Entra authorization
+headers, partition keys, queries, pagination, point reads and account
+changes</td>
+<td>Tenant consent, browser sign-in, cloud data-plane RBAC and live
+queries remain unvalidated</td>
+</tr>
+<tr class="even">
 <td>Azure SQL, Snowflake and Redshift</td>
 <td>R ODBC connection arguments, credential handling and lifecycle
 tests</td>
 <td>Real vendor drivers and cloud database authentication remain outside
 the mocked connection boundary</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Athena</td>
 <td>JWT_TIP ODBC arguments, cache/TLS settings, token replacement and
 session cleanup; complete app construction</td>
 <td>Live AWS Identity Center exchange, user permissions, driver
 credential caches and billed queries need a configured deployment</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Supabase, Oracle REST Data Services and Salesforce</td>
 <td>Mocked HTTP responses and complete app definitions</td>
 <td>Hosted provider sign-in, server policies and real refresh behavior
 need configured deployments</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>SAP HANA and Oracle Database</td>
 <td>R ODBC boundary, token handling and lifecycle tests; mocked Oracle
 authentication/context checks</td>
