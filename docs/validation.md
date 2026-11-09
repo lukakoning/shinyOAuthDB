@@ -1,5 +1,25 @@
 # Validation record
 
+## 9 November 2026: Azure PostgreSQL credential replacement
+
+The helper now replaces its cached RPostgres connection on the next access
+after the token changes. A focused regression first failed on the previous
+implementation, then passed for default and named token targets. It checks
+connection replacement, reuse, cleanup and absence of reactive query replay.
+The PostgreSQL, backend and credential-recovery suites pass together.
+
+`tools/check-azure-postgres.R` passes 12 assertions against PostgreSQL 18.3
+with verified TLS, RPostgres 1.4.10 and libpq 16.10 on Windows/R 4.5.1. It
+replaces the accepted password and synthetic authorization token, terminates
+the original backend, and verifies successful reconnection without replaying
+the completed reactive query. The disposable container is removed after the
+check. This tests the real password transport and connection lifecycle;
+Entra JWT validation and a live Azure server remain outside the fixture.
+
+The focused source tests, documentation checks, Air and Jarl pass. The
+documentation checker parses 87 R blocks and resolves 193 local links and
+48 section anchors. The Azure PostgreSQL help page was regenerated.
+
 ## 8 November 2026: roxygen documentation review
 
 Reviewed all 39 help topics in 26 R files. Descriptions now explain the

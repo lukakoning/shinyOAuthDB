@@ -343,6 +343,11 @@ oauth_db_postgres <- function(
 #' The connection uses verified TLS and sends the visitor's access token as
 #' the password. The server must use that authentication method; Kerberos,
 #' certificate-only and trust authentication aren't supported by this helper.
+#'
+#' After the access token changes, the next `con()` call replaces the connection
+#' so a lost session can reconnect with current credentials. Complete a
+#' transaction using the connection that started it; get a connection for the
+#' next operation through `con()`.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_azure_postgres(
@@ -425,6 +430,7 @@ oauth_db_azure_postgres <- function(
     options = options,
     target = target,
     required_scopes = .odb_microsoft_scopes(required_scopes),
+    cache_key = function(token) openssl::sha256(charToRaw(token())),
     min_valid_for = min_valid_for,
     session = session
   )

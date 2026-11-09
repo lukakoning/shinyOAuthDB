@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reopen Azure PostgreSQL connections on the next access after token changes,
+  avoiding repeated reconnect failures with an obsolete password. Token
+  renewal does not replay completed reactive queries.
+
 * Add `oauth_db_hana()` for SAP HANA and HANA Cloud SQL connections using
   visitor JWT access tokens through SAP HANA ODBC. Require JWT authentication
   and verified TLS, and obtain current tokens when reopening connections.

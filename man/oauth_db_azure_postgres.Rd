@@ -72,6 +72,11 @@ Create the helper inside \code{server()} and call \code{con()} before querying.
 The connection uses verified TLS and sends the visitor's access token as
 the password. The server must use that authentication method; Kerberos,
 certificate-only and trust authentication aren't supported by this helper.
+
+After the access token changes, the next \code{con()} call replaces the connection
+so a lost session can reconnect with current credentials. Complete a
+transaction using the connection that started it; get a connection for the
+next operation through \code{con()}.
 }
 \examples{
 \dontrun{

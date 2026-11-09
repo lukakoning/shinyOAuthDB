@@ -57,6 +57,12 @@ with its own start and pause workflow.
 
 Record versions, results, and limits in [validation.md](validation.md).
 
+With Docker and RPostgres linked to libpq 16 or later, run
+`Rscript --vanilla tools/check-azure-postgres.R` to check reconnection after
+credential replacement and database-session termination. This uses real
+PostgreSQL password authentication over verified TLS with synthetic tokens;
+it does not test Entra sign-in or an Azure deployment.
+
 ## Documentation website and packaged demos
 
 Run `pkgdown::build_site()` to preview the website. `_pkgdown.yml` groups the
