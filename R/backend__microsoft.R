@@ -1,13 +1,14 @@
 #' Set up Microsoft sign-in for database access
 #'
 #' Set up Microsoft sign-in for a Shiny app that queries Azure SQL,
-#' Azure PostgreSQL or other supported Microsoft services. Choose the services
-#' your app uses, then pass this client to shinyOAuth's UI and server modules.
+#' Azure PostgreSQL, Azure MySQL or other supported Microsoft services.
+#' Choose the services your app uses, then pass this client to shinyOAuth's
+#' UI and server modules.
 #' The client holds your app's sign-in settings; each visitor signs in with
 #' their own account.
 #'
-#' @param services One or more of `"sql"`, `"postgres"`, `"fabric"`, `"kql"`,
-#'   `"dax"`, `"graphql"`, `"onelake"`, or `"databricks_entra"`.
+#' @param services One or more of `"sql"`, `"postgres"`, `"mysql"`, `"fabric"`,
+#'   `"kql"`, `"dax"`, `"graphql"`, `"onelake"`, or `"databricks_entra"`.
 #'   The first service selects the default token target.
 #' @param tenant_id Microsoft Entra tenant ID. Ignored when `provider` is supplied.
 #' @param client_id Application ID from the OAuth registration.
@@ -32,9 +33,10 @@
 #' `scopes`, `provider` and `token_targets` replace their defaults. An existing
 #' shinyOAuth client can also supply suitable tokens.
 #'
-#' When PostgreSQL is combined with other services, its preset requests
-#' `user_impersonation` instead of `.default`. For a custom resource such as
-#' Oracle Database, supply `token_targets`; the Oracle vignette has an example.
+#' When PostgreSQL or MySQL is combined with other services, its preset
+#' requests `user_impersonation` instead of `.default`. For a custom resource
+#' such as Oracle Database, supply `token_targets`; the Oracle vignette has
+#' an example.
 #' @examples
 #' \dontrun{
 #' client <- oauth_db_microsoft_client(
@@ -101,6 +103,9 @@ oauth_db_microsoft_client <- function(
   profiles <- c(
     .odb_sql_server_profiles(),
     .odb_postgres_profiles(
+      explicit_scopes = is.character(services) && length(unique(services)) > 1L
+    ),
+    .odb_mysql_profiles(
       explicit_scopes = is.character(services) && length(unique(services)) > 1L
     ),
     .odb_fabric_profiles(),

@@ -1,5 +1,11 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_azure_mysql()` for Azure Database for MySQL Flexible Server
+  through MariaDB Connector/ODBC and each visitor's Entra access token.
+  Includes the Microsoft `mysql` sign-in preset, verified TLS, connection
+  replacement after token renewal, and a complete Shiny setup guide.
+  Local protocol checks cover the real driver; live Azure remains unverified.
+
 * Add `oauth_db_elasticsearch_api()` for per-visitor searches, SQL and ES|QL
   using external JWT access tokens and optional realm client authentication.
   Includes a setup guide, native JSON requests, and a real Elasticsearch JWT,

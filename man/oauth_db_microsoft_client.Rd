@@ -24,8 +24,8 @@ oauth_db_microsoft_client(
 )
 }
 \arguments{
-\item{services}{One or more of \code{"sql"}, \code{"postgres"}, \code{"fabric"}, \code{"kql"},
-\code{"dax"}, \code{"graphql"}, \code{"onelake"}, or \code{"databricks_entra"}.
+\item{services}{One or more of \code{"sql"}, \code{"postgres"}, \code{"mysql"}, \code{"fabric"},
+\code{"kql"}, \code{"dax"}, \code{"graphql"}, \code{"onelake"}, or \code{"databricks_entra"}.
 The first service selects the default token target.}
 
 \item{tenant_id}{Microsoft Entra tenant ID. Ignored when \code{provider} is supplied.}
@@ -54,8 +54,9 @@ A shinyOAuth \code{OAuthClient}. Create it outside \code{server()}.
 }
 \description{
 Set up Microsoft sign-in for a Shiny app that queries Azure SQL,
-Azure PostgreSQL or other supported Microsoft services. Choose the services
-your app uses, then pass this client to shinyOAuth's UI and server modules.
+Azure PostgreSQL, Azure MySQL or other supported Microsoft services.
+Choose the services your app uses, then pass this client to shinyOAuth's
+UI and server modules.
 The client holds your app's sign-in settings; each visitor signs in with
 their own account.
 }
@@ -69,9 +70,10 @@ The preset creates named token targets for the selected services. Custom
 \code{scopes}, \code{provider} and \code{token_targets} replace their defaults. An existing
 shinyOAuth client can also supply suitable tokens.
 
-When PostgreSQL is combined with other services, its preset requests
-\code{user_impersonation} instead of \code{.default}. For a custom resource such as
-Oracle Database, supply \code{token_targets}; the Oracle vignette has an example.
+When PostgreSQL or MySQL is combined with other services, its preset
+requests \code{user_impersonation} instead of \code{.default}. For a custom resource
+such as Oracle Database, supply \code{token_targets}; the Oracle vignette has
+an example.
 }
 \examples{
 \dontrun{

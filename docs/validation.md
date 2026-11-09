@@ -1,5 +1,22 @@
 # Validation record
 
+## 9 November 2026: Azure MySQL driver and authorization
+
+Added `oauth_db_azure_mysql()` and the Microsoft `mysql` preset. The helper
+uses MariaDB Connector/ODBC with forced TLS and certificate verification,
+and replaces its connection on the next access after token renewal.
+
+The local TLS protocol fixture passed with MariaDB Connector/ODBC 3.1.15
+and R odbc 1.7.2 on Linux, including a 12005-byte synthetic token, token
+renewal, separate visitors, rejected credentials and certificate checks.
+The new unit and guide-app tests pass with the Microsoft scope tests.
+MySQL Connector/ODBC 9.5.0 crashed with long option values and is excluded;
+[the backend notes](azure-mysql-backend.md) record the driver investigation.
+
+These checks don't establish live Azure compatibility. Entra JWT validation,
+tenant consent, Azure user/group mapping and actual database grants still
+need a real Azure deployment.
+
 ## 9 November 2026: Elasticsearch JWT access
 
 The new REST client uses the visitor's access token with an Elasticsearch

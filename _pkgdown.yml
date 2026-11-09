@@ -30,7 +30,7 @@ articles:
   - title: Databases and related services
     contents: [cratedb, duckdb, elasticsearch, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, starrocks, trino]
   - title: Cloud platforms
-    contents: [redshift, azure-postgres, azure-sql, clickhouse, databricks, bigquery, fabric, salesforce, snowflake, supabase]
+    contents: [redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
   - title: Overview and demos
     contents: [shinyOAuthDB-package, oauth_db_demo, oauth_db_cloud_demo]
@@ -38,6 +38,8 @@ reference:
     contents: [oauth_db_redshift]
   - title: Azure PostgreSQL
     contents: [oauth_db_azure_postgres]
+  - title: Azure MySQL
+    contents: [oauth_db_azure_mysql]
   - title: Azure SQL and SQL Server
     contents: [oauth_db_azure_sql, oauth_db_sql_server]
   - title: ClickHouse

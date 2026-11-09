@@ -194,6 +194,7 @@ and the parts of each integration that still need deployment validation.
 | --- | --- |
 | PostgreSQL | [Native OAuth](postgres.html), [PostgREST](postgrest.html), [Supabase](supabase.html), [Azure PostgreSQL](azure-postgres.html) |
 | SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
+| MySQL | [Azure Database for MySQL](azure-mysql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
 | Query engines | [Trino and Starburst](trino.html), [StarRocks](starrocks.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
 | Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [Elasticsearch](elasticsearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
@@ -373,6 +374,7 @@ configurations, rather than a list of every supported server version.
 | Elasticsearch | Elasticsearch 9.2.0; native JWT realm, document/field permissions, search, SQL, ES\|QL and verified HTTPS | Signed fixture tokens; browser sign-in, live JWKS rotation and Elastic Cloud Hosted are untested; Serverless has no JWT realms |
 | ClickHouse | Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed parameters and failed write responses | The fixture proxy supplies authentication; it does not validate ClickHouse Cloud's custom-JWT feature |
 | Azure PostgreSQL | PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10; real TLS and recovery after credential replacement | Entra token validation and a hosted Azure server are not exercised |
+| Azure MySQL | MariaDB Connector/ODBC 3.1.15 and R odbc 1.7.2; local password protocol, 12 KB tokens, credential replacement and verified TLS | Entra token validation, Azure user/group mapping and database grants are untested |
 | Databricks | brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow and pagination | MiniLake accepts every token and does not enforce grants; it does not validate Databricks authentication |
 | Fabric and Power BI | fabricQueryR 1.0.1 routing, callbacks and generated-app checks | Platform calls are mocked; hosted service permissions and native drivers need deployment checks |
 | BigQuery | Mocked REST responses cover parameters, polling, pagination, result types and account changes | Google browser sign-in, IAM grants and billed query execution are not covered by these mocks |

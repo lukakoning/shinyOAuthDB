@@ -17,6 +17,7 @@ vignette_chunks <- function(name) {
 }
 
 vignette_sources <- c(
+  "azure-mysql" = "odbc",
   "azure-sql" = "odbc",
   fabric = "fabricQueryR",
   databricks = "brickster",
