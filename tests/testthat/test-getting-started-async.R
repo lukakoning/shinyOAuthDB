@@ -29,7 +29,9 @@ test_that("the getting-started app configures and cleans up async OAuth workers"
         token_url = "https://example.invalid/token"
       ),
       url = "https://data.example",
-      stop = function() calls$demo_stops <- calls$demo_stops + 1L
+      stop = function() {
+        calls$demo_stops <- calls$demo_stops + 1L
+      }
     )
   }
   envir$onStop <- function(fun) {
@@ -229,7 +231,9 @@ test_that("authorization changes during token acquisition prevent worker dispatc
       has_scopes = function(scopes) TRUE,
       access_token = function(...) {
         calls$token_arguments <- list(...)
-        promises::promise(function(resolve, reject) resolve_token <<- resolve)
+        promises::promise(function(resolve, reject) {
+          resolve_token <<- resolve
+        })
       }
     )
     calls$selected(grant)
