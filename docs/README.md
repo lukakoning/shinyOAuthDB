@@ -21,6 +21,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Azure PostgreSQL | [RPostgres connections](../vignettes/azure-postgres.Rmd) |
 | Oracle Database | [OAuth access tokens and Oracle ODBC](../vignettes/oracle.Rmd) |
 | MongoDB | [Workforce OIDC and PyMongo](../vignettes/mongodb.Rmd) |
+| Neo4j | [Cypher queries with visitor access tokens](../vignettes/neo4j.Rmd) |
 | SAP HANA and HANA Cloud | [JWT access tokens and SAP HANA ODBC](../vignettes/hana.Rmd) |
 | Oracle REST Data Services | [JWT-protected HTTP resources](../vignettes/oracle-ords.Rmd) |
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
@@ -52,6 +53,7 @@ For existing apps and package development:
 - [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
 - [MongoDB backend decision](mongodb-backend.md)
+- [Neo4j backend decision](neo4j-backend.md)
 - [SAP HANA backend decision](hana-backend.md)
 - [SingleStore backend decision](singlestore-backend.md)
 - [Guided cloud demos: implementation notes](cloud-demos.md)

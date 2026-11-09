@@ -19,6 +19,7 @@ Rscript --vanilla tools/check-libsql-oauth.R
 Rscript --vanilla tools/check-cratedb-oauth.R
 Rscript --vanilla tools/check-opensearch-oauth.R
 Rscript --vanilla tools/check-elasticsearch-oauth.R
+Rscript --vanilla tools/check-neo4j-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
 
@@ -66,6 +67,12 @@ keys and tokens. Set `OAUTHDB_OPENSEARCH_TEST_IMAGE` or
 verified HTTPS, visitor-specific document and field permissions, SQL and
 ES|QL through the public client. It generates disposable tokens and a trial
 deployment; see the [Elasticsearch fixture](../integration/elasticsearch-oauth/README.md).
+
+`check-neo4j-oauth.R` checks native Neo4j Enterprise JWT authentication,
+per-user graph privileges, Cypher parameters, graph results and verified
+HTTPS. The [Neo4j fixture](../integration/neo4j-oauth/README.md) generates
+disposable user tokens and runs an evaluation deployment without a cloud
+account.
 
 With Docker running, `Rscript tools/check-clickhouse-parameters.R` checks
 DateTime, DateTime64, nullable timestamps, and timezone conversion against a

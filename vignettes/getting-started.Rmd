@@ -217,6 +217,7 @@ and the parts of each integration that still need deployment validation.
 | SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
 | CockroachDB | [CockroachDB](cockroachdb.html) |
 | MongoDB | [Workforce OIDC](mongodb.html) |
+| Neo4j | [Cypher and graph queries](neo4j.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
 | Query engines | [Trino and Starburst](trino.html), [Dremio](dremio.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
@@ -536,6 +537,7 @@ configurations, rather than a list of every supported server version.
 | --- | --- | --- |
 | CockroachDB | CockroachDB 25.4.0, RPostgres 1.4.10 and libpq 16.10; native JWT validation, per-user grants, token replacement and TLS | Signed fixture tokens; browser sign-in, live JWKS rotation and CockroachDB Cloud are untested |
 | Native PostgreSQL | PostgreSQL 18.3, shared libpq 18 and RPostgres 1.4.10; real Keycloak sign-in, user grants and TLS | Native OAuth is tested in Linux containers; Windows uses the unsupported-platform branch |
+| Neo4j | Neo4j 5.26.32 Enterprise; native JWT verification, per-user graph privileges, Cypher parameters, graph values, counters and verified HTTPS | Locally signed tokens; browser sign-in, live JWKS rotation, clustering and Aura are untested |
 | PostgREST | PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies, writes and TLS | Covers the local deployment, not Supabase's hosted gateway |
 | Trino | Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and TLS | A Starburst deployment still needs its own configuration check |
 | SingleStore | SingleStore 10.9.0 and Connector/ODBC 1.2.1; JWT validation, per-user grants, bound SQL, dbplyr, reconnects and TLS | Signed fixture tokens; browser sign-in, live JWKS rotation and SingleStore Helios are untested |

@@ -69,6 +69,12 @@ containing the [fixture requirements](../integration/mongodb-oidc/requirements.t
 The [MongoDB fixture](../integration/mongodb-oidc/README.md) checks native
 workforce OIDC, collection permissions, BSON values and TLS in Docker.
 
+Run `Rscript --vanilla tools/check-neo4j-oauth.R` with Docker available for
+native Neo4j Enterprise JWT authentication and per-user graph privileges.
+The [fixture](../integration/neo4j-oauth/README.md) checks the real Query API,
+Cypher parameters, graph results, token rejection and verified HTTPS with
+locally signed visitor tokens.
+
 With Docker and RPostgres linked to libpq 16 or later, run
 `Rscript --vanilla tools/check-azure-postgres.R` to check reconnection after
 credential replacement and database-session termination. This uses real

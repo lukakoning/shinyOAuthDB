@@ -58,6 +58,7 @@ Supported databases and data platforms (links open their setup guides):
 [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html) ·
 [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [MongoDB](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.html) ·
+[Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
 [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html) ·
 [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.html) ·

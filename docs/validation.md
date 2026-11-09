@@ -1,5 +1,27 @@
 # Validation record
 
+## 9 November 2026: Neo4j Query API and visitor JWTs
+
+`oauth_db_neo4j_api()` uses the HTTPS Query API v2 with the visitor's access
+token, parameterized Cypher and the shared session authorization checks.
+Queries return data frames with list columns for graph values; writes
+return native update counters. HTTP 202 query errors discard partial
+results, and statements never replay automatically.
+
+The Neo4j 5.26.32 Enterprise Docker fixture passes 30 assertions on Windows
+with R 4.5.1. Native JWT verification, distinct users and graph privileges,
+denied writes, bound parameters, graph paths, large integers, counters,
+token replacement, invalid JWT claims/signatures and verified HTTPS pass.
+The fixture uses locally signed tokens and an HTTPS JWKS endpoint.
+Browser sign-in, live provider key rotation, clustering and Aura remain
+untested. The integration workflow includes the fixture.
+
+The focused backend tests cover request serialization, exact results,
+malformed/partial envelopes, account and scope changes during requests,
+retained-client session isolation and refusal to retry failed statements.
+See the [backend decision](neo4j-backend.md) and
+[fixture instructions](../integration/neo4j-oauth/README.md).
+
 ## 9 November 2026: CockroachDB JWT SQL authentication
 
 `oauth_db_cockroachdb()` uses RPostgres with CockroachDB's JWT SQL flag,

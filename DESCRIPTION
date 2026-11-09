@@ -26,6 +26,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     Queries CrateDB's HTTPS SQL interface with per-user JWT access tokens.
     Queries MongoDB through the official 'PyMongo' driver and 'reticulate',
     using each visitor's workforce OIDC access token.
+    Queries Neo4j's HTTPS Query API with each visitor's access token and
+    database roles, returning Cypher results and graph values.
     Searches Elasticsearch using visitor JWT access tokens, with SQL and
     ES|QL queries and optional JWT realm client authentication.
     Searches OpenSearch
