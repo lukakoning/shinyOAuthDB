@@ -1,5 +1,18 @@
 # Validation record
 
+## 9 November 2026: backend validation table
+
+The getting-started guide now distinguishes local real-database fixtures,
+mocked service calls and driver-boundary checks. Its version and limitation
+table cites this validation record and the integration fixtures. It makes
+the unverified hosted-provider and SAP/Oracle deployment boundaries visible
+in the user guide. The table does not add a new compatibility claim or
+report new live cloud results.
+
+Documentation checks on an isolated copy parse 87 R blocks and resolve
+194 local links and 49 section anchors. The getting-started vignette renders
+successfully with `html_vignette`.
+
 ## 9 November 2026: native ODBC error traces
 
 ODBC adapters now call DBI with references to their argument values, keeping
