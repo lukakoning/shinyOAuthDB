@@ -58,6 +58,7 @@ Suggests:
     jsonlite,
     knitr,
     later,
+    mirai (>= 2.5.1),
     odbc (>= 1.4.2),
     pkgload,
     processx,

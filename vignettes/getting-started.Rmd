@@ -76,10 +76,11 @@ and Keycloak sign-in service in Docker. You don't need a cloud account or a
 database driver.
 
 Install and start Docker with Linux containers and Docker Compose 2.24.4
-or later. Also install `jsonlite` in R for the API responses:
+or later. Install `jsonlite` for the API responses and `mirai` for background
+OAuth requests:
 
 ```{r demo-dependency}
-install.packages("jsonlite")
+install.packages(c("jsonlite", "mirai"))
 ```
 
 Save the following as `example.R` and run `source("example.R")`:
@@ -111,7 +112,9 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth", client, auto_redirect = FALSE, async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
@@ -128,7 +131,11 @@ runApp(
   shinyApp(
     ui, server,
     uiPattern = ".*",
-    onStart = function() { onStop(demo$stop) }
+    onStart = function() {
+      onStop(demo$stop)
+      mirai::daemons(2)
+      onStop(function() mirai::daemons(0))
+    }
   ),
   port = 18100,
   launch.browser = FALSE
@@ -167,6 +174,13 @@ Inside `server()`, `oauth_module_server()` manages sign-in for that
 visitor's Shiny session. With `auto_redirect = FALSE`, the app waits for
 the **Sign in** button. The two observers connect the buttons to
 `auth$request_login()` and `auth$logout()`.
+
+The app starts two mirai workers once, when the app starts, and stops them
+when the app stops. With `async = TRUE`, shinyOAuth uses those workers for
+its OAuth network operations, including token exchange and refresh. A slow
+identity provider can then be handled without blocking the app's R process.
+See [Enable asynchronous OAuth](#enable-asynchronous-oauth) for deployment
+settings and the separate steps needed for background data fetching.
 
 `auth$connection` is a function that provides the current authorization.
 Pass the function, without parentheses, to `oauth_db_postgrest_api()` so
@@ -320,6 +334,45 @@ Keep live connections and token callbacks in the Shiny session that
 created them. For background work, use the database package's supported
 approach and check the current authorization before displaying a result.
 Signing out doesn't necessarily cancel work already submitted to a platform.
+
+### Enable asynchronous OAuth
+
+For an app serving several users, enable shinyOAuth's async path so that
+token exchange and refresh do not hold up other sessions in the same R
+process. The small app above already does this. In another app, configure
+workers once at application startup, outside `server()`, and stop them at
+application shutdown:
+
+```{r async-oauth}
+mirai::daemons(2)
+shiny::onStop(function() mirai::daemons(0))
+
+server <- function(input, output, session) {
+  auth <- shinyOAuth::oauth_module_server(
+    "auth", client, auto_redirect = FALSE, async = TRUE
+  )
+  # Add the app's observers and outputs here.
+}
+```
+
+Setting `async = TRUE` alone is not enough: install mirai and configure its
+workers before the module runs. The pool belongs to the app's R process,
+so visitors share it; do not start a pool for each visitor. Choose its size
+for your deployment's memory and concurrency limits. For an existing future
+deployment, a non-sequential `future::multisession` plan is another supported
+backend. A sequential future plan still blocks. See shinyOAuth's
+[async setup guide](https://lukakoning.github.io/shinyOAuth/articles/usage.html#asynchronous-execution)
+for that alternative and its package requirements.
+
+This setting covers shinyOAuth's module operations. Provider discovery at
+app setup, database connections, queries, polling and result downloads are
+separate. In particular, it does not change `DBI::dbGetQuery()` or the built-in
+HTTP query methods into background operations. The database helpers also
+request tokens synchronously; an on-demand token acquisition can still block,
+while an already running module refresh makes reactive callers wait quietly.
+For an explicitly asynchronous acquisition, use
+`grant$access_token(..., async = TRUE)` in the owning session. See shinyOAuth's
+[external integration guide](https://lukakoning.github.io/shinyOAuth/articles/external-integrations.html#advanced-asynchronous-token-acquisition).
 
 ### Save query results
 
