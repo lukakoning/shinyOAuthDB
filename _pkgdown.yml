@@ -27,74 +27,79 @@ navbar:
 articles:
   - title: Start here
     contents: [getting-started]
-  - title: Databases and related services
-    contents: [cockroachdb, cratedb, dremio, duckdb, elasticsearch, libsql, mongodb, neo4j, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
-  - title: Cloud platforms
-    contents: [athena, redshift, azure-mysql, azure-postgres, azure-sql, cosmos, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
+  - title: PostgreSQL and query engines
+    contents: [postgres, postgrest, duckdb, trino]
+  - title: Cloud data platforms and managed databases
+    contents: [databricks, fabric, snowflake, bigquery, redshift, athena, azure-sql,
+      azure-postgres, azure-mysql, cloud-sql, cosmos, supabase]
+  - title: More databases and APIs
+    contents: [oracle, oracle-ords, mongodb, elasticsearch, opensearch, neo4j,
+      hana, salesforce, clickhouse, singlestore, starrocks, libsql,
+      cockroachdb, dremio, cratedb]
 reference:
   - title: Overview and demos
     contents: [shinyOAuthDB-package, oauth_db_demo, oauth_db_cloud_demo]
-  - title: Amazon Athena
-    contents: [oauth_db_athena]
+  - title: PostgreSQL
+    contents: [oauth_db_postgres, oauth_db_postgrest_api]
+  - title: DuckDB
+    contents: [oauth_db_duckdb]
+  - title: Trino and Starburst Enterprise
+    contents: [oauth_db_trino]
+  - title: Databricks
+    contents: [oauth_db_databricks_client, oauth_db_databricks,
+      oauth_db_databricks_api, oauth_db_databricks_provider]
+  - title: Microsoft Fabric and Power BI
+    contents: [oauth_db_fabric_sql, oauth_db_fabric_api, oauth_db_fabric]
+  - title: Snowflake
+    contents: [oauth_db_snowflake_client, oauth_db_snowflake,
+      oauth_db_snowflake_provider]
+  - title: Google BigQuery
+    contents: [oauth_db_bigquery_client, oauth_db_bigquery_api]
   - title: Amazon Redshift
     contents: [oauth_db_redshift]
+  - title: Amazon Athena
+    contents: [oauth_db_athena]
+  - title: Azure SQL and SQL Server
+    contents: [oauth_db_azure_sql, oauth_db_sql_server]
   - title: Azure PostgreSQL
     contents: [oauth_db_azure_postgres]
   - title: Azure MySQL
     contents: [oauth_db_azure_mysql]
-  - title: Azure SQL and SQL Server
-    contents: [oauth_db_azure_sql, oauth_db_sql_server]
-  - title: Azure Cosmos DB for NoSQL
-    contents: [oauth_db_cosmos_client, oauth_db_cosmos_api]
-  - title: ClickHouse
-    contents: [oauth_db_clickhouse_api]
-  - title: CrateDB
-    contents: [oauth_db_cratedb_api]
-  - title: CockroachDB
-    contents: [oauth_db_cockroachdb]
-  - title: Databricks
-    contents: [oauth_db_databricks_client, oauth_db_databricks,
-      oauth_db_databricks_api, oauth_db_databricks_provider]
-  - title: DuckDB
-    contents: [oauth_db_duckdb]
-  - title: Dremio
-    contents: [oauth_db_dremio]
-  - title: Elasticsearch
-    contents: [oauth_db_elasticsearch_api]
-  - title: Google BigQuery
-    contents: [oauth_db_bigquery_client, oauth_db_bigquery_api]
   - title: Google Cloud SQL
     contents: [oauth_db_cloud_sql_client, oauth_db_cloud_sql_postgres]
-  - title: libSQL and Turso
-    contents: [oauth_db_libsql_api]
-  - title: Microsoft Fabric and Power BI
-    contents: [oauth_db_fabric_sql, oauth_db_fabric_api, oauth_db_fabric]
-  - title: MongoDB
-    contents: [oauth_db_mongodb]
-  - title: Neo4j
-    contents: [oauth_db_neo4j_api]
-  - title: OpenSearch
-    contents: [oauth_db_opensearch_api]
+  - title: Azure Cosmos DB for NoSQL
+    contents: [oauth_db_cosmos_client, oauth_db_cosmos_api]
+  - title: Supabase
+    contents: [oauth_db_supabase_client, oauth_db_supabase_api]
   - title: Oracle Database
     contents: [oauth_db_oracle, oauth_db_oracle_ords_api]
-  - title: PostgreSQL
-    contents: [oauth_db_postgres, oauth_db_postgrest_api]
+  - title: MongoDB
+    contents: [oauth_db_mongodb]
+  - title: Elasticsearch
+    contents: [oauth_db_elasticsearch_api]
+  - title: OpenSearch
+    contents: [oauth_db_opensearch_api]
+  - title: Neo4j
+    contents: [oauth_db_neo4j_api]
+  - title: SAP HANA and HANA Cloud
+    contents: [oauth_db_hana]
   - title: Salesforce CRM and Data Cloud
     contents: [oauth_db_salesforce_client, oauth_db_salesforce_api,
       oauth_db_salesforce_data_cloud_api]
-  - title: SAP HANA and HANA Cloud
-    contents: [oauth_db_hana]
-  - title: Snowflake
-    contents: [oauth_db_snowflake_client, oauth_db_snowflake,
-      oauth_db_snowflake_provider]
+  - title: ClickHouse
+    contents: [oauth_db_clickhouse_api]
   - title: SingleStore
     contents: [oauth_db_singlestore]
   - title: StarRocks
     contents: [oauth_db_starrocks]
-  - title: Supabase
-    contents: [oauth_db_supabase_client, oauth_db_supabase_api]
-  - title: Trino and Starburst Enterprise
-    contents: [oauth_db_trino]
+  - title: libSQL and Turso
+    contents: [oauth_db_libsql_api]
+  - title: CockroachDB
+    contents: [oauth_db_cockroachdb]
+  - title: Dremio
+    contents: [oauth_db_dremio]
+  - title: CrateDB
+    contents: [oauth_db_cratedb_api]
   - title: Shared helpers
     desc: Microsoft sign-in and custom connection or token helpers for use across data sources.
     contents: [oauth_db_microsoft_client, oauth_db_connect, oauth_db_token, oauth_db_task]
