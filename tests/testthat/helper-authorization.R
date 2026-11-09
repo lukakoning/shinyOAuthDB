@@ -131,8 +131,7 @@ odb_test_authorization <- function(
         return(acquire(async = async, ...))
       }
       token(make_token(paste0("fixture-", id, "-acquired")))
-      stopifnot(!async)
-      TRUE
+      if (async) promises::promise_resolve(TRUE) else TRUE
     },
 
     is_current = function() current()

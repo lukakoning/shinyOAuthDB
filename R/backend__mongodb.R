@@ -119,21 +119,16 @@ oauth_db_mongodb <- function(
   }
   connection <- .odb_bind(
     authorization,
-    function(token) {
-      driver <- .odb_mongodb_open(
-        token(),
-        url,
-        db,
-        issuer,
-        username(),
-        client_id,
-        hosts,
-        timeout,
-        ca_bundle
-      )
-      list(driver = driver, check = function() token(.check_only = TRUE))
-    },
-    disconnect = function(value) value$driver$close(),
+    .odb_backend_mongodb,
+    url = url,
+    db = db,
+    issuer = issuer,
+    user = username,
+    client_id = client_id,
+    hosts = hosts,
+    timeout = timeout,
+    ca_bundle = ca_bundle,
+    disconnect = .odb_mongodb_disconnect,
     cache_key = function(token) openssl::sha256(charToRaw(token())),
     identity_key = username,
     target = target,
@@ -143,6 +138,34 @@ oauth_db_mongodb <- function(
   )
   .odb_mongodb_client$new(connection)
 }
+
+.odb_backend_mongodb <- function(
+  token,
+  url,
+  db,
+  issuer,
+  user,
+  client_id,
+  hosts,
+  timeout,
+  ca_bundle
+) {
+  username <- if (is.function(user)) user() else user
+  driver <- .odb_mongodb_open(
+    token(),
+    url,
+    db,
+    issuer,
+    username,
+    client_id,
+    hosts,
+    timeout,
+    ca_bundle
+  )
+  list(driver = driver, check = function() token(.check_only = TRUE))
+}
+
+.odb_mongodb_disconnect <- function(value) value$driver$close()
 
 .odb_mongodb_client <- R6::R6Class(
   "OAuthMongoDBClient",

@@ -81,20 +81,28 @@ oauth_db_connect <- function(
   if (token_arg %in% names(args)) {
     .odb_abort("The bridge supplies the token argument; omit it from ... .")
   }
-  factory <- function(token) {
-    native_args <- args
-    native_args[[token_arg]] <- token()
-    do.call(connect, native_args)
-  }
   .odb_bind(
     authorization,
-    factory,
+    .odb_backend_generic,
+    native_connect = connect,
+    native_args = args,
+    token_arg = token_arg,
     target = target,
     required_scopes = required_scopes,
     disconnect = disconnect,
     min_valid_for = min_valid_for,
     session = session
   )
+}
+
+.odb_backend_generic <- function(
+  token,
+  native_connect,
+  native_args,
+  token_arg
+) {
+  native_args[[token_arg]] <- token()
+  do.call(native_connect, native_args)
 }
 
 #' Get a user's access token for another R package
@@ -137,7 +145,7 @@ oauth_db_token <- function(
 ) {
   .odb_bind(
     authorization,
-    function(token) token(),
+    .odb_backend_token,
     target = target,
     required_scopes = required_scopes,
     cache_key = function(token) token(),
@@ -145,6 +153,8 @@ oauth_db_token <- function(
     session = session
   )
 }
+
+.odb_backend_token <- function(token) token()
 
 # The token callback can use only the authorization that created it.
 # Cache connections and providers; the caller runs queries.
@@ -345,7 +355,7 @@ oauth_db_token <- function(
       )
     }
   }
-  connection <- function() {
+  connection <- function(.token_only = FALSE) {
     assert_owner()
     shiny::isolate(sync())
     changed() # Depend on authorization changes, never on ordinary token rotation.
@@ -358,10 +368,16 @@ oauth_db_token <- function(
     token <- function(
       force_refresh = FALSE,
       scopes = character(),
-      .check_only = FALSE
+      .check_only = FALSE,
+      .async = FALSE,
+      .min_valid_for = min_valid_for,
+      .allow_unacquired = FALSE
     ) {
       .odb_flag(force_refresh, "force_refresh")
       .odb_flag(.check_only, ".check_only")
+      .odb_flag(.async, ".async")
+      .odb_flag(.allow_unacquired, ".allow_unacquired")
+      .odb_seconds(.min_valid_for, ".min_valid_for")
       operation_scopes <- union(required_scopes, .odb_scopes(scopes))
       current(captured)
       if (.check_only) {
@@ -370,7 +386,12 @@ oauth_db_token <- function(
             pinned,
             operation_scopes,
             target
-          ))
+          )) &&
+            !(.allow_unacquired &&
+              identical(
+                shiny::isolate(.odb_authorization_status(pinned, target)),
+                "not_acquired"
+              ))
         ) {
           .odb_abort(
             "The authorization no longer grants this operation's permissions.",
@@ -386,18 +407,40 @@ oauth_db_token <- function(
       }
       value <- shiny::isolate(pinned$access_token(
         required_scopes = operation_scopes,
-        min_valid_for_seconds = min_valid_for,
+        min_valid_for_seconds = max(min_valid_for, .min_valid_for),
         force_refresh = force_refresh,
-        async = FALSE,
+        async = .async,
         target = target
       ))
-      current(captured)
-      .odb_string(value, "access token")
-      attributes(value) <- NULL
-      if (!grepl("^[A-Za-z0-9._~+/-]+=*$", value)) {
-        .odb_abort("Invalid bearer token.", "invalid_credential")
+      checked <- function(value) {
+        current(captured)
+        if (
+          !shiny::isolate(.odb_authorization_has_scopes(
+            pinned,
+            operation_scopes,
+            target
+          ))
+        ) {
+          .odb_abort(
+            "The operation's permissions changed.",
+            "authorization_unavailable"
+          )
+        }
+        .odb_string(value, "access token")
+        attributes(value) <- NULL
+        if (!grepl("^[A-Za-z0-9._~+/-]+=*$", value)) {
+          .odb_abort("Invalid bearer token.", "invalid_credential")
+        }
+        value
       }
-      value
+      if (.async) {
+        promises::then(promises::promise_resolve(value), checked)
+      } else {
+        checked(value)
+      }
+    }
+    if (.token_only) {
+      return(token)
     }
     tryCatch(
       {
@@ -468,6 +511,20 @@ oauth_db_token <- function(
     # are no live consumers to notify; retained accessors check `closed` first.
     observer$destroy()
   })
+  attr(connection, ".odb_task") <- list(
+    pin = function() connection(.token_only = TRUE),
+    watch = function() {
+      assert_owner()
+      changed()
+      invisible(NULL)
+    },
+    connect = connect,
+    args = args,
+    scopes = required_scopes,
+    min_valid_for = min_valid_for,
+    disconnect = disconnect,
+    owner = owner
+  )
   connection
 }
 

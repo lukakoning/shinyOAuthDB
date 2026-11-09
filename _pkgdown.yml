@@ -97,4 +97,4 @@ reference:
     contents: [oauth_db_trino]
   - title: Shared helpers
     desc: Microsoft sign-in and custom connection or token helpers for use across data sources.
-    contents: [oauth_db_microsoft_client, oauth_db_connect, oauth_db_token]
+    contents: [oauth_db_microsoft_client, oauth_db_connect, oauth_db_token, oauth_db_task]

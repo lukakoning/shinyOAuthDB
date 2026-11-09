@@ -1,5 +1,11 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_task()` for background database and API operations with mirai.
+  Acquire credentials asynchronously in the owning Shiny session, open and
+  close a separate worker connection, and hide results when authorization
+  changes. Complete examples use background fetching and install missing
+  dependencies before loading packages.
+
 * Add `oauth_db_neo4j_api()` for Cypher queries with each visitor's access
   token and Neo4j database roles. Includes parameter binding, graph results,
   update counters, session isolation and a complete Shiny setup guide.

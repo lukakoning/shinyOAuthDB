@@ -43,10 +43,12 @@ Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports:
     cli,
+    codetools,
     DBI (>= 1.2.0),
     httr2 (>= 1.2.0),
+    methods,
     openssl,
-    promises,
+    promises (>= 1.3.0),
     R6,
     rlang,
     shiny (>= 1.8.1),
