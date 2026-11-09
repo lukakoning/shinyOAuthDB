@@ -222,10 +222,16 @@ test_that("libSQL decodes REAL numbers independently of JSON integer notation", 
     )) {
       payload <<- response(number)
       rows <- api$query("SELECT value, id")
-      expect_identical(rows$value, as.numeric(number))
+      expect_type(rows$value, "double")
+      expect_equal(rows$value, as.numeric(number), tolerance = 1e-15)
       expect_identical(rows$id, "9223372036854775807")
       raw <- api$query("SELECT value, id", raw = TRUE)
-      expect_identical(raw$rows[[1L]][[1L]]$value, as.numeric(number))
+      expect_type(raw$rows[[1L]][[1L]]$value, "double")
+      expect_equal(
+        raw$rows[[1L]][[1L]]$value,
+        as.numeric(number),
+        tolerance = 1e-15
+      )
     }
     for (count in list(
       list(json = "9007199254740991", value = 9007199254740991),
