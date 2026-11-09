@@ -54,6 +54,8 @@ BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
 [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html)
 · [Google
 BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html)
+· [Google Cloud SQL for
+PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.html)
 · [Amazon
 Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
 · [Azure SQL and SQL

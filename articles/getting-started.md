@@ -201,7 +201,7 @@ validation.
 
 | Data source | Setup guide |
 |----|----|
-| PostgreSQL | [Native OAuth](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md), [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md), [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md), [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md) |
+| PostgreSQL | [Native OAuth](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md), [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md), [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md), [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md), [Google Cloud SQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.md) |
 | SQL Server | [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.md) |
 | CockroachDB | [CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.md) |
 | MySQL | [Azure Database for MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.md) |

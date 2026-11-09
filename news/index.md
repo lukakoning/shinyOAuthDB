@@ -2,6 +2,10 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Add Google Cloud SQL IAM database authentication for PostgreSQL, with
+  a Google sign-in preset, per-visitor DBI connections, verified TLS,
+  current credentials on reconnection, and a setup guide.
+
 - Add
   [`oauth_db_cockroachdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cockroachdb.md)
   for self-hosted and cloud CockroachDB clusters configured for JWT SQL

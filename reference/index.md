@@ -75,6 +75,13 @@
 - [`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md)
   : Query BigQuery as the signed-in user
 
+## Google Cloud SQL
+
+- [`oauth_db_cloud_sql_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_sql_client.md)
+  : Set up Google sign-in for Cloud SQL
+- [`oauth_db_cloud_sql_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_sql_postgres.md)
+  : Query Cloud SQL for PostgreSQL as the signed-in user
+
 ## libSQL and Turso
 
 - [`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md)

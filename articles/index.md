@@ -39,6 +39,8 @@
 - [Azure SQL and SQL
   Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.md):
 - [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md):
+- [Google Cloud
+  SQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.md):
 - [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md):
 - [Google
   BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.md):
