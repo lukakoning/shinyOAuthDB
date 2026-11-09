@@ -355,10 +355,6 @@ static SEXP C_pg_bearer_available(void) {
 #endif
 }
 
-/* R's registered .Call ABI deliberately erases each routine's signature to
- * DL_FUNC. Keep -Wextra elsewhere while silencing only these required casts. */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-function-type"
 static const R_CallMethodDef call_methods[] = {
     {"C_pg_with_bearer", (DL_FUNC) &C_pg_with_bearer, 3},
     {"C_pg_bearer_runtime", (DL_FUNC) &C_pg_bearer_runtime, 1},
@@ -367,7 +363,6 @@ static const R_CallMethodDef call_methods[] = {
     {"C_pg_connection_valid", (DL_FUNC) &C_pg_connection_valid, 1},
     {NULL, NULL, 0}
 };
-#pragma GCC diagnostic pop
 
 void attribute_visible R_init_shinyOAuthDB(DllInfo *dll) {
     R_registerRoutines(dll, NULL, call_methods, NULL, NULL);
