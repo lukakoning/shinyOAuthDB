@@ -40,15 +40,11 @@ Supported databases and data platforms (links open their setup guides):
 
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 ·
-[CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.html)
-·
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html)
 · [DuckDB (over
 Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html)
 · [Trino and
 Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html)
-·
-[Dremio](https://lukakoning.github.io/shinyOAuthDB/articles/dremio.html)
 ·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html)
 · [Microsoft Fabric and Power
@@ -56,52 +52,62 @@ BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
 [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html)
 · [Google
 BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html)
-· [Google Cloud SQL for
-PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.html)
-· [Amazon
-Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.html)
 · [Amazon
 Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
+· [Amazon
+Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.html)
 · [Azure SQL and SQL
 Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 · [Azure
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
 · [Azure
 MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.html)
+· [Google Cloud SQL for
+PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.html)
 · [Azure Cosmos DB for
 NoSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cosmos.html) ·
-[SAP HANA and HANA
-Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.html) ·
 [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html)
 · [Oracle
 Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html)
 · [Oracle REST Data
 Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 ·
-[ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
-·
-[StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html)
-·
-[SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html)
-· [libSQL and
-Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [MongoDB](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.html)
-· [Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.html)
-·
-[CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
-·
-[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html)
 ·
 [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.html)
-· [Salesforce CRM and Data
-Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html).
+·
+[OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html)
+· [Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.html)
+· [SAP HANA and HANA
+Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.html) ·
+[Salesforce CRM and Data
+Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html)
+·
+[ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
+·
+[SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html)
+·
+[StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html)
+· [libSQL and
+Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
+[CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.html)
+·
+[Dremio](https://lukakoning.github.io/shinyOAuthDB/articles/dremio.html)
+·
+[CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html).
 
 ## Install
 
+The example below installs missing packages from CRAN. To install the
+development version from GitHub instead:
+
 ``` r
 
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")
+pkgs <- c("remotes")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
 }
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
@@ -123,14 +129,19 @@ for that.
 
 ``` r
 
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-# Start a local demo with PostgreSQL and Keycloak sign-in in Docker
 demo <- oauth_db_demo("postgrest", action = "services")
 
-# Create an OAuth client for the demo Keycloak server
 client <- oauth_client(
   demo$provider,
   client_id = "shiny-db",
@@ -143,6 +154,8 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
+    textOutput("account"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -150,31 +163,36 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
-  postgres <- oauth_db_postgrest_api(
-    auth$connection,
-    url = demo$url
-  )
-  output$rows <- renderTable({
-    postgres$select("visible_rows", order = "row_id.asc")
+  output$account <- renderText({
+    if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
   })
+  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+  query_task <- oauth_db_task(postgres, method = "select")
+  observeEvent(input$load, {
+    query_task$invoke("visible_rows", order = "row_id.asc")
+  })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(
-    ui, server, 
-    uiPattern = ".*", 
-    onStart = function() { onStop(demo$stop) }
-  ),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    onStop(demo$stop)
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 18100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:18100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Sign in as `alice` / `alice` or `bob` / `bob` (username / password). The

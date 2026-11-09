@@ -71,7 +71,17 @@ and an API origin can differ.
 The app queries when the visitor clicks **Run query**. Replace the Data
 Cloud object and field names with ones available in your data space.
 
+Install `mirai` for background OAuth and data fetching. Each query task
+keeps the app responsive while Salesforce runs and returns its results.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -97,7 +107,7 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE, async = TRUE)
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
@@ -107,27 +117,27 @@ server <- function(input, output, session) {
   crm <- oauth_db_salesforce_api(auth$connection, instance_url)
   cloud <- oauth_db_salesforce_data_cloud_api(auth$connection, instance_url)
 
-  rows <- eventReactive(input$query, {
-    connection <- req(auth$connection())
-    scopes <- if (input$source == "CRM") "api" else c("api", "cdp_query_api")
-    data <- if (input$source == "CRM") {
-      crm$query("SELECT Id, Name FROM Account LIMIT 20")
+  tasks <- list(CRM = oauth_db_task(crm), `Data Cloud` = oauth_db_task(cloud))
+  observeEvent(input$query, {
+    selected <- req(tasks[[req(input$source)]])
+    statement <- if (input$source == "CRM") {
+      "SELECT Id, Name FROM Account LIMIT 20"
     } else {
-      cloud$query("SELECT ssot__Id__c FROM ssot__Individual__dlm LIMIT 20")
+      "SELECT ssot__Id__c FROM ssot__Individual__dlm LIMIT 20"
     }
-    list(connection = connection, scopes = scopes, data = data)
+    selected$invoke(statement)
   })
   output$rows <- renderTable({
-    connection <- req(auth$connection())
-    saved <- rows()
-    req(identical(saved$connection, connection))
-    req(connection$has_scopes(saved$scopes))
-    saved$data
+    selected <- req(tasks[[req(input$source)]])
+    selected$result()
   })
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )

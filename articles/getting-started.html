@@ -101,31 +101,10 @@ database or table; they also need the relevant database permissions.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
-<p>Installing from GitHub builds the package from source. Install the
-build tools for your R version first:</p>
-<ul>
-<li>
-<strong>Windows:</strong> <a href="https://cran.r-project.org/bin/windows/Rtools/" class="external-link">Rtools</a>
-matching your R version.</li>
-<li>
-<strong>macOS:</strong> <a href="https://mac.r-project.org/tools/" class="external-link">Xcode Command Line Tools</a>,
-installed with <code>xcode-select --install</code> in Terminal.</li>
-<li>
-<strong>Linux:</strong> your distribution’s R development package
-and C build tools; for example, <code>r-base-dev</code> and
-<code>build-essential</code> on Debian or Ubuntu.</li>
-</ul>
-<p>These tools are needed even for HTTP backends that do not need a
-database driver.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lukakoning/shinyOAuthDB"</span><span class="op">)</span></span></code></pre></div>
-<p>This also installs shinyOAuth. Some data sources need an additional R
-package or database driver; their guides list the requirements. Add
-<code>build_vignettes = TRUE</code> to the installation call if you want
-to read the guides locally with <code><a href="https://rdrr.io/r/utils/vignette.html" class="external-link">vignette()</a></code>.</p>
+<p>The examples below install missing R packages from CRAN before
+loading them. shinyOAuthDB also installs shinyOAuth. Some data sources
+need an additional database driver; their guides list the
+requirements.</p>
 </div>
 <div class="section level2">
 <h2 id="build-a-small-app">Build a small app<a class="anchor" aria-label="anchor" href="#build-a-small-app"></a>
@@ -135,18 +114,25 @@ HTTP API for PostgreSQL. It runs Shiny in your R session and starts the
 database and Keycloak sign-in service in Docker. You don’t need a cloud
 account or a database driver.</p>
 <p>Install and start Docker with Linux containers and Docker Compose
-2.24.4 or later. Install <code>jsonlite</code> for the API responses and
-<code>mirai</code> for background OAuth requests:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"mirai"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+2.24.4 or later. The app uses <code>jsonlite</code> for API responses
+and <code>mirai</code> for background OAuth requests and data
+fetching.</p>
 <p>Save the following as <code>example.R</code> and run
-<code>source("example.R")</code>:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
+<code>source("example.R")</code>. After signing in, click <strong>Load
+rows</strong>. The app starts its workers once and stops them at
+shutdown.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pkgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="st">"shinyOAuth"</span>, <span class="st">"shinyOAuthDB"</span>, <span class="st">"mirai"</span>, <span class="st">"jsonlite"</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">pkg</span> <span class="kw">in</span> <span class="va">pkgs</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="va">pkg</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pkg</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Start PostgreSQL, PostgREST and Keycloak in Docker</span></span>
 <span><span class="va">demo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_demo.html">oauth_db_demo</a></span><span class="op">(</span><span class="st">"postgrest"</span>, action <span class="op">=</span> <span class="st">"services"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">client</span> <span class="op">&lt;-</span> <span class="fu">oauth_client</span><span class="op">(</span></span>
@@ -161,6 +147,8 @@ account or a database driver.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"load"</span>, <span class="st">"Load rows"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/textOutput.html" class="external-link">textOutput</a></span><span class="op">(</span><span class="st">"account"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
@@ -169,45 +157,48 @@ account or a database driver.</p>
 <span></span>
 <span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span></span>
-<span>    <span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span>, async <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>    <span class="st">"auth"</span>,</span>
+<span>    <span class="va">client</span>,</span>
+<span>    auto_redirect <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>    async <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>  <span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">login</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">request_login</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span>  <span class="va">postgres</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api</a></span><span class="op">(</span></span>
-<span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
-<span>    url <span class="op">=</span> <span class="va">demo</span><span class="op">$</span><span class="va">url</span></span>
-<span>  <span class="op">)</span></span>
-<span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">postgres</span><span class="op">$</span><span class="fu">select</span><span class="op">(</span><span class="st">"visible_rows"</span>, order <span class="op">=</span> <span class="st">"row_id.asc"</span><span class="op">)</span></span>
+<span>  <span class="va">output</span><span class="op">$</span><span class="va">account</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderPrint.html" class="external-link">renderText</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">auth</span><span class="op">$</span><span class="fu">connection</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="st">"Not signed in"</span> <span class="kw">else</span> <span class="st">"Signed in. Click Load rows."</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="va">postgres</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api</a></span><span class="op">(</span><span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, url <span class="op">=</span> <span class="va">demo</span><span class="op">$</span><span class="va">url</span><span class="op">)</span></span>
+<span>  <span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">postgres</span>, method <span class="op">=</span> <span class="st">"select"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>    <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"visible_rows"</span>, order <span class="op">=</span> <span class="st">"row_id.asc"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span></span>
-<span>    <span class="va">ui</span>, <span class="va">server</span>,</span>
-<span>    uiPattern <span class="op">=</span> <span class="st">".*"</span>,</span>
-<span>    onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span></span>
-<span>      <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="op">}</span></span>
-<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span>, onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="va">demo</span><span class="op">$</span><span class="va">stop</span><span class="op">)</span></span>
+<span>    <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span>,</span>
 <span>  port <span class="op">=</span> <span class="fl">18100</span>,</span>
 <span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open the app in your regular browser at its registered redirect URI.</span></span></code></pre></div>
 <p>The first Docker build takes a few minutes and needs internet access
 and several GB of disk space. When Shiny is ready, open
 <code>http://localhost:18100</code> in your regular browser. Embedded
 RStudio/Positron viewers can’t complete the sign-in redirects. Your
 browser may ask you to accept Keycloak’s generated local test
 certificate.</p>
-<p>Sign in as <code>alice</code> with password <code>alice</code>. The
-table shows <code>alice-visible-1</code> and
-<code>alice-visible-2</code>. Sign out, then sign in as <code>bob</code>
-with password <code>bob</code>: you’ll see Bob’s rows instead. The app
-sends the same request for both users; PostgreSQL’s row policies
-determine the result.</p>
+<p>Sign in as <code>alice</code> with password <code>alice</code>, then
+click <strong>Load rows</strong>. The table shows
+<code>alice-visible-1</code> and <code>alice-visible-2</code>. Sign out,
+then sign in as <code>bob</code> with password <code>bob</code> and
+click <strong>Load rows</strong> to fetch Bob’s rows. The app sends the
+same request for both users; PostgreSQL’s row policies determine the
+result.</p>
 <p>Stop the Shiny app to remove the Docker services and sample data. The
 <code>onStop(demo$stop)</code> call arranges this cleanup. If you start
 the services separately, call <code>demo$stop()</code> when finished.
@@ -243,14 +234,16 @@ authorization. Pass the function, without parentheses, to
 <code><a href="../reference/oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code> so the API client can check it
 each time it needs a token. Create this helper inside
 <code>server()</code> to keep it with the visitor who signed in.</p>
-<p>Finally, <code>$select()</code> reads the table and returns a data
-frame for <code><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable()</a></code>. Before sign-in, the helper waits
-quietly, like <code><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">shiny::req()</a></code>. Because the call runs inside a
-reactive output, Shiny updates the table when the authorization changes
-and clears it on sign-out. See <code><a href="../reference/oauth_db_postgrest_api.html">?oauth_db_postgrest_api</a></code> for
-filters and other request methods. The <code>$select()</code> call
-itself is synchronous. For longer requests, use the <a href="#fetch-data-in-the-background">background fetching
-example</a>.</p>
+<p>The <strong>Load rows</strong> button invokes the task’s
+<code>select</code> operation in a worker. <code>result()</code>
+supplies its data frame to <code><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable()</a></code>. Before sign-in,
+the helper waits quietly, like <code><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">shiny::req()</a></code>. Authorization
+changes clear the previous result; click <strong>Load rows</strong> to
+fetch again after signing in. See <code><a href="../reference/oauth_db_postgrest_api.html">?oauth_db_postgrest_api</a></code>
+for filters and other request methods. Calling <code>$select()</code>
+directly runs synchronously; the task keeps that work in its worker. See
+<a href="#fetch-data-in-the-background">background fetching</a> for the
+task’s lifecycle and deployment options.</p>
 </div>
 <div class="section level2">
 <h2 id="connect-your-own-data">Connect your own data<a class="anchor" aria-label="anchor" href="#connect-your-own-data"></a>
@@ -263,9 +256,9 @@ You can keep the same sign-in/UI pattern and replace the demo’s
 provider, client settings and data helper with the ones in your
 guide.</p>
 <p>For deployment, also follow <a href="#enable-asynchronous-oauth">async OAuth setup</a> and <a href="#fetch-data-in-the-background">background fetching</a>. The source
-guides’ ordinary DBI and HTTP calls are synchronous; a worker needs its
-own native connection or request, rather than a serialized copy of the
-guide’s helper.</p>
+guides’ apps use <code><a href="../reference/oauth_db_task.html">oauth_db_task()</a></code> for background fetching;
+synchronous DBI and HTTP methods remain available for direct use in the
+owning session.</p>
 <p>See <a href="#recorded-backend-checks">Recorded backend checks</a>
 for tested versions and the parts of each integration that still need
 deployment validation.</p>
@@ -287,12 +280,33 @@ PostgreSQL</a>, <a href="cloud-sql.html">Google Cloud SQL</a>
 </td>
 </tr>
 <tr class="even">
+<td>DuckDB</td>
+<td><a href="duckdb.html">DuckDB over Quack</a></td>
+</tr>
+<tr class="odd">
+<td>Trino and Starburst</td>
+<td><a href="trino.html">Trino and Starburst</a></td>
+</tr>
+<tr class="even">
+<td>Cloud data platforms</td>
+<td>
+<a href="databricks.html">Databricks</a>, <a href="fabric.html">Fabric and Power BI</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="redshift.html">Redshift</a>,
+<a href="athena.html">Athena</a>
+</td>
+</tr>
+<tr class="odd">
 <td>SQL Server</td>
 <td><a href="azure-sql.html">Azure SQL and SQL Server</a></td>
 </tr>
+<tr class="even">
+<td>MySQL</td>
+<td><a href="azure-mysql.html">Azure Database for MySQL</a></td>
+</tr>
 <tr class="odd">
-<td>CockroachDB</td>
-<td><a href="cockroachdb.html">CockroachDB</a></td>
+<td>Oracle and SAP HANA</td>
+<td>
+<a href="oracle.html">Oracle Database</a>, <a href="oracle-ords.html">Oracle REST Data Services</a>, <a href="hana.html">SAP HANA</a>
+</td>
 </tr>
 <tr class="even">
 <td>MongoDB</td>
@@ -308,28 +322,16 @@ PostgreSQL</a>, <a href="cloud-sql.html">Google Cloud SQL</a>
 queries</a></td>
 </tr>
 <tr class="odd">
-<td>MySQL</td>
-<td><a href="azure-mysql.html">Azure Database for MySQL</a></td>
-</tr>
-<tr class="even">
-<td>Cloud data platforms</td>
+<td>Search</td>
 <td>
-<a href="fabric.html">Fabric and Power BI</a>, <a href="databricks.html">Databricks</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="athena.html">Athena</a>, <a href="redshift.html">Redshift</a>
-</td>
-</tr>
-<tr class="odd">
-<td>Query engines</td>
-<td>
-<a href="trino.html">Trino and Starburst</a>, <a href="dremio.html">Dremio</a>, <a href="starrocks.html">StarRocks</a>,
-<a href="singlestore.html">SingleStore</a>, <a href="clickhouse.html">ClickHouse</a>, <a href="duckdb.html">DuckDB over
-Quack</a>
+<a href="elasticsearch.html">Elasticsearch</a>, <a href="opensearch.html">OpenSearch</a>
 </td>
 </tr>
 <tr class="even">
-<td>Other databases and APIs</td>
+<td>More databases and APIs</td>
 <td>
-<a href="libsql.html">libSQL and Turso</a>, <a href="cratedb.html">CrateDB</a>, <a href="opensearch.html">OpenSearch</a>, <a href="elasticsearch.html">Elasticsearch</a>, <a href="hana.html">SAP
-HANA</a>, <a href="oracle.html">Oracle Database</a>, <a href="oracle-ords.html">Oracle REST Data Services</a>, <a href="salesforce.html">Salesforce</a>
+<a href="clickhouse.html">ClickHouse</a>, <a href="singlestore.html">SingleStore</a>, <a href="starrocks.html">StarRocks</a>, <a href="salesforce.html">Salesforce</a>, <a href="libsql.html">libSQL and
+Turso</a>, <a href="cockroachdb.html">CockroachDB</a>, <a href="dremio.html">Dremio</a>, <a href="cratedb.html">CrateDB</a>
 </td>
 </tr>
 </tbody>
@@ -419,22 +421,26 @@ it translates them to SQL for the database to run.</p>
 <p>For sources that support DBI, the helper returns a reactive function,
 usually called <code>con</code>. For example, inside
 <code>server()</code> in an Azure SQL app:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">con</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_azure_sql.html">oauth_db_azure_sql</a></span><span class="op">(</span></span>
 <span>  <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
 <span>  server <span class="op">=</span> <span class="st">"example.database.windows.net"</span>,</span>
 <span>  database <span class="op">=</span> <span class="st">"Reporting"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT TOP (10) * FROM sales"</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
-<p>Call <code>con()</code> inside each render or reactive expression
-that queries data. It checks the current authorization and reuses the
-visitor’s connection when possible. For dbplyr, pass
-<code>connection</code> to <code><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">dplyr::tbl()</a></code> and use
-<code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">dplyr::collect()</a></code> when you need a data frame.</p>
+<span><span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">con</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>  <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"SELECT TOP (10) * FROM sales"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The task checks authorization in the Shiny session and runs
+<code><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">DBI::dbGetQuery()</a></code> with its own worker connection. For
+dbplyr, use a custom task function that passes its worker connection to
+<code><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">dplyr::tbl()</a></code> and calls <code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">dplyr::collect()</a></code> before
+returning a data frame.</p>
+<p>For synchronous work, call <code>con()</code> inside the render or
+reactive expression that queries data. It checks the current
+authorization and reuses the visitor’s connection when possible.</p>
 <p>Other sources provide API clients: BigQuery has
 <code>$query()</code>, while Fabric and Databricks can call functions
 from their supporting R packages through <code>$call()</code>. The
@@ -497,7 +503,7 @@ that token exchange and refresh do not hold up other sessions in the
 same R process. The small app above already does this. In another app,
 configure workers once at application startup, outside
 <code>server()</code>, and stop them at application shutdown:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -530,111 +536,66 @@ integration guide</a>.</p>
 <div class="section level3">
 <h3 id="fetch-data-in-the-background">Fetch data in the background<a class="anchor" aria-label="anchor" href="#fetch-data-in-the-background"></a>
 </h3>
-<p>Use background fetching when a query or download could delay the app.
-Shiny’s <code>ExtendedTask</code> keeps the visitor’s session responsive
-while a promise is pending. Its function must start nonblocking work:
-wrapping a synchronous query in <code>promise_resolve()</code> or an
-<code>async = TRUE</code> OAuth module does not move that query off the
-main process.</p>
-<p>The following replaces <code>server()</code> in the small PostgREST
-app above. Add <code>actionButton("load", "Load rows")</code> beside the
-sign-in buttons in its UI. Keep its mirai startup and shutdown code. The
-example reads one page on a button click, acquiring the token
-asynchronously in the owning session and sending only the bearer string
-and URL to a worker:</p>
+<p>The small app above uses <code><a href="../reference/oauth_db_task.html">oauth_db_task()</a></code> to run its
+fetch in a mirai worker. Create the task once inside
+<code>server()</code>. The existing backend helper supplies its
+validated connection settings; the task obtains credentials
+asynchronously in the owning session and creates its own worker
+client.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">postgres</span>, method <span class="op">=</span> <span class="st">"select"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>  <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"visible_rows"</span>, order <span class="op">=</span> <span class="st">"row_id.asc"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>For a DBI helper, pass <code>con</code>, without calling it. The
+default operation is <code><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">DBI::dbGetQuery()</a></code>:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">con</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>  <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"SELECT * FROM reporting.orders LIMIT 20"</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><code>invoke()</code> snapshots its arguments and starts one
+operation. Repeated clicks while the task is busy are ignored.
+<code>result()</code> clears the output while a new fetch is pending,
+returns data on success and raises the current fetch’s error on failure.
+Several outputs can read the same result without another query. Use
+<code>status()</code> for progress displays and <code>cancel()</code>
+for best-effort cancellation.</p>
+<p>Sign-out, account changes and permission loss hide earlier results
+and cancel pending worker work where possible. Restoring the account or
+permission does not reveal old results or rerun a query: the user
+explicitly invokes a new fetch. Ordinary token rotation does not repeat
+completed work. Each invocation opens and closes its own connection; put
+a transaction in one custom task function.</p>
+<p>The default token lifetime budget is 120 seconds. Increase
+<code>min_valid_for</code> on the task when queueing, polling or
+downloads need more time. Workers receive short-lived access tokens and
+cannot refresh those snapshots. A failed operation is not automatically
+replayed. Cancellation cannot undo work already accepted by a database
+server. OAuth and data jobs share the configured mirai pool; allow
+capacity for token renewal as well as queries.</p>
+<p>For sustained database work, reserve the default pool for OAuth and
+use a separate mirai compute profile for queries:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span></span>
-<span>    <span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span>, async <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span>  <span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">login</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">request_login</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># At app startup:</span></span>
+<span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span>, .compute <span class="op">=</span> <span class="st">"database"</span><span class="op">)</span></span>
+<span><span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span>, .compute <span class="op">=</span> <span class="st">"database"</span><span class="op">)</span></span>
+<span>  <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="va">permissions</span> <span class="op">&lt;-</span> <span class="st">"database.read"</span></span>
-<span>  <span class="va">authorization</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/reactive.html" class="external-link">reactive</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">grant</span> <span class="op">&lt;-</span> <span class="va">auth</span><span class="op">$</span><span class="fu">connection</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">grant</span><span class="op">)</span> <span class="op">||</span> <span class="op">!</span><span class="va">grant</span><span class="op">$</span><span class="fu">has_scopes</span><span class="op">(</span><span class="va">permissions</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>    <span class="va">grant</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="va">generation</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/reactiveVal.html" class="external-link">reactiveVal</a></span><span class="op">(</span><span class="fl">0L</span><span class="op">)</span></span>
-<span>  <span class="va">previous</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observe.html" class="external-link">observe</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">grant</span> <span class="op">&lt;-</span> <span class="fu">authorization</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">grant</span>, <span class="va">previous</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="va">previous</span> <span class="op">&lt;&lt;-</span> <span class="va">grant</span></span>
-<span>      <span class="fu">generation</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/isolate.html" class="external-link">isolate</a></span><span class="op">(</span><span class="fu">generation</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1L</span><span class="op">)</span></span>
-<span>    <span class="op">}</span></span>
-<span>  <span class="op">}</span>, priority <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
-<span></span>
-<span>  <span class="va">requested</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/reactiveVal.html" class="external-link">reactiveVal</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="va">load_rows</span> <span class="op">&lt;-</span> <span class="va"><a href="https://rdrr.io/pkg/shiny/man/ExtendedTask.html" class="external-link">ExtendedTask</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">grant</span>, <span class="va">captured</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/isolate.html" class="external-link">isolate</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>      <span class="va">pending</span> <span class="op">&lt;-</span> <span class="va">grant</span><span class="op">$</span><span class="fu">access_token</span><span class="op">(</span></span>
-<span>        required_scopes <span class="op">=</span> <span class="va">permissions</span>,</span>
-<span>        min_valid_for_seconds <span class="op">=</span> <span class="fl">120</span>,</span>
-<span>        async <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span>      <span class="op">)</span></span>
-<span>      <span class="fu">promises</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/promises/reference/then.html" class="external-link">then</a></span><span class="op">(</span><span class="va">pending</span>, <span class="kw">function</span><span class="op">(</span><span class="va">token</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="va">stale</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/isolate.html" class="external-link">isolate</a></span><span class="op">(</span></span>
-<span>          <span class="va">session</span><span class="op">$</span><span class="fu">isClosed</span><span class="op">(</span><span class="op">)</span> <span class="op">||</span></span>
-<span>            <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu">authorization</span><span class="op">(</span><span class="op">)</span>, <span class="va">grant</span><span class="op">)</span> <span class="op">||</span></span>
-<span>            <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu">generation</span><span class="op">(</span><span class="op">)</span>, <span class="va">captured</span><span class="op">)</span></span>
-<span>        <span class="op">)</span></span>
-<span>        <span class="kw">if</span> <span class="op">(</span><span class="va">stale</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>        <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/mirai.html" class="external-link">mirai</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>          <span class="va">response</span> <span class="op">&lt;-</span> <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/request.html" class="external-link">request</a></span><span class="op">(</span><span class="va">url</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>            <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_path_append</a></span><span class="op">(</span><span class="st">"visible_rows"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>            <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_url.html" class="external-link">req_url_query</a></span><span class="op">(</span>order <span class="op">=</span> <span class="st">"row_id.asc"</span>, limit <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>            <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_auth_bearer_token.html" class="external-link">req_auth_bearer_token</a></span><span class="op">(</span><span class="va">token</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>            <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_options.html" class="external-link">req_options</a></span><span class="op">(</span>followlocation <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>            <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_timeout.html" class="external-link">req_timeout</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>            <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/req_perform.html" class="external-link">req_perform</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>          <span class="fu">httr2</span><span class="fu">::</span><span class="fu"><a href="https://httr2.r-lib.org/reference/resp_body_raw.html" class="external-link">resp_body_json</a></span><span class="op">(</span></span>
-<span>            <span class="va">response</span>, simplifyVector <span class="op">=</span> <span class="cn">TRUE</span>, bigint_as_char <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span>          <span class="op">)</span></span>
-<span>        <span class="op">}</span>, token <span class="op">=</span> <span class="va">token</span>, url <span class="op">=</span> <span class="va">demo</span><span class="op">$</span><span class="va">url</span><span class="op">)</span></span>
-<span>      <span class="op">}</span><span class="op">)</span></span>
-<span>    <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">req</a></span><span class="op">(</span><span class="va">load_rows</span><span class="op">$</span><span class="fu">status</span><span class="op">(</span><span class="op">)</span> <span class="op">!=</span> <span class="st">"running"</span><span class="op">)</span></span>
-<span>    <span class="va">grant</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">req</a></span><span class="op">(</span><span class="fu">authorization</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">captured</span> <span class="op">&lt;-</span> <span class="fu">generation</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu">requested</span><span class="op">(</span><span class="va">captured</span><span class="op">)</span></span>
-<span>    <span class="va">load_rows</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="va">grant</span>, <span class="va">captured</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">req</a></span><span class="op">(</span><span class="fu">authorization</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/req.html" class="external-link">req</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu">requested</span><span class="op">(</span><span class="op">)</span>, <span class="fu">generation</span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">load_rows</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-<p>The task includes both token acquisition and the data request.
-Repeated clicks while it is running are ignored, and
-<code>result()</code> clears the table while the next fetch runs. Errors
-from the current fetch appear in the output. A changed authorization
-hides results and errors from older tasks, including after switching
-away from an account and back. The generation counter also changes when
-the required permission is lost and restored; ordinary token rotation
-keeps the same authorization.</p>
-<p>This worker uses httr2 directly instead of <code>$select()</code>. It
-reads at most 100 rows and has no pagination or refresh-and-retry
-policy. Use HTTPS for a real PostgREST deployment; the URL supplied by
-the local Docker demo uses its loopback HTTP endpoint. Adjust the
-requested token lifetime to cover worker queueing and the operation. The
-copied token cannot refresh itself, and sign-out hides results without
-guaranteeing cancellation of the server’s work. OAuth operations and
-data requests share the worker pool in this example; allow capacity for
-token renewal as well as queries.</p>
-<p>For a native database driver, use the same task pattern but open and
-close the connection inside the worker, returning data rather than the
-connection. Keep <code>con()</code>, API clients, authorization objects
-and token callbacks in the Shiny process. Fabric and Databricks
-<code>$call()</code> also accept promise-returning functions and check
-authorization when their results resolve; a callback needed by a worker
-must first be resolved to a bearer string in its owning session. See the
-<a href="https://shiny.posit.co/r/articles/improve/nonblocking/" class="external-link">Shiny
-background-task guide</a> for task buttons and status displays.</p>
+<span><span class="co"># Inside server():</span></span>
+<span><span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">con</span>, compute <span class="op">=</span> <span class="st">"database"</span><span class="op">)</span></span></code></pre></div>
+<p>Custom operations can use a self-contained function whose first
+argument is the worker’s connection or client. Keep native handles
+inside that function and return ordinary R data. Pass reactive query
+inputs through <code>invoke()</code>; keep authorization objects and
+token callbacks in the owning Shiny session. See
+<code><a href="../reference/oauth_db_task.html">?oauth_db_task</a></code> for the interface and the <a href="https://shiny.posit.co/r/articles/improve/nonblocking/" class="external-link">Shiny
+background-task guide</a> for the underlying execution model.</p>
 </div>
 <div class="section level3">
 <h3 id="save-query-results">Save query results<a class="anchor" aria-label="anchor" href="#save-query-results"></a>

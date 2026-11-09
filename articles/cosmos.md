@@ -66,6 +66,13 @@ it as `app.R` and run it in R:
 
 ``` r
 
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -81,6 +88,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -88,7 +96,7 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE, async = TRUE)
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
@@ -101,23 +109,33 @@ server <- function(input, output, session) {
     database = Sys.getenv("OAUTHDB_DATABASE"),
     container = Sys.getenv("OAUTHDB_COSMOS_CONTAINER", "orders")
   )
-  output$rows <- renderTable({
-    cosmos$query(
+  query_task <- oauth_db_task(cosmos)
+  observeEvent(input$load, {
+    query_task$invoke(
       "SELECT TOP 20 c.id, c.total FROM c WHERE c.country = @country",
       parameters = list(country = "NL"),
       partition_key = "NL"
     )
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
+runApp(
+  shinyApp(ui, server, onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
+  port = 8100,
+  launch.browser = FALSE
+)
 # Open http://localhost:8100 in your regular browser.
 ```
 
 Create the API client inside `server()` and pass `auth$connection`
-without parentheses. Before sign-in, the query waits quietly. After
-sign-in, Cosmos DB checks the visitor’s token and applies their
-data-plane roles. The output clears on sign-out or account replacement.
+without parentheses. Sign in and click **Load rows** to fetch in a
+background worker. Cosmos DB checks the visitor’s token and applies
+their data-plane roles. The output clears on sign-out or account
+replacement; click **Load rows** again to fetch for the new account.
 
 ## Queries and documents
 

@@ -16,7 +16,12 @@ Run this in the R console for an editable app that walks through setup:
 
 ``` r
 
-install.packages(c("brickster", "jsonlite", "processx", "askpass", "bslib"))
+pkgs <- c("shinyOAuthDB", "brickster", "jsonlite", "processx", "askpass", "bslib", "mirai")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 shinyOAuthDB::oauth_db_cloud_demo("databricks")
 ```
 
@@ -65,13 +70,24 @@ schema and table privileges.
 Save this as `example.R`. Replace the workspace host and copy the
 warehouse ID from the warehouse’s connection details:
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "brickster")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 host <- "example.cloud.databricks.com"
+
 client <- oauth_db_databricks_client(
   host = host,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -83,6 +99,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -90,30 +107,36 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_databricks(
     auth$connection,
     host = host,
     warehouse_id = "warehouse-id"
   )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT current_user()")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT current_user()")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")` and open `http://localhost:8100`. Sign in to
@@ -132,12 +155,14 @@ this code inside `server()`:
 
 databricks <- oauth_db_databricks_api(auth$connection, host = host)
 
-output$warehouses <- renderPrint({
-  databricks$call(brickster::db_sql_warehouse_list)
+warehouse_task <- oauth_db_task(databricks, method = "call")
+observeEvent(input$load, {
+  warehouse_task$invoke(brickster::db_sql_warehouse_list)
 })
+output$warehouses <- renderPrint(warehouse_task$result())
 ```
 
-Pass the function and its usual arguments to `$call()`. The client
+Pass the function and its usual arguments to `invoke()`. The client
 supplies the workspace host and the user’s current token.
 
 For example, to use brickster’s query API, replace the table output with
@@ -145,8 +170,9 @@ For example, to use brickster’s query API, replace the table output with
 
 ``` r
 
-output$rows <- renderPrint({
-  databricks$call(
+api_task <- oauth_db_task(databricks, method = "call")
+observeEvent(input$load, {
+  api_task$invoke(
     brickster::db_sql_query,
     warehouse_id = "warehouse-id",
     statement = "SELECT current_user()",
@@ -154,6 +180,7 @@ output$rows <- renderPrint({
     show_progress = FALSE
   )
 })
+output$rows <- renderPrint(api_task$result())
 ```
 
 This returns brickster’s query result. Use the DBI helper above when you

@@ -67,7 +67,7 @@
         </dt>
         <dd>Set up an editable Shiny demo for a cloud workspace</dd>
       </dl></div><div class="section level2">
-      <h2 id="amazon-athena">Amazon Athena<a class="anchor" aria-label="anchor" href="#amazon-athena"></a></h2>
+      <h2 id="postgresql">PostgreSQL<a class="anchor" aria-label="anchor" href="#postgresql"></a></h2>
 
 
 
@@ -78,83 +78,19 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_athena.html">oauth_db_athena()</a></code>
+          <code><a href="oauth_db_postgres.html">oauth_db_postgres()</a></code>
 
         </dt>
-        <dd>Query Amazon Athena as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="amazon-redshift">Amazon Redshift<a class="anchor" aria-label="anchor" href="#amazon-redshift"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_redshift.html">oauth_db_redshift()</a></code>
-
-        </dt>
-        <dd>Query Redshift as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="azure-postgresql">Azure PostgreSQL<a class="anchor" aria-label="anchor" href="#azure-postgresql"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_azure_postgres.html">oauth_db_azure_postgres()</a></code>
-
-        </dt>
-        <dd>Query Azure PostgreSQL as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="azure-mysql">Azure MySQL<a class="anchor" aria-label="anchor" href="#azure-mysql"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_azure_mysql.html">oauth_db_azure_mysql()</a></code>
-
-        </dt>
-        <dd>Query Azure MySQL as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="azure-sql-and-sql-server">Azure SQL and SQL Server<a class="anchor" aria-label="anchor" href="#azure-sql-and-sql-server"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_azure_sql.html">oauth_db_azure_sql()</a></code>
-
-        </dt>
-        <dd>Query Azure SQL as the signed-in user</dd>
+        <dd>Query PostgreSQL as the signed-in user</dd>
 
         <dt>
 
-          <code><a href="oauth_db_sql_server.html">oauth_db_sql_server()</a></code>
+          <code><a href="oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code>
 
         </dt>
-        <dd>Query SQL Server as the signed-in user</dd>
+        <dd>Query PostgREST as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="azure-cosmos-db-for-nosql">Azure Cosmos DB for NoSQL<a class="anchor" aria-label="anchor" href="#azure-cosmos-db-for-nosql"></a></h2>
+      <h2 id="duckdb">DuckDB<a class="anchor" aria-label="anchor" href="#duckdb"></a></h2>
 
 
 
@@ -165,19 +101,12 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_cosmos_client.html">oauth_db_cosmos_client()</a></code>
+          <code><a href="oauth_db_duckdb.html">oauth_db_duckdb()</a></code>
 
         </dt>
-        <dd>Set up Microsoft sign-in for Azure Cosmos DB</dd>
-
-        <dt>
-
-          <code><a href="oauth_db_cosmos_api.html">oauth_db_cosmos_api()</a></code>
-
-        </dt>
-        <dd>Query Azure Cosmos DB for NoSQL as the signed-in user</dd>
+        <dd>Query a remote DuckDB server as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="clickhouse">ClickHouse<a class="anchor" aria-label="anchor" href="#clickhouse"></a></h2>
+      <h2 id="trino-and-starburst-enterprise">Trino and Starburst Enterprise<a class="anchor" aria-label="anchor" href="#trino-and-starburst-enterprise"></a></h2>
 
 
 
@@ -188,42 +117,10 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_clickhouse_api.html">oauth_db_clickhouse_api()</a></code>
+          <code><a href="oauth_db_trino.html">oauth_db_trino()</a></code>
 
         </dt>
-        <dd>Query ClickHouse as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="cratedb">CrateDB<a class="anchor" aria-label="anchor" href="#cratedb"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_cratedb_api.html">oauth_db_cratedb_api()</a></code>
-
-        </dt>
-        <dd>Query CrateDB as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="cockroachdb">CockroachDB<a class="anchor" aria-label="anchor" href="#cockroachdb"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_cockroachdb.html">oauth_db_cockroachdb()</a></code>
-
-        </dt>
-        <dd>Query CockroachDB as the signed-in user</dd>
+        <dd>Query Trino as the signed-in user</dd>
       </dl></div><div class="section level2">
       <h2 id="databricks">Databricks<a class="anchor" aria-label="anchor" href="#databricks"></a></h2>
 
@@ -262,116 +159,6 @@
         </dt>
         <dd>Create a Databricks OAuth provider</dd>
       </dl></div><div class="section level2">
-      <h2 id="duckdb">DuckDB<a class="anchor" aria-label="anchor" href="#duckdb"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_duckdb.html">oauth_db_duckdb()</a></code>
-
-        </dt>
-        <dd>Query a remote DuckDB server as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="dremio">Dremio<a class="anchor" aria-label="anchor" href="#dremio"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_dremio.html">oauth_db_dremio()</a></code>
-
-        </dt>
-        <dd>Query Dremio as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="elasticsearch">Elasticsearch<a class="anchor" aria-label="anchor" href="#elasticsearch"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_elasticsearch_api.html">oauth_db_elasticsearch_api()</a></code>
-
-        </dt>
-        <dd>Query Elasticsearch as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="google-bigquery">Google BigQuery<a class="anchor" aria-label="anchor" href="#google-bigquery"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_bigquery_client.html">oauth_db_bigquery_client()</a></code>
-
-        </dt>
-        <dd>Set up Google sign-in for BigQuery</dd>
-
-        <dt>
-
-          <code><a href="oauth_db_bigquery_api.html">oauth_db_bigquery_api()</a></code>
-
-        </dt>
-        <dd>Query BigQuery as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="google-cloud-sql">Google Cloud SQL<a class="anchor" aria-label="anchor" href="#google-cloud-sql"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_cloud_sql_client.html">oauth_db_cloud_sql_client()</a></code>
-
-        </dt>
-        <dd>Set up Google sign-in for Cloud SQL</dd>
-
-        <dt>
-
-          <code><a href="oauth_db_cloud_sql_postgres.html">oauth_db_cloud_sql_postgres()</a></code>
-
-        </dt>
-        <dd>Query Cloud SQL for PostgreSQL as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="libsql-and-turso">libSQL and Turso<a class="anchor" aria-label="anchor" href="#libsql-and-turso"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_libsql_api.html">oauth_db_libsql_api()</a></code>
-
-        </dt>
-        <dd>Query libSQL as the signed-in user</dd>
-      </dl></div><div class="section level2">
       <h2 id="microsoft-fabric-and-power-bi">Microsoft Fabric and Power BI<a class="anchor" aria-label="anchor" href="#microsoft-fabric-and-power-bi"></a></h2>
 
 
@@ -402,7 +189,7 @@
         </dt>
         <dd>Get a token callback for one Fabric service</dd>
       </dl></div><div class="section level2">
-      <h2 id="mongodb">MongoDB<a class="anchor" aria-label="anchor" href="#mongodb"></a></h2>
+      <h2 id="snowflake">Snowflake<a class="anchor" aria-label="anchor" href="#snowflake"></a></h2>
 
 
 
@@ -413,12 +200,26 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_mongodb.html">oauth_db_mongodb()</a></code>
+          <code><a href="oauth_db_snowflake_client.html">oauth_db_snowflake_client()</a></code>
 
         </dt>
-        <dd>Query MongoDB as the signed-in user</dd>
+        <dd>Set up Snowflake OAuth sign-in</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_snowflake.html">oauth_db_snowflake()</a></code>
+
+        </dt>
+        <dd>Query Snowflake as the signed-in user</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_snowflake_provider.html">oauth_db_snowflake_provider()</a></code>
+
+        </dt>
+        <dd>Create a Snowflake OAuth provider</dd>
       </dl></div><div class="section level2">
-      <h2 id="neo-j">Neo4j<a class="anchor" aria-label="anchor" href="#neo-j"></a></h2>
+      <h2 id="google-bigquery">Google BigQuery<a class="anchor" aria-label="anchor" href="#google-bigquery"></a></h2>
 
 
 
@@ -429,12 +230,19 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_neo4j_api.html">oauth_db_neo4j_api()</a></code>
+          <code><a href="oauth_db_bigquery_client.html">oauth_db_bigquery_client()</a></code>
 
         </dt>
-        <dd>Query Neo4j as the signed-in user</dd>
+        <dd>Set up Google sign-in for BigQuery</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_bigquery_api.html">oauth_db_bigquery_api()</a></code>
+
+        </dt>
+        <dd>Query BigQuery as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="opensearch">OpenSearch<a class="anchor" aria-label="anchor" href="#opensearch"></a></h2>
+      <h2 id="amazon-redshift">Amazon Redshift<a class="anchor" aria-label="anchor" href="#amazon-redshift"></a></h2>
 
 
 
@@ -445,10 +253,150 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_opensearch_api.html">oauth_db_opensearch_api()</a></code>
+          <code><a href="oauth_db_redshift.html">oauth_db_redshift()</a></code>
 
         </dt>
-        <dd>Query OpenSearch as the signed-in user</dd>
+        <dd>Query Redshift as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="amazon-athena">Amazon Athena<a class="anchor" aria-label="anchor" href="#amazon-athena"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_athena.html">oauth_db_athena()</a></code>
+
+        </dt>
+        <dd>Query Amazon Athena as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="azure-sql-and-sql-server">Azure SQL and SQL Server<a class="anchor" aria-label="anchor" href="#azure-sql-and-sql-server"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_azure_sql.html">oauth_db_azure_sql()</a></code>
+
+        </dt>
+        <dd>Query Azure SQL as the signed-in user</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_sql_server.html">oauth_db_sql_server()</a></code>
+
+        </dt>
+        <dd>Query SQL Server as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="azure-postgresql">Azure PostgreSQL<a class="anchor" aria-label="anchor" href="#azure-postgresql"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_azure_postgres.html">oauth_db_azure_postgres()</a></code>
+
+        </dt>
+        <dd>Query Azure PostgreSQL as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="azure-mysql">Azure MySQL<a class="anchor" aria-label="anchor" href="#azure-mysql"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_azure_mysql.html">oauth_db_azure_mysql()</a></code>
+
+        </dt>
+        <dd>Query Azure MySQL as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="google-cloud-sql">Google Cloud SQL<a class="anchor" aria-label="anchor" href="#google-cloud-sql"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_cloud_sql_client.html">oauth_db_cloud_sql_client()</a></code>
+
+        </dt>
+        <dd>Set up Google sign-in for Cloud SQL</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_cloud_sql_postgres.html">oauth_db_cloud_sql_postgres()</a></code>
+
+        </dt>
+        <dd>Query Cloud SQL for PostgreSQL as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="azure-cosmos-db-for-nosql">Azure Cosmos DB for NoSQL<a class="anchor" aria-label="anchor" href="#azure-cosmos-db-for-nosql"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_cosmos_client.html">oauth_db_cosmos_client()</a></code>
+
+        </dt>
+        <dd>Set up Microsoft sign-in for Azure Cosmos DB</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_cosmos_api.html">oauth_db_cosmos_api()</a></code>
+
+        </dt>
+        <dd>Query Azure Cosmos DB for NoSQL as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="supabase">Supabase<a class="anchor" aria-label="anchor" href="#supabase"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_supabase_client.html">oauth_db_supabase_client()</a></code>
+
+        </dt>
+        <dd>Set up Supabase OAuth sign-in</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_supabase_api.html">oauth_db_supabase_api()</a></code>
+
+        </dt>
+        <dd>Query Supabase as the signed-in user</dd>
       </dl></div><div class="section level2">
       <h2 id="oracle-database">Oracle Database<a class="anchor" aria-label="anchor" href="#oracle-database"></a></h2>
 
@@ -473,7 +421,7 @@
         </dt>
         <dd>Access Oracle REST resources as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="postgresql">PostgreSQL<a class="anchor" aria-label="anchor" href="#postgresql"></a></h2>
+      <h2 id="mongodb">MongoDB<a class="anchor" aria-label="anchor" href="#mongodb"></a></h2>
 
 
 
@@ -484,17 +432,74 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_postgres.html">oauth_db_postgres()</a></code>
+          <code><a href="oauth_db_mongodb.html">oauth_db_mongodb()</a></code>
 
         </dt>
-        <dd>Query PostgreSQL as the signed-in user</dd>
+        <dd>Query MongoDB as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="elasticsearch">Elasticsearch<a class="anchor" aria-label="anchor" href="#elasticsearch"></a></h2>
 
-        <dt>
 
-          <code><a href="oauth_db_postgrest_api.html">oauth_db_postgrest_api()</a></code>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_elasticsearch_api.html">oauth_db_elasticsearch_api()</a></code>
 
         </dt>
-        <dd>Query PostgREST as the signed-in user</dd>
+        <dd>Query Elasticsearch as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="opensearch">OpenSearch<a class="anchor" aria-label="anchor" href="#opensearch"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_opensearch_api.html">oauth_db_opensearch_api()</a></code>
+
+        </dt>
+        <dd>Query OpenSearch as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="neo-j">Neo4j<a class="anchor" aria-label="anchor" href="#neo-j"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_neo4j_api.html">oauth_db_neo4j_api()</a></code>
+
+        </dt>
+        <dd>Query Neo4j as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="sap-hana-and-hana-cloud">SAP HANA and HANA Cloud<a class="anchor" aria-label="anchor" href="#sap-hana-and-hana-cloud"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_hana.html">oauth_db_hana()</a></code>
+
+        </dt>
+        <dd>Query SAP HANA as the signed-in user</dd>
       </dl></div><div class="section level2">
       <h2 id="salesforce-crm-and-data-cloud">Salesforce CRM and Data Cloud<a class="anchor" aria-label="anchor" href="#salesforce-crm-and-data-cloud"></a></h2>
 
@@ -526,7 +531,7 @@
         </dt>
         <dd>Query Salesforce Data Cloud as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="sap-hana-and-hana-cloud">SAP HANA and HANA Cloud<a class="anchor" aria-label="anchor" href="#sap-hana-and-hana-cloud"></a></h2>
+      <h2 id="clickhouse">ClickHouse<a class="anchor" aria-label="anchor" href="#clickhouse"></a></h2>
 
 
 
@@ -537,40 +542,10 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_hana.html">oauth_db_hana()</a></code>
+          <code><a href="oauth_db_clickhouse_api.html">oauth_db_clickhouse_api()</a></code>
 
         </dt>
-        <dd>Query SAP HANA as the signed-in user</dd>
-      </dl></div><div class="section level2">
-      <h2 id="snowflake">Snowflake<a class="anchor" aria-label="anchor" href="#snowflake"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="oauth_db_snowflake_client.html">oauth_db_snowflake_client()</a></code>
-
-        </dt>
-        <dd>Set up Snowflake OAuth sign-in</dd>
-
-        <dt>
-
-          <code><a href="oauth_db_snowflake.html">oauth_db_snowflake()</a></code>
-
-        </dt>
-        <dd>Query Snowflake as the signed-in user</dd>
-
-        <dt>
-
-          <code><a href="oauth_db_snowflake_provider.html">oauth_db_snowflake_provider()</a></code>
-
-        </dt>
-        <dd>Create a Snowflake OAuth provider</dd>
+        <dd>Query ClickHouse as the signed-in user</dd>
       </dl></div><div class="section level2">
       <h2 id="singlestore">SingleStore<a class="anchor" aria-label="anchor" href="#singlestore"></a></h2>
 
@@ -604,7 +579,7 @@
         </dt>
         <dd>Query StarRocks as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="supabase">Supabase<a class="anchor" aria-label="anchor" href="#supabase"></a></h2>
+      <h2 id="libsql-and-turso">libSQL and Turso<a class="anchor" aria-label="anchor" href="#libsql-and-turso"></a></h2>
 
 
 
@@ -615,19 +590,12 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_supabase_client.html">oauth_db_supabase_client()</a></code>
+          <code><a href="oauth_db_libsql_api.html">oauth_db_libsql_api()</a></code>
 
         </dt>
-        <dd>Set up Supabase OAuth sign-in</dd>
-
-        <dt>
-
-          <code><a href="oauth_db_supabase_api.html">oauth_db_supabase_api()</a></code>
-
-        </dt>
-        <dd>Query Supabase as the signed-in user</dd>
+        <dd>Query libSQL as the signed-in user</dd>
       </dl></div><div class="section level2">
-      <h2 id="trino-and-starburst-enterprise">Trino and Starburst Enterprise<a class="anchor" aria-label="anchor" href="#trino-and-starburst-enterprise"></a></h2>
+      <h2 id="cockroachdb">CockroachDB<a class="anchor" aria-label="anchor" href="#cockroachdb"></a></h2>
 
 
 
@@ -638,10 +606,42 @@
 
       <dl><dt>
 
-          <code><a href="oauth_db_trino.html">oauth_db_trino()</a></code>
+          <code><a href="oauth_db_cockroachdb.html">oauth_db_cockroachdb()</a></code>
 
         </dt>
-        <dd>Query Trino as the signed-in user</dd>
+        <dd>Query CockroachDB as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="dremio">Dremio<a class="anchor" aria-label="anchor" href="#dremio"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_dremio.html">oauth_db_dremio()</a></code>
+
+        </dt>
+        <dd>Query Dremio as the signed-in user</dd>
+      </dl></div><div class="section level2">
+      <h2 id="cratedb">CrateDB<a class="anchor" aria-label="anchor" href="#cratedb"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="oauth_db_cratedb_api.html">oauth_db_cratedb_api()</a></code>
+
+        </dt>
+        <dd>Query CrateDB as the signed-in user</dd>
       </dl></div><div class="section level2">
       <h2 id="shared-helpers">Shared helpers<a class="anchor" aria-label="anchor" href="#shared-helpers"></a></h2>
 
@@ -672,6 +672,13 @@
 
         </dt>
         <dd>Get a user's access token for another R package</dd>
+
+        <dt>
+
+          <code><a href="oauth_db_task.html">oauth_db_task()</a></code>
+
+        </dt>
+        <dd>Fetch data in the background as the signed-in user</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

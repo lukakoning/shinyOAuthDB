@@ -27,7 +27,7 @@ for optional settings.
 
 ## Snowflake setup
 
-In R, run `install.packages("odbc")`, then install the [Snowflake ODBC
+Install the [Snowflake ODBC
 driver](https://docs.snowflake.com/en/developer-guide/odbc/odbc) for
 your operating system. Ask your administrator for a [custom-client OAuth
 integration](https://docs.snowflake.com/en/user-guide/oauth-custom) with
@@ -62,7 +62,17 @@ integration** after the app example.
 Save this as `example.R`. Replace the connection settings, keeping the
 server and role the same in the sign-in client and connection helper:
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -80,6 +90,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -87,10 +98,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_snowflake(
     auth$connection,
     server = "organization-account.snowflakecomputing.com",
@@ -98,21 +113,23 @@ server <- function(input, output, session) {
     warehouse = "REPORTING_WH",
     database = "ANALYTICS"
   )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT CURRENT_USER(), CURRENT_ROLE()")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT CURRENT_USER(), CURRENT_ROLE()")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")` and open `http://localhost:8100`. Sign in to
@@ -125,10 +142,12 @@ your table is `ANALYTICS.PUBLIC.ORDERS`:
 
 ``` r
 
-output$rows <- renderTable({
-  connection <- con()
+fetch_rows <- function(connection) {
   DBI::dbGetQuery(connection, "SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20")
-})
+}
+query_task <- oauth_db_task(con, method = fetch_rows)
+observeEvent(input$load, query_task$invoke())
+output$rows <- renderTable(query_task$result())
 ```
 
 `con()` gets the current user’s connection. Call it inside the render or

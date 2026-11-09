@@ -89,8 +89,7 @@ settings.</p>
 <div class="section level2">
 <h2 id="set-up-sql-access">Set up SQL access<a class="anchor" aria-label="anchor" href="#set-up-sql-access"></a>
 </h2>
-<p>In R, run <code>install.packages(c("fabricQueryR", "odbc"))</code>.
-Install <a href="https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server" class="external-link">Microsoft
+<p>Install <a href="https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server" class="external-link">Microsoft
 ODBC Driver 18</a> for your operating system too. Copy the server and
 database from the item’s SQL connection settings. Users need access to
 that item and its data; see <a href="https://learn.microsoft.com/en-us/fabric/data-warehouse/connectivity" class="external-link">Fabric
@@ -145,8 +144,17 @@ hostname.</p>
 </h2>
 <p>Save this as <code>example.R</code>, replacing the server and
 database:</p>
+<p>After signing in, click <strong>Load rows</strong>. The app starts
+its workers once and stops them at shutdown.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">pkgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="st">"shinyOAuth"</span>, <span class="st">"shinyOAuthDB"</span>, <span class="st">"mirai"</span>, <span class="st">"fabricQueryR"</span>, <span class="st">"odbc"</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">pkg</span> <span class="kw">in</span> <span class="va">pkgs</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="va">pkg</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pkg</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
 <span></span>
@@ -162,6 +170,7 @@ database:</p>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"load"</span>, <span class="st">"Load rows"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
@@ -169,30 +178,36 @@ database:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">server</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">input</span>, <span class="va">output</span>, <span class="va">session</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span><span class="st">"auth"</span>, <span class="va">client</span>, auto_redirect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="va">auth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://lukakoning.github.io/shinyOAuth/reference/oauth_module_server.html" class="external-link">oauth_module_server</a></span><span class="op">(</span></span>
+<span>    <span class="st">"auth"</span>,</span>
+<span>    <span class="va">client</span>,</span>
+<span>    auto_redirect <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>    async <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  <span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">login</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">request_login</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
 <span>  <span class="va">con</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_fabric_sql.html">oauth_db_fabric_sql</a></span><span class="op">(</span></span>
 <span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
 <span>    server <span class="op">=</span> <span class="st">"example.datawarehouse.fabric.microsoft.com"</span>,</span>
 <span>    database <span class="op">=</span> <span class="st">"Reporting"</span></span>
 <span>  <span class="op">)</span></span>
-<span></span>
-<span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">connection</span> <span class="op">&lt;-</span> <span class="fu">con</span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT CURRENT_USER AS database_user"</span><span class="op">)</span></span>
+<span>  <span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">con</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>    <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="st">"SELECT CURRENT_USER AS database_user"</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, uiPattern <span class="op">=</span> <span class="st">".*"</span>, onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span>,</span>
 <span>  port <span class="op">=</span> <span class="fl">8100</span>,</span>
 <span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Open the app in your regular browser at http://localhost:8100</span></span>
-<span><span class="co"># (viewers in RStudio/Positron/etc. cannot perform necessary redirects)</span></span></code></pre></div>
+<span><span class="co"># Open the app in your regular browser at its registered redirect URI.</span></span></code></pre></div>
 <p>Run <code>source("example.R")</code> and open
 <code>http://localhost:8100</code>. Sign in to run the query; signing
 out clears the output.</p>
@@ -212,13 +227,14 @@ even if this example only lists workspaces.</p>
 <p>Add <code>verbatimTextOutput("workspaces")</code> to the UI and put
 this inside <code>server()</code>:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fabric</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_fabric_api.html">oauth_db_fabric_api</a></span><span class="op">(</span><span class="va">auth</span><span class="op">$</span><span class="va">connection</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">output</span><span class="op">$</span><span class="va">workspaces</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderPrint.html" class="external-link">renderPrint</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">fabric</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span><span class="fu">fabricQueryR</span><span class="fu">::</span><span class="va"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_workspaces.html" class="external-link">fabric_workspaces</a></span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">fabric</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_fabric_api.html">oauth_db_fabric_api</a></span><span class="op">(</span><span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, targets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>fabric <span class="op">=</span> <span class="st">"fabric"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">workspace_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">fabric</span>, method <span class="op">=</span> <span class="st">"call"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>  <span class="va">workspace_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu">fabricQueryR</span><span class="fu">::</span><span class="va"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_workspaces.html" class="external-link">fabric_workspaces</a></span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">workspaces</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderPrint.html" class="external-link">renderPrint</a></span><span class="op">(</span><span class="va">workspace_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Pass a fabricQueryR function and its arguments to
-<code>$call()</code>. The client supplies the user’s credentials and
+<code>invoke()</code>. The client supplies the user’s credentials and
 returns the function’s result.</p>
 </div>
 <div class="section level2">
@@ -265,14 +281,17 @@ OneLake, and semantic models have their own permissions.</p>
 <p>For KQL, include <code>"kql"</code> in the client’s services. With
 <code>fabric</code> created as above, replace the table output with:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">fabric</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">fabric</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_fabric_api.html">oauth_db_fabric_api</a></span><span class="op">(</span><span class="va">auth</span><span class="op">$</span><span class="va">connection</span>, targets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>kql <span class="op">=</span> <span class="st">"kusto"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">kql_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">fabric</span>, method <span class="op">=</span> <span class="st">"call"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
+<span>  <span class="va">kql_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span></span>
 <span>    <span class="fu">fabricQueryR</span><span class="fu">::</span><span class="va"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_kql_query.html" class="external-link">fabric_kql_query</a></span>,</span>
 <span>    cluster <span class="op">=</span> <span class="st">"https://example.kusto.fabric.microsoft.com"</span>,</span>
 <span>    database <span class="op">=</span> <span class="st">"Events"</span>,</span>
 <span>    query <span class="op">=</span> <span class="st">"Events | take 20"</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">kql_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="read-a-lakehouse-table">Read a Lakehouse table<a class="anchor" aria-label="anchor" href="#read-a-lakehouse-table"></a>
@@ -281,21 +300,26 @@ OneLake, and semantic models have their own permissions.</p>
 Lakehouse and read its tables. Add these services to the client if
 you’re also using SQL.</p>
 <p><code>fabric_item()</code> returns a fabricQueryR object with methods
-such as <code>$read_table()</code>. Put the lookup inside
-<code><a href="https://rdrr.io/pkg/shiny/man/reactive.html" class="external-link">reactive()</a></code> so it runs again if the signed-in account
-changes:</p>
+such as <code>$read_table()</code>. Look up that object and read its
+data inside the same worker function, so a native resource never crosses
+processes:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">lakehouse</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/reactive.html" class="external-link">reactive</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="va">fabric</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">fabric</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_fabric_api.html">oauth_db_fabric_api</a></span><span class="op">(</span></span>
+<span>  <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
+<span>  targets <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>fabric <span class="op">=</span> <span class="st">"fabric"</span>, onelake <span class="op">=</span> <span class="st">"storage"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">read_orders</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">client</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">lakehouse</span> <span class="op">&lt;-</span> <span class="fu">fabricQueryR</span><span class="fu">::</span><span class="fu"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_item.html" class="external-link">fabric_item</a></span><span class="op">(</span></span>
 <span>    <span class="fu">fabricQueryR</span><span class="fu">::</span><span class="va"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_item.html" class="external-link">fabric_item</a></span>,</span>
 <span>    workspace <span class="op">=</span> <span class="st">"workspace-guid"</span>,</span>
-<span>    item <span class="op">=</span> <span class="st">"lakehouse-guid"</span></span>
+<span>    item <span class="op">=</span> <span class="st">"lakehouse-guid"</span>,</span>
+<span>    token <span class="op">=</span> <span class="va">client</span><span class="op">$</span><span class="fu">token_provider</span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>  <span class="fu">lakehouse</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="fu">read_table</span><span class="op">(</span><span class="st">"Orders"</span>, limit <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="va">lakehouse</span><span class="op">$</span><span class="fu">read_table</span><span class="op">(</span><span class="st">"Orders"</span>, limit <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">lakehouse_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">fabric</span>, method <span class="op">=</span> <span class="va">read_orders</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="va">lakehouse_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">lakehouse_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Warehouse objects offer <code>$sql_query(sql)</code>, and semantic
 model objects offer <code>$dax_query(dax)</code>. Include
 <code>"sql"</code> or <code>"dax"</code> in the client’s services for

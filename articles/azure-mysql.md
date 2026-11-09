@@ -46,7 +46,17 @@ bundle current as Azure rotates its certificates.
 Save this as `example.R`. Replace the server, database, MySQL user or
 group, driver name and CA bundle path with your settings:
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -64,6 +74,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -71,10 +82,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_azure_mysql(
     auth$connection,
     server = "example.mysql.database.azure.com",
@@ -83,21 +98,25 @@ server <- function(input, output, session) {
     driver = "MariaDB ODBC 3.2 Driver",
     ssl_ca = "path/to/azure-ca.pem"
   )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(
-      connection,
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke(
       "SELECT CURRENT_USER() AS database_user, DATABASE() AS database_name"
     )
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")`, then open `http://localhost:8100` in your
@@ -113,19 +132,23 @@ tenant maps an email address to the same database name.
 
 ## Query your tables
 
-Call `connection <- con()` inside each reactive expression before using
-DBI. For values supplied by users, use bound parameters:
+Pass `con` to
+[`oauth_db_task()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_task.md)
+to open a worker connection for DBI. For values supplied by users, use
+bound parameters:
 
 ``` r
 
-output$rows <- renderTable({
-  connection <- con()
+fetch_rows <- function(connection) {
   DBI::dbGetQuery(
     connection,
     "SELECT id, total FROM orders WHERE country = ? LIMIT 20",
     params = list("NL")
   )
-})
+}
+query_task <- oauth_db_task(con, method = fetch_rows)
+observeEvent(input$load, query_task$invoke())
+output$rows <- renderTable(query_task$result())
 ```
 
 You can also pass `connection` to

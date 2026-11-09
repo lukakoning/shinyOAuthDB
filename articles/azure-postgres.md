@@ -28,8 +28,8 @@ for editing and resuming demos.
 
 ## Set up access
 
-In R, run `install.packages("RPostgres")`. Ask your administrator to
-[enable Entra authentication and create database
+Ask your administrator to [enable Entra authentication and create
+database
 roles](https://learn.microsoft.com/en-us/azure/postgresql/security/security-entra-configure)
 for the app’s users or their groups. You’ll need the server and database
 names, the database role to connect as, and a certificate bundle for the
@@ -67,7 +67,17 @@ Allow the app host through the server’s networking settings too.
 Save this as `example.R`. Replace the host, database, and role name, and
 set `sslrootcert` to your CA bundle’s path:
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RPostgres")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -85,6 +95,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -92,10 +103,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_azure_postgres(
     auth$connection,
     host = "example.postgres.database.azure.com",
@@ -103,21 +118,23 @@ server <- function(input, output, session) {
     user = "reporting-readers",
     sslrootcert = "path/to/root-ca.pem"
   )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT current_user")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT current_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")` and open `http://localhost:8100`. Sign in to
@@ -130,14 +147,15 @@ that output expression with a query for your table:
 
 ``` r
 
-output$rows <- renderTable({
-  connection <- con()
+fetch_rows <- function(connection) {
   DBI::dbGetQuery(connection, "SELECT * FROM reporting.orders LIMIT 20")
-})
+}
+query_task <- oauth_db_task(con, method = fetch_rows)
+observeEvent(input$load, query_task$invoke())
+output$rows <- renderTable(query_task$result())
 ```
 
-Call `con()` inside the reactive expression before querying. You can
-also pass the resulting `connection` to
+Inside the worker function, you can also pass `connection` to
 [`dplyr::tbl()`](https://dplyr.tidyverse.org/reference/tbl.html) for
 dbplyr queries. Use DBI parameter binding for SQL values entered by
 users.

@@ -41,7 +41,17 @@ and `OAUTHDB_CLIENT_SECRET` in `.Renviron` and restart R. Use
 Replace the schema, table, and column names with your own. Save the
 example as `example.R` and run it with `source("example.R")`.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -50,6 +60,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_POSTGREST_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -62,6 +73,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -69,28 +81,36 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   postgrest <- oauth_db_postgrest_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_POSTGREST_URL"),
     schema = "reporting"
   )
-  output$rows <- renderTable({
-    postgrest$select("orders", order = "id.asc", limit = 20L)
+  query_task <- oauth_db_task(postgrest, method = "select")
+  observeEvent(input$load, {
+    query_task$invoke("orders", order = "id.asc", limit = 20L)
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Create the client inside `server()`. Its requests wait quietly before

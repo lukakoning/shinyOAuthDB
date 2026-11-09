@@ -49,17 +49,33 @@ verifies that the token may use the requested SQL user.
 The app lists tables visible to the signed-in user. Register
 `http://localhost:8100` as the redirect URI.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RPostgres")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 audience <- Sys.getenv("OAUTHDB_COCKROACHDB_AUDIENCE")
+
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_COCKROACHDB_ISSUER"),
-  extra_auth_params = if (nzchar(audience)) list(audience = audience) else list()
+  extra_auth_params = if (nzchar(audience)) {
+    list(audience = audience)
+  } else {
+    list()
+  }
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -72,6 +88,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -79,10 +96,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   ca <- Sys.getenv("OAUTHDB_COCKROACHDB_SSLROOTCERT")
   con <- oauth_db_cockroachdb(
     auth$connection,
@@ -93,21 +114,34 @@ server <- function(input, output, session) {
       identity <- reference$identity(claims = "preferred_username")
       req(identity$id_token_claims$preferred_username)
     },
-    sslrootcert = if (nzchar(ca)) ca else NULL,
+    sslrootcert = if (nzchar(ca)) {
+      ca
+    } else {
+      NULL
+    },
     required_scopes = "database.read"
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, paste(
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke(paste(
       "SELECT table_schema, table_name FROM information_schema.tables",
       "WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'crdb_internal')",
       "ORDER BY table_schema, table_name LIMIT 20"
     ))
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
-# Open the app in your regular browser at http://localhost:8100
+runApp(
+  shinyApp(ui, server, onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Some providers configure the audience in the app registration or with a

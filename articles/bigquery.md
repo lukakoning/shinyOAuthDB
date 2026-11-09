@@ -64,7 +64,17 @@ initial identity query still creates a job and needs a query project.
 Save this as `example.R`, replacing `"billing-project"` with your
 project ID:
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -80,6 +90,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -87,28 +98,36 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   bigquery <- oauth_db_bigquery_api(
     auth$connection,
     project = "billing-project",
     location = "EU"
   )
-  output$rows <- renderTable({
-    bigquery$query("SELECT SESSION_USER() AS signed_in_user")
+  query_task <- oauth_db_task(bigquery)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT SESSION_USER() AS signed_in_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")` and open `http://localhost:8100`. Sign in to
@@ -124,12 +143,13 @@ example assumes a `reporting.Orders` table with a `country` column:
 
 ``` r
 
-output$rows <- renderTable({
-  bigquery$query(
+observeEvent(input$load, {
+  query_task$invoke(
     "SELECT * FROM reporting.Orders WHERE country = @country LIMIT 20",
     parameters = list(country = "NL")
   )
 })
+output$rows <- renderTable(query_task$result())
 ```
 
 ## Find datasets and tables
@@ -140,8 +160,14 @@ lists the table IDs in that dataset. Add these outputs inside
 
 ``` r
 
-output$datasets <- renderPrint(bigquery$datasets())
-output$tables <- renderPrint(bigquery$tables("reporting"))
+datasets_task <- oauth_db_task(bigquery, method = "datasets")
+tables_task <- oauth_db_task(bigquery, method = "tables")
+observeEvent(input$load, {
+  datasets_task$invoke()
+  tables_task$invoke("reporting")
+})
+output$datasets <- renderPrint(datasets_task$result())
+output$tables <- renderPrint(tables_task$result())
 ```
 
 Add `verbatimTextOutput("datasets")` and `verbatimTextOutput("tables")`

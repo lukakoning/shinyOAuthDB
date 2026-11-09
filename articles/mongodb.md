@@ -17,7 +17,12 @@ Shiny:
 
 ``` r
 
-install.packages("reticulate")
+pkgs <- c("reticulate")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 reticulate::virtualenv_create("shiny-mongodb")
 reticulate::py_install(c("pymongo>=4.10", "numpy"), envname = "shiny-mongodb")
 reticulate::use_virtualenv("shiny-mongodb", required = TRUE)
@@ -50,14 +55,26 @@ expects. Configure provider-specific audience parameters on your
 shinyOAuth provider when needed. Use your collection name and filter in
 the query below.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "reticulate")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 issuer <- Sys.getenv("OAUTHDB_MONGODB_ISSUER")
+
 provider <- oauth_provider_oidc_discover(issuer = issuer)
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -70,6 +87,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -77,10 +95,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   mongo <- oauth_db_mongodb(
     auth$connection,
     url = Sys.getenv("OAUTHDB_MONGODB_URL"),
@@ -88,13 +110,23 @@ server <- function(input, output, session) {
     issuer = issuer,
     client_id = Sys.getenv("OAUTHDB_CLIENT_ID")
   )
-  output$rows <- renderTable({
-    mongo$find("orders", filter = '{"country":"NL"}', limit = 20)
+  query_task <- oauth_db_task(mongo, method = "find")
+  observeEvent(input$load, {
+    query_task$invoke("orders", filter = "{\"country\":\"NL\"}", limit = 20)
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
-# Open http://localhost:8100 in your regular browser.
+runApp(
+  shinyApp(ui, server, onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 ## MongoDB and provider setup

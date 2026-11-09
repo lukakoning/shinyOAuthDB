@@ -57,7 +57,17 @@ OAUTHDB_DUCKDB_ISSUER=https://login.example.org/realms/reporting
 Replace the hostname, port and table name for your deployment. This
 example uses port 443 for a TLS proxy; Quack’s default port is 9494.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "duckdb")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -66,6 +76,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_DUCKDB_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -78,6 +89,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -85,30 +97,37 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_duckdb(
     auth$connection,
     host = "duckdb.example.org",
     port = 443,
     required_scopes = "quack:read"
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT * FROM orders LIMIT 20")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT * FROM orders LIMIT 20")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")`. The app waits for sign-in before connecting
@@ -129,7 +148,12 @@ Install the client extensions before running the Shiny app:
 
 ``` r
 
-install.packages("duckdb")
+pkgs <- c("DBI", "duckdb")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 connection <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
 DBI::dbExecute(connection, "INSTALL quack")
 DBI::dbExecute(connection, "INSTALL httpfs")

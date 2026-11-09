@@ -64,14 +64,26 @@ provisioned for that person, as in the local demo. Set
 `OAUTHDB_POSTGRES_ISSUER`, `OAUTHDB_CLIENT_ID`, and
 `OAUTHDB_CLIENT_SECRET` before running the app.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RPostgres")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 issuer <- Sys.getenv("OAUTHDB_POSTGRES_ISSUER")
+
 provider <- oauth_provider_oidc_discover(issuer, id_token_validation = TRUE)
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -84,6 +96,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -91,10 +104,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_postgres(
     auth$connection,
     host = "postgres.example.org",
@@ -108,20 +125,23 @@ server <- function(input, output, session) {
     scope = "database.read",
     sslrootcert = "path/to/ca.pem"
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT current_user AS database_user")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT current_user AS database_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 `user` is the database role requested when opening a PostgreSQL
@@ -186,16 +206,15 @@ path at that libpq, then build RPostgres and shinyOAuthDB from source:
 
 install.packages("RPostgres", type = "source")
 Sys.setenv(SHINYOAUTHDB_POSTGRES_OAUTH = "required")
-install.packages(".", repos = NULL, type = "source")
+install.packages("shinyOAuthDB", type = "source")
 ```
 
-Run the last command from the shinyOAuthDB checkout, or replace `"."`
-with the path to its source directory or source tarball. Setting
-`SHINYOAUTHDB_POSTGRES_OAUTH` to `required` makes installation fail if
-the native adapter cannot be built. The default, `auto`, builds it when
-the required Linux/libpq 18 development files are available. `disabled`
-builds the other backends without this adapter. Windows and macOS can
-use `oauth_db_demo("postgres")`.
+These source installs rebuild the packages against the selected libpq.
+Setting `SHINYOAUTHDB_POSTGRES_OAUTH` to `required` makes installation
+fail if the native adapter cannot be built. The default, `auto`, builds
+it when the required Linux/libpq 18 development files are available.
+`disabled` builds the other backends without this adapter. Windows and
+macOS can use `oauth_db_demo("postgres")`.
 
 ## Connection lifetime
 

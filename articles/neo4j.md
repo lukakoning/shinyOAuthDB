@@ -69,7 +69,17 @@ This example queries `Person` nodes. Replace the label, properties and
 scope with those used by your database. The user’s Neo4j roles must
 permit reading the selected nodes and properties.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -78,6 +88,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_NEO4J_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -90,6 +101,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -97,26 +109,40 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   graph <- oauth_db_neo4j_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_NEO4J_URL"),
     database = Sys.getenv("OAUTHDB_NEO4J_DATABASE", "neo4j"),
     required_scopes = "graph.read"
   )
-  output$rows <- renderTable({
-    graph$query(
+  query_task <- oauth_db_task(graph)
+  observeEvent(input$load, {
+    query_task$invoke(
       "MATCH (p:Person) WHERE p.country = $country RETURN p.name AS name, p.country AS country LIMIT 20",
       parameters = list(country = "NL")
     )
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-runApp(shinyApp(ui, server, uiPattern = ".*"),
-  port = 8100, launch.browser = FALSE)
+runApp(
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Open `http://localhost:8100` in your regular browser to sign in.

@@ -57,7 +57,17 @@ Replace the cluster URL and index name. This example assumes the
 provider exposes a `search.read` scope; use your own registration’s
 scopes.
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -66,6 +76,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_OPENSEARCH_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -78,42 +89,52 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
   id = "auth",
   client = client
 )
 
+fetch_rows <- function(database) {
+  result <- database$database(
+    "orders",
+    body = list(size = 20L, query = list(term = list(country = "NL")))
+  )
+  result$hits
+}
+
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   search <- oauth_db_opensearch_api(
     auth$connection,
     url = "https://search.example.org",
     required_scopes = "search.read"
   )
-  output$rows <- renderPrint({
-    result <- search$search(
-      "orders",
-      body = list(
-        size = 20L,
-        query = list(term = list(country = "NL"))
-      )
-    )
-    result$hits
+  query_task <- oauth_db_task(search, method = fetch_rows)
+  observeEvent(input$load, {
+    query_task$invoke()
   })
+  output$rows <- renderPrint(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")`. The app waits for sign-in before making

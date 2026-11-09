@@ -26,8 +26,7 @@ for the launcher settings.
 
 ## Set up SQL access
 
-In R, run `install.packages(c("fabricQueryR", "odbc"))`. Install
-[Microsoft ODBC Driver
+Install [Microsoft ODBC Driver
 18](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server)
 for your operating system too. Copy the server and database from the
 item’s SQL connection settings. Users need access to that item and its
@@ -65,7 +64,17 @@ hostname.
 
 Save this as `example.R`, replacing the server and database:
 
+After signing in, click **Load rows**. The app starts its workers once
+and stops them at shutdown.
+
 ``` r
+
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "fabricQueryR", "odbc")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
 
 library(shiny)
 library(shinyOAuth)
@@ -83,6 +92,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -90,30 +100,36 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_fabric_sql(
     auth$connection,
     server = "example.datawarehouse.fabric.microsoft.com",
     database = "Reporting"
   )
-
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT CURRENT_USER AS database_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")` and open `http://localhost:8100`. Sign in to
@@ -136,14 +152,15 @@ Add `verbatimTextOutput("workspaces")` to the UI and put this inside
 
 ``` r
 
-fabric <- oauth_db_fabric_api(auth$connection)
-
-output$workspaces <- renderPrint({
-  fabric$call(fabricQueryR::fabric_workspaces)
+fabric <- oauth_db_fabric_api(auth$connection, targets = c(fabric = "fabric"))
+workspace_task <- oauth_db_task(fabric, method = "call")
+observeEvent(input$load, {
+  workspace_task$invoke(fabricQueryR::fabric_workspaces)
 })
+output$workspaces <- renderPrint(workspace_task$result())
 ```
 
-Pass a fabricQueryR function and its arguments to `$call()`. The client
+Pass a fabricQueryR function and its arguments to `invoke()`. The client
 supplies the user’s credentials and returns the function’s result.
 
 ## Choose additional services
@@ -169,14 +186,17 @@ as above, replace the table output with:
 
 ``` r
 
-output$rows <- renderTable({
-  fabric$call(
+fabric <- oauth_db_fabric_api(auth$connection, targets = c(kql = "kusto"))
+kql_task <- oauth_db_task(fabric, method = "call")
+observeEvent(input$load, {
+  kql_task$invoke(
     fabricQueryR::fabric_kql_query,
     cluster = "https://example.kusto.fabric.microsoft.com",
     database = "Events",
     query = "Events | take 20"
   )
 })
+output$rows <- renderTable(kql_task$result())
 ```
 
 ## Read a Lakehouse table
@@ -185,23 +205,27 @@ Use `services = c("fabric", "onelake")` to discover a Lakehouse and read
 its tables. Add these services to the client if you’re also using SQL.
 
 `fabric_item()` returns a fabricQueryR object with methods such as
-`$read_table()`. Put the lookup inside
-[`reactive()`](https://rdrr.io/pkg/shiny/man/reactive.html) so it runs
-again if the signed-in account changes:
+`$read_table()`. Look up that object and read its data inside the same
+worker function, so a native resource never crosses processes:
 
 ``` r
 
-lakehouse <- reactive({
-  fabric$call(
+fabric <- oauth_db_fabric_api(
+  auth$connection,
+  targets = c(fabric = "fabric", onelake = "storage")
+)
+read_orders <- function(client) {
+  lakehouse <- fabricQueryR::fabric_item(
     fabricQueryR::fabric_item,
     workspace = "workspace-guid",
-    item = "lakehouse-guid"
+    item = "lakehouse-guid",
+    token = client$token_provider()
   )
-})
-
-output$rows <- renderTable({
-  lakehouse()$read_table("Orders", limit = 100L)
-})
+  lakehouse$read_table("Orders", limit = 100L)
+}
+lakehouse_task <- oauth_db_task(fabric, method = read_orders)
+observeEvent(input$load, lakehouse_task$invoke())
+output$rows <- renderTable(lakehouse_task$result())
 ```
 
 Warehouse objects offer `$sql_query(sql)`, and semantic model objects
