@@ -192,7 +192,7 @@ and the parts of each integration that still need deployment validation.
 
 | Data source | Setup guide |
 | --- | --- |
-| PostgreSQL | [Native OAuth](postgres.html), [PostgREST](postgrest.html), [Supabase](supabase.html), [Azure PostgreSQL](azure-postgres.html) |
+| PostgreSQL | [Native OAuth](postgres.html), [PostgREST](postgrest.html), [Supabase](supabase.html), [Azure PostgreSQL](azure-postgres.html), [Google Cloud SQL](cloud-sql.html) |
 | SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
 | CockroachDB | [CockroachDB](cockroachdb.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |

@@ -30,7 +30,7 @@ articles:
   - title: Databases and related services
     contents: [cockroachdb, cratedb, duckdb, elasticsearch, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
   - title: Cloud platforms
-    contents: [redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, databricks, bigquery, fabric, salesforce, snowflake, supabase]
+    contents: [redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
   - title: Overview and demos
     contents: [shinyOAuthDB-package, oauth_db_demo, oauth_db_cloud_demo]
@@ -57,6 +57,8 @@ reference:
     contents: [oauth_db_elasticsearch_api]
   - title: Google BigQuery
     contents: [oauth_db_bigquery_client, oauth_db_bigquery_api]
+  - title: Google Cloud SQL
+    contents: [oauth_db_cloud_sql_client, oauth_db_cloud_sql_postgres]
   - title: libSQL and Turso
     contents: [oauth_db_libsql_api]
   - title: Microsoft Fabric and Power BI

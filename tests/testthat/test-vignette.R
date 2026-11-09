@@ -23,6 +23,7 @@ vignette_sources <- c(
   databricks = "brickster",
   snowflake = "odbc",
   bigquery = NA_character_,
+  "cloud-sql" = "RPostgres",
   redshift = "odbc",
   trino = "RTrino",
   "azure-postgres" = "RPostgres",

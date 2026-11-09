@@ -14,6 +14,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Databricks | [SQL warehouses and brickster](../vignettes/databricks.Rmd) |
 | Snowflake | [Snowflake sign-in and DBI](../vignettes/snowflake.Rmd) |
 | Google BigQuery | [GoogleSQL queries](../vignettes/bigquery.Rmd) |
+| Google Cloud SQL for PostgreSQL | [IAM database connections](../vignettes/cloud-sql.Rmd) |
 | Amazon Redshift | [Redshift queries with DBI](../vignettes/redshift.Rmd) |
 | Trino and Starburst Enterprise | [RTrino and DBI queries](../vignettes/trino.Rmd) |
 | Azure PostgreSQL | [RPostgres connections](../vignettes/azure-postgres.Rmd) |
@@ -44,6 +45,7 @@ For existing apps and package development:
 - [Snowflake backend decision](snowflake-backends.md)
 - [Backend research notes](backend-candidates.md)
 - [CockroachDB backend decision](cockroachdb-backend.md)
+- [Cloud SQL backend decision](cloud-sql-backend.md)
 - [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
 - [SAP HANA backend decision](hana-backend.md)

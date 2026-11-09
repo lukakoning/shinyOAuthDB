@@ -10,6 +10,7 @@ Rscript --vanilla tools/test-live.R
 Rscript --vanilla tools/check-package.R
 Rscript --vanilla tools/check-cockroachdb.R
 Rscript --vanilla tools/check-singlestore.R
+Rscript --vanilla tools/check-cloud-sql.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-libsql-oauth.R

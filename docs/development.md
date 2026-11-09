@@ -65,6 +65,11 @@ it does not test Entra sign-in or an Azure deployment.
 
 ## Documentation website and packaged demos
 
+With Docker and RPostgres linked to libpq 16 or later, run
+`Rscript --vanilla tools/check-cloud-sql.R` for the Cloud SQL PostgreSQL
+transport checks. It reuses the local password fixture with synthetic
+credentials and SQL row policies; it doesn't contact Google or test MySQL.
+
 Run `pkgdown::build_site()` to preview the website. `_pkgdown.yml` groups the
 database articles and reference pages. Output goes to ignored `_site/`, so
 building the website preserves the developer notes in `docs/`.
