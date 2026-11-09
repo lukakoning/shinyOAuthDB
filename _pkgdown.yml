@@ -30,10 +30,12 @@ articles:
   - title: Databases and related services
     contents: [cockroachdb, cratedb, dremio, duckdb, elasticsearch, libsql, mongodb, neo4j, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
   - title: Cloud platforms
-    contents: [redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
+    contents: [athena, redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
   - title: Overview and demos
     contents: [shinyOAuthDB-package, oauth_db_demo, oauth_db_cloud_demo]
+  - title: Amazon Athena
+    contents: [oauth_db_athena]
   - title: Amazon Redshift
     contents: [oauth_db_redshift]
   - title: Azure PostgreSQL

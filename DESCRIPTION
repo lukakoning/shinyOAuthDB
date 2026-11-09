@@ -14,7 +14,7 @@ Description: Query databases and data platforms in Shiny using each visitor's
     within each Shiny session. Supports Oracle Database OAuth access through
     Oracle ODBC and protected Oracle REST Data Services resources over HTTPS.
     Supports Azure SQL, Azure Database for MySQL, Microsoft Fabric,
-    BigQuery, Redshift, Databricks, Snowflake, Trino, Dremio, and PostgreSQL, including self-hosted
+    BigQuery, Athena, Redshift, Databricks, Snowflake, Trino, Dremio, and PostgreSQL, including self-hosted
     PostgreSQL with native OAuth and Azure PostgreSQL. Supports Google Cloud
     SQL for PostgreSQL with per-user IAM access tokens. Reads PostgreSQL tables
     and calls exposed database functions through PostgREST and Supabase's

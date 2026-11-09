@@ -17,6 +17,15 @@ test_that("native ODBC connection errors retain diagnostics without bearer token
     auth$token(auth$make_token(token))
     factories <- list(
       function() {
+        oauth_db_athena(
+          auth$connection,
+          workgroup_arn = "arn:aws:athena:eu-west-1:123456789012:workgroup/reporting",
+          application_role_arn = "arn:aws:iam::123456789012:role/AthenaApplication",
+          s3_output_location = "s3://query-results/reporting/",
+          driver = driver
+        )
+      },
+      function() {
         oauth_db_singlestore(
           auth$connection,
           "sql.example",

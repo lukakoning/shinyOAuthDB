@@ -15,6 +15,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Snowflake | [Snowflake sign-in and DBI](../vignettes/snowflake.Rmd) |
 | Google BigQuery | [GoogleSQL queries](../vignettes/bigquery.Rmd) |
 | Google Cloud SQL for PostgreSQL | [IAM database connections](../vignettes/cloud-sql.Rmd) |
+| Amazon Athena | [User JWTs and Identity Center trusted identity propagation](../vignettes/athena.Rmd) |
 | Amazon Redshift | [Redshift queries with DBI](../vignettes/redshift.Rmd) |
 | Trino and Starburst Enterprise | [RTrino and DBI queries](../vignettes/trino.Rmd) |
 | Dremio | [OAuth connections through ADBC Flight SQL](../vignettes/dremio.Rmd) |
@@ -47,6 +48,7 @@ For existing apps and package development:
 - [Validation record](validation.md)
 - [Snowflake backend decision](snowflake-backends.md)
 - [Backend research notes](backend-candidates.md)
+- [Athena backend decision](athena-backend.md)
 - [CockroachDB backend decision](cockroachdb-backend.md)
 - [Cloud SQL backend decision](cloud-sql-backend.md)
 - [Dremio backend decision](dremio-backend.md)

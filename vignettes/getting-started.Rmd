@@ -219,7 +219,7 @@ and the parts of each integration that still need deployment validation.
 | MongoDB | [Workforce OIDC](mongodb.html) |
 | Neo4j | [Cypher and graph queries](neo4j.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |
-| Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
+| Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Athena](athena.html), [Redshift](redshift.html) |
 | Query engines | [Trino and Starburst](trino.html), [Dremio](dremio.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
 | Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [Elasticsearch](elasticsearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
 
@@ -554,6 +554,7 @@ configurations, rather than a list of every supported server version.
 | Fabric and Power BI | fabricQueryR 1.0.1 routing, callbacks and generated-app checks | Platform calls are mocked; hosted service permissions and native drivers need deployment checks |
 | BigQuery | Mocked REST responses cover parameters, polling, pagination, result types and account changes | Google browser sign-in, IAM grants and billed query execution are not covered by these mocks |
 | Azure SQL, Snowflake and Redshift | R ODBC connection arguments, credential handling and lifecycle tests | Real vendor drivers and cloud database authentication remain outside the mocked connection boundary |
+| Athena | JWT_TIP ODBC arguments, cache/TLS settings, token replacement and session cleanup; complete app construction | Live AWS Identity Center exchange, user permissions, driver credential caches and billed queries need a configured deployment |
 | Supabase, Oracle REST Data Services and Salesforce | Mocked HTTP responses and complete app definitions | Hosted provider sign-in, server policies and real refresh behavior need configured deployments |
 | SAP HANA and Oracle Database | R ODBC boundary, token handling and lifecycle tests; mocked Oracle authentication/context checks | No live SAP HANA or Oracle driver/database/provider combination has been validated |
 
