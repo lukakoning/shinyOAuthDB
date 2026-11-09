@@ -1,8 +1,10 @@
 # Query SQL Server as the signed-in user
 
-Use this for SQL Server configured to accept Microsoft Entra tokens. It
-takes the same connection arguments as
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md).
+Read SQL Server data in a Shiny app with each visitor's Microsoft
+account. The server must accept Microsoft Entra tokens. This is the same
+connection helper as
+[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
+with the same arguments.
 
 ## Usage
 
@@ -25,9 +27,9 @@ oauth_db_sql_server(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - server:
 
@@ -44,13 +46,15 @@ oauth_db_sql_server(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - driver:
 
@@ -67,16 +71,23 @@ oauth_db_sql_server(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
-Create the helper inside `server()` and call it inside a render or
-reactive expression before querying with DBI or dbplyr.
+Install odbc and Microsoft ODBC Driver 18 for SQL Server. Use
+[`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md)
+with `services = "sql"` for sign-in. Create the helper inside `server()`
+and call `con()` before querying. See
+[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md)
+for connection requirements and options.
 
 ## See also
 
@@ -84,17 +95,3 @@ reactive expression before querying with DBI or dbplyr.
 [`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md).
 [`vignette("azure-sql", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.md)
 has sign-in setup and a complete app.
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md),
-[`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md),
-[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)

@@ -1,8 +1,8 @@
 # Query Snowflake as the signed-in user
 
-Query Snowflake with the visitor's account and role using DBI or dbplyr.
-Set the warehouse, database, and schema for your queries, or use the
-account's defaults.
+Query Snowflake with each visitor's account and role. A role controls
+which data they can access, while a warehouse runs the queries. The
+connection works with DBI or dbplyr.
 
 ## Usage
 
@@ -27,9 +27,9 @@ oauth_db_snowflake(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - server:
 
@@ -70,25 +70,26 @@ oauth_db_snowflake(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
 Install odbc and the Snowflake ODBC driver. Use
 [`oauth_db_snowflake_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_client.md)
-for Snowflake's own OAuth integration, or a shinyOAuth client configured
-for your External OAuth provider.
+for Snowflake's own OAuth integration, or a shinyOAuth client for your
+external provider. The user needs access to the requested role,
+warehouse and data.
 
-Create `con` inside `server()` and get `connection <- con()` inside a
-render or reactive expression before querying. The helper opens the
-connection on first use and closes it when the authorization or session
-ends.
-
-For names containing ODBC delimiters, use
+Create the helper inside `server()` and call `con()` before each query.
+The connection opens on first use and closes when the authorization or
+session ends. For names containing ODBC delimiters, use
 [`odbc::quote_value()`](https://odbc.r-dbi.org/reference/quote_value.html).
 
 ## See also
@@ -96,20 +97,6 @@ For names containing ODBC delimiters, use
 [`oauth_db_snowflake_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_client.md).
 [`vignette("snowflake", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.md)
 has sign-in setup and a complete app.
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md),
-[`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md),
-[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)
 
 ## Examples
 

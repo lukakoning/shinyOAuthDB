@@ -1,11 +1,11 @@
 # Set up Databricks OAuth sign-in
 
-Create a sign-in client for a Databricks workspace. Pass it to
-shinyOAuth's UI and server modules, then use the resulting authorization
-with
+Set up sign-in for a Shiny app that uses a Databricks workspace. Pass
+this client to shinyOAuth's UI and server modules, then query with
 [`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md)
 or
 [`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md).
+Each visitor uses their own Databricks account and data permissions.
 
 ## Usage
 
@@ -58,11 +58,11 @@ A shinyOAuth `OAuthClient`. Create it outside `server()`.
 
 ## Details
 
-Register the app and redirect URI with Databricks. The defaults request
-`all-apis` and refresh access; supply `scopes` to change them.
+Register your app and its exact redirect URI with Databricks. The
+defaults request `all-apis` and refresh access; use `scopes` to replace
+them. Omit `client_secret` for a public registration without a secret.
 
-For a public app registration without a secret, omit `client_secret`.
-For Azure Databricks with Entra tokens, use
+For Azure Databricks using Microsoft Entra tokens, use
 [`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md)
 with `services = "databricks_entra"`.
 
@@ -71,15 +71,6 @@ with `services = "databricks_entra"`.
 [`oauth_db_databricks_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_provider.md).
 [`vignette("databricks", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md)
 has sign-in setup and a complete app.
-
-Other sign-in configuration:
-[`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md),
-[`oauth_db_databricks_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_provider.md),
-[`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md),
-[`oauth_db_salesforce_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.md),
-[`oauth_db_snowflake_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_client.md),
-[`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md),
-[`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)
 
 ## Examples
 

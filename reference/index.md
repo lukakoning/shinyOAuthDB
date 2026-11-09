@@ -89,7 +89,7 @@
 ## PostgreSQL
 
 - [`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md)
-  : Query self-hosted PostgreSQL as the signed-in user
+  : Query PostgreSQL as the signed-in user
 - [`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md)
   : Query PostgREST as the signed-in user
 

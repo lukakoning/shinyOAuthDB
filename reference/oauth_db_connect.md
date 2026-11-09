@@ -1,8 +1,9 @@
 # Connect another database package to a user's sign-in
 
-Use this when a database driver accepts an OAuth token and has no
-dedicated shinyOAuthDB helper. Supply the function that opens its
-connection and name the argument that receives the token.
+Use a database package that accepts access tokens with a visitor's Shiny
+sign-in. This is the general helper for drivers without a dedicated
+shinyOAuthDB function. It supplies the user's token when opening the
+connection and keeps that connection in their Shiny session.
 
 ## Usage
 
@@ -24,9 +25,9 @@ oauth_db_connect(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - connect:
 
@@ -43,13 +44,15 @@ oauth_db_connect(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - disconnect:
 
@@ -64,46 +67,42 @@ oauth_db_connect(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function such as `con`. Call `connection <- con()` inside a
-render or reactive expression to get the connection. Before sign-in, it
-waits quietly, like
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression to get the database connection.
+Before sign-in, it waits quietly like
 [`shiny::req()`](https://rdrr.io/pkg/shiny/man/req.html).
 
 ## Details
 
-Create the helper inside `server()` and call `con()` before each query.
-The helper reuses the connection and calls its cleanup function when the
-selected authorization changes, ends, or loses required permissions, or
-when the Shiny session ends. Cleanup depends on the driver; a retained
-native handle may still contain copied credentials. Call `con()` before
-each operation.
+Create the helper inside `server()` so each visitor has their own
+connection. Call `con()` before each operation; it checks the current
+authorization and reuses a valid connection. Sign-out, account changes,
+loss of required permissions and session end trigger cleanup.
 
-A valid DBI connection stays open through token refresh. If the
-connection becomes invalid, the next call opens a new one.
+A connection you save separately may keep copied credentials, depending
+on the driver. Obtain it through `con()` each time. A valid DBI
+connection can stay open through token renewal; a broken one reopens on
+the next call.
 
-While token refresh is running, reactive outputs wait and can resume
-when it finishes. A button-triggered query may need another click.
-`min_valid_for` checks token lifetime at the start of an operation; it
-does not guarantee validity throughout a long query.
+If token refresh is running, reactive outputs wait until it finishes. A
+button-triggered query may need another click. `min_valid_for` checks
+the token's remaining lifetime at the start; it doesn't guarantee
+validity throughout a long query.
 
-This helper supplies the token when opening a connection. For a function
-that takes a token on each request, use
+For functions that accept a token on every request, use
 [`oauth_db_token()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md)
-or a platform API client.
+or the source's API client.
 
 ## See also
 
 [`oauth_db_token()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md).
 For saved results and connection lifetime, see
 [`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md).
-
-Other advanced connection helpers:
-[`oauth_db_fabric()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric.md),
-[`oauth_db_token()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md)
 
 ## Examples
 

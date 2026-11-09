@@ -1,8 +1,8 @@
 # Query CrateDB as the signed-in user
 
-Run SQL through CrateDB's HTTPS interface using the visitor's current
-JWT access token. CrateDB validates the token, maps it to a database
-user and enforces that user's privileges.
+Query CrateDB data using the signed-in visitor's database privileges.
+CrateDB checks their access token and matches it to a database user. The
+client sends SQL over HTTPS and returns data frames.
 
 ## Usage
 
@@ -24,9 +24,9 @@ oauth_db_cratedb_api(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - url:
 
@@ -38,13 +38,15 @@ oauth_db_cratedb_api(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -61,11 +63,12 @@ oauth_db_cratedb_api(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-An R6 client with these methods:
+A client object with these methods:
 
 - `$query(sql, parameters = list(), raw = FALSE)` returns a data frame,
   or the complete result with metadata when `raw = TRUE`.
@@ -75,58 +78,39 @@ An R6 client with these methods:
 
 ## Details
 
-Configure CrateDB's JWT authentication for HTTP and a database user
-whose JWT properties match the token's `iss`, `username` and `aud`
-claims. The provider must issue a compatible access token; an ordinary
-browser login or an ID token does not establish database access.
+Configure CrateDB's HTTP JWT authentication and a database user matching
+the token's `iss`, `username` and `aud` claims. The CrateDB vignette
+explains the provider requirements.
 
-Create this client inside `server()`. shinyOAuth obtains or renews a
-token before each request. Account changes, missing permissions,
-sign-out and session end stop local access; results arriving after an
-authorization change are discarded. SQL submissions are never retried,
-including 401 responses, because even a query can have side effects. A
-timed-out query may continue on the server.
+Create the client inside `server()` and call its methods from render or
+reactive expressions. Each request uses a current token and discards
+results after sign-out or account changes. SQL doesn't retry
+automatically. A submitted query can continue after a timeout; check a
+failed write's outcome before resubmitting it.
 
 ## Parameters and results
 
-Use `$1`, `$2`, ... or `?` placeholders with an unnamed list of
-positional `parameters`. Values are sent separately in CrateDB's JSON
-`args` array. Scalars, missing values, arrays and named-list objects are
-supported. Dates and timestamps become ISO strings; cast their
-placeholders to the desired SQL type. Use strings and SQL casts for
-exact large integers and decimals. Non-finite numeric parameters are
-rejected.
+Use `$1`, `$2`, ... or `?` placeholders with an unnamed list of values
+in `parameters`. Values travel separately from SQL. Scalars, missing
+values, arrays and named-list objects are supported. Dates and
+timestamps become ISO strings; cast the placeholders to the SQL type you
+need. For exact large integers or decimals, use strings and SQL casts.
+Numeric parameters must be finite.
 
-BIGINT and NUMERIC columns are character vectors, preserving every
-digit. Smaller integers and floating-point values become R numbers,
-booleans become logical, and text becomes character. Timestamps and
-dates retain their epoch-millisecond strings. Arrays, objects and other
-complex types remain list columns, with JSON numbers preserved as
-strings. Empty results keep their column types and duplicate column
-names are preserved.
+BIGINT and NUMERIC results stay as strings. Smaller numbers become R
+numeric values and booleans become logical. Dates and timestamps use
+epoch-millisecond strings; complex types use list columns with numbers
+preserved as strings. Empty results keep their column types.
 
-`raw = TRUE` returns metadata and rows, preserving numeric values within
-rows as strings. HTTP failures expose the HTTP status without including
-server messages, SQL text or credentials.
+`raw = TRUE` returns metadata and rows, with numeric row values kept as
+strings. HTTP errors report the status without exposing server messages
+or credentials.
 
 ## See also
 
 [`vignette("cratedb", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md).
 [`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
 runs a local CrateDB and Keycloak example.
-
-Other platform API clients:
-[`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md),
-[`oauth_db_clickhouse_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_clickhouse_api.md),
-[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md),
-[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md),
-[`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md),
-[`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md),
-[`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md),
-[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md),
-[`oauth_db_salesforce_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.md),
-[`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md),
-[`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
 
 ## Examples
 

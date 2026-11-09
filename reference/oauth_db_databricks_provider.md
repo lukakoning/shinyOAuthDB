@@ -1,8 +1,10 @@
 # Create a Databricks OAuth provider
 
-Use this to choose provider settings when constructing
-`shinyOAuth::oauth_client()` yourself. For a typical app, use
-[`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md).
+Describe a Databricks workspace's sign-in service when building a custom
+client with `shinyOAuth::oauth_client()`. The provider supplies the
+sign-in and token endpoints. For the usual app setup, use
+[`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md)
+instead.
 
 ## Usage
 
@@ -37,20 +39,13 @@ A shinyOAuth `OAuthProvider`.
 
 ## Details
 
-The function makes an HTTPS request to discover the workspace's sign-in
-endpoints.
+The function discovers the workspace's sign-in endpoints over HTTPS.
+Choose `token_auth_style` to match the app registration: `"header"` for
+a client with a secret, or `"public"` for one registered without a
+secret.
 
 ## See also
 
 [`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md).
 [`vignette("databricks", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md)
 has sign-in setup and a complete app.
-
-Other sign-in configuration:
-[`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md),
-[`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md),
-[`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md),
-[`oauth_db_salesforce_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.md),
-[`oauth_db_snowflake_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_client.md),
-[`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md),
-[`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)

@@ -59,7 +59,7 @@
 <p>This is useful when you or your organization already manage accounts and data permissions in a database or data platform. Your Shiny app can reuse those permissions, so you don’t have to maintain a separate set of user accounts and data-access rules in the Shiny app. For example, if your database limits an analyst to sales data for their region, your Shiny dashboard can query the data as that analyst and automatically use the same restriction.</p>
 <p>The OAuth sign-in and data access work like this:</p>
 <ol style="list-style-type: decimal">
-<li>A user navigates to your Shiny app. Your Shiny app shows a <strong>Sign in</strong> button. When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow. The user is sent to the sign-in page of the database or data platform, or to a trusted sign-in service (like your organization’s login service).</li>
+<li>A user navigates to your Shiny app. Your Shiny app shows a <strong>Sign in</strong> button (shinyOAuth can also redirect users to the provider automatically). When the user clicks this button, the app uses shinyOAuth to start the OAuth sign-in flow. The user is sent to the sign-in page of the database or data platform, or to a trusted sign-in service (like your organization’s login service).</li>
 <li>The user signs in with their existing account and, if asked, approves the access your app requests.</li>
 <li>They return to your Shiny app and shinyOAuth obtains an <strong>access token</strong>, a temporary credential that lets your Shiny app request data on their behalf.</li>
 <li>Your Shiny app uses shinyOAuthDB to send that token with its data requests. The database or data platform checks the token and applies that user’s permissions before returning data.</li>

@@ -1,7 +1,8 @@
 # Query StarRocks as the signed-in user
 
-Open a DBI connection to StarRocks using its JWT authentication plugin
-and MySQL Connector/ODBC's OpenID Connect client plugin.
+Query StarRocks data with each visitor's account and database
+privileges. The helper opens a DBI connection for SQL or dbplyr, using
+the visitor's signed access token to authenticate.
 
 ## Usage
 
@@ -27,9 +28,9 @@ oauth_db_starrocks(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - server:
 
@@ -72,13 +73,15 @@ oauth_db_starrocks(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -87,52 +90,36 @@ oauth_db_starrocks(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
-Configure StarRocks 3.5 or later with `authentication_jwt` or a JWT
-security integration, a trusted JWKS, issuer, audience, and principal
-claim. Configure shinyOAuth to obtain a JWT access token accepted by
-that integration. This helper supplies the access token; it does not
-substitute an ID token or launch the driver's own browser flow.
+Install odbc and MySQL Connector/ODBC 9.2 or later with its OpenID
+Connect plugin. Configure StarRocks 3.5 or later to accept JWT access
+tokens from your provider and map their identity claim to the requested
+`user`. The connection uses verified TLS; supply `ssl_ca` for a private
+CA.
 
-The driver reads the token from a temporary file during synchronous
-connection opening. The file is created in a private temporary directory
-and removed on success, error, or interrupt. On Windows its access rules
-inherit from R's temporary directory; use a private user temporary
-location. TLS verifies the server identity. DSNs, option files, and
-competing credentials cannot be supplied through `...`. Parameter
-binding uses the driver's client-side prepared statements (`NO_SSPS=1`)
-for compatibility with StarRocks' MySQL protocol.
-
-Create the helper inside `server()` and call `con()` before each
-operation. Valid SQL sessions survive ordinary token renewal; account or
+Create the helper inside `server()` and call `con()` before each query.
+Valid connections stay open through ordinary token renewal. Account or
 username changes and sign-out close them. Reopen a broken connection
-through `con()`; the original token file no longer exists after
-connection opening.
+through `con()` to obtain a current token.
+
+The driver briefly reads the token from a temporary file, which the
+helper removes after connecting. On Windows, keep R's temporary
+directory private to the app's operating-system user. Authentication and
+TLS options are managed by the helper.
 
 ## See also
 
 [`vignette("starrocks", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md).
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md),
-[`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md),
-[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)
 
 ## Examples
 

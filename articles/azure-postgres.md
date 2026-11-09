@@ -172,5 +172,10 @@ verified TLS; Kerberos, certificate-only and trust authentication cannot
 replace it. Authentication and TLS settings cannot be changed through
 `...`.
 
+The next `con()` call after token renewal replaces the connection, so a
+lost database session can reconnect with the current token. Complete a
+transaction using the connection that started it. Token renewal does not
+rerun a completed reactive query.
+
 For custom sign-in settings or saved query results, see [Getting
 started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#sessions-saved-results-and-extra-permissions).

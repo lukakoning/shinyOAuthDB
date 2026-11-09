@@ -1,7 +1,8 @@
 # Query ClickHouse as the signed-in user
 
-Run SQL over ClickHouse's HTTPS interface with the visitor's current
-bearer token. Query results are returned as data frames.
+Query ClickHouse data using the signed-in visitor's database
+permissions. The client sends their access token with SQL requests over
+HTTPS and returns data frames. No database driver is needed.
 
 ## Usage
 
@@ -23,9 +24,9 @@ oauth_db_clickhouse_api(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - url:
 
@@ -37,13 +38,15 @@ oauth_db_clickhouse_api(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -60,88 +63,61 @@ oauth_db_clickhouse_api(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-An R6 client with these methods:
+A client object with these methods:
 
 - `$query(sql, parameters = list(), raw = FALSE)` returns a data frame,
-  or the parsed JSONCompact response when `raw = TRUE`.
+  or the parsed server response when `raw = TRUE`.
 
 - `$execute(sql, parameters = list())` runs a statement without
   collecting a result and invisibly returns its httr2 response.
 
 ## Details
 
-The endpoint must accept externally issued bearer tokens. Custom
-identity providers currently require ClickHouse Cloud Enterprise,
-service version 26.4 or later (26.8 for EC signing keys). This helper
-does not use Cloud management API keys, database passwords, or a service
-account.
+Configure your service to accept access tokens from the app's sign-in
+provider. Custom providers require ClickHouse Cloud Enterprise, service
+version 26.4 or later (26.8 for EC signing keys). The ClickHouse
+vignette explains the service setup.
 
-Configure a shinyOAuth client for the provider and audience trusted by
-your ClickHouse service. Create the API client inside `server()` and
-call its methods from render or reactive expressions. Tokens are
-obtained for each request, and a result is discarded if its
-authorization changes.
-
-SQL is sent as the POST body. Requests are never replayed automatically,
-including HTTP 401, because a submitted statement may have changed data.
-Token renewal before each request is handled by shinyOAuth. A timeout or
-sign-out stops local access; a submitted query may continue on the
-server.
+Create the client inside `server()` and call its methods from render or
+reactive expressions. Each request uses a current token and discards
+results after sign-out or account changes. SQL doesn't retry
+automatically, since a statement may already have executed. Submitted
+work can continue after a timeout or sign-out.
 
 ## Parameters
 
-Use native typed placeholders, such as `{country:String}` or
-`{id:UInt64}`, with a named list of scalar R values in `parameters`.
-Values are sent separately through the HTTP `param_` mechanism.
-Character, logical, integer, numeric, `Date`, `POSIXct`, and missing
-values are supported. Use character values for exact large integers and
-decimals.
+Use typed placeholders such as `{country:String}` or `{id:UInt64}` and a
+named list of R values in `parameters`. Values are sent separately from
+SQL. Character, logical, integer, numeric, `Date`, `POSIXct` and missing
+values are supported. Use strings for exact large integers and decimals.
 
-`POSIXct` values are formatted as UTC wall-clock strings, regardless of
-their R display timezone. Use `DateTime('UTC')` for whole seconds or
-`DateTime64(6, 'UTC')` for fractional seconds. Always specify UTC in the
-placeholder: an unqualified type uses the server or session timezone,
-and another timezone annotation changes the instant represented by the
-formatted string. Timestamp encoding retains up to six fractional
-digits.
+R timestamps are formatted in UTC. Use `DateTime('UTC')` or
+`DateTime64(6, 'UTC')` in the placeholder to preserve the intended
+instant, including up to six fractional digits. A different SQL timezone
+would interpret the formatted value differently.
 
-For arrays, tuples, or already encoded values, wrap native ClickHouse
-escaped-format strings in [`I()`](https://rdrr.io/r/base/AsIs.html) to
-preserve their encoding.
+For arrays or tuples, wrap ClickHouse escaped-format strings in
+[`I()`](https://rdrr.io/r/base/AsIs.html) to preserve their encoding.
 
 ## Result types
 
-Signed and unsigned integers of 64 bits or more, and decimals, remain
-strings. Smaller integers and floats become R numbers; Bool becomes
-logical and Date/Date32 become `Date`. Timestamps keep their server
-string representation. Arrays, maps, tuples, JSON, and other complex
-values stay in list columns. Empty results preserve column metadata.
+Integers of 64 bits or more and decimals stay as strings. Smaller
+integers and floats become R numbers, booleans become logical, and dates
+become `Date`. Timestamps keep their server string format; complex
+values use list columns. Empty results preserve column metadata.
 
-Omit FORMAT clauses and output-format overrides from SQL. The client
-requests JSONCompact with exact numeric quoting and validates the entire
-response before returning any rows. `raw = TRUE` preserves metadata and
-statistics, with JSON arrays decoded as R lists.
+Leave FORMAT clauses and output-format overrides out of SQL. Use
+`raw = TRUE` for the parsed server response, including metadata and
+statistics, with JSON arrays represented as R lists.
 
 ## See also
 
 [`vignette("clickhouse", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md).
-
-Other platform API clients:
-[`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md),
-[`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md),
-[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md),
-[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md),
-[`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md),
-[`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md),
-[`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md),
-[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md),
-[`oauth_db_salesforce_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.md),
-[`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md),
-[`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
 
 ## Examples
 

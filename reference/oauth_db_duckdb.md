@@ -1,8 +1,8 @@
 # Query a remote DuckDB server as the signed-in user
 
-Attach a DuckDB Quack server using the visitor's OAuth access token and
-query its tables with DBI or dbplyr. The server must validate OAuth
-tokens, for example with the quack_oauth extension.
+Query a shared remote DuckDB database with each visitor's access token.
+Quack connects your R client to the server, which checks the token and
+controls data access. You can query its tables with DBI or dbplyr.
 
 ## Usage
 
@@ -25,9 +25,9 @@ oauth_db_duckdb(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - host:
 
@@ -52,13 +52,15 @@ oauth_db_duckdb(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -67,37 +69,33 @@ oauth_db_duckdb(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning a DuckDB DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
-Install duckdb 1.5.3 or later and its matching `quack` and `httpfs`
-extensions. Provision them before starting the app with `INSTALL quack`
-and `INSTALL httpfs` in DuckDB. The helper loads them in a separate
-in-memory database for each connection. TLS and certificate verification
-are required, including on loopback unless `allow_local_http = TRUE`.
-Use a certificate trusted by the DuckDB client.
+Install duckdb 1.5.3 or later and matching `quack` and `httpfs`
+extensions before starting the app. Configure the remote server's OAuth
+validator, trusted issuer, audience and data permissions. A local DuckDB
+file doesn't provide user sign-in.
 
-shinyOAuth manages sign-in and token renewal. Only the access token is
-passed to Quack; the client does not need quack_oauth or persistent
-secrets. Configure the server's trusted issuer, audience and
-authorization policy.
+Create the helper inside `server()` and call `con()` before each query.
+Connections require verified TLS unless you explicitly allow HTTP for
+local development with `allow_local_http`.
 
-Call `con()` before each operation. A changed access token replaces the
-connection because Quack authenticates at attachment time. This also
-ends any transaction on the old connection. Account changes, lost
-permissions, sign-out and session end shut down the private DuckDB
-instance. Queries and failed statements are never replayed by the
-helper.
+The helper selects the remote catalog `oauth_remote` and your chosen
+schema for table queries. Standalone expressions can still run locally;
+query a remote table to check server access.
 
-The remote catalog is attached as `oauth_remote` and selected as the
-default database, so unqualified table names use its selected schema.
-SQL runs through DuckDB's attached-catalog interface; local expressions
-and functions can still execute on the client.
+Token renewal replaces the connection and ends any transaction on it.
+Keep transactions within one operation. Sign-out, account changes or
+session end close the connection. The helper doesn't replay failed SQL.
 
 ## See also
 
@@ -105,20 +103,6 @@ and functions can still execute on the client.
 has server requirements, sign-in setup and a complete app.
 [`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
 runs a local Quack and Keycloak example.
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md),
-[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md),
-[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)
 
 ## Examples
 

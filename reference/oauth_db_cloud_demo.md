@@ -1,8 +1,10 @@
 # Set up an editable Shiny demo for a cloud workspace
 
-A console guide helps you find your workspace and OAuth app settings,
-then runs a local Shiny app with your installed R packages. Visitors
-sign in through shinyOAuth and use their own cloud data permissions.
+Try an editable Shiny app with your own cloud workspace and account. The
+console guide helps you find the workspace and sign-in settings, then
+runs the app in local R. Each visitor signs in with their own account
+and data permissions. You need existing cloud resources; the guide
+doesn't create them.
 
 ## Usage
 
@@ -34,8 +36,8 @@ oauth_db_cloud_demo(
 
 - host:
 
-  Databricks workspace hostname or browser URL. Paths, queries and
-  fragments are removed. For other SQL demos, an alias for `server`.
+  Databricks workspace hostname or browser URL. For other SQL demos, an
+  alias for `server`.
 
 - client_id:
 
@@ -89,22 +91,8 @@ oauth_db_cloud_demo(
 
 - ...:
 
-  Named platform settings. Fabric uses `server`, `database`, `tenant_id`
-  and optionally `driver`. Missing required values are explained and
-  requested interactively. BigQuery uses `project` and optionally
-  `location` and `maximum_bytes_billed`. Snowflake uses `server`,
-  `role`, `warehouse` and optionally `database`, `schema`, `driver`.
-  Azure SQL uses `server`, `database`, `tenant_id` and optionally
-  `driver`, `database_port` (the SQL port, distinct from the local Shiny
-  `port`). Azure PostgreSQL uses `server`, `database`, `user`,
-  `sslrootcert`, `tenant_id` and optionally `database_port`. Redshift
-  uses `identity_center_ready`, `server`, `database`, `tenant_id`,
-  `resource`, `scope` and optionally `driver`, `database_port`.
-  ClickHouse uses `jwt_ready`, `url`, `tenant_id`, `resource`, `scope`
-  and optionally `database`. The Redshift and ClickHouse examples use
-  Entra and require an existing trusted-token integration. See the
-  platform's source guide, linked from
-  [`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md).
+  Named settings for the selected platform, listed below under Platform
+  settings. Interactive setup asks for missing values.
 
 ## Value
 
@@ -114,43 +102,80 @@ errors.
 
 ## Details
 
-All demos use local R, bslib and processx. Install askpass for masked
-input. BigQuery and ClickHouse use jsonlite without a native database
-driver. Snowflake, Azure SQL and Redshift use odbc and their native ODBC
-drivers; Azure PostgreSQL uses RPostgres and a trusted CA bundle. Each
-copied app waits for an explicit query-button click. Stopping the local
-process does not stop shared cloud compute or cancel submitted jobs.
+Run this from an R console to get prompts for missing settings. Sign in
+through the browser, then click **Run example query** in the app.
+Queries use the platform's normal compute or query allowance. Stopping
+the app doesn't stop shared cloud services or cancel submitted jobs.
 
-Fabric asks for its SQL server/database and an Entra tenant and app
-registration. Install fabricQueryR, odbc and Microsoft ODBC Driver 18.
-Its confidential secret uses `OAUTHDB_FABRIC_CLIENT_SECRET`. The copied
-`app.R` contains the connection and query code; `demo-ui.R` contains the
-UI.
+All demos need bslib and processx; install askpass for masked secret
+input. Databricks also needs brickster 0.2.14 or later and jsonlite.
+Fabric needs fabricQueryR, odbc and Microsoft ODBC Driver 18. BigQuery
+and ClickHouse use jsonlite without a database driver. Snowflake, Azure
+SQL and Redshift need odbc and their native drivers; Azure PostgreSQL
+needs RPostgres and a trusted CA bundle.
 
-Databricks needs an account-level custom OAuth app registration with the
-exact callback and SQL access. Public PKCE registrations need no secret.
-For confidential apps, set `OAUTHDB_DATABRICKS_CLIENT_SECRET` or use the
-masked prompt. Secrets and tokens are not written to the generated files
-or serialized R arguments. The app's child process receives the secret
-through its environment. Normal cloud TLS verification stays enabled.
+## Platform settings
 
-Settings can also come from `OAUTHDB_DATABRICKS_HOST` and
-`OAUTHDB_DATABRICKS_CLIENT_ID`. The guide can pause for registration and
-resume from `path`. The generated `settings.dcf` contains only
-non-secret configuration; `app.R` stays editable.
+Databricks uses the named arguments above. For other platforms, pass
+these settings through `...`:
 
-Databricks additionally needs brickster 0.2.14 or later and jsonlite. No
-Docker is needed. Its app discovers SQL warehouses after sign-in, with a
-manual-ID fallback. Listing doesn't run SQL. Clicking **Run example
-query** opens the DBI connection and runs `SELECT current_user()`.
-Queries can start a stopped warehouse and consume compute credits.
-Stopping the app doesn't stop or change a shared cloud warehouse.
+- Fabric:
 
-Databricks Free Edition has no account-console or account-level API
-access, so it doesn't offer the custom OAuth registration path used
-here. A full workspace or eligible full-platform trial needs access to
-that registration. This is distinct from connecting a local R client
-using a personal token.
+  `server`, `database`, `tenant_id`; optional `driver`.
+
+- BigQuery:
+
+  `project`; optional `location`, `maximum_bytes_billed`.
+
+- Snowflake:
+
+  `server`, `role`, `warehouse`; optional `database`, `schema`,
+  `driver`.
+
+- Azure SQL:
+
+  `server`, `database`, `tenant_id`; optional `driver`, `database_port`.
+
+- Azure PostgreSQL:
+
+  `server`, `database`, `user`, `sslrootcert`, `tenant_id`; optional
+  `database_port`.
+
+- Redshift:
+
+  `identity_center_ready`, `server`, `database`, `tenant_id`,
+  `resource`, `scope`; optional `driver`, `database_port`.
+
+- ClickHouse:
+
+  `jwt_ready`, `url`, `tenant_id`, `resource`, `scope`; optional
+  `database`.
+
+`database_port` is the database's port; `port` is the local Shiny port.
+The Redshift and ClickHouse demos use Entra and need an existing
+trusted-token integration. See the source guide for registration steps.
+
+## Edit and resume
+
+The launcher saves non-secret settings in `settings.dcf` and keeps your
+`app.R` edits. Call it again with the same `path` to resume. Use
+`action = "files"` for an offline draft, or a new empty path for fresh
+templates. For scripts, supply the required settings and
+`prompt = FALSE`.
+
+Enter secrets through the masked prompt or the platform's client-secret
+environment variable. Databricks uses
+`OAUTHDB_DATABRICKS_CLIENT_SECRET`; other names are in the source
+guides. Secrets pass through the app process environment and aren't
+written to generated files.
+
+## Databricks registration
+
+Databricks needs an account-level custom OAuth registration with SQL
+access and the exact callback URI. Public registrations use PKCE without
+a secret; confidential registrations need a secret. Free Edition doesn't
+provide this registration path. After sign-in, select a warehouse or
+supply its ID manually. See the Databricks vignette for setup.
 
 ## See also
 

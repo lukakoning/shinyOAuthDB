@@ -1,8 +1,9 @@
 # Query SAP HANA as the signed-in user
 
-Open a DBI connection to SAP HANA or SAP HANA Cloud using the visitor's
-JWT access token. HANA maps the token's external identity to a database
-user and applies that user's privileges.
+Read SAP HANA or HANA Cloud data using each visitor's database
+privileges. HANA checks their signed access token and maps it to a
+database user. The helper provides a DBI connection for SQL or dbplyr
+queries.
 
 ## Usage
 
@@ -27,9 +28,9 @@ oauth_db_hana(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - server:
 
@@ -70,13 +71,15 @@ oauth_db_hana(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -85,52 +88,36 @@ oauth_db_hana(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning an odbc DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
-Install odbc and SAP HANA Client's ODBC driver. Configure a JWT
-provider, signing-certificate trust, external-identity mappings and user
-privileges in the target database. The OAuth provider must issue a JWT
-access token accepted by this configuration. Browser SSO for SAP BTP
-alone does not establish SQL access. There is no universal SAP scope or
-token audience.
+Install odbc and SAP HANA Client's ODBC driver. Configure HANA to trust
+your provider's JWT access tokens, map their identities to database
+users and grant access to the data. The scope and audience depend on
+that configuration; a SAP BTP browser login alone doesn't establish SQL
+access.
 
-The helper supplies the token as `PWD` with an empty `UID` and restricts
-`authenticationMethods` to `jwt`. TLS encryption, certificate validation
-and matching of the endpoint hostname are required. DSNs, saved user
-credentials, session cookies and alternate authentication methods cannot
-be selected through this helper.
+Create the helper inside `server()` and call `con()` before each query.
+The connection requires encryption and a trusted server certificate. A
+valid SQL session stays open through ordinary token renewal, with the
+identity and privileges established when it connected.
 
-Create the helper inside `server()` and call `connection <- con()`
-before each query. Valid SQL sessions survive ordinary token renewal.
-Account changes, permission loss, sign-out and Shiny session end close
-them. Native automatic reconnect is disabled; reopen a broken connection
-through `con()` to supply a current token. Failed queries are not
-replayed.
+Sign-out, account changes or session end close the connection. If it
+breaks, the next `con()` reconnects with a current token. The helper
+doesn't replay a failed query.
 
 ## See also
 
 [`vignette("hana", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/hana.md)
 for sign-in, database configuration and a complete Shiny app.
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md),
-[`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md),
-[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md),
-[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)
 
 ## Examples
 

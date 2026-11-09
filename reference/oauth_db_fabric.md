@@ -1,9 +1,11 @@
 # Get a token callback for one Fabric service
 
-Use this to call a fabricQueryR function directly with the visitor's
-credentials. It supplies the callback expected by the function's `token`
-argument. For several services or resource objects, use
-[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md).
+Call a fabricQueryR function with the visitor's credentials for one
+Fabric service. This helper supplies a token callback: a function
+fabricQueryR calls when it needs a current access token. Use
+[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md)
+when working with several services or resource objects such as
+Lakehouses.
 
 ## Usage
 
@@ -22,9 +24,9 @@ oauth_db_fabric(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - service:
 
@@ -48,17 +50,21 @@ oauth_db_fabric(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function. Call `callback()` to get the function to pass as
-fabricQueryR's `token` argument.
+A reactive function, such as `callback`. Calling `callback()` returns
+the token callback to pass to a fabricQueryR function, as
+`token = callback()` in the example below.
 
 ## Details
 
-Create the helper inside `server()`. The callback obtains and renews
-tokens through shinyOAuth. It stays tied to the authorization that
+Create the helper inside `server()`. Configure
+[`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md)
+for the selected service first. shinyOAuth obtains or renews tokens when
+the callback needs them. Keep the callback in the Shiny session that
 created it.
 
 ## See also
@@ -66,10 +72,6 @@ created it.
 [`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md).
 [`vignette("fabric", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.md)
 has sign-in setup and a complete app.
-
-Other advanced connection helpers:
-[`oauth_db_connect()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.md),
-[`oauth_db_token()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md)
 
 ## Examples
 

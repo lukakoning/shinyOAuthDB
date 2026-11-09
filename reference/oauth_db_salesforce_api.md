@@ -1,7 +1,9 @@
 # Query Salesforce CRM as the signed-in user
 
-Run SOQL queries and inspect objects through Salesforce's REST API.
-Salesforce applies the visitor's object, field and record permissions.
+Read Salesforce CRM records using the visitor's object, field and record
+permissions. CRM objects, such as accounts, are queried with
+Salesforce's query language, SOQL. Queries return data frames for your
+Shiny app.
 
 ## Usage
 
@@ -23,9 +25,9 @@ oauth_db_salesforce_api(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - instance_url:
 
@@ -39,13 +41,15 @@ oauth_db_salesforce_api(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -63,57 +67,48 @@ oauth_db_salesforce_api(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-An R6 client with these methods:
+A client object with these methods:
 
 - `$query(soql, include_deleted = FALSE, raw = FALSE)` fetches all
-  result pages and returns a data frame. `include_deleted = TRUE` uses
-  QueryAll. `raw = TRUE` returns combined native records and
-  `totalSize`, including the count for `SELECT COUNT()`.
+  result pages and returns a data frame. `include_deleted = TRUE`
+  includes deleted or archived records through QueryAll. `raw = TRUE`
+  returns combined native records and `totalSize`, including the count
+  for `SELECT COUNT()`.
 
-- `$objects()` returns the native sObject discovery response.
+- `$objects()` returns the API's object catalog.
 
-- `$describe(object)` returns native object metadata.
+- `$describe(object)` returns field definitions and other object
+  metadata.
 
 ## Details
 
-Create the client inside `server()`. Each operation pins its starting
-authorization and obtains a current access token before each request.
-Responses arriving after sign-out, account changes or permission loss
-are discarded. A GET can retry once after HTTP 401 with a renewed token.
+Use
+[`oauth_db_salesforce_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.md)
+for sign-in. Create this API client inside `server()` and call its
+methods from render or reactive expressions. The client gets a current
+token for each request and discards results after sign-out or account
+changes. GET requests can refresh and retry once after HTTP 401.
 
-Pagination accepts only query-locator paths for the configured API
-version on the configured org. Redirects are refused. `timeout` covers
-all pages of an operation. Results are collected synchronously in R
-memory.
+Queries fetch all result pages into R memory. `timeout` applies to the
+whole operation. Relationships and child-query results stay in list
+columns; ordinary numbers become R numeric values and large integers
+stay as strings. Empty results have no field metadata; use `$describe()`
+for field types.
 
-Top-level Salesforce `attributes` metadata is omitted from data frames.
-Relationships and child queries remain list columns. Ordinary JSON
-numbers use R numeric values; large integers remain strings. An empty
-result has no column metadata; use `$describe()` when you need field
-types. SOQL is supplied as written, without SQL parameter interpolation.
+Supply SOQL as written. This client doesn't bind SQL parameters or
+provide a DBI connection. Use `raw = TRUE` for the records and metadata
+without conversion to a data frame.
 
 ## See also
 
 [`oauth_db_salesforce_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.md),
 [`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md).
 [`vignette("salesforce", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.md).
-
-Other platform API clients:
-[`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md),
-[`oauth_db_clickhouse_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_clickhouse_api.md),
-[`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md),
-[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md),
-[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md),
-[`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md),
-[`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md),
-[`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md),
-[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md),
-[`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md),
-[`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
 
 ## Examples
 

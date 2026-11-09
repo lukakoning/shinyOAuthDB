@@ -1,8 +1,9 @@
 # Call Databricks functions as the signed-in user
 
-Call brickster functions to list warehouses, run SQL, or use other
-Databricks APIs. The client supplies the workspace host and the user's
-credentials.
+Use Databricks APIs with each visitor's account. Pass a brickster
+function to the client's `$call()` method to list warehouses, run
+queries or perform other supported operations. The client supplies the
+workspace and the visitor's current token.
 
 ## Usage
 
@@ -22,9 +23,9 @@ oauth_db_databricks_api(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - host:
 
@@ -42,8 +43,9 @@ oauth_db_databricks_api(
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -52,27 +54,31 @@ oauth_db_databricks_api(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-An R6 client with `$call(.fn, ...)`. Pass a brickster function as `.fn`
-and its usual arguments through `...`, omitting `host` and `token`. The
-method returns the function's result. `$warehouses(timeout = 30)` lists
-visible SQL warehouses as a data frame with `id`, `name` and `state`,
-following all result pages. Listing doesn't start a warehouse or
-establish permission to run queries.
+A client object with `$call(.fn, ...)`. Pass a brickster function as
+`.fn` and its usual arguments through `...`, omitting `host` and
+`token`. The method returns the function's result.
+`$warehouses(timeout = 30)` lists visible SQL warehouses as a data frame
+with `id`, `name` and `state`, following all result pages. Listing
+doesn't start a warehouse or establish permission to run queries.
 
 ## Details
 
-Create the client inside `server()`. Set the authentication options when
-creating it; `$call()` uses those settings.
+Create the client inside `server()` and call its methods from render or
+reactive expressions. Choose authentication settings when creating the
+client; `$call()` supplies them to the brickster function. Use
+[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md)
+for a DBI connection managed by shinyOAuthDB.
 
 ## Longer operations
 
-Each call obtains a current token. Polling and fetching within that
-brickster call keep the supplied token. The client doesn't retry the
-operation or close connections returned by the function.
+Each brickster call gets a current token. Polling and fetching within
+that call keep the supplied token. Operations don't retry automatically.
+Your app must close any connections returned by brickster functions.
 
 ## See also
 
@@ -80,19 +86,6 @@ operation or close connections returned by the function.
 [`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md).
 [`vignette("databricks", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md)
 has sign-in setup and a complete app.
-
-Other platform API clients:
-[`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md),
-[`oauth_db_clickhouse_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_clickhouse_api.md),
-[`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md),
-[`oauth_db_fabric_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_api.md),
-[`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md),
-[`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md),
-[`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md),
-[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md),
-[`oauth_db_salesforce_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.md),
-[`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md),
-[`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
 
 ## Examples
 

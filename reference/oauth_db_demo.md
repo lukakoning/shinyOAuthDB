@@ -1,9 +1,9 @@
 # Run a local database OAuth demo
 
-Start a database and Keycloak sign-in using Docker, with a small Shiny
-app running either in Docker or in a local R process. The installed
-package includes the configuration, accounts and sample data; no source
-checkout or cloud account is needed.
+Try a Shiny app where visitors sign in and query a database with their
+own permissions. The package supplies a local database, Keycloak
+sign-in, demo accounts and sample data through Docker. You can run the
+app in Docker or local R without a cloud account or source checkout.
 
 ## Usage
 
@@ -70,84 +70,63 @@ configured shinyOAuth provider), `url` (the local data endpoint),
 
 ## Details
 
-Install and start Docker with Linux containers and Docker Compose v2.
-The first build downloads images, R packages and pinned package sources
-from GitHub. PostgreSQL also compiles its native OAuth runtime. Allow
-several minutes and a few GB of disk space. StarRocks uses amd64 images
-and needs about 4 GB of Docker memory; other architectures need
-emulation. DuckDB installs a matching R client and Quack extensions; the
-client compiles from source if a Linux binary isn't available.
-OpenSearch needs about 2 GB of Docker memory for its database container.
+Install and start Docker with Linux containers and Compose v2, then run
+`oauth_db_demo()`. The first build needs internet access, several
+minutes and a few GB of disk space.
 
-Open `http://localhost:18100` and sign in as `alice` with password
-`alice`, or `bob` with password `bob`. Keycloak uses a generated test
-certificate at `https://localhost:18443`; your browser may ask you to
-accept it for this local demo.
+Open `http://localhost:18100` in a regular browser. Sign in as `alice`
+with password `alice`, or `bob` with password `bob`. Your browser may
+ask you to accept Keycloak's local test certificate at
+`https://localhost:18443`.
 
-Run one demo at a time: they share the same loopback ports. All accounts
-are public demo accounts. Containers bind browser ports to loopback
-only. Clicking **Stop demo**, or interrupting the foreground R call,
-removes the demo's containers and volumes. The copied files and cached
-images stay. A separate R session can use `action = "stop"` after a
-forced exit.
+Run one demo at a time because they share ports. Click **Stop demo** or
+interrupt R to remove the containers and sample data. Copied files and
+cached images stay for later runs. After a forced exit, use
+`action = "stop"` with the same database, `app` mode and `path`.
 
-To edit an example, first use `action = "files"`, edit the returned
-directory, then call with the same `path`. `app.R` in the selected
-database's subdirectory is the Shiny app. Stop the demo before
-rebuilding.
+The accounts and passwords are public demo settings. For your own
+deployment, follow the source's setup guide.
 
 ## Run and edit the app locally
 
-Use `app = "local"` to keep the database and sign-in services in Docker
-while running Shiny in a separate R process on your computer. This uses
-your R library and watches the copied `local-app/<database>/app.R` for
-changes. Save the file and reload the browser to try your edits.
-Existing app files are preserved. Local and Docker modes have separate
-default cache directories.
+Use `app = "local"` to run Shiny with your installed R packages while
+Docker runs the database and sign-in service. Install callr and bslib
+0.9.0 or later, plus the source's R client and database driver.
+PostgREST works without a database driver and is a useful first option.
 
-Local mode requires callr and bslib 0.9.0 or later. Trino also needs
-RTrino; StarRocks needs odbc and MySQL Connector/ODBC with its OpenID
-Connect plugin; DuckDB needs a client matching the demo server (DuckDB
-1.5.4) and installs its matching Quack/httpfs extensions. PostgreSQL's
-native client requires Linux and shinyOAuthDB/RPostgres built against
-the same shared libpq 18. Use the PostgREST demo for local editing on
-Windows or macOS without a database driver.
+Trino needs RTrino. StarRocks needs odbc and MySQL Connector/ODBC with
+its OpenID Connect plugin. DuckDB needs a matching client (1.5.4 for the
+demo) and its Quack extensions. Native PostgreSQL needs Linux with
+RPostgres and shinyOAuthDB linked to the same libpq 18.
 
-The launcher copies the demo's public CA certificate and trusts it only
-inside the local app process. It does not change your certificate store
-or the parent R session's TLS settings. Local mode requires Compose
-2.24.4 or later and publishes its database endpoint on loopback port
-19444.
+Use `action = "files"` to copy the app, then edit
+`local-app/<database>/app.R`. Start with the same `path`, save your
+edits and reload the browser. Existing files are preserved; use a new
+empty path for fresh templates.
+
+Local mode needs Compose 2.24.4 or later. It trusts the demo certificate
+only in the app process, leaving your certificate store unchanged.
+StarRocks needs about 4 GB of Docker memory and amd64 support;
+OpenSearch needs about 2 GB for its database container.
 
 ## Run your own app with Docker services
 
-Use `action = "services"` to start the database and sign-in
-infrastructure without starting Shiny or blocking R. Use the returned
-`provider` in `shinyOAuth::oauth_client()` and `url` in an API helper.
-This mode needs Compose 2.24.4 or later but does not install or require
-local database drivers. Native database clients still need their usual
-runtime; PostgREST works in local R on Windows, macOS and Linux.
+Use `action = "services"` to start the database and sign-in service,
+then return to R without starting Shiny. This needs Compose 2.24.4 or
+later. Pass the returned `provider` to `shinyOAuth::oauth_client()` and
+`url` to the data helper. The PostgREST example works without a database
+driver; native clients still need their usual drivers.
 
-Browser sign-in uses HTTPS. The returned provider uses Keycloak's HTTP
-endpoints on loopback port 18080 for R's token, UserInfo and signing-key
-requests. It retains the HTTPS issuer and validates signed ID tokens.
-This avoids changing R's certificate store or curl settings. PostgREST's
-services-only endpoint uses HTTP on `127.0.0.1:19444`, permitted only
-while its demo handle is active. Other data endpoints retain HTTPS and
-supply `ca_bundle` for clients that support custom certificate
-authorities.
+Keep the returned handle, such as `demo`, while your app runs. Register
+`demo$stop` with
+[`shiny::onStop()`](https://rdrr.io/pkg/shiny/man/onStop.html) or call
+`demo$stop()` when finished. It removes containers and sample data and
+restores local-development options. Reuse the handle until you stop it.
 
-During this demo, shinyOAuth's host policy permits loopback hosts and
-its loopback-only OIDC development option is enabled. `demo$stop()`
-removes the containers and data and restores these options. Register it
-with [`shiny::onStop()`](https://rdrr.io/pkg/shiny/man/onStop.html) when
-your app starts. Services are also stopped when the returned object is
-garbage collected or R exits. Run one demo at a time, and stop it before
-starting another. Starting the same database and `path` again is refused
-while its services handle is active; reuse that handle or stop it before
-restarting. Using `action = "stop"` with the same database and `path`
-also retires any services handle in the current R process and restores
-its options.
+Browser sign-in uses HTTPS. Services-only PostgREST uses HTTP on
+`127.0.0.1:19444`, allowed only while the demo is active. Other
+endpoints use HTTPS; the handle's `ca_bundle` supplies their local
+certificate.
 
 ## See also
 

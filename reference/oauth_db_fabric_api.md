@@ -1,8 +1,9 @@
 # Call Fabric functions as the signed-in user
 
-List workspaces, query semantic models, or read OneLake data through
-fabricQueryR. Pass a function and its usual arguments to `$call()`; the
-client supplies the visitor's credentials.
+Use Fabric services with each visitor's Microsoft account. Pass a
+fabricQueryR function to `$call()` to list workspaces, query semantic
+models or read OneLake data. The client supplies the user's credentials
+and returns the function's result.
 
 ## Usage
 
@@ -21,9 +22,9 @@ oauth_db_fabric_api(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - targets:
 
@@ -45,11 +46,12 @@ oauth_db_fabric_api(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-An R6 client with these methods:
+A client object with these methods:
 
 - `$call(.fn, ...)` calls a fabricQueryR function and returns its
   result, including resource objects. Omit `token` from the function
@@ -60,28 +62,29 @@ An R6 client with these methods:
 
 ## Details
 
-Create the client inside `server()`. Configure
+Create the client inside `server()` and call its methods from render or
+reactive expressions. Configure
 [`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md)
-for the services your app needs.
+for the services your app needs first. Users need access to the Fabric
+items and data they query.
 
 ## Resource objects
 
-fabricQueryR objects, such as a Lakehouse, keep the authorization used
-to create them. Put the lookup in
-[`reactive()`](https://rdrr.io/pkg/shiny/man/reactive.html) so a change
-of account obtains a new object. The object's methods can then use the
-same sign-in.
+A fabricQueryR object, such as a Lakehouse, keeps the authorization used
+to create it. Put the lookup inside
+[`reactive()`](https://rdrr.io/pkg/shiny/man/reactive.html) so it runs
+again when the visitor changes accounts, as in the example.
 
-Use
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md)
-for a DBI connection managed by shinyOAuthDB. Your app must close
-connections it opens through fabricQueryR functions or resource methods.
+For a DBI connection managed by shinyOAuthDB, use
+[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md).
+Your app must close connections it opens through fabricQueryR functions
+or object methods.
 
 ## Custom token targets
 
-The `targets` mapping selects the services the client can use. DAX and
-GraphQL share the Power BI resource and must use the same target;
-different resources need different targets. Tokens are obtained only
+The `targets` mapping selects the service tokens this client can use.
+DAX and GraphQL share the Power BI resource and must use the same
+target; different resources need different targets. Tokens are obtained
 when a service needs them.
 
 ## See also
@@ -90,19 +93,6 @@ when a service needs them.
 [`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md).
 [`vignette("fabric", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.md)
 has sign-in setup and a complete app.
-
-Other platform API clients:
-[`oauth_db_bigquery_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.md),
-[`oauth_db_clickhouse_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_clickhouse_api.md),
-[`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md),
-[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md),
-[`oauth_db_libsql_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.md),
-[`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md),
-[`oauth_db_oracle_ords_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.md),
-[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md),
-[`oauth_db_salesforce_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.md),
-[`oauth_db_salesforce_data_cloud_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.md),
-[`oauth_db_supabase_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_api.md)
 
 ## Examples
 

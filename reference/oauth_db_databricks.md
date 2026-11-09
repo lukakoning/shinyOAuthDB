@@ -1,7 +1,9 @@
 # Query Databricks SQL as the signed-in user
 
-Query a Databricks SQL warehouse with DBI or dbplyr through brickster.
-Users can sign in with Databricks OAuth or Microsoft Entra.
+Query Databricks tables with each visitor's account and data
+permissions. You connect to a SQL warehouse, which supplies the compute
+for queries. The connection works with DBI or dbplyr through the
+brickster package.
 
 ## Usage
 
@@ -24,9 +26,9 @@ oauth_db_databricks(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - host:
 
@@ -57,8 +59,9 @@ oauth_db_databricks(
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -67,26 +70,34 @@ oauth_db_databricks(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning a brickster DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
-Install brickster. Create `con` inside `server()` and get
-`connection <- con()` in a render or reactive expression before
-querying.
+Install brickster and use
+[`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md)
+for Databricks sign-in. The user needs access to the workspace, SQL
+warehouse and data. For Azure Databricks with Entra, use
+[`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md)
+with `services = "databricks_entra"` and set `auth_mode = "entra"` here.
 
-For other brickster functions, use
-[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md).
+Create the helper inside `server()` and call `con()` before each query.
+Use
+[`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md)
+to call other brickster functions.
 
 ## Connection lifetime
 
-The helper replaces the connection when its stored token changes. A
-saved connection can retain its token after local sign-out; call `con()`
-for each operation.
+The helper replaces the connection when its token changes. A saved
+brickster connection can retain its old token after sign-out, so obtain
+the current connection through `con()` for every operation.
 
 ## See also
 
@@ -94,20 +105,6 @@ for each operation.
 [`oauth_db_databricks_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_api.md).
 [`vignette("databricks", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md)
 has sign-in setup and a complete app.
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgres.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md),
-[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md),
-[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)
 
 ## Examples
 

@@ -1,8 +1,8 @@
 # Set up Snowflake OAuth sign-in
 
-Create a sign-in client for Snowflake's own OAuth integration and a role
-your app's users can access. Pass it to shinyOAuth's UI and server
-modules, then connect with
+Set up sign-in for a Shiny app using Snowflake's own OAuth integration.
+Visitors use their Snowflake account and a role they can access. Pass
+this client to shinyOAuth's UI and server modules, then connect with
 [`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md).
 
 ## Usage
@@ -60,9 +60,11 @@ A shinyOAuth `OAuthClient`. Create it outside `server()`.
 
 ## Details
 
-Register the app's redirect URI in the Snowflake OAuth integration. For
-External OAuth through Entra, Okta, or another provider, use that
-provider's shinyOAuth client configuration.
+Register the app's exact redirect URI in a Snowflake custom OAuth
+integration. The requested role must match the role used by
+[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md).
+If your account uses an external provider such as Entra or Okta,
+configure a shinyOAuth client for that provider instead.
 
 ## See also
 
@@ -70,15 +72,6 @@ provider's shinyOAuth client configuration.
 [`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md).
 [`vignette("snowflake", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.md)
 has sign-in setup and a complete app.
-
-Other sign-in configuration:
-[`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md),
-[`oauth_db_databricks_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_client.md),
-[`oauth_db_databricks_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks_provider.md),
-[`oauth_db_microsoft_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.md),
-[`oauth_db_salesforce_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.md),
-[`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md),
-[`oauth_db_supabase_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_supabase_client.md)
 
 ## Examples
 

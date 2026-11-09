@@ -1,8 +1,9 @@
-# Query self-hosted PostgreSQL as the signed-in user
+# Query PostgreSQL as the signed-in user
 
-Connect to PostgreSQL's native OAuth authentication with the visitor's
-existing access token. The server validates the token and database role;
-queries use RPostgres, DBI or dbplyr.
+Read PostgreSQL data in a Shiny app using each visitor's account and
+existing database permissions. This helper uses PostgreSQL's native
+OAuth support and opens an RPostgres connection for DBI or dbplyr
+queries.
 
 ## Usage
 
@@ -29,9 +30,9 @@ oauth_db_postgres(
 
 - authorization:
 
-  `auth$connection` from a shinyOAuth server module, without
-  parentheses. To select a saved authorization, pass a function that
-  calls `auth$connection(id)`.
+  Function providing the visitor's current sign-in authorization. Pass
+  `auth$connection` from shinyOAuth without parentheses. To select a
+  saved account, use a function calling `auth$connection(id)`.
 
 - host:
 
@@ -76,13 +77,15 @@ oauth_db_postgres(
 
 - target:
 
-  Token target name in the shinyOAuth client. `NULL` uses its default
-  token, including for clients without named targets.
+  Name of the service token to use in your shinyOAuth client. Named
+  targets let one sign-in obtain tokens for different services. `NULL`
+  uses the client's default token.
 
 - required_scopes:
 
-  Additional permissions to check before use. Request consent and set
-  the client's permission requirements in shinyOAuth.
+  Additional OAuth permissions to check before use. Request them on the
+  shinyOAuth client first; this check doesn't request consent or grant
+  database privileges.
 
 - min_valid_for:
 
@@ -91,65 +94,50 @@ oauth_db_postgres(
 
 - session:
 
-  Shiny session. Inferred when the helper is created in `server()`.
+  The visitor's Shiny session. Usually inferred when you create the
+  helper inside `server()`.
 
 ## Value
 
-A reactive function returning an RPostgres DBI connection.
+A reactive function, usually named `con`. Call `connection <- con()`
+inside a render or reactive expression, then pass the connection to DBI.
+Before sign-in, the function waits quietly.
 
 ## Details
 
-Native OAuth currently requires Linux, PostgreSQL 18, and shinyOAuthDB
-and RPostgres built against the same shared libpq 18. Other platforms
-can run the Docker playground. Install libpq without its optional
-device-flow module; shinyOAuth handles browser sign-in and token
-renewal.
+Native OAuth requires Linux, PostgreSQL 18, and RPostgres and
+shinyOAuthDB built against the same shared libpq 18. Install libpq
+without its optional device-flow module; shinyOAuth handles browser
+sign-in and token renewal. Other platforms can run the Docker demo or
+use
+[`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md).
 
-Configure a server-side OAuth validator, its trusted issuer and
-audience, database roles and identity mappings before connecting. A
-Keycloak setup is included in
-[`vignette("postgres", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md).
+Configure the server's OAuth validator, trusted issuer and audience, and
+the mapping from users to database roles. Connections require OAuth and
+verified TLS. The PostgreSQL vignette has a working Keycloak
+configuration.
 
-Connections use verified TLS and require OAuth. The token hook exists
-only during synchronous connection opening and is restored on error or
-interrupt. Call `con()` before each operation. A valid connection
-survives token refresh; account or role changes and sign-out close it.
-Discard a broken native connection and obtain a new one through `con()`;
-resetting or cloning a retained native handle is unsupported. Use
-separate R processes for workers.
+Create the helper inside `server()` and call `con()` before each query.
+A valid connection stays open through token renewal. Account or role
+changes and sign-out close it. If it breaks, reopen through `con()`;
+resetting or cloning a saved connection isn't supported.
 
 ## Try the Docker demo
 
-Run
+With Docker running, call
 [`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
-with Docker running to start PostgreSQL 18, Keycloak and a small Shiny
-app. The installed package includes the configuration, demo accounts and
-sample data. Docker supplies R and the native libraries on Windows,
-macOS or Linux.
+to try PostgreSQL, Keycloak sign-in and a Shiny app with sample data on
+Windows, macOS or Linux. Use `oauth_db_demo(action = "files")` to copy
+the configuration.
 
 The [PostgreSQL
 guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
-covers the demo and your own server setup. Use
-`oauth_db_demo(action = "files")` to copy and inspect the Docker files.
+covers the demo and setup for your own server.
 
 ## See also
 
 [`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md)
 for Azure's Entra authentication.
-
-Other database connections:
-[`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md),
-[`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md),
-[`oauth_db_databricks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.md),
-[`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md),
-[`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md),
-[`oauth_db_hana()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_hana.md),
-[`oauth_db_oracle()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.md),
-[`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md),
-[`oauth_db_snowflake()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.md),
-[`oauth_db_sql_server()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_sql_server.md),
-[`oauth_db_starrocks()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_starrocks.md),
-[`oauth_db_trino()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_trino.md)
 
 ## Examples
 
