@@ -1,0 +1,167 @@
+---
+title: "MongoDB with workforce OIDC"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MongoDB with workforce OIDC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+MongoDB stores documents in collections. Use `oauth_db_mongodb()` to read
+those documents, calculate summaries with aggregation pipelines and issue
+database commands using each visitor's permissions.
+
+This helper uses MongoDB's official Python driver, PyMongo, through
+reticulate. MongoDB must accept workforce OIDC access tokens from your
+identity provider. This requires an eligible Atlas deployment or MongoDB
+Enterprise on Linux; Community Server doesn't provide workforce OIDC.
+
+## Before running the app
+
+Install reticulate and configure a Python environment before starting Shiny:
+
+```{r install}
+install.packages("reticulate")
+reticulate::virtualenv_create("shiny-mongodb")
+reticulate::py_install(c("pymongo>=4.10", "numpy"), envname = "shiny-mongodb")
+reticulate::use_virtualenv("shiny-mongodb", required = TRUE)
+```
+
+Use the same Python environment on your app server. You can also select its
+interpreter with `RETICULATE_PYTHON` in `.Renviron`, before R starts. The
+helper initializes Python only when a signed-in visitor first queries data.
+
+| Setting | Where to get it |
+| --- | --- |
+| `OAUTHDB_MONGODB_URL` | The cluster's connection string, without credentials, a database path or authentication/TLS/retry options |
+| `OAUTHDB_MONGODB_DATABASE` | The database containing your collections |
+| `OAUTHDB_MONGODB_ISSUER` | Exact HTTPS issuer trusted by MongoDB |
+| `OAUTHDB_CLIENT_ID`, `OAUTHDB_CLIENT_SECRET` | A web OAuth registration at that provider, with the app's redirect URI |
+| OAuth scopes and audience | Your identity provider's registration for MongoDB; the example `database.read` scope must exist or be replaced |
+
+For a private CA, supply its certificate file through `ca_bundle`. With
+`mongodb://`, the default token host allowlist contains the seed hosts.
+Replica members must also be allowed. For Atlas SRV URLs such as
+`mongodb+srv://cluster0.abc.mongodb.net`, the default is `*.abc.mongodb.net`.
+Other SRV deployments require an explicit `allowed_hosts` vector.
+
+## A complete app
+
+The provider must issue JWT access tokens with the audience MongoDB expects.
+Configure provider-specific audience parameters on your shinyOAuth provider
+when needed. Use your collection name and filter in the query below.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+issuer <- Sys.getenv("OAUTHDB_MONGODB_ISSUER")
+provider <- oauth_provider_oidc_discover(issuer = issuer)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "database.read")
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  mongo <- oauth_db_mongodb(
+    auth$connection,
+    url = Sys.getenv("OAUTHDB_MONGODB_URL"),
+    db = Sys.getenv("OAUTHDB_MONGODB_DATABASE"),
+    issuer = issuer,
+    client_id = Sys.getenv("OAUTHDB_CLIENT_ID")
+  )
+  output$rows <- renderTable({
+    mongo$find("orders", filter = '{"country":"NL"}', limit = 20)
+  })
+}
+
+runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
+# Open http://localhost:8100 in your regular browser.
+```
+
+## MongoDB and provider setup
+
+Configure [Atlas workforce federation](https://www.mongodb.com/docs/atlas/workforce-oidc/)
+or [MongoDB Enterprise workforce OIDC](https://www.mongodb.com/docs/manual/core/oidc/workforce/configure-oidc/).
+MongoDB must trust the issuer and audience, map the JWT principal or groups
+to database users or roles, and grant access to the required collections.
+For self-managed deployments, MongoDB documents workforce support from
+7.0.11; consult its version and platform requirements before deployment.
+
+Register the Shiny app at that provider with its own redirect URI. The app
+uses shinyOAuth for browser sign-in and token renewal. MongoDB's human OIDC
+challenge must advertise the configured issuer and, when `client_id` is
+supplied, that client ID. If multiple providers require a username to select
+one, set `user` to that username or a function returning it for the selected
+account.
+
+The Python callback supplies only the visitor's existing access token. It
+doesn't launch a second browser flow, obtain workload credentials, or use
+the host's cloud account. Token and username changes replace the cached
+client on its next use. Sign-out, permission loss and session end close it.
+
+The helper always enables certificate and hostname verification. URL options
+are restricted to deployment and query settings such as `replicaSet`,
+`directConnection`, `readPreference` and `w`. Configure credentials, CA trust
+and timeouts with the helper's arguments.
+
+## Queries, BSON values and commands
+
+Filters, projections and pipelines are JSON strings. PyMongo's BSON parser
+also accepts Extended JSON, so object identifiers and other BSON types can
+be supplied without converting them to ordinary strings:
+
+```{r queries}
+mongo$find("orders", filter = '{"_id":{"$oid":"507f1f77bcf86cd799439011"}}')
+mongo$aggregate("orders", '[
+  {"$match":{"country":"NL"}},
+  {"$group":{"_id":"$category","total":{"$sum":"$amount"}}}
+]')
+mongo$count("orders", filter = '{"country":"NL"}')
+mongo$run('{"connectionStatus":1}')
+```
+
+Reads consume and close their cursors within the operation, including result
+pages. `find()` defaults to 100 documents; set `limit = 0` to read all matches.
+Use `simplify = FALSE` for lists instead of data frames. Object identifiers,
+dates, binary values and other BSON-specific types retain their Extended
+JSON representation. Large integers are strings to preserve their exact value.
+
+`run()` returns one native command response. It can issue writes when the
+visitor has permission, but excludes authentication, transaction and cursor
+commands. Use `find()` and `aggregate()` for cursor results. Inspect native
+write response fields such as `writeErrors` when issuing batch write commands.
+There is no DBI connection, live cursor or transaction handle.
+
+Driver retryable reads and writes are disabled. The wrapper doesn't replay
+failed queries or commands. PyMongo may perform protocol reauthentication
+with the same supplied token. A timeout or sign-out doesn't guarantee that
+the server stops work already submitted, including `$out` or `$merge` stages.
+
+## Compatibility checks
+
+The repository's [MongoDB fixture](https://github.com/lukakoning/shinyOAuthDB/tree/main/integration/mongodb-oidc)
+checks the driver, token validation, permissions and TLS with disposable
+credentials. It is separate from browser OAuth and a live Atlas deployment.

@@ -12,6 +12,7 @@ Rscript --vanilla tools/check-cockroachdb.R
 Rscript --vanilla tools/check-singlestore.R
 Rscript --vanilla tools/check-cloud-sql.R
 Rscript --vanilla tools/check-dremio.R path/to/python
+Rscript --vanilla tools/check-mongodb.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-libsql-oauth.R
@@ -25,6 +26,12 @@ Rscript --vanilla tools/check-coverage.R
 separate user grants, token replacement, reconnection and verified TLS.
 It needs Docker and RPostgres linked to libpq 16 or later; see the
 [CockroachDB fixture](../integration/cockroachdb-jwt/README.md).
+
+`check-mongodb.R` checks MongoDB Enterprise workforce OIDC through PyMongo
+and reticulate, with separate collection permissions, BSON values, cursor
+pages, token replacement and verified TLS. Set `RETICULATE_PYTHON` to a
+Python environment with the [fixture requirements](../integration/mongodb-oidc/requirements.txt).
+See the [MongoDB fixture](../integration/mongodb-oidc/README.md).
 
 With Docker running, `check-cratedb-oauth.R` exercises native CrateDB JWT
 validation, user privileges, exact results and verified TLS. It also checks

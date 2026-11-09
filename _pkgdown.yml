@@ -28,7 +28,7 @@ articles:
   - title: Start here
     contents: [getting-started]
   - title: Databases and related services
-    contents: [cockroachdb, cratedb, dremio, duckdb, elasticsearch, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
+    contents: [cockroachdb, cratedb, dremio, duckdb, elasticsearch, libsql, mongodb, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
   - title: Cloud platforms
     contents: [redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
@@ -65,6 +65,8 @@ reference:
     contents: [oauth_db_libsql_api]
   - title: Microsoft Fabric and Power BI
     contents: [oauth_db_fabric_sql, oauth_db_fabric_api, oauth_db_fabric]
+  - title: MongoDB
+    contents: [oauth_db_mongodb]
   - title: OpenSearch
     contents: [oauth_db_opensearch_api]
   - title: Oracle Database

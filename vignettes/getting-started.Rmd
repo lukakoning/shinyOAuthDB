@@ -216,6 +216,7 @@ and the parts of each integration that still need deployment validation.
 | PostgreSQL | [Native OAuth](postgres.html), [PostgREST](postgrest.html), [Supabase](supabase.html), [Azure PostgreSQL](azure-postgres.html), [Google Cloud SQL](cloud-sql.html) |
 | SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
 | CockroachDB | [CockroachDB](cockroachdb.html) |
+| MongoDB | [Workforce OIDC](mongodb.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
 | Query engines | [Trino and Starburst](trino.html), [Dremio](dremio.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |

@@ -24,6 +24,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     through the Quack protocol with OAuth access tokens. Queries remote
     libSQL and compatible Turso endpoints using each visitor's access token.
     Queries CrateDB's HTTPS SQL interface with per-user JWT access tokens.
+    Queries MongoDB through the official 'PyMongo' driver and 'reticulate',
+    using each visitor's workforce OIDC access token.
     Searches Elasticsearch using visitor JWT access tokens, with SQL and
     ES|QL queries and optional JWT realm client authentication.
     Searches OpenSearch
@@ -64,6 +66,7 @@ Suggests:
     odbc (>= 1.4.2),
     pkgload,
     processx,
+    reticulate (>= 1.35.0),
     RPostgres,
     RTrino (>= 0.1.0),
     rmarkdown,

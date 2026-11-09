@@ -35,6 +35,14 @@ jobs:
           # The local DuckDB demo's matching binary client uses R 4.5.
           r-version: "4.5"
           use-public-rspm: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install MongoDB fixture dependencies
+        shell: bash
+        run: |
+          python -m pip install -r integration/mongodb-oidc/requirements.txt
+          echo "RETICULATE_PYTHON=$(command -v python)" >> "$GITHUB_ENV"
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: shinyOAuthDB
@@ -77,6 +85,7 @@ jobs:
 
           run_check bash integration/postgres-keycloak/run-integration.sh
           run_check Rscript --vanilla tools/check-cockroachdb.R
+          run_check Rscript --vanilla tools/check-mongodb.R
           for backend in postgrest trino starrocks minilake; do
             run_check bash integration/local/run-integration.sh "$backend"
           done

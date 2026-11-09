@@ -16,3 +16,5 @@ src/*.dll
 src/*.gcda
 src/*.gcno
 .generated/
+__pycache__/
+*.pyc

@@ -40,6 +40,7 @@ vignette_sources <- c(
   cockroachdb = "RPostgres",
   duckdb = "duckdb",
   libsql = NA_character_,
+  mongodb = NA_character_,
   cratedb = NA_character_,
   opensearch = NA_character_,
   elasticsearch = NA_character_,

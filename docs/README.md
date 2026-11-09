@@ -20,6 +20,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Dremio | [OAuth connections through ADBC Flight SQL](../vignettes/dremio.Rmd) |
 | Azure PostgreSQL | [RPostgres connections](../vignettes/azure-postgres.Rmd) |
 | Oracle Database | [OAuth access tokens and Oracle ODBC](../vignettes/oracle.Rmd) |
+| MongoDB | [Workforce OIDC and PyMongo](../vignettes/mongodb.Rmd) |
 | SAP HANA and HANA Cloud | [JWT access tokens and SAP HANA ODBC](../vignettes/hana.Rmd) |
 | Oracle REST Data Services | [JWT-protected HTTP resources](../vignettes/oracle-ords.Rmd) |
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
@@ -50,6 +51,7 @@ For existing apps and package development:
 - [Dremio backend decision](dremio-backend.md)
 - [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
+- [MongoDB backend decision](mongodb-backend.md)
 - [SAP HANA backend decision](hana-backend.md)
 - [SingleStore backend decision](singlestore-backend.md)
 - [Guided cloud demos: implementation notes](cloud-demos.md)

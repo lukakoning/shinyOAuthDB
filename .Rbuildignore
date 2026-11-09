@@ -4,6 +4,7 @@
 ^playground$
 ^tools$
 ^integration$
+^inst/python/__pycache__$
 ^\.github$
 ^\.validation$
 ^src/.*\.gc(da|no)$

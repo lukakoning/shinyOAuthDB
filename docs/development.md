@@ -63,6 +63,12 @@ with its own start and pause workflow.
 
 Record versions, results, and limits in [validation.md](validation.md).
 
+MongoDB uses optional reticulate and the official PyMongo driver. Run
+`tools/check-mongodb.R` with `RETICULATE_PYTHON` pointing to an environment
+containing the [fixture requirements](../integration/mongodb-oidc/requirements.txt).
+The [MongoDB fixture](../integration/mongodb-oidc/README.md) checks native
+workforce OIDC, collection permissions, BSON values and TLS in Docker.
+
 With Docker and RPostgres linked to libpq 16 or later, run
 `Rscript --vanilla tools/check-azure-postgres.R` to check reconnection after
 credential replacement and database-session termination. This uses real

@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_mongodb()` for MongoDB workforce OIDC using the official
+  PyMongo driver through reticulate. Includes per-visitor clients, verified
+  TLS, token replacement, queries, aggregations and database commands, with
+  Extended JSON results and a complete Shiny setup guide.
+
 * Add `oauth_db_dremio()` for Flight SQL DBI connections through adbi and
   Apache Arrow's ADBC driver using each visitor's OAuth access token.
   Require verified TLS and reopen connections after token renewal. Include

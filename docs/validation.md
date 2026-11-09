@@ -804,3 +804,33 @@ temporary library and leaves the user's installed packages alone.
 
 For real sign-in, platform permissions, and driver validation, use the
 [integration checks](../tests/integration/README.md).
+
+## 9 November 2026: MongoDB workforce OIDC
+
+`oauth_db_mongodb()` uses optional reticulate with the official PyMongo
+driver. MongoDB Enterprise 8.0.16 ran in a disposable Linux container;
+the client ran on Windows with R 4.5.1, reticulate 1.46.0 and Python 3.12.10.
+PyMongo 4.10.1 passed 32 native assertions. PyMongo 4.19.0 passed 34,
+including the later successful-write checks, and four Python boundary tests.
+
+The native checks cover user JWT authentication, separate Alice/Bob
+collection grants, denied reads and writes, successful native commands,
+exact 64-bit integers, empty results, aggregation and multi-page cursors,
+token replacement, account changes, sign-out and session cleanup. Wrong
+signatures, expired tokens, wrong audiences and issuers, unexpected challenge
+client IDs, disallowed hosts, untrusted CAs and TLS hostname mismatches fail.
+The issuer's private CA is installed only inside the disposable MongoDB
+container so its outgoing JWKS requests also verify HTTPS.
+
+MongoDB unit tests and all complete-guide app checks pass: 331 assertions
+across 37 scenarios on the pre-integration source snapshot. Source docs parse
+104 R blocks and resolve 229 local links and 54 section anchors. Air, Jarl
+and workflow lint pass. R CMD check with tests run separately reports zero
+errors, warnings or notes.
+
+Tokens in the native fixture are signed locally and supplied through
+synthetic shinyOAuth references. Browser sign-in, provider consent and
+refresh grants, Atlas, live signing-key rotation and a multi-node replica
+deployment remain unverified. Community Server doesn't support workforce
+OIDC. See the [backend decision](mongodb-backend.md) and
+[native fixture](../integration/mongodb-oidc/README.md).
