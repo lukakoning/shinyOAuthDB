@@ -663,6 +663,7 @@ oauth_db_demo <- function(
   callr::r(
     function(directory, database, launch_browser, tls_env) {
       do.call(Sys.setenv, as.list(tls_env))
+      Sys.setenv(R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
       options(
         shinyOAuth.allowed_hosts = c("localhost", "127.0.0.1", "::1"),
         shiny.autoreload = TRUE
