@@ -1,7 +1,7 @@
 # Backend decisions
 
 Research notes from 1 November 2026. BigQuery, Redshift, and Trino are
-implemented; Dremio is deferred. For app examples, start with the
+implemented; Dremio now uses ADBC Flight SQL. For app examples, start with the
 [source guides](../vignettes/getting-started.Rmd).
 
 Oracle was added after this investigation; see the
@@ -17,7 +17,7 @@ configuration and validation boundary.
 | BigQuery | `oauth_db_bigquery_api()`: direct REST queries |
 | Redshift | `oauth_db_redshift()`: user tokens through the AWS ODBC driver |
 | Trino / Starburst Enterprise | `oauth_db_trino()`: RTrino with an authentication callback |
-| Dremio | Not implemented |
+| Dremio | `oauth_db_dremio()`: bearer access tokens through ADBC Flight SQL and adbi |
 
 The probes used fixture credentials and mocked HTTP on Windows with R 4.5.1,
 shinyOAuth 0.7.0, bigrquery 1.6.2, and RTrino 0.1.0. Extra packages were
@@ -99,29 +99,15 @@ needs the corresponding issuer and user mapping. Galaxy requires its own
 its confidential clients require HTTPS redirects. SQL protocol compatibility
 alone doesn't establish Galaxy sign-in support.
 
-## Dremio: deferred
+## Dremio: ADBC Flight SQL
 
-The [Enterprise authentication guide](https://docs.dremio.com/current/security/authentication/)
-describes direct external JWTs and JWT exchange. The
-[Flight SQL ODBC driver](https://docs.dremio.com/current/client-applications/drivers/arrow-flight-sql-odbc-driver/)
-accepts an OAuth token through `TOKEN`. A future helper would need a
-deployment with a configured external identity provider.
-
-Dremio's `/oauth/token` endpoint performs token exchange; sign-in still
-needs the external provider. An [exchanged token](https://docs.dremio.com/current/reference/api/oauth-token/#exchange-an-external-jwt)
-lasts no longer than the external JWT, capped at one hour. Selecting a
-shinyOAuth token target doesn't perform this exchange.
-
-The [ADBC Flight SQL driver](https://arrow.apache.org/adbc/current/driver/flight_sql.html#oauth-2-0-options)
-exposes token-exchange settings. Investigate its R support through adbi
-before adding another token store to shinyOAuthDB.
-
-Dremio Cloud needs separate validation: its
-[authentication guide](https://docs.dremio.com/dremio-cloud/security/authentication/)
-describes external JWT exchange, while its
-[SQL driver guide](https://docs.dremio.com/dremio-cloud/explore-analyze/client-apps/drivers/arrow-flight-sql-odbc/)
-describes a PAT. The edition and driver determine the usable path.
-No live Dremio tests ran.
+The helper sends visitor access tokens directly to a TLS Flight SQL
+endpoint through adbi. It reconnects after token changes and uses the
+existing Shiny authorization and cleanup lifecycle. Browser sign-in and
+renewal remain with shinyOAuth; Dremio token exchange is not performed.
+See the [backend decision](dremio-backend.md) for the driver comparison,
+Cloud edition boundary and validation limits, and the
+[Dremio guide](../vignettes/dremio.Rmd) for a complete Shiny app.
 
 ## Salesforce CRM and Data Cloud
 

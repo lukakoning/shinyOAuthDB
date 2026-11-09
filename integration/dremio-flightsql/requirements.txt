@@ -1,0 +1,4 @@
+adbc-driver-flightsql==1.13.0
+pyarrow==26.0.1
+protobuf==7.36.2
+cryptography==50.0.2

@@ -1,6 +1,18 @@
 test_that("public helpers reject outdated SDKs before acquiring credentials", {
   cases <- list(
     list(
+      package = "adbi",
+      older = "0.1.1",
+      minimum = "0.1.2",
+      make = function(auth) oauth_db_dremio(auth, "dremio.example.org")
+    ),
+    list(
+      package = "adbcdrivermanager",
+      older = "0.24.0",
+      minimum = "0.25.0",
+      make = function(auth) oauth_db_dremio(auth, "dremio.example.org")
+    ),
+    list(
       package = "duckdb",
       older = "1.5.2",
       minimum = "1.5.3",

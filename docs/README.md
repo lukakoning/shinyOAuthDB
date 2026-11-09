@@ -17,6 +17,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | Google Cloud SQL for PostgreSQL | [IAM database connections](../vignettes/cloud-sql.Rmd) |
 | Amazon Redshift | [Redshift queries with DBI](../vignettes/redshift.Rmd) |
 | Trino and Starburst Enterprise | [RTrino and DBI queries](../vignettes/trino.Rmd) |
+| Dremio | [OAuth connections through ADBC Flight SQL](../vignettes/dremio.Rmd) |
 | Azure PostgreSQL | [RPostgres connections](../vignettes/azure-postgres.Rmd) |
 | Oracle Database | [OAuth access tokens and Oracle ODBC](../vignettes/oracle.Rmd) |
 | SAP HANA and HANA Cloud | [JWT access tokens and SAP HANA ODBC](../vignettes/hana.Rmd) |
@@ -46,6 +47,7 @@ For existing apps and package development:
 - [Backend research notes](backend-candidates.md)
 - [CockroachDB backend decision](cockroachdb-backend.md)
 - [Cloud SQL backend decision](cloud-sql-backend.md)
+- [Dremio backend decision](dremio-backend.md)
 - [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
 - [SAP HANA backend decision](hana-backend.md)

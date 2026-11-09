@@ -1,5 +1,11 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_dremio()` for Flight SQL DBI connections through adbi and
+  Apache Arrow's ADBC driver using each visitor's OAuth access token.
+  Require verified TLS and reopen connections after token renewal. Include
+  a complete Shiny guide and native Flight SQL transport checks; live
+  Dremio Enterprise and Cloud compatibility remains unverified.
+
 * Add Google Cloud SQL IAM database authentication for PostgreSQL,
   with a Google sign-in preset, per-visitor DBI connections, verified TLS,
   current credentials on reconnection, and a setup guide.

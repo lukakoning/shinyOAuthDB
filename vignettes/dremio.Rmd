@@ -1,0 +1,181 @@
+---
+title: "Dremio"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Dremio}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Use `oauth_db_dremio()` to query a Dremio Flight SQL endpoint with each
+visitor's OAuth access token. The helper returns a DBI connection through
+adbi and Apache Arrow's ADBC Flight SQL driver. Dremio checks the token and
+applies the visitor's database permissions.
+
+This guide uses Dremio Enterprise's direct external JWT authentication.
+Your administrator must configure an external token provider that trusts
+the JWT access tokens issued to the Shiny app. Signing in to Dremio's web
+console does not configure this integration.
+
+## Install the driver
+
+Install the R packages:
+
+```{r install}
+install.packages(c("adbi", "adbcdrivermanager"))
+```
+
+Use adbcdrivermanager 0.25.0 or later. The R packages do not include the
+Flight SQL shared library. Follow Apache Arrow's
+[driver installation instructions](https://arrow.apache.org/adbc/current/driver/installation.html).
+With the `dbc` driver manager installed, run:
+
+```sh
+dbc install flightsql
+```
+
+The helper's default `driver = "flightsql"` selects that installed driver.
+Alternatively, pass the full path to the ADBC Flight SQL shared library
+as `driver`. An ODBC driver or JDBC JAR cannot be used here.
+
+## Configure sign-in and database access
+
+Ask the Dremio administrator to configure an
+[external token provider](https://docs.dremio.com/current/security/authentication/)
+with the issuer, expected audience, signing keys and claim that identifies
+the Dremio user. The user must exist in Dremio and have permission to query
+the requested data. Configure TLS on the Flight SQL endpoint as well.
+
+Register the Shiny app with that provider using the
+[app registration instructions](getting-started.html#register-your-app).
+Request a JWT **access token** intended for Dremio. The audience and scopes
+depend on your deployment; `database.read` below is an example scope that
+your provider must define or replace.
+
+Save these settings in the app's `.Renviron` file and restart R:
+
+```text
+OAUTHDB_DREMIO_ISSUER=https://login.example.org/realms/reporting
+OAUTHDB_DREMIO_HOST=dremio.example.org
+OAUTHDB_DREMIO_SCOPE=database.read
+OAUTHDB_CLIENT_ID=your-client-id
+OAUTHDB_CLIENT_SECRET=your-client-secret
+```
+
+The provider must issue the correct audience. Providers that require an
+explicit audience parameter can use
+`extra_auth_params = list(audience = "your-dremio-audience")` in the
+discovery call below. For Entra, configure a shinyOAuth token target for
+the resource registered by your Dremio administrator; the built-in SQL
+Server target is a different resource.
+
+## A complete Shiny app
+
+The app shows the Dremio user for the current connection. Replace the
+query with a query against a table the user can access. Use fully qualified
+table paths when the query needs a specific source or schema.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_DREMIO_ISSUER")
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", Sys.getenv("OAUTHDB_DREMIO_SCOPE"))
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  con <- oauth_db_dremio(
+    auth$connection,
+    host = Sys.getenv("OAUTHDB_DREMIO_HOST")
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
+  })
+}
+
+runApp(shinyApp(ui, server, uiPattern = ".*"),
+  port = 8100, launch.browser = FALSE
+)
+```
+
+Open `http://localhost:8100` in your regular browser. Sign in with an account
+mapped to a Dremio user. If authentication succeeds but the query fails,
+check the token provider's audience and user claim, database grants and
+network access from the Shiny server.
+
+## Connection options and results
+
+The default port is `32010`; pass `port = 443` if your Flight SQL endpoint
+uses that port. For private certificate authorities, pass the path to a
+PEM certificate file with `ca_bundle`. The helper requires TLS and verifies
+the server certificate and hostname.
+
+Use `bigint = "character"` to return 64-bit integers as strings. Other
+result conversions follow adbi. DBI's Arrow methods can return Arrow
+results without converting them to a data frame. The `timeout` argument
+sets a timeout for each connection, query, fetch or update RPC; it does
+not impose one deadline on a whole query.
+
+Call `con()` before each operation. It replaces the connection when its
+access token changes, and closes outstanding results on replacement.
+Finish fetching results before requesting another connection. Reopening
+also loses connection state, including an explicitly selected SQL context.
+Ordinary token renewal does not rerun a completed reactive query.
+
+The driver holds a fixed bearer during each DBI operation. Renewing the
+Shiny token does not update a query or fetch already in progress. A query
+that outlives its credential can fail; choose `min_valid_for` to allow
+enough remaining lifetime for the operations your app performs.
+
+Sign-out, account changes, permission loss and session end close the local
+connection. A saved native handle may retain copied credentials until it
+is closed. A submitted server job can continue after the client closes;
+the helper does not cancel server jobs or replay failed queries.
+
+## Token exchange and Cloud editions
+
+Dremio Enterprise documents direct external JWT authentication for Flight
+SQL clients. `oauth_db_dremio()` sends the visitor's access token directly;
+it can also send a Dremio OAuth token already acquired by shinyOAuth.
+It does not call Dremio's `/oauth/token` exchange endpoint or start the
+ADBC driver's own OAuth flow. A named shinyOAuth target selects a token
+already managed by shinyOAuth and does not perform that exchange.
+
+[Dremio Cloud Classic's external-token guide](https://docs.dremio.com/cloud/security/authentication/app-authentication/external-token/)
+documents a different connection recipe using a password and
+`token_type=jwt`. That recipe does not establish compatibility with this
+Flight SQL bearer path. Verify the authentication requirements of your
+Cloud edition and endpoint before using this helper. There is no automatic
+fallback to a PAT, service user or hosting account.
+
+The package tests credential isolation, token replacement and connection
+cleanup. A local TLS Flight SQL fixture checks the real ADBC transport.
+Live Dremio Enterprise issuer mapping, permissions and Cloud compatibility
+still require validation against a configured deployment.

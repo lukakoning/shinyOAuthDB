@@ -26,6 +26,7 @@ vignette_sources <- c(
   "cloud-sql" = "RPostgres",
   redshift = "odbc",
   trino = "RTrino",
+  dremio = "adbcdrivermanager",
   "azure-postgres" = "RPostgres",
   oracle = "odbc",
   hana = "odbc",

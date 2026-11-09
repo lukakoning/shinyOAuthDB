@@ -211,7 +211,7 @@ and the parts of each integration that still need deployment validation.
 | CockroachDB | [CockroachDB](cockroachdb.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
-| Query engines | [Trino and Starburst](trino.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
+| Query engines | [Trino and Starburst](trino.html), [Dremio](dremio.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
 | Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [Elasticsearch](elasticsearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
 
 ### Register your app

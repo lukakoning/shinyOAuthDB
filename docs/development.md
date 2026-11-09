@@ -50,6 +50,12 @@ options. Keep sign-in setup and query examples together.
 
 ## Live checks
 
+The [Dremio Flight SQL fixture](../integration/dremio-flightsql/README.md)
+checks the native ADBC transport against a local TLS server using fixture
+credentials. It requires Python dependencies and is run separately from
+the offline unit suite. It does not require a Dremio deployment; live
+Enterprise and Cloud acceptance remain separate checks.
+
 See [integration tests](../tests/integration/README.md) for cloud fixtures
 and the local PostgreSQL/Keycloak browser test. The
 [Fabric playground](../playground/fabric/README.md) uses an existing sandbox
