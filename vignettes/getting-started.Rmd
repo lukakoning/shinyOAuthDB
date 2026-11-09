@@ -192,6 +192,8 @@ Finally, `$select()` reads the table and returns a data frame for
 `shiny::req()`. Because the call runs inside a reactive output, Shiny
 updates the table when the authorization changes and clears it on sign-out.
 See `?oauth_db_postgrest_api` for filters and other request methods.
+The `$select()` call itself is synchronous. For longer requests, use the
+[background fetching example](#fetch-data-in-the-background).
 
 ## Connect your own data
 
@@ -200,6 +202,11 @@ See `?oauth_db_postgrest_api` for filters and other request methods.
 Each guide has the source's setup requirements and a complete app. You can
 keep the same sign-in/UI pattern and replace the demo's provider, client
 settings and data helper with the ones in your guide.
+
+For deployment, also follow [async OAuth setup](#enable-asynchronous-oauth)
+and [background fetching](#fetch-data-in-the-background). The source guides'
+ordinary DBI and HTTP calls are synchronous; a worker needs its own native
+connection or request, rather than a serialized copy of the guide's helper.
 
 See [Recorded backend checks](#recorded-backend-checks) for tested versions
 and the parts of each integration that still need deployment validation.
@@ -373,6 +380,115 @@ while an already running module refresh makes reactive callers wait quietly.
 For an explicitly asynchronous acquisition, use
 `grant$access_token(..., async = TRUE)` in the owning session. See shinyOAuth's
 [external integration guide](https://lukakoning.github.io/shinyOAuth/articles/external-integrations.html#advanced-asynchronous-token-acquisition).
+
+### Fetch data in the background
+
+Use background fetching when a query or download could delay the app. Shiny's
+`ExtendedTask` keeps the visitor's session responsive while a promise is
+pending. Its function must start nonblocking work: wrapping a synchronous
+query in `promise_resolve()` or an `async = TRUE` OAuth module does not move
+that query off the main process.
+
+The following replaces `server()` in the small PostgREST app above. Add
+`actionButton("load", "Load rows")` beside the sign-in buttons in its UI.
+Keep its mirai startup and shutdown code. The example reads one page on a
+button click, acquiring the token asynchronously in the owning session and
+sending only the bearer string and URL to a worker:
+
+```{r async-fetch}
+server <- function(input, output, session) {
+  auth <- oauth_module_server(
+    "auth", client, auto_redirect = FALSE, async = TRUE
+  )
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  permissions <- "database.read"
+  authorization <- reactive({
+    grant <- auth$connection()
+    if (is.null(grant) || !grant$has_scopes(permissions)) return(NULL)
+    grant
+  })
+  generation <- reactiveVal(0L)
+  previous <- NULL
+  observe({
+    grant <- authorization()
+    if (!identical(grant, previous)) {
+      previous <<- grant
+      generation(isolate(generation()) + 1L)
+    }
+  }, priority = 100)
+
+  requested <- reactiveVal(NULL)
+  load_rows <- ExtendedTask$new(function(grant, captured) {
+    isolate({
+      pending <- grant$access_token(
+        required_scopes = permissions,
+        min_valid_for_seconds = 120,
+        async = TRUE
+      )
+      promises::then(pending, function(token) {
+        stale <- isolate(
+          session$isClosed() ||
+            !identical(authorization(), grant) ||
+            !identical(generation(), captured)
+        )
+        if (stale) return(NULL)
+        mirai::mirai({
+          response <- httr2::request(url) |>
+            httr2::req_url_path_append("visible_rows") |>
+            httr2::req_url_query(order = "row_id.asc", limit = 100L) |>
+            httr2::req_auth_bearer_token(token) |>
+            httr2::req_options(followlocation = FALSE) |>
+            httr2::req_timeout(30) |>
+            httr2::req_perform()
+          httr2::resp_body_json(
+            response, simplifyVector = TRUE, bigint_as_char = TRUE
+          )
+        }, token = token, url = demo$url)
+      })
+    })
+  })
+  observeEvent(input$load, {
+    req(load_rows$status() != "running")
+    grant <- req(authorization())
+    captured <- generation()
+    requested(captured)
+    load_rows$invoke(grant, captured)
+  })
+  output$rows <- renderTable({
+    req(authorization())
+    req(identical(requested(), generation()))
+    load_rows$result()
+  })
+}
+```
+
+The task includes both token acquisition and the data request. Repeated
+clicks while it is running are ignored, and `result()` clears the table
+while the next fetch runs. Errors from the current fetch appear in the
+output. A changed authorization hides results and errors from older tasks,
+including after switching away from an account and back. The generation
+counter also changes when the required permission is lost and restored;
+ordinary token rotation keeps the same authorization.
+
+This worker uses httr2 directly instead of `$select()`. It reads at most 100
+rows and has no pagination or refresh-and-retry policy. Use HTTPS for a real
+PostgREST deployment; the URL supplied by the local Docker demo uses its
+loopback HTTP endpoint. Adjust the requested token lifetime to cover worker
+queueing and the operation. The copied token cannot refresh itself, and
+sign-out hides results without guaranteeing cancellation of the server's work.
+OAuth operations and data requests share the worker pool in this example;
+allow capacity for token renewal as well as queries.
+
+For a native database driver, use the same task pattern but open and close
+the connection inside the worker, returning data rather than the connection.
+Keep `con()`, API clients, authorization objects and token callbacks in the
+Shiny process. Fabric and Databricks `$call()` also accept promise-returning
+functions and check authorization when their results resolve; a callback
+needed by a worker must first be resolved to a bearer string in its owning
+session. See the [Shiny background-task guide](https://shiny.posit.co/r/articles/improve/nonblocking/)
+for task buttons and status displays.
 
 ### Save query results
 
