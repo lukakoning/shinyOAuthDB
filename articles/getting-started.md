@@ -73,11 +73,12 @@ database and Keycloak sign-in service in Docker. You don’t need a cloud
 account or a database driver.
 
 Install and start Docker with Linux containers and Docker Compose 2.24.4
-or later. Also install `jsonlite` in R for the API responses:
+or later. Install `jsonlite` for the API responses and `mirai` for
+background OAuth requests:
 
 ``` r
 
-install.packages("jsonlite")
+install.packages(c("jsonlite", "mirai"))
 ```
 
 Save the following as `example.R` and run `source("example.R")`:
@@ -110,7 +111,9 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth", client, auto_redirect = FALSE, async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
@@ -127,7 +130,11 @@ runApp(
   shinyApp(
     ui, server,
     uiPattern = ".*",
-    onStart = function() { onStop(demo$stop) }
+    onStart = function() {
+      onStop(demo$stop)
+      mirai::daemons(2)
+      onStop(function() mirai::daemons(0))
+    }
   ),
   port = 18100,
   launch.browser = FALSE
@@ -172,6 +179,14 @@ manages sign-in for that visitor’s Shiny session. With
 two observers connect the buttons to `auth$request_login()` and
 `auth$logout()`.
 
+The app starts two mirai workers once, when the app starts, and stops
+them when the app stops. With `async = TRUE`, shinyOAuth uses those
+workers for its OAuth network operations, including token exchange and
+refresh. A slow identity provider can then be handled without blocking
+the app’s R process. See [Enable asynchronous
+OAuth](#enable-asynchronous-oauth) for deployment settings and the
+separate steps needed for background data fetching.
+
 `auth$connection` is a function that provides the current authorization.
 Pass the function, without parentheses, to
 [`oauth_db_postgrest_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md)
@@ -185,7 +200,9 @@ Before sign-in, the helper waits quietly, like
 call runs inside a reactive output, Shiny updates the table when the
 authorization changes and clears it on sign-out. See
 [`?oauth_db_postgrest_api`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_postgrest_api.md)
-for filters and other request methods.
+for filters and other request methods. The `$select()` call itself is
+synchronous. For longer requests, use the [background fetching
+example](#fetch-data-in-the-background).
 
 ## Connect your own data
 
@@ -194,6 +211,13 @@ for filters and other request methods.
 Each guide has the source’s setup requirements and a complete app. You
 can keep the same sign-in/UI pattern and replace the demo’s provider,
 client settings and data helper with the ones in your guide.
+
+For deployment, also follow [async OAuth
+setup](#enable-asynchronous-oauth) and [background
+fetching](#fetch-data-in-the-background). The source guides’ ordinary
+DBI and HTTP calls are synchronous; a worker needs its own native
+connection or request, rather than a serialized copy of the guide’s
+helper.
 
 See [Recorded backend checks](#recorded-backend-checks) for tested
 versions and the parts of each integration that still need deployment
@@ -204,9 +228,10 @@ validation.
 | PostgreSQL | [Native OAuth](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md), [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md), [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md), [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md), [Google Cloud SQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.md) |
 | SQL Server | [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.md) |
 | CockroachDB | [CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.md) |
+| MongoDB | [Workforce OIDC](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.md) |
 | MySQL | [Azure Database for MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.md) |
 | Cloud data platforms | [Fabric and Power BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.md), [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md), [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.md), [BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.md), [Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md) |
-| Query engines | [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md), [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md), [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.md), [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md), [DuckDB over Quack](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md) |
+| Query engines | [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md), [Dremio](https://lukakoning.github.io/shinyOAuthDB/articles/dremio.md), [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md), [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.md), [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md), [DuckDB over Quack](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md) |
 | Other databases and APIs | [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md), [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md), [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md), [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.md), [SAP HANA](https://lukakoning.github.io/shinyOAuthDB/articles/hana.md), [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md), [Oracle REST Data Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md), [Salesforce](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.md) |
 
 ### Register your app
@@ -344,6 +369,162 @@ created them. For background work, use the database package’s supported
 approach and check the current authorization before displaying a result.
 Signing out doesn’t necessarily cancel work already submitted to a
 platform.
+
+### Enable asynchronous OAuth
+
+For an app serving several users, enable shinyOAuth’s async path so that
+token exchange and refresh do not hold up other sessions in the same R
+process. The small app above already does this. In another app,
+configure workers once at application startup, outside `server()`, and
+stop them at application shutdown:
+
+``` r
+
+mirai::daemons(2)
+shiny::onStop(function() mirai::daemons(0))
+
+server <- function(input, output, session) {
+  auth <- shinyOAuth::oauth_module_server(
+    "auth", client, auto_redirect = FALSE, async = TRUE
+  )
+  # Add the app's observers and outputs here.
+}
+```
+
+Setting `async = TRUE` alone is not enough: install mirai and configure
+its workers before the module runs. The pool belongs to the app’s R
+process, so visitors share it; do not start a pool for each visitor.
+Choose its size for your deployment’s memory and concurrency limits. For
+an existing future deployment, a non-sequential
+[`future::multisession`](https://future.futureverse.org/reference/multisession.html)
+plan is another supported backend. A sequential future plan still
+blocks. See shinyOAuth’s [async setup
+guide](https://lukakoning.github.io/shinyOAuth/articles/usage.html#asynchronous-execution)
+for that alternative and its package requirements.
+
+This setting covers shinyOAuth’s module operations. Provider discovery
+at app setup, database connections, queries, polling and result
+downloads are separate. In particular, it does not change
+[`DBI::dbGetQuery()`](https://dbi.r-dbi.org/reference/dbGetQuery.html)
+or the built-in HTTP query methods into background operations. The
+database helpers also request tokens synchronously; an on-demand token
+acquisition can still block, while an already running module refresh
+makes reactive callers wait quietly. For an explicitly asynchronous
+acquisition, use `grant$access_token(..., async = TRUE)` in the owning
+session. See shinyOAuth’s [external integration
+guide](https://lukakoning.github.io/shinyOAuth/articles/external-integrations.html#advanced-asynchronous-token-acquisition).
+
+### Fetch data in the background
+
+Use background fetching when a query or download could delay the app.
+Shiny’s `ExtendedTask` keeps the visitor’s session responsive while a
+promise is pending. Its function must start nonblocking work: wrapping a
+synchronous query in `promise_resolve()` or an `async = TRUE` OAuth
+module does not move that query off the main process.
+
+The following replaces `server()` in the small PostgREST app above. Add
+`actionButton("load", "Load rows")` beside the sign-in buttons in its
+UI. Keep its mirai startup and shutdown code. The example reads one page
+on a button click, acquiring the token asynchronously in the owning
+session and sending only the bearer string and URL to a worker:
+
+``` r
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server(
+    "auth", client, auto_redirect = FALSE, async = TRUE
+  )
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  permissions <- "database.read"
+  authorization <- reactive({
+    grant <- auth$connection()
+    if (is.null(grant) || !grant$has_scopes(permissions)) return(NULL)
+    grant
+  })
+  generation <- reactiveVal(0L)
+  previous <- NULL
+  observe({
+    grant <- authorization()
+    if (!identical(grant, previous)) {
+      previous <<- grant
+      generation(isolate(generation()) + 1L)
+    }
+  }, priority = 100)
+
+  requested <- reactiveVal(NULL)
+  load_rows <- ExtendedTask$new(function(grant, captured) {
+    isolate({
+      pending <- grant$access_token(
+        required_scopes = permissions,
+        min_valid_for_seconds = 120,
+        async = TRUE
+      )
+      promises::then(pending, function(token) {
+        stale <- isolate(
+          session$isClosed() ||
+            !identical(authorization(), grant) ||
+            !identical(generation(), captured)
+        )
+        if (stale) return(NULL)
+        mirai::mirai({
+          response <- httr2::request(url) |>
+            httr2::req_url_path_append("visible_rows") |>
+            httr2::req_url_query(order = "row_id.asc", limit = 100L) |>
+            httr2::req_auth_bearer_token(token) |>
+            httr2::req_options(followlocation = FALSE) |>
+            httr2::req_timeout(30) |>
+            httr2::req_perform()
+          httr2::resp_body_json(
+            response, simplifyVector = TRUE, bigint_as_char = TRUE
+          )
+        }, token = token, url = demo$url)
+      })
+    })
+  })
+  observeEvent(input$load, {
+    req(load_rows$status() != "running")
+    grant <- req(authorization())
+    captured <- generation()
+    requested(captured)
+    load_rows$invoke(grant, captured)
+  })
+  output$rows <- renderTable({
+    req(authorization())
+    req(identical(requested(), generation()))
+    load_rows$result()
+  })
+}
+```
+
+The task includes both token acquisition and the data request. Repeated
+clicks while it is running are ignored, and `result()` clears the table
+while the next fetch runs. Errors from the current fetch appear in the
+output. A changed authorization hides results and errors from older
+tasks, including after switching away from an account and back. The
+generation counter also changes when the required permission is lost and
+restored; ordinary token rotation keeps the same authorization.
+
+This worker uses httr2 directly instead of `$select()`. It reads at most
+100 rows and has no pagination or refresh-and-retry policy. Use HTTPS
+for a real PostgREST deployment; the URL supplied by the local Docker
+demo uses its loopback HTTP endpoint. Adjust the requested token
+lifetime to cover worker queueing and the operation. The copied token
+cannot refresh itself, and sign-out hides results without guaranteeing
+cancellation of the server’s work. OAuth operations and data requests
+share the worker pool in this example; allow capacity for token renewal
+as well as queries.
+
+For a native database driver, use the same task pattern but open and
+close the connection inside the worker, returning data rather than the
+connection. Keep `con()`, API clients, authorization objects and token
+callbacks in the Shiny process. Fabric and Databricks `$call()` also
+accept promise-returning functions and check authorization when their
+results resolve; a callback needed by a worker must first be resolved to
+a bearer string in its owning session. See the [Shiny background-task
+guide](https://shiny.posit.co/r/articles/improve/nonblocking/) for task
+buttons and status displays.
 
 ### Save query results
 

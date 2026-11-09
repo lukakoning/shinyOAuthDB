@@ -63,6 +63,11 @@
 - [`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md)
   : Query a remote DuckDB server as the signed-in user
 
+## Dremio
+
+- [`oauth_db_dremio()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_dremio.md)
+  : Query Dremio as the signed-in user
+
 ## Elasticsearch
 
 - [`oauth_db_elasticsearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_elasticsearch_api.md)
@@ -95,6 +100,11 @@
   : Call Fabric functions as the signed-in user
 - [`oauth_db_fabric()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric.md)
   : Get a token callback for one Fabric service
+
+## MongoDB
+
+- [`oauth_db_mongodb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_mongodb.md)
+  : Query MongoDB as the signed-in user
 
 ## OpenSearch
 

@@ -9,11 +9,14 @@
 
 - [CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.md):
 - [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md):
+- [Dremio](https://lukakoning.github.io/shinyOAuthDB/articles/dremio.md):
 - [Remote
   DuckDB](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md):
 - [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.md):
 - [Remote libSQL and
   Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md):
+- [MongoDB with workforce
+  OIDC](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.md):
 - [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
 - [Oracle
   Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):

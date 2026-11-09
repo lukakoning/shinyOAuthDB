@@ -2,6 +2,21 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Add
+  [`oauth_db_mongodb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_mongodb.md)
+  for MongoDB workforce OIDC using the official PyMongo driver through
+  reticulate. Includes per-visitor clients, verified TLS, token
+  replacement, queries, aggregations and database commands, with
+  Extended JSON results and a complete Shiny setup guide.
+
+- Add
+  [`oauth_db_dremio()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_dremio.md)
+  for Flight SQL DBI connections through adbi and Apache Arrow’s ADBC
+  driver using each visitor’s OAuth access token. Require verified TLS
+  and reopen connections after token renewal. Include a complete Shiny
+  guide and native Flight SQL transport checks; live Dremio Enterprise
+  and Cloud compatibility remains unverified.
+
 - Add Google Cloud SQL IAM database authentication for PostgreSQL, with
   a Google sign-in preset, per-visitor DBI connections, verified TLS,
   current credentials on reconnection, and a setup guide.

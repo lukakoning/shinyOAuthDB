@@ -48,6 +48,8 @@ Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html)
 · [Trino and
 Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html)
 ·
+[Dremio](https://lukakoning.github.io/shinyOAuthDB/articles/dremio.html)
+·
 [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html)
 · [Microsoft Fabric and Power
 BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html) ·
@@ -79,6 +81,8 @@ Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html)
 · [libSQL and
 Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
+[MongoDB](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.html)
+·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
 ·
 [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html)
