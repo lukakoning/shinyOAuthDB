@@ -17,6 +17,14 @@ test_that("native ODBC connection errors retain diagnostics without bearer token
     auth$token(auth$make_token(token))
     factories <- list(
       function() {
+        oauth_db_singlestore(
+          auth$connection,
+          "sql.example",
+          ssl_ca = "ca.pem",
+          driver = driver
+        )
+      },
+      function() {
         oauth_db_hana(auth$connection, "hana.example", driver = driver)
       },
       function() {

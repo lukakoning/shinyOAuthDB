@@ -52,6 +52,7 @@ Supported databases and data platforms (links open their setup guides):
 [Oracle REST Data Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html) ·
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html) ·
 [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html) ·
+[SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html) ·
 [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html) ·
 [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html) ·

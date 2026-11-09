@@ -28,6 +28,7 @@ vignette_sources <- c(
   "azure-postgres" = "RPostgres",
   oracle = "odbc",
   hana = "odbc",
+  singlestore = "odbc",
   "oracle-ords" = NA_character_,
   postgrest = NA_character_,
   supabase = NA_character_,

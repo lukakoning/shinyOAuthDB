@@ -7,6 +7,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     supplies user credentials to 'fabricQueryR' and 'brickster' functions.
     Queries SAP HANA and HANA Cloud through SAP HANA ODBC with each visitor's
     JWT access token.
+    Queries SingleStore and SingleStore Helios through SingleStore ODBC
+    using each visitor's JWT access token.
     Uses 'shinyOAuth' for sign-in and token renewal, and manages connections
     within each Shiny session. Supports Oracle Database OAuth access through
     Oracle ODBC and protected Oracle REST Data Services resources over HTTPS.

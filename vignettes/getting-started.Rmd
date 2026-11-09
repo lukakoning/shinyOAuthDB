@@ -196,7 +196,7 @@ and the parts of each integration that still need deployment validation.
 | SQL Server | [Azure SQL and SQL Server](azure-sql.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Redshift](redshift.html) |
-| Query engines | [Trino and Starburst](trino.html), [StarRocks](starrocks.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
+| Query engines | [Trino and Starburst](trino.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
 | Other databases and APIs | [libSQL and Turso](libsql.html), [CrateDB](cratedb.html), [OpenSearch](opensearch.html), [Elasticsearch](elasticsearch.html), [SAP HANA](hana.html), [Oracle Database](oracle.html), [Oracle REST Data Services](oracle-ords.html), [Salesforce](salesforce.html) |
 
 ### Register your app
@@ -366,6 +366,7 @@ configurations, rather than a list of every supported server version.
 | Native PostgreSQL | PostgreSQL 18.3, shared libpq 18 and RPostgres 1.4.10; real Keycloak sign-in, user grants and TLS | Native OAuth is tested in Linux containers; Windows uses the unsupported-platform branch |
 | PostgREST | PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies, writes and TLS | Covers the local deployment, not Supabase's hosted gateway |
 | Trino | Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and TLS | A Starburst deployment still needs its own configuration check |
+| SingleStore | SingleStore 10.9.0 and Connector/ODBC 1.2.1; JWT validation, per-user grants, bound SQL, dbplyr, reconnects and TLS | Signed fixture tokens; browser sign-in, live JWKS rotation and SingleStore Helios are untested |
 | StarRocks | StarRocks 3.5.0 and MySQL Connector/ODBC 9.5.0; local JWT sign-in and grants | The Docker app is tested; the Windows local-app driver remains unverified |
 | DuckDB over Quack | DuckDB 1.5.4; real JWT validation, server policies and TLS | The Quack client and server must have compatible versions |
 | libSQL | libSQL 0.24.33; real signed tokens, database permissions and HTTPS | Hosted Turso external-provider sign-in is not established by this fixture |

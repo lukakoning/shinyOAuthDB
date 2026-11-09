@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_singlestore()` for SingleStore and Helios SQL connections
+  using visitor JWT access tokens through SingleStore ODBC. Require verified
+  TLS and reconnect with current credentials through the session helper.
+  Includes a complete setup guide and a real database integration check.
+
 * Add `oauth_db_azure_mysql()` for Azure Database for MySQL Flexible Server
   through MariaDB Connector/ODBC and each visitor's Entra access token.
   Includes the Microsoft `mysql` sign-in preset, verified TLS, connection

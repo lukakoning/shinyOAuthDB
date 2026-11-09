@@ -8,6 +8,7 @@ Rscript --vanilla tools/test-integration.R
 Rscript --vanilla tools/test-provenance.R
 Rscript --vanilla tools/test-live.R
 Rscript --vanilla tools/check-package.R
+Rscript --vanilla tools/check-singlestore.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
 Rscript --vanilla tools/check-libsql-oauth.R
@@ -61,6 +62,9 @@ helper, real HTTPS, typed results, local grants and dropped/delayed write
 responses in an isolated [Docker fixture](../integration/clickhouse-http/README.md).
 
 Each script accepts additional R library directories as trailing arguments.
+The [SingleStore fixture](../integration/singlestore-jwt/README.md) uses the
+official ODBC driver and a real server to check visitor JWT authentication,
+SQL, dbplyr, separate user grants, reconnects and verified TLS.
 `Rscript --vanilla tools/check-readme-demo.R` runs the packaged README app
 in host R with real Docker services, OAuth sign-in and PostgreSQL row
 permissions. It checks that stopping Shiny removes the containers and

@@ -22,6 +22,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | PostgREST | [PostgreSQL tables and functions over HTTP](../vignettes/postgrest.Rmd) |
 | Supabase | [Data API queries and Supabase OAuth sign-in](../vignettes/supabase.Rmd) |
 | StarRocks | [JWT authentication and DBI queries](../vignettes/starrocks.Rmd) |
+| SingleStore | [JWT authentication and SingleStore ODBC](../vignettes/singlestore.Rmd) |
 | ClickHouse | [HTTPS SQL queries with JWT](../vignettes/clickhouse.Rmd) |
 | DuckDB | [Remote Quack servers and OAuth](../vignettes/duckdb.Rmd) |
 | libSQL and Turso | [Remote SQLite SQL and compatible tokens](../vignettes/libsql.Rmd) |
@@ -44,4 +45,5 @@ For existing apps and package development:
 - [Supabase backend decision](supabase-backend.md)
 - [Oracle backend decision](oracle-backend.md)
 - [SAP HANA backend decision](hana-backend.md)
+- [SingleStore backend decision](singlestore-backend.md)
 - [Guided cloud demos: implementation notes](cloud-demos.md)

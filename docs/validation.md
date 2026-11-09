@@ -1,5 +1,39 @@
 # Validation record
 
+## 9 November 2026: SingleStore JWT connections
+
+The new `oauth_db_singlestore()` helper uses SingleStore Connector/ODBC's
+explicit JWT property. It requires a CA file, verifies TLS, disables
+driver browser SSO, keyring use, option files and automatic reconnects,
+and uses the shared session lifecycle and native-error handling.
+
+The real fixture passes 24 assertions against SingleStore 10.9.0 and
+SingleStore Connector/ODBC 1.2.1 on Linux. It checks separate Alice/Bob
+table grants, bound parameters, dbplyr and empty results, denied reads and
+writes, account changes, sign-out and renewed-token recovery after the
+server terminates a session. Expired JWTs, wrong signatures, wrong
+audiences, mismatched usernames, untrusted CAs and mismatched TLS hostnames
+are rejected.
+
+Two live findings shaped the adapter: MySQL's ODBC class is required for
+dbplyr's identifier quoting, and `dbIsValid()` can retain a stale handle
+after server termination. Token changes therefore replace the cached
+connection on its next access, without rerunning completed reactive work.
+
+Focused source tests cover the ODBC boundary, invalid configuration,
+token shape, named targets, literal scopes and connection cleanup. The
+guide's complete app constructs and waits for sign-in. The fixture uses
+disposable keys and synthetic authorization references; browser OAuth,
+live JWKS rotation and a hosted SingleStore Helios deployment remain
+outside its coverage. The Windows driver was extracted without installing
+it; native database validation ran in Docker with the official Linux driver.
+
+The final SingleStore source snapshot passes 378 assertions in 31 focused
+scenarios with no failures, warnings or skips. `R CMD check --no-manual
+--no-tests` reports zero errors, warnings or notes; source tests run
+separately. Documentation checks parse 93 R blocks and resolve 205 local
+links and 52 anchors. Air and Jarl pass on the isolated snapshot.
+
 ## 9 November 2026: Azure MySQL driver and authorization
 
 Added `oauth_db_azure_mysql()` and the Microsoft `mysql` preset. The helper
