@@ -35,6 +35,7 @@ vignette_sources <- c(
   starrocks = "odbc",
   clickhouse = NA_character_,
   postgres = "RPostgres",
+  cockroachdb = "RPostgres",
   duckdb = "duckdb",
   libsql = NA_character_,
   cratedb = NA_character_,

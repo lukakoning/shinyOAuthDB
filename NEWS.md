@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Add `oauth_db_cockroachdb()` for self-hosted and cloud CockroachDB clusters
+  configured for JWT SQL authentication. Includes verified TLS, per-user DBI
+  connections, credential rotation and a complete Shiny setup guide.
+
 * Add `oauth_db_singlestore()` for SingleStore and Helios SQL connections
   using visitor JWT access tokens through SingleStore ODBC. Require verified
   TLS and reconnect with current credentials through the session helper.

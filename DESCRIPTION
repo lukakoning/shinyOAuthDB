@@ -5,6 +5,7 @@ Authors@R: person("Luka", "Koning", email = "koningluka@gmail.com", role = c("au
 Description: Query databases and data platforms in Shiny using each visitor's
     own OAuth authorization. Provides 'DBI' connections for SQL queries and
     supplies user credentials to 'fabricQueryR' and 'brickster' functions.
+    Connects to CockroachDB through 'RPostgres' using visitor JWT access tokens.
     Queries SAP HANA and HANA Cloud through SAP HANA ODBC with each visitor's
     JWT access token.
     Queries SingleStore and SingleStore Helios through SingleStore ODBC
@@ -72,4 +73,5 @@ Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.1.0
 NeedsCompilation: yes
 SystemRequirements: Optional native PostgreSQL OAuth: Linux, shared libpq 18
-    and development headers, pkg-config. Azure PostgreSQL: libpq 16 or later
+    and development headers, pkg-config. Azure PostgreSQL and CockroachDB:
+    libpq 16 or later

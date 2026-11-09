@@ -35,6 +35,7 @@ or use a supporting package's query and API helpers.
 Supported databases and data platforms (links open their setup guides):
 
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) ·
+[CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.html) ·
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html) ·
 [DuckDB (over Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html) ·
 [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.html) ·

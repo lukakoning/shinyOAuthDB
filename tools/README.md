@@ -8,6 +8,7 @@ Rscript --vanilla tools/test-integration.R
 Rscript --vanilla tools/test-provenance.R
 Rscript --vanilla tools/test-live.R
 Rscript --vanilla tools/check-package.R
+Rscript --vanilla tools/check-cockroachdb.R
 Rscript --vanilla tools/check-singlestore.R
 Rscript --vanilla tools/check-duckdb.R
 Rscript --vanilla tools/check-duckdb-oauth.R
@@ -17,6 +18,11 @@ Rscript --vanilla tools/check-opensearch-oauth.R
 Rscript --vanilla tools/check-elasticsearch-oauth.R
 Rscript --vanilla tools/check-coverage.R
 ```
+
+`check-cockroachdb.R` checks native CockroachDB JWT SQL authentication,
+separate user grants, token replacement, reconnection and verified TLS.
+It needs Docker and RPostgres linked to libpq 16 or later; see the
+[CockroachDB fixture](../integration/cockroachdb-jwt/README.md).
 
 With Docker running, `check-cratedb-oauth.R` exercises native CrateDB JWT
 validation, user privileges, exact results and verified TLS. It also checks

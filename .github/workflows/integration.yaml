@@ -76,6 +76,7 @@ jobs:
           }
 
           run_check bash integration/postgres-keycloak/run-integration.sh
+          run_check Rscript --vanilla tools/check-cockroachdb.R
           for backend in postgrest trino starrocks minilake; do
             run_check bash integration/local/run-integration.sh "$backend"
           done

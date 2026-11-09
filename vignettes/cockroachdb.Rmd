@@ -1,0 +1,175 @@
+---
+title: "CockroachDB"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CockroachDB}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
+Use `oauth_db_cockroachdb()` to query a self-hosted or cloud CockroachDB
+cluster with each Shiny visitor's account and database permissions. The
+helper opens an RPostgres connection that works with DBI and dbplyr.
+
+The cluster must accept JWT access tokens from your identity provider.
+Signing in to the CockroachDB Cloud console alone doesn't establish SQL
+access. This guide uses cluster SSO with JWTs, where the client supplies
+the access token as its SQL password over verified TLS.
+
+## Before running the app
+
+Install RPostgres linked to libpq 16 or later. To check the version, run
+`DBI::dbGetInfo(RPostgres::Postgres())$client.version`. On Linux, install
+the corresponding libpq development package before building RPostgres.
+This backend works on Windows, macOS and Linux; it doesn't need the
+Linux-only native PostgreSQL OAuth hook in shinyOAuthDB.
+
+Your administrator must enable JWT SQL authentication and configure the
+trusted issuer, signing keys, audience and username mapping. Register a
+Shiny OAuth client with that provider using the authorization code flow.
+It must issue **JWT-format access tokens** with the configured audience
+and principal claim. This helper doesn't substitute an ID token when the
+provider issues opaque access tokens.
+
+Save these settings in `.Renviron` and restart R:
+
+| Setting | Where to get it |
+| --- | --- |
+| `OAUTHDB_COCKROACHDB_HOST` | The cluster's SQL connection hostname |
+| `OAUTHDB_COCKROACHDB_DATABASE` | A database the visitor can query |
+| `OAUTHDB_COCKROACHDB_ISSUER` | The cluster's trusted OIDC issuer |
+| `OAUTHDB_COCKROACHDB_AUDIENCE` | The audience configured for the cluster's access tokens |
+| `OAUTHDB_COCKROACHDB_SSLROOTCERT` | CA bundle for the SQL endpoint, or empty to use libpq's configured bundle |
+| `OAUTHDB_CLIENT_ID`, `OAUTHDB_CLIENT_SECRET` | Your provider's app registration |
+
+The example requests `database.read`, an example scope your provider must
+define or replace. It uses the validated login's `preferred_username`
+claim as the requested SQL username. Configure the access token and
+CockroachDB to map to that same username, or change the `user` function
+to match your organization's mapping. The database verifies that the
+token may use the requested SQL user.
+
+## A complete app
+
+The app lists tables visible to the signed-in user. Register
+`http://localhost:8100` as the redirect URI.
+
+```{r app}
+library(shiny)
+library(shinyOAuth)
+library(shinyOAuthDB)
+
+audience <- Sys.getenv("OAUTHDB_COCKROACHDB_AUDIENCE")
+provider <- oauth_provider_oidc_discover(
+  issuer = Sys.getenv("OAUTHDB_COCKROACHDB_ISSUER"),
+  extra_auth_params = if (nzchar(audience)) list(audience = audience) else list()
+)
+client <- oauth_client(
+  provider,
+  client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
+  client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
+  redirect_uri = "http://localhost:8100",
+  scopes = c("openid", "profile", "database.read")
+)
+
+ui <- oauth_ui(
+  fluidPage(
+    actionButton("login", "Sign in"),
+    actionButton("logout", "Sign out"),
+    tableOutput("rows")
+  ),
+  id = "auth",
+  client = client
+)
+
+server <- function(input, output, session) {
+  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  observeEvent(input$login, auth$request_login())
+  observeEvent(input$logout, auth$logout())
+
+  ca <- Sys.getenv("OAUTHDB_COCKROACHDB_SSLROOTCERT")
+  con <- oauth_db_cockroachdb(
+    auth$connection,
+    host = Sys.getenv("OAUTHDB_COCKROACHDB_HOST"),
+    dbname = Sys.getenv("OAUTHDB_COCKROACHDB_DATABASE"),
+    user = function() {
+      reference <- req(auth$connection())
+      identity <- reference$identity(claims = "preferred_username")
+      req(identity$id_token_claims$preferred_username)
+    },
+    sslrootcert = if (nzchar(ca)) ca else NULL,
+    required_scopes = "database.read"
+  )
+  output$rows <- renderTable({
+    connection <- con()
+    DBI::dbGetQuery(connection, paste(
+      "SELECT table_schema, table_name FROM information_schema.tables",
+      "WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'crdb_internal')",
+      "ORDER BY table_schema, table_name LIMIT 20"
+    ))
+  })
+}
+
+runApp(shinyApp(ui, server), port = 8100, launch.browser = FALSE)
+# Open the app in your regular browser at http://localhost:8100
+```
+
+Some providers configure the audience in the app registration or with a
+resource parameter rather than an `audience` authorization parameter.
+Adjust the provider configuration to match your identity service. See
+[Getting started](getting-started.html#register-your-app) for shared
+registration settings and deployment.
+
+## Configure the cluster
+
+Follow CockroachDB's
+[cluster SSO guide](https://www.cockroachlabs.com/docs/stable/sso-sql)
+for the settings supported by your cluster version and cloud tier. A
+configuration using a trusted OIDC provider includes:
+
+```sql
+SET CLUSTER SETTING server.jwt_authentication.enabled = true;
+SET CLUSTER SETTING server.jwt_authentication.issuers.configuration =
+  'https://login.example.org/realms/reporting';
+SET CLUSTER SETTING server.jwt_authentication.audience = 'shiny-reporting';
+SET CLUSTER SETTING server.jwt_authentication.claim = 'preferred_username';
+SET CLUSTER SETTING server.jwt_authentication.jwks_auto_fetch.enabled = true;
+```
+
+Create the corresponding SQL users and grant their database permissions,
+or configure the cluster's supported provisioning and role-mapping
+features. A JWT login doesn't grant access to every table. You can also
+configure static JWKS keys, but your administrator must keep them current
+as the identity provider rotates signing keys.
+
+The helper sets `options = "--crdb:jwt_auth_enabled=true"`, supplies the
+access token as the password and requires password authentication from
+the server. It uses `sslmode = "verify-full"` to verify the certificate
+and hostname. Supply the CA bundle from the cluster's connection settings
+when libpq's configured bundle doesn't include it. Unset `PGSERVICE`
+and `PGSERVICEFILE` so local service files cannot change the connection.
+
+CockroachDB also supports
+[SASL OAUTHBEARER](https://www.cockroachlabs.com/docs/stable/oauth-authentication)
+on newer clusters with libpq 18 clients. This helper uses JWT-as-password
+authentication instead, so it requires the `server.jwt_authentication`
+configuration rather than the separate `server.oauthbearer_authentication`
+configuration.
+
+## Connections and token renewal
+
+Create the helper inside `server()` and get `connection <- con()` before
+each operation. The accessor reuses its connection until the token or SQL
+username changes, the connection becomes invalid, or the authorization
+ends. After token renewal, the next call replaces the connection; renewal
+alone doesn't rerun a completed reactive query.
+
+Account changes, lost required permissions, sign-out and session end
+close the connection. Keep each transaction on the connection that
+started it, and use `con()` again for the next operation. A native
+connection retained elsewhere can still hold copied credentials; use
+the accessor for subsequent operations.

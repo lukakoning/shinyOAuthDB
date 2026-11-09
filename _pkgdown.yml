@@ -28,7 +28,7 @@ articles:
   - title: Start here
     contents: [getting-started]
   - title: Databases and related services
-    contents: [cratedb, duckdb, elasticsearch, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
+    contents: [cockroachdb, cratedb, duckdb, elasticsearch, libsql, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
   - title: Cloud platforms
     contents: [redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
@@ -46,6 +46,8 @@ reference:
     contents: [oauth_db_clickhouse_api]
   - title: CrateDB
     contents: [oauth_db_cratedb_api]
+  - title: CockroachDB
+    contents: [oauth_db_cockroachdb]
   - title: Databricks
     contents: [oauth_db_databricks_client, oauth_db_databricks,
       oauth_db_databricks_api, oauth_db_databricks_provider]

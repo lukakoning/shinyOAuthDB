@@ -1,5 +1,25 @@
 # Validation record
 
+## 9 November 2026: CockroachDB JWT SQL authentication
+
+`oauth_db_cockroachdb()` uses RPostgres with CockroachDB's JWT SQL flag,
+verified TLS and libpq 16 or later. Token changes replace the connection on
+its next use without replaying completed reactive queries.
+
+The disposable CockroachDB 25.4.0 fixture passes 27 assertions on Windows
+with R 4.5.1, RPostgres 1.4.10 and libpq 16.10. It checks JWT validation,
+distinct SQL identities and grants, denied writes, bound parameters,
+dbplyr queries, TLS hostname checks, refusal of password fallback, token
+rotation, reconnection, username changes, sign-out and session cleanup.
+
+An isolated source run passes 6,764 assertions across 411 scenarios with
+zero failures, errors, warnings or skips. The complete guide apps, source
+documentation checks, Air, Jarl, integration-tool tests and workflow lint
+also pass. Browser sign-in, live provider key rotation, CockroachDB Cloud
+and SASL OAUTHBEARER were not exercised. See the
+[backend notes](cockroachdb-backend.md) and
+[fixture instructions](../integration/cockroachdb-jwt/README.md).
+
 ## 9 November 2026: SingleStore JWT connections
 
 The new `oauth_db_singlestore()` helper uses SingleStore Connector/ODBC's
