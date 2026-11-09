@@ -36,6 +36,21 @@ table; they also need the relevant database permissions.
 
 ## Install
 
+Installing from GitHub builds the package from source. Install the build
+tools for your R version first:
+
+- **Windows:** [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+  matching your R version.
+- **macOS:** [Xcode Command Line
+  Tools](https://mac.r-project.org/tools/), installed with
+  `xcode-select --install` in Terminal.
+- **Linux:** your distribution’s R development package and C build
+  tools; for example, `r-base-dev` and `build-essential` on Debian or
+  Ubuntu.
+
+These tools are needed even for HTTP backends that do not need a
+database driver.
+
 ``` r
 
 if (!requireNamespace("remotes", quietly = TRUE)) {
@@ -180,6 +195,10 @@ Each guide has the source’s setup requirements and a complete app. You
 can keep the same sign-in/UI pattern and replace the demo’s provider,
 client settings and data helper with the ones in your guide.
 
+See [Recorded backend checks](#recorded-backend-checks) for tested
+versions and the parts of each integration that still need deployment
+validation.
+
 | Data source | Setup guide |
 |----|----|
 | PostgreSQL | [Native OAuth](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md), [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md), [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md), [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md) |
@@ -310,6 +329,14 @@ token for later use. shinyOAuth handles token renewal. See
 [`?oauth_db_connect`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.md)
 for token lifetime and connection options.
 
+### Longer queries
+
+The built-in HTTP query methods and ordinary DBI queries run
+synchronously. While a query, result download or polling loop waits, it
+can delay other Shiny sessions in the same R process. For HTTP clients,
+set `timeout` to suit the operation; the helper’s help explains whether
+it covers one request or the full operation.
+
 Keep live connections and token callbacks in the Shiny session that
 created them. For background work, use the database package’s supported
 approach and check the current authorization before displaying a result.
@@ -354,3 +381,35 @@ For another database driver or R package that accepts tokens, see
 [`?oauth_db_connect`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.md)
 and
 [`?oauth_db_token`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_token.md).
+
+## Recorded backend checks
+
+The table distinguishes real database fixtures from mocked service
+calls. Versions and results come from the repository’s [validation
+record](https://github.com/lukakoning/shinyOAuthDB/blob/main/docs/validation.md)
+and integration fixtures, through 9 November 2026. They describe the
+tested configurations, rather than a list of every supported server
+version.
+
+| Source | Checks and versions | Coverage limit |
+|----|----|----|
+| Native PostgreSQL | PostgreSQL 18.3, shared libpq 18 and RPostgres 1.4.10; real Keycloak sign-in, user grants and TLS | Native OAuth is tested in Linux containers; Windows uses the unsupported-platform branch |
+| PostgREST | PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies, writes and TLS | Covers the local deployment, not Supabase’s hosted gateway |
+| Trino | Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and TLS | A Starburst deployment still needs its own configuration check |
+| StarRocks | StarRocks 3.5.0 and MySQL Connector/ODBC 9.5.0; local JWT sign-in and grants | The Docker app is tested; the Windows local-app driver remains unverified |
+| DuckDB over Quack | DuckDB 1.5.4; real JWT validation, server policies and TLS | The Quack client and server must have compatible versions |
+| libSQL | libSQL 0.24.33; real signed tokens, database permissions and HTTPS | Hosted Turso external-provider sign-in is not established by this fixture |
+| CrateDB | CrateDB 6.4.3; native JWT validation, privileges and HTTPS | Uses a local issuer/JWKS gateway |
+| OpenSearch | OpenSearch 3.9.0; Security plugin JWT validation, document/field permissions and HTTPS | Uses a local signing-key configuration; AWS SigV4 requires another client |
+| ClickHouse | Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed parameters and failed write responses | The fixture proxy supplies authentication; it does not validate ClickHouse Cloud’s custom-JWT feature |
+| Azure PostgreSQL | PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10; real TLS and recovery after credential replacement | Entra token validation and a hosted Azure server are not exercised |
+| Databricks | brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow and pagination | MiniLake accepts every token and does not enforce grants; it does not validate Databricks authentication |
+| Fabric and Power BI | fabricQueryR 1.0.1 routing, callbacks and generated-app checks | Platform calls are mocked; hosted service permissions and native drivers need deployment checks |
+| BigQuery | Mocked REST responses cover parameters, polling, pagination, result types and account changes | Google browser sign-in, IAM grants and billed query execution are not covered by these mocks |
+| Azure SQL, Snowflake and Redshift | R ODBC connection arguments, credential handling and lifecycle tests | Real vendor drivers and cloud database authentication remain outside the mocked connection boundary |
+| Supabase, Oracle REST Data Services and Salesforce | Mocked HTTP responses and complete app definitions | Hosted provider sign-in, server policies and real refresh behavior need configured deployments |
+| SAP HANA and Oracle Database | R ODBC boundary, token handling and lifecycle tests; mocked Oracle authentication/context checks | No live SAP HANA or Oracle driver/database/provider combination has been validated |
+
+Cloud demo browser tests use real Keycloak sign-in with mocked platform
+operations. They check the local app’s behavior, not the cloud
+provider’s app registration or data permissions.

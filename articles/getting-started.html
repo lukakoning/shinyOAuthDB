@@ -101,6 +101,22 @@ database or table; they also need the relevant database permissions.</p>
 <div class="section level2">
 <h2 id="install">Install<a class="anchor" aria-label="anchor" href="#install"></a>
 </h2>
+<p>Installing from GitHub builds the package from source. Install the
+build tools for your R version first:</p>
+<ul>
+<li>
+<strong>Windows:</strong> <a href="https://cran.r-project.org/bin/windows/Rtools/" class="external-link">Rtools</a>
+matching your R version.</li>
+<li>
+<strong>macOS:</strong> <a href="https://mac.r-project.org/tools/" class="external-link">Xcode Command Line Tools</a>,
+installed with <code>xcode-select --install</code> in Terminal.</li>
+<li>
+<strong>Linux:</strong> your distribution’s R development package
+and C build tools; for example, <code>r-base-dev</code> and
+<code>build-essential</code> on Debian or Ubuntu.</li>
+</ul>
+<p>These tools are needed even for HTTP backends that do not need a
+database driver.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
@@ -231,6 +247,9 @@ filters and other request methods.</p>
 You can keep the same sign-in/UI pattern and replace the demo’s
 provider, client settings and data helper with the ones in your
 guide.</p>
+<p>See <a href="#recorded-backend-checks">Recorded backend checks</a>
+for tested versions and the parts of each integration that still need
+deployment validation.</p>
 <table class="table">
 <colgroup>
 <col width="50%">
@@ -415,11 +434,20 @@ call <code>con()</code> before each operation instead of keeping a
 native connection or copied token for later use. shinyOAuth handles
 token renewal. See <code><a href="../reference/oauth_db_connect.html">?oauth_db_connect</a></code> for token lifetime and
 connection options.</p>
+<div class="section level3">
+<h3 id="longer-queries">Longer queries<a class="anchor" aria-label="anchor" href="#longer-queries"></a>
+</h3>
+<p>The built-in HTTP query methods and ordinary DBI queries run
+synchronously. While a query, result download or polling loop waits, it
+can delay other Shiny sessions in the same R process. For HTTP clients,
+set <code>timeout</code> to suit the operation; the helper’s help
+explains whether it covers one request or the full operation.</p>
 <p>Keep live connections and token callbacks in the Shiny session that
 created them. For background work, use the database package’s supported
 approach and check the current authorization before displaying a result.
 Signing out doesn’t necessarily cancel work already submitted to a
 platform.</p>
+</div>
 <div class="section level3">
 <h3 id="save-query-results">Save query results<a class="anchor" aria-label="anchor" href="#save-query-results"></a>
 </h3>
@@ -454,6 +482,136 @@ these identify saved authorizations, separately from token targets.</p>
 <p>For another database driver or R package that accepts tokens, see
 <code><a href="../reference/oauth_db_connect.html">?oauth_db_connect</a></code> and <code><a href="../reference/oauth_db_token.html">?oauth_db_token</a></code>.</p>
 </div>
+</div>
+<div class="section level2">
+<h2 id="recorded-backend-checks">Recorded backend checks<a class="anchor" aria-label="anchor" href="#recorded-backend-checks"></a>
+</h2>
+<p>The table distinguishes real database fixtures from mocked service
+calls. Versions and results come from the repository’s <a href="https://github.com/lukakoning/shinyOAuthDB/blob/main/docs/validation.md" class="external-link">validation
+record</a> and integration fixtures, through 9 November 2026. They
+describe the tested configurations, rather than a list of every
+supported server version.</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Source</th>
+<th>Checks and versions</th>
+<th>Coverage limit</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Native PostgreSQL</td>
+<td>PostgreSQL 18.3, shared libpq 18 and RPostgres 1.4.10; real Keycloak
+sign-in, user grants and TLS</td>
+<td>Native OAuth is tested in Linux containers; Windows uses the
+unsupported-platform branch</td>
+</tr>
+<tr class="even">
+<td>PostgREST</td>
+<td>PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies,
+writes and TLS</td>
+<td>Covers the local deployment, not Supabase’s hosted gateway</td>
+</tr>
+<tr class="odd">
+<td>Trino</td>
+<td>Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and
+TLS</td>
+<td>A Starburst deployment still needs its own configuration check</td>
+</tr>
+<tr class="even">
+<td>StarRocks</td>
+<td>StarRocks 3.5.0 and MySQL Connector/ODBC 9.5.0; local JWT sign-in
+and grants</td>
+<td>The Docker app is tested; the Windows local-app driver remains
+unverified</td>
+</tr>
+<tr class="odd">
+<td>DuckDB over Quack</td>
+<td>DuckDB 1.5.4; real JWT validation, server policies and TLS</td>
+<td>The Quack client and server must have compatible versions</td>
+</tr>
+<tr class="even">
+<td>libSQL</td>
+<td>libSQL 0.24.33; real signed tokens, database permissions and
+HTTPS</td>
+<td>Hosted Turso external-provider sign-in is not established by this
+fixture</td>
+</tr>
+<tr class="odd">
+<td>CrateDB</td>
+<td>CrateDB 6.4.3; native JWT validation, privileges and HTTPS</td>
+<td>Uses a local issuer/JWKS gateway</td>
+</tr>
+<tr class="even">
+<td>OpenSearch</td>
+<td>OpenSearch 3.9.0; Security plugin JWT validation, document/field
+permissions and HTTPS</td>
+<td>Uses a local signing-key configuration; AWS SigV4 requires another
+client</td>
+</tr>
+<tr class="odd">
+<td>ClickHouse</td>
+<td>Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed
+parameters and failed write responses</td>
+<td>The fixture proxy supplies authentication; it does not validate
+ClickHouse Cloud’s custom-JWT feature</td>
+</tr>
+<tr class="even">
+<td>Azure PostgreSQL</td>
+<td>PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10;
+real TLS and recovery after credential replacement</td>
+<td>Entra token validation and a hosted Azure server are not
+exercised</td>
+</tr>
+<tr class="odd">
+<td>Databricks</td>
+<td>brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow
+and pagination</td>
+<td>MiniLake accepts every token and does not enforce grants; it does
+not validate Databricks authentication</td>
+</tr>
+<tr class="even">
+<td>Fabric and Power BI</td>
+<td>fabricQueryR 1.0.1 routing, callbacks and generated-app checks</td>
+<td>Platform calls are mocked; hosted service permissions and native
+drivers need deployment checks</td>
+</tr>
+<tr class="odd">
+<td>BigQuery</td>
+<td>Mocked REST responses cover parameters, polling, pagination, result
+types and account changes</td>
+<td>Google browser sign-in, IAM grants and billed query execution are
+not covered by these mocks</td>
+</tr>
+<tr class="even">
+<td>Azure SQL, Snowflake and Redshift</td>
+<td>R ODBC connection arguments, credential handling and lifecycle
+tests</td>
+<td>Real vendor drivers and cloud database authentication remain outside
+the mocked connection boundary</td>
+</tr>
+<tr class="odd">
+<td>Supabase, Oracle REST Data Services and Salesforce</td>
+<td>Mocked HTTP responses and complete app definitions</td>
+<td>Hosted provider sign-in, server policies and real refresh behavior
+need configured deployments</td>
+</tr>
+<tr class="even">
+<td>SAP HANA and Oracle Database</td>
+<td>R ODBC boundary, token handling and lifecycle tests; mocked Oracle
+authentication/context checks</td>
+<td>No live SAP HANA or Oracle driver/database/provider combination has
+been validated</td>
+</tr>
+</tbody>
+</table>
+<p>Cloud demo browser tests use real Keycloak sign-in with mocked
+platform operations. They check the local app’s behavior, not the cloud
+provider’s app registration or data permissions.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
