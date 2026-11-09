@@ -65,7 +65,7 @@ oauth_db_task <- function(
   min_valid_for = 120,
   compute = NULL
 ) {
-  .odb_require("mirai", "2.5.1")
+  .odb_require("mirai", version = "2.5.1")
   .odb_string(compute, "compute", optional = TRUE)
   .odb_seconds(min_valid_for, "min_valid_for")
   if (min_valid_for <= 0) {

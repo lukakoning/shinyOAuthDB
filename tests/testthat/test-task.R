@@ -1,3 +1,17 @@
+test_that("tasks reject an installed mirai below the supported version", {
+  skip_if_not_installed("mirai")
+  local_mocked_bindings(
+    packageVersion = function(package) package_version("2.5.0"),
+    .package = "utils"
+  )
+  expect_error(
+    oauth_db_task(NULL),
+    "mirai >= 2.5.1",
+    class = "shinyOAuthDB_missing_dependency",
+    fixed = TRUE
+  )
+})
+
 test_that("database tasks acquire asynchronously and preserve result authorization", {
   skip_if_not_installed("mirai", "2.5.1")
   skip_if_not_installed("RSQLite")
