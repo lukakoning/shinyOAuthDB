@@ -2,6 +2,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/404.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/CI.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/LICENSE-text.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/athena.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html</loc></url>
@@ -20,6 +21,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/oracle.html</loc></url>
@@ -36,6 +38,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/news/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/index.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_athena.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_mysql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.html</loc></url>
@@ -63,6 +66,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_libsql_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_microsoft_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_mongodb.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_neo4j_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_oracle_ords_api.html</loc></url>

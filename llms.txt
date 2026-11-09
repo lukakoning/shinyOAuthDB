@@ -59,6 +59,8 @@ BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html)
 · [Google Cloud SQL for
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.html)
 · [Amazon
+Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.html)
+· [Amazon
 Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
 · [Azure SQL and SQL
 Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
@@ -82,6 +84,7 @@ Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 · [libSQL and
 Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [MongoDB](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.html)
+· [Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.html)
 ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
 ·
@@ -221,6 +224,11 @@ for the demo options.
 - [`oauth_db_cloud_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md)
   : Set up an editable Shiny demo for a cloud workspace
 
+## Amazon Athena
+
+- [`oauth_db_athena()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_athena.md)
+  : Query Amazon Athena as the signed-in user
+
 ## Amazon Redshift
 
 - [`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md)
@@ -317,6 +325,11 @@ for the demo options.
 - [`oauth_db_mongodb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_mongodb.md)
   : Query MongoDB as the signed-in user
 
+## Neo4j
+
+- [`oauth_db_neo4j_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_neo4j_api.md)
+  : Query Neo4j as the signed-in user
+
 ## OpenSearch
 
 - [`oauth_db_opensearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_opensearch_api.md)
@@ -412,6 +425,7 @@ data sources.
   Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md):
 - [MongoDB with workforce
   OIDC](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.md):
+- [Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.md):
 - [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
 - [Oracle
   Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
@@ -428,6 +442,8 @@ data sources.
 
 ### Cloud platforms
 
+- [Amazon
+  Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.md):
 - [Amazon
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
 - [Azure

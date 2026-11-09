@@ -17,6 +17,7 @@
   Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md):
 - [MongoDB with workforce
   OIDC](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.md):
+- [Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.md):
 - [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
 - [Oracle
   Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md):
@@ -33,6 +34,8 @@
 
 ### Cloud platforms
 
+- [Amazon
+  Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.md):
 - [Amazon
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
 - [Azure

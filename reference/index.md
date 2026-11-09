@@ -10,6 +10,11 @@
 - [`oauth_db_cloud_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.md)
   : Set up an editable Shiny demo for a cloud workspace
 
+## Amazon Athena
+
+- [`oauth_db_athena()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_athena.md)
+  : Query Amazon Athena as the signed-in user
+
 ## Amazon Redshift
 
 - [`oauth_db_redshift()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_redshift.md)
@@ -105,6 +110,11 @@
 
 - [`oauth_db_mongodb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_mongodb.md)
   : Query MongoDB as the signed-in user
+
+## Neo4j
+
+- [`oauth_db_neo4j_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_neo4j_api.md)
+  : Query Neo4j as the signed-in user
 
 ## OpenSearch
 

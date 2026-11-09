@@ -3,6 +3,12 @@
 ## shinyOAuthDB 0.0.0.9000
 
 - Add
+  [`oauth_db_neo4j_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_neo4j_api.md)
+  for Cypher queries with each visitor’s access token and Neo4j database
+  roles. Includes parameter binding, graph results, update counters,
+  session isolation and a complete Shiny setup guide.
+
+- Add
   [`oauth_db_mongodb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_mongodb.md)
   for MongoDB workforce OIDC using the official PyMongo driver through
   reticulate. Includes per-visitor clients, verified TLS, token

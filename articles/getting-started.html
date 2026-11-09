@@ -299,16 +299,20 @@ PostgreSQL</a>, <a href="cloud-sql.html">Google Cloud SQL</a>
 <td><a href="mongodb.html">Workforce OIDC</a></td>
 </tr>
 <tr class="odd">
+<td>Neo4j</td>
+<td><a href="neo4j.html">Cypher and graph queries</a></td>
+</tr>
+<tr class="even">
 <td>MySQL</td>
 <td><a href="azure-mysql.html">Azure Database for MySQL</a></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Cloud data platforms</td>
 <td>
-<a href="fabric.html">Fabric and Power BI</a>, <a href="databricks.html">Databricks</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="redshift.html">Redshift</a>
+<a href="fabric.html">Fabric and Power BI</a>, <a href="databricks.html">Databricks</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="athena.html">Athena</a>, <a href="redshift.html">Redshift</a>
 </td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Query engines</td>
 <td>
 <a href="trino.html">Trino and Starburst</a>, <a href="dremio.html">Dremio</a>, <a href="starrocks.html">StarRocks</a>,
@@ -316,7 +320,7 @@ PostgreSQL</a>, <a href="cloud-sql.html">Google Cloud SQL</a>
 Quack</a>
 </td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Other databases and APIs</td>
 <td>
 <a href="libsql.html">libSQL and Turso</a>, <a href="cratedb.html">CrateDB</a>, <a href="opensearch.html">OpenSearch</a>, <a href="elasticsearch.html">Elasticsearch</a>, <a href="hana.html">SAP
@@ -697,109 +701,124 @@ sign-in, user grants and TLS</td>
 unsupported-platform branch</td>
 </tr>
 <tr class="odd">
+<td>Neo4j</td>
+<td>Neo4j 5.26.32 Enterprise; native JWT verification, per-user graph
+privileges, Cypher parameters, graph values, counters and verified
+HTTPS</td>
+<td>Locally signed tokens; browser sign-in, live JWKS rotation,
+clustering and Aura are untested</td>
+</tr>
+<tr class="even">
 <td>PostgREST</td>
 <td>PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies,
 writes and TLS</td>
 <td>Covers the local deployment, not Supabase’s hosted gateway</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Trino</td>
 <td>Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and
 TLS</td>
 <td>A Starburst deployment still needs its own configuration check</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>SingleStore</td>
 <td>SingleStore 10.9.0 and Connector/ODBC 1.2.1; JWT validation,
 per-user grants, bound SQL, dbplyr, reconnects and TLS</td>
 <td>Signed fixture tokens; browser sign-in, live JWKS rotation and
 SingleStore Helios are untested</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>StarRocks</td>
 <td>StarRocks 3.5.0 and MySQL Connector/ODBC 9.5.0; local JWT sign-in
 and grants</td>
 <td>The Docker app is tested; the Windows local-app driver remains
 unverified</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>DuckDB over Quack</td>
 <td>DuckDB 1.5.4; real JWT validation, server policies and TLS</td>
 <td>The Quack client and server must have compatible versions</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>libSQL</td>
 <td>libSQL 0.24.33; real signed tokens, database permissions and
 HTTPS</td>
 <td>Hosted Turso external-provider sign-in is not established by this
 fixture</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>CrateDB</td>
 <td>CrateDB 6.4.3; native JWT validation, privileges and HTTPS</td>
 <td>Uses a local issuer/JWKS gateway</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>OpenSearch</td>
 <td>OpenSearch 3.9.0; Security plugin JWT validation, document/field
 permissions and HTTPS</td>
 <td>Uses a local signing-key configuration; AWS SigV4 requires another
 client</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Elasticsearch</td>
 <td>Elasticsearch 9.2.0; native JWT realm, document/field permissions,
 search, SQL, ES|QL and verified HTTPS</td>
 <td>Signed fixture tokens; browser sign-in, live JWKS rotation and
 Elastic Cloud Hosted are untested; Serverless has no JWT realms</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>ClickHouse</td>
 <td>Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed
 parameters and failed write responses</td>
 <td>The fixture proxy supplies authentication; it does not validate
 ClickHouse Cloud’s custom-JWT feature</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Azure PostgreSQL</td>
 <td>PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10;
 real TLS and recovery after credential replacement</td>
 <td>Entra token validation and a hosted Azure server are not
 exercised</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Azure MySQL</td>
 <td>MariaDB Connector/ODBC 3.1.15 and R odbc 1.7.2; local password
 protocol, 12 KB tokens, credential replacement and verified TLS</td>
 <td>Entra token validation, Azure user/group mapping and database grants
 are untested</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Databricks</td>
 <td>brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow
 and pagination</td>
 <td>MiniLake accepts every token and does not enforce grants; it does
 not validate Databricks authentication</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Fabric and Power BI</td>
 <td>fabricQueryR 1.0.1 routing, callbacks and generated-app checks</td>
 <td>Platform calls are mocked; hosted service permissions and native
 drivers need deployment checks</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>BigQuery</td>
 <td>Mocked REST responses cover parameters, polling, pagination, result
 types and account changes</td>
 <td>Google browser sign-in, IAM grants and billed query execution are
 not covered by these mocks</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Azure SQL, Snowflake and Redshift</td>
 <td>R ODBC connection arguments, credential handling and lifecycle
 tests</td>
 <td>Real vendor drivers and cloud database authentication remain outside
 the mocked connection boundary</td>
+</tr>
+<tr class="even">
+<td>Athena</td>
+<td>JWT_TIP ODBC arguments, cache/TLS settings, token replacement and
+session cleanup; complete app construction</td>
+<td>Live AWS Identity Center exchange, user permissions, driver
+credential caches and billed queries need a configured deployment</td>
 </tr>
 <tr class="odd">
 <td>Supabase, Oracle REST Data Services and Salesforce</td>

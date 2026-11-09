@@ -59,6 +59,8 @@ BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html)
 · [Google Cloud SQL for
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/cloud-sql.html)
 · [Amazon
+Athena](https://lukakoning.github.io/shinyOAuthDB/articles/athena.html)
+· [Amazon
 Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
 · [Azure SQL and SQL
 Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
@@ -82,6 +84,7 @@ Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 · [libSQL and
 Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [MongoDB](https://lukakoning.github.io/shinyOAuthDB/articles/mongodb.html)
+· [Neo4j](https://lukakoning.github.io/shinyOAuthDB/articles/neo4j.html)
 ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
 ·
