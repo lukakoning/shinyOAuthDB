@@ -1,5 +1,21 @@
 # Validation record
 
+## 9 November 2026: native ODBC error traces
+
+ODBC adapters now call DBI with references to their argument values, keeping
+bearer-token literals out of stored native error calls. Driver error classes
+and messages are preserved. The shared call path is used by HANA, Snowflake,
+Redshift, Azure SQL, Oracle and StarRocks.
+
+The regression first failed six assertions on the previous implementation.
+It now passes all 13 assertions with the real odbc 1.6.4.1 error boundary,
+generated synthetic tokens and a nonexistent driver. It checks both textual
+and serialized error objects for credential retention, and compares native
+classes and messages with a direct DBI failure. The backend, HANA, Oracle,
+Redshift, StarRocks and native option/ODBC contract suites pass together.
+Air, Jarl and whitespace checks pass. No live cloud or native SAP/Oracle
+connection was needed for this error-path regression.
+
 ## 9 November 2026: Azure PostgreSQL credential replacement
 
 The helper now replaces its cached RPostgres connection on the next access

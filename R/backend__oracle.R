@@ -261,8 +261,7 @@ oauth_db_oracle <- function(
   if (.Platform$OS.type != "windows" && !Sys.chmod(path, mode = "0600")) {
     .odb_abort("Cannot restrict access to the Oracle token file.")
   }
-  connection <- do.call(
-    DBI::dbConnect,
+  connection <- .odb_odbc_connect(
     c(
       list(
         drv = odbc::odbc(),

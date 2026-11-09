@@ -151,8 +151,7 @@ oauth_db_hana <- function(
     sslTrustStore = ssl_trust_store
   )
   context <- context[!vapply(context, is.null, logical(1))]
-  do.call(
-    DBI::dbConnect,
+  .odb_odbc_connect(
     c(
       list(
         drv = odbc::odbc(),

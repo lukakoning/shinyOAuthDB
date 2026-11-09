@@ -40,3 +40,12 @@
 # The forms emitted by odbc::quote_value(): one enclosing quote pair, with no
 # matching quote inside. Checking the entire value prevents trailing keywords.
 .odb_odbc_quoted <- function(value) grepl("^\"[^\"]*\"$|^'[^']*'$", value)
+
+# Keep credential values out of the evaluated calls retained by driver errors.
+.odb_odbc_connect <- function(args) {
+  values <- lapply(seq_along(args), function(i) {
+    substitute(args[[index]], list(index = i))
+  })
+  names(values) <- names(args)
+  eval(as.call(c(list(quote(DBI::dbConnect)), values)), envir = environment())
+}

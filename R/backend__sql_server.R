@@ -151,8 +151,7 @@ oauth_db_sql_server <- oauth_db_azure_sql
       quote
     ))
   }
-  do.call(
-    DBI::dbConnect,
+  .odb_odbc_connect(
     c(
       list(
         drv = odbc::odbc(),

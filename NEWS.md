@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Keep bearer tokens out of the stored calls in native ODBC connection errors,
+  while preserving the driver's error class and message.
+
 * Reopen Azure PostgreSQL connections on the next access after token changes,
   avoiding repeated reconnect failures with an obsolete password. Token
   renewal does not replay completed reactive queries.

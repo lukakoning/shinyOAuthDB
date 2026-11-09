@@ -148,8 +148,7 @@ oauth_db_redshift <- function(
   token_type,
   options
 ) {
-  do.call(
-    DBI::dbConnect,
+  .odb_odbc_connect(
     c(
       list(
         drv = odbc::odbc(),

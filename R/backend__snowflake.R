@@ -133,8 +133,7 @@ oauth_db_snowflake <- function(
 ) {
   context <- list(database = database, schema = schema, warehouse = warehouse)
   context <- context[!vapply(context, is.null, logical(1))]
-  do.call(
-    DBI::dbConnect,
+  .odb_odbc_connect(
     c(
       list(
         drv = odbc::odbc(),

@@ -220,5 +220,5 @@ oauth_db_starrocks <- function(
   if (!is.null(plugin_dir)) {
     args$PLUGIN_DIR <- plugin_dir
   }
-  do.call(DBI::dbConnect, c(args, options))
+  .odb_odbc_connect(c(args, options))
 }
