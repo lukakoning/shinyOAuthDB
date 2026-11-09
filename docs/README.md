@@ -10,6 +10,7 @@ contributor notes; pkgdown builds separately into `_site/`.
 | PostgreSQL | [Native OAuth and Docker playground](../vignettes/postgres.Rmd) |
 | CockroachDB | [JWT authentication and RPostgres](../vignettes/cockroachdb.Rmd) |
 | Azure SQL and SQL Server | [DBI and dbplyr queries](../vignettes/azure-sql.Rmd) |
+| Azure Cosmos DB for NoSQL | [Entra tokens, queries and document reads](../vignettes/cosmos.Rmd) |
 | Microsoft Fabric | [SQL, platform functions, and Lakehouse objects](../vignettes/fabric.Rmd) |
 | Databricks | [SQL warehouses and brickster](../vignettes/databricks.Rmd) |
 | Snowflake | [Snowflake sign-in and DBI](../vignettes/snowflake.Rmd) |
@@ -49,6 +50,7 @@ For existing apps and package development:
 - [Snowflake backend decision](snowflake-backends.md)
 - [Backend research notes](backend-candidates.md)
 - [Athena backend decision](athena-backend.md)
+- [Azure Cosmos DB backend decision](cosmos-backend.md)
 - [CockroachDB backend decision](cockroachdb-backend.md)
 - [Cloud SQL backend decision](cloud-sql-backend.md)
 - [Dremio backend decision](dremio-backend.md)

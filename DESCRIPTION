@@ -28,6 +28,8 @@ Description: Query databases and data platforms in Shiny using each visitor's
     using each visitor's workforce OIDC access token.
     Queries Neo4j's HTTPS Query API with each visitor's access token and
     database roles, returning Cypher results and graph values.
+    Reads Azure Cosmos DB for NoSQL through HTTPS with per-visitor Microsoft
+    Entra access tokens, parameterized queries and partition-aware reads.
     Searches Elasticsearch using visitor JWT access tokens, with SQL and
     ES|QL queries and optional JWT realm client authentication.
     Searches OpenSearch

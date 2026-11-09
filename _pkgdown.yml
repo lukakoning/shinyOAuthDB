@@ -30,7 +30,7 @@ articles:
   - title: Databases and related services
     contents: [cockroachdb, cratedb, dremio, duckdb, elasticsearch, libsql, mongodb, neo4j, opensearch, oracle, oracle-ords, postgres, postgrest, hana, singlestore, starrocks, trino]
   - title: Cloud platforms
-    contents: [athena, redshift, azure-mysql, azure-postgres, azure-sql, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
+    contents: [athena, redshift, azure-mysql, azure-postgres, azure-sql, cosmos, clickhouse, cloud-sql, databricks, bigquery, fabric, salesforce, snowflake, supabase]
 reference:
   - title: Overview and demos
     contents: [shinyOAuthDB-package, oauth_db_demo, oauth_db_cloud_demo]
@@ -44,6 +44,8 @@ reference:
     contents: [oauth_db_azure_mysql]
   - title: Azure SQL and SQL Server
     contents: [oauth_db_azure_sql, oauth_db_sql_server]
+  - title: Azure Cosmos DB for NoSQL
+    contents: [oauth_db_cosmos_client, oauth_db_cosmos_api]
   - title: ClickHouse
     contents: [oauth_db_clickhouse_api]
   - title: CrateDB

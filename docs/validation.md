@@ -22,6 +22,31 @@ retained-client session isolation and refusal to retry failed statements.
 See the [backend decision](neo4j-backend.md) and
 [fixture instructions](../integration/neo4j-oauth/README.md).
 
+## 9 November 2026: Azure Cosmos DB for NoSQL
+
+Added `oauth_db_cosmos_client()` and `oauth_db_cosmos_api()` for visitor
+Entra tokens, parameterized SQL, automatic and explicit continuation pages,
+partition keys and point reads. The HTTP client sends Cosmos DB's encoded
+`aad` authorization header and uses the existing session lifecycle.
+
+An isolated source run on Windows 11 with R 4.5.1, shinyOAuth 0.7.0.9000,
+httr2 1.3.0 and jsonlite 2.0.0 passes 7,919 assertions across 474 scenarios,
+with zero failures, errors, warnings or skips. `R CMD check --no-manual`
+also passes with zero errors, warnings or notes, including installed-package
+tests and rebuilt vignettes. The complete Cosmos guide app uses separate
+visitor tokens and clears its output on sign-out. Documentation checks,
+Air formatting and Jarl on changed R files pass.
+
+Repository-wide Jarl still reports two existing `implicit_assignment`
+findings in `tests/testthat/test-getting-started-async.R`, at lines 32 and
+232. That file is unchanged by this work.
+
+Cosmos checks use synthetic tokens and mocked service responses. They do
+not establish live tenant consent, browser sign-in, user-token issuance for
+a custom app registration or Cosmos DB data-plane role enforcement. The
+[backend decision](cosmos-backend.md) records the client comparison, API
+scope and remaining live acceptance checks.
+
 ## 9 November 2026: CockroachDB JWT SQL authentication
 
 `oauth_db_cockroachdb()` uses RPostgres with CockroachDB's JWT SQL flag,

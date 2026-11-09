@@ -222,7 +222,8 @@
   timeout,
   ca_bundle = NULL,
   retry_401 = FALSE,
-  sensitive = character()
+  sensitive = character(),
+  authenticate = httr2::req_auth_bearer_token
 ) {
   deadline <- .odb_http_time() + timeout
   req <- httr2::req_options(req, followlocation = FALSE)
@@ -243,7 +244,7 @@
       .odb_abort(paste0(service, " operation timed out."), "timeout")
     }
     request <- httr2::req_timeout(req, remaining)
-    request <- httr2::req_auth_bearer_token(request, value)
+    request <- authenticate(request, value)
     .odb_http_perform(request, service)
   }
   resp <- perform(token())

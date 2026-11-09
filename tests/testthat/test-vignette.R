@@ -20,6 +20,7 @@ vignette_sources <- c(
   athena = "odbc",
   "azure-mysql" = "odbc",
   "azure-sql" = "odbc",
+  cosmos = NA_character_,
   fabric = "fabricQueryR",
   databricks = "brickster",
   snowflake = "odbc",
@@ -113,6 +114,50 @@ for (source in names(vignette_sources)) {
     )
   })
 }
+
+test_that("the Cosmos guide queries with the selected visitor and clears signed-out results", {
+  withr::local_envvar(playground_env())
+  app <- new.env(parent = globalenv())
+  app$runApp <- function(app, ...) app
+  eval(vignette_chunks("cosmos")[["app"]], app)
+  calls <- new.env(parent = emptyenv())
+  app$oauth_module_server <- function(id, client, ...) {
+    session <- shiny::getDefaultReactiveDomain()
+    a <- odb_test_authorization(session, client = client, scopes = character())
+    b <- odb_test_authorization(
+      session,
+      id = "B",
+      client = client,
+      scopes = character()
+    )
+    selected <- shiny::reactiveVal(a$connection)
+    calls$select <- function() selected(b$connection)
+    list(
+      connection = function() selected(),
+      request_login = function() invisible(NULL),
+      logout = function() selected(NULL)
+    )
+  }
+  httr2::local_mocked_responses(function(req) {
+    header <- httr2::req_get_headers(req, redacted = "reveal")$Authorization
+    visitor <- sub("^.*sig=", "", utils::URLdecode(header))
+    odb_http_response(paste0(
+      '{"Documents":[{"id":"',
+      visitor,
+      '","total":10}],"_count":1}'
+    ))
+  })
+  shiny::testServer(app$server, {
+    session$flushReact()
+    expect_match(output$rows, "fixture-A", fixed = TRUE)
+    calls$select()
+    session$flushReact()
+    expect_match(output$rows, "fixture-B", fixed = TRUE)
+    expect_false(grepl("fixture-A", output$rows, fixed = TRUE))
+    session$setInputs(logout = 1L)
+    expect_error(output$rows, class = "shiny.silent.error")
+  })
+})
 
 test_that("the Databricks guide's Entra alternative constructs a real client", {
   withr::local_envvar(playground_env())

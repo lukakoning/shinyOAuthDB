@@ -218,6 +218,7 @@ and the parts of each integration that still need deployment validation.
 | CockroachDB | [CockroachDB](cockroachdb.html) |
 | MongoDB | [Workforce OIDC](mongodb.html) |
 | Neo4j | [Cypher and graph queries](neo4j.html) |
+| Azure Cosmos DB for NoSQL | [Microsoft Entra tokens and document queries](cosmos.html) |
 | MySQL | [Azure Database for MySQL](azure-mysql.html) |
 | Cloud data platforms | [Fabric and Power BI](fabric.html), [Databricks](databricks.html), [Snowflake](snowflake.html), [BigQuery](bigquery.html), [Athena](athena.html), [Redshift](redshift.html) |
 | Query engines | [Trino and Starburst](trino.html), [Dremio](dremio.html), [StarRocks](starrocks.html), [SingleStore](singlestore.html), [ClickHouse](clickhouse.html), [DuckDB over Quack](duckdb.html) |
@@ -553,6 +554,7 @@ configurations, rather than a list of every supported server version.
 | Databricks | brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow and pagination | MiniLake accepts every token and does not enforce grants; it does not validate Databricks authentication |
 | Fabric and Power BI | fabricQueryR 1.0.1 routing, callbacks and generated-app checks | Platform calls are mocked; hosted service permissions and native drivers need deployment checks |
 | BigQuery | Mocked REST responses cover parameters, polling, pagination, result types and account changes | Google browser sign-in, IAM grants and billed query execution are not covered by these mocks |
+| Azure Cosmos DB for NoSQL | Mocked REST requests and responses cover Entra authorization headers, partition keys, queries, pagination, point reads and account changes | Tenant consent, browser sign-in, cloud data-plane RBAC and live queries remain unvalidated |
 | Azure SQL, Snowflake and Redshift | R ODBC connection arguments, credential handling and lifecycle tests | Real vendor drivers and cloud database authentication remain outside the mocked connection boundary |
 | Athena | JWT_TIP ODBC arguments, cache/TLS settings, token replacement and session cleanup; complete app construction | Live AWS Identity Center exchange, user permissions, driver credential caches and billed queries need a configured deployment |
 | Supabase, Oracle REST Data Services and Salesforce | Mocked HTTP responses and complete app definitions | Hosted provider sign-in, server policies and real refresh behavior need configured deployments |

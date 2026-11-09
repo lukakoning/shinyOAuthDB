@@ -4,6 +4,12 @@
   token and Neo4j database roles. Includes parameter binding, graph results,
   update counters, session isolation and a complete Shiny setup guide.
 
+* Add Azure Cosmos DB for NoSQL with `oauth_db_cosmos_client()` and
+  `oauth_db_cosmos_api()`. Queries and point reads use each visitor's Entra
+  token and data-plane permissions, with partition keys, continuation pages,
+  token renewal and session isolation. Includes a complete setup guide;
+  live tenant consent and Cosmos DB authentication remain unvalidated.
+
 * Add `oauth_db_mongodb()` for MongoDB workforce OIDC using the official
   PyMongo driver through reticulate. Includes per-visitor clients, verified
   TLS, token replacement, queries, aggregations and database commands, with
