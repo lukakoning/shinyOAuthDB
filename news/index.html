@@ -39,7 +39,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Keep bearer tokens out of the stored calls in native ODBC connection errors, while preserving the driver’s error class and message.</p></li>
+<ul><li><p>Add <code><a href="../reference/oauth_db_elasticsearch_api.html">oauth_db_elasticsearch_api()</a></code> for per-visitor searches, SQL and ES|QL using external JWT access tokens and optional realm client authentication. Includes a setup guide, native JSON requests, and a real Elasticsearch JWT, document/field permissions and TLS integration check.</p></li>
+<li><p>Keep bearer tokens out of the stored calls in native ODBC connection errors, while preserving the driver’s error class and message.</p></li>
 <li><p>Reopen Azure PostgreSQL connections on the next access after token changes, avoiding repeated reconnect failures with an obsolete password. Token renewal does not replay completed reactive queries.</p></li>
 <li><p>Add <code><a href="../reference/oauth_db_hana.html">oauth_db_hana()</a></code> for SAP HANA and HANA Cloud SQL connections using visitor JWT access tokens through SAP HANA ODBC. Require JWT authentication and verified TLS, and obtain current tokens when reopening connections. Includes a complete Shiny setup guide; live SAP compatibility remains unverified.</p></li>
 <li><p>Add Salesforce user sign-in, CRM SOQL queries and Data Cloud (Data 360) SQL queries through Query Connect API. Includes object discovery, bound SQL parameters, polling, pagination and a complete Shiny setup guide. Registrations must issue JWT-based access tokens for named users.</p></li>

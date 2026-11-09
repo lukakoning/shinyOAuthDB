@@ -74,6 +74,8 @@ Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)
 ·
 [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.html)
+·
+[Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.html)
 · [Salesforce CRM and Data
 Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html).
 
@@ -250,6 +252,11 @@ for the demo options.
 - [`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md)
   : Query a remote DuckDB server as the signed-in user
 
+## Elasticsearch
+
+- [`oauth_db_elasticsearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_elasticsearch_api.md)
+  : Query Elasticsearch as the signed-in user
+
 ## Google BigQuery
 
 - [`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md)
@@ -354,6 +361,7 @@ data sources.
 - [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md):
 - [Remote
   DuckDB](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md):
+- [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.md):
 - [Remote libSQL and
   Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md):
 - [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):

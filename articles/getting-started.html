@@ -287,8 +287,8 @@ Quack</a>
 <tr class="odd">
 <td>Other databases and APIs</td>
 <td>
-<a href="libsql.html">libSQL and Turso</a>, <a href="cratedb.html">CrateDB</a>, <a href="opensearch.html">OpenSearch</a>, <a href="hana.html">SAP HANA</a>,
-<a href="oracle.html">Oracle Database</a>, <a href="oracle-ords.html">Oracle REST Data Services</a>, <a href="salesforce.html">Salesforce</a>
+<a href="libsql.html">libSQL and Turso</a>, <a href="cratedb.html">CrateDB</a>, <a href="opensearch.html">OpenSearch</a>, <a href="elasticsearch.html">Elasticsearch</a>, <a href="hana.html">SAP
+HANA</a>, <a href="oracle.html">Oracle Database</a>, <a href="oracle-ords.html">Oracle REST Data Services</a>, <a href="salesforce.html">Salesforce</a>
 </td>
 </tr>
 </tbody>
@@ -554,53 +554,60 @@ permissions and HTTPS</td>
 client</td>
 </tr>
 <tr class="odd">
+<td>Elasticsearch</td>
+<td>Elasticsearch 9.2.0; native JWT realm, document/field permissions,
+search, SQL, ES|QL and verified HTTPS</td>
+<td>Signed fixture tokens; browser sign-in, live JWKS rotation and
+Elastic Cloud Hosted are untested; Serverless has no JWT realms</td>
+</tr>
+<tr class="even">
 <td>ClickHouse</td>
 <td>Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed
 parameters and failed write responses</td>
 <td>The fixture proxy supplies authentication; it does not validate
 ClickHouse Cloud’s custom-JWT feature</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Azure PostgreSQL</td>
 <td>PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10;
 real TLS and recovery after credential replacement</td>
 <td>Entra token validation and a hosted Azure server are not
 exercised</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Databricks</td>
 <td>brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow
 and pagination</td>
 <td>MiniLake accepts every token and does not enforce grants; it does
 not validate Databricks authentication</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Fabric and Power BI</td>
 <td>fabricQueryR 1.0.1 routing, callbacks and generated-app checks</td>
 <td>Platform calls are mocked; hosted service permissions and native
 drivers need deployment checks</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>BigQuery</td>
 <td>Mocked REST responses cover parameters, polling, pagination, result
 types and account changes</td>
 <td>Google browser sign-in, IAM grants and billed query execution are
 not covered by these mocks</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Azure SQL, Snowflake and Redshift</td>
 <td>R ODBC connection arguments, credential handling and lifecycle
 tests</td>
 <td>Real vendor drivers and cloud database authentication remain outside
 the mocked connection boundary</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Supabase, Oracle REST Data Services and Salesforce</td>
 <td>Mocked HTTP responses and complete app definitions</td>
 <td>Hosted provider sign-in, server policies and real refresh behavior
 need configured deployments</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>SAP HANA and Oracle Database</td>
 <td>R ODBC boundary, token handling and lifecycle tests; mocked Oracle
 authentication/context checks</td>

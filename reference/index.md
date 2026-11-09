@@ -53,6 +53,11 @@
 - [`oauth_db_duckdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_duckdb.md)
   : Query a remote DuckDB server as the signed-in user
 
+## Elasticsearch
+
+- [`oauth_db_elasticsearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_elasticsearch_api.md)
+  : Query Elasticsearch as the signed-in user
+
 ## Google BigQuery
 
 - [`oauth_db_bigquery_client()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.md)

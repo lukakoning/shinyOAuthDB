@@ -2,6 +2,13 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Add
+  [`oauth_db_elasticsearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_elasticsearch_api.md)
+  for per-visitor searches, SQL and ES\|QL using external JWT access
+  tokens and optional realm client authentication. Includes a setup
+  guide, native JSON requests, and a real Elasticsearch JWT,
+  document/field permissions and TLS integration check.
+
 - Keep bearer tokens out of the stored calls in native ODBC connection
   errors, while preserving the driver’s error class and message.
 

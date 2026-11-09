@@ -10,6 +10,7 @@
 - [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md):
 - [Remote
   DuckDB](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md):
+- [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.md):
 - [Remote libSQL and
   Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md):
 - [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md):
