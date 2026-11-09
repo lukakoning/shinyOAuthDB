@@ -466,6 +466,8 @@ test_that("worker failures retain native classes without retaining credentials",
         paste("Failure", token()),
         class = "native_worker_failure",
         reason = "fixture",
+        status = 403L,
+        service_code = paste0("code-", token()),
         request_id = paste0("id-", token())
       ))
     },
@@ -478,6 +480,8 @@ test_that("worker failures retain native classes without retaining credentials",
   expect_identical(value$error$reason, "fixture")
   expect_identical(conditionMessage(value$error), "Failure [REDACTED]")
   expect_null(value$error$call)
+  expect_identical(value$error$status, 403L)
+  expect_identical(value$error$service_code, "code-[REDACTED]")
   expect_identical(value$error$request_id, "id-[REDACTED]")
   expect_false(grepl(
     "private-bearer",

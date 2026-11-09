@@ -654,7 +654,13 @@ oauth_db_task <- function(
         message,
         class = setdiff(class(error), c("error", "condition"))
       )
-      for (name in c("reason", "status", "service", "request_id")) {
+      for (name in c(
+        "reason",
+        "status",
+        "service",
+        "service_code",
+        "request_id"
+      )) {
         value <- error[[name]]
         if (
           is.atomic(value) &&
