@@ -1,11 +1,20 @@
-# Self-hosted PostgreSQL OAuth; see vignettes/postgres.Rmd for server setup.
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RPostgres")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 issuer <- Sys.getenv("OAUTHDB_POSTGRES_ISSUER")
+
 database_scope <- Sys.getenv("OAUTHDB_POSTGRES_SCOPE", "database.read")
+
 provider <- oauth_provider_oidc_discover(issuer, id_token_validation = TRUE)
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -23,6 +32,7 @@ ui <- oauth_ui(
     titlePanel("Self-hosted PostgreSQL"),
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -30,7 +40,12 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
   con <- oauth_db_postgres(
@@ -46,19 +61,21 @@ server <- function(input, output, session) {
     scope = database_scope,
     sslrootcert = Sys.getenv("OAUTHDB_POSTGRES_SSLROOTCERT")
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(
-      connection,
-      paste(
-        "SELECT current_user::text AS database_user, table_schema, table_name",
-        "FROM information_schema.tables ORDER BY table_schema, table_name LIMIT 20"
-      )
-    )
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke(paste(
+      "SELECT current_user::text AS database_user, table_schema, table_name",
+      "FROM information_schema.tables ORDER BY table_schema, table_name LIMIT 20"
+    ))
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-app <- shinyApp(ui, server, uiPattern = ".*")
+app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
+
 if (interactive()) {
   runApp(
     app,
@@ -68,4 +85,3 @@ if (interactive()) {
 }
 
 # Open the app in your regular browser at its registered redirect URI.
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

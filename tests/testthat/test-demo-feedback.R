@@ -1,4 +1,5 @@
 test_that("a failed write check remains retryable and isn't reported as a permission denial", {
+  task_app_workers()
   local_mocked_bindings(
     oauth_provider_oidc_discover = function(issuer, ...) {
       shinyOAuth::oauth_provider(
@@ -39,23 +40,31 @@ test_that("a failed write check remains retryable and isn't reported as a permis
     state
   }
   app$oauth_db_libsql_api <- function(authorization, ...) {
-    list(
-      query = function(...) {
-        shiny::req(authorization())
-        data.frame(marker = "sample row")
-      },
-      execute = function(...) {
-        shiny::req(authorization())
-        if (control$denied) {
-          .odb_abort("Denied", "request_failed", status = 403L)
-        }
-        stop("Temporary connection failure")
-      }
+    oauth_db_libsql_api(
+      authorization,
+      "https://data.example",
+      required_scopes = "sqlite.read"
     )
   }
+  httr2::local_mocked_responses(function(req) {
+    body <- req$body$data
+    if (startsWith(body$requests[[1L]]$stmt$sql, "INSERT")) {
+      if (control$denied) {
+        return(odb_http_response("{}", status = 403L))
+      }
+      stop("Temporary connection failure")
+    }
+    odb_http_response(paste0(
+      '{"baton":null,"results":[{"type":"ok","response":{"type":"execute",',
+      '"result":{"cols":[{"name":"marker"}],"rows":[[{"type":"text",',
+      '"value":"sample row"}]],"affected_row_count":0,"last_insert_rowid":null}}},',
+      '{"type":"ok","response":{"type":"close"}}]}'
+    ))
+  })
   shiny::testServer(app$server, {
     session$flushReact()
-    session$setInputs(probe = 1L)
+    session$setInputs(load = 1L, probe = 1L)
+    task_app_flush(session)
     expect_match(
       output$permission,
       "Could not check write access",
@@ -65,6 +74,7 @@ test_that("a failed write check remains retryable and isn't reported as a permis
     expect_false(session$isClosed())
     control$denied <- TRUE
     session$setInputs(probe = 2L)
+    task_app_flush(session)
     expect_identical(output$permission, "Write rejected by database")
     session$setInputs(logout = 1L)
     expect_error(output$permission, class = "shiny.silent.error")

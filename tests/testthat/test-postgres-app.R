@@ -51,12 +51,17 @@ test_that("the self-hosted PostgreSQL example queries through the public helper"
   actions$login <- 0L
   app$oauth_module_server <- playground_module(actions)
   shiny::testServer(app$server, {
+    session$setInputs(load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-A", fixed = TRUE)
     session$setInputs(login = 1L)
     expect_identical(actions$login, 1L)
     actions$select("B")
     session$flushReact()
     expect_false(DBI::dbIsValid(handles[[1L]]))
+    expect_error(output$rows, class = "shiny.silent.error")
+    session$setInputs(load = 2L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-B", fixed = TRUE)
     expect_false(grepl("fixture-A", output$rows, fixed = TRUE))
     session$setInputs(logout = 1L)

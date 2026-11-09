@@ -123,7 +123,12 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
   observeEvent(input$setup, stopApp("setup"))
@@ -146,10 +151,48 @@ server <- function(input, output, session) {
     }
   })
   owner <- reactiveVal(NULL)
-  warehouses <- reactiveVal(NULL)
+  warehouse_task <- oauth_db_task(database, method = "warehouses")
+  warehouses <- reactive({
+    reference <- current()
+    if (is.null(reference)) {
+      return(NULL)
+    }
+    value <- tryCatch(warehouse_task$result(), error = function(error) NULL)
+    if (is.null(value)) NULL else list(owner = reference$id, data = value)
+  })
   binding <- reactiveVal(NULL)
-  result <- reactiveVal(NULL)
-  warehouse_status <- reactiveVal("")
+  result <- reactive({
+    reference <- current()
+    selected <- binding()
+    if (
+      is.null(reference) ||
+        is.null(selected) ||
+        !identical(selected$owner, reference$id)
+    ) {
+      return(NULL)
+    }
+    value <- tryCatch(selected$task$result(), error = function(error) NULL)
+    if (is.null(value)) NULL else list(owner = reference$id, data = value)
+  })
+  warehouse_status <- reactive({
+    if (warehouse_task$status() == "running") {
+      return("Listing warehouses...")
+    }
+    if (warehouse_task$status() == "error") {
+      return(
+        "Couldn't list warehouses. Check SQL access or refresh your sign-in. You can also enter a known ID or HTTP path below."
+      )
+    }
+    value <- warehouses()
+    if (is.null(value)) {
+      return("")
+    }
+    if (nrow(value$data)) {
+      "Listing a warehouse doesn't establish permission to query it; Databricks checks that when you run SQL."
+    } else {
+      "No warehouses were listed. Open SQL Warehouses in your workspace to find one or ask for access, or enter a known ID or HTTP path below."
+    }
+  })
   query_status <- reactiveVal("")
 
   observe(
@@ -158,10 +201,7 @@ server <- function(input, output, session) {
       id <- if (is.null(reference)) NULL else reference$id
       if (!identical(id, isolate(owner()))) {
         owner(id)
-        warehouses(NULL)
         binding(NULL)
-        result(NULL)
-        warehouse_status("")
         query_status("")
       }
     },
@@ -210,26 +250,8 @@ server <- function(input, output, session) {
   observeEvent(
     list(input$refresh, owner()),
     {
-      reference <- req(current())
-      id <- reference$id
-      available <- tryCatch(database$warehouses(), error = function(error) {
-        warehouse_status(
-          "Couldn't list warehouses. Check SQL access or refresh your sign-in. You can also enter a known ID or HTTP path below."
-        )
-        NULL
-      })
-      now <- current()
-      if (is.null(now) || !identical(now$id, id) || is.null(available)) {
-        return()
-      }
-      warehouses(list(owner = id, data = available))
-      warehouse_status(
-        if (nrow(available)) {
-          "Listing a warehouse doesn't establish permission to query it; Databricks checks that when you run SQL."
-        } else {
-          "No warehouses were listed. Open SQL Warehouses in your workspace to find one or ask for access, or enter a known ID or HTTP path below."
-        }
-      )
+      req(current())
+      warehouse_task$invoke()
     },
     ignoreNULL = FALSE
   )
@@ -299,29 +321,11 @@ server <- function(input, output, session) {
           required_scopes = "sql"
         )
       )
+      selected$task <- oauth_db_task(selected$get)
       binding(selected)
     }
-    result(NULL)
-    rows <- tryCatch(
-      {
-        connection <- selected$get()
-        DBI::dbGetQuery(connection, example_query)
-      },
-      error = function(error) {
-        query_status(
-          "Couldn't run the query. Check CAN USE on this warehouse. Queries against your own tables also need catalog/schema access and SELECT permission; check SQL syntax if you edited the query. Retry explicitly when ready."
-        )
-        NULL
-      }
-    )
-    now <- current()
-    if (is.null(rows) || is.null(now) || !identical(now$id, id)) {
-      return()
-    }
-    result(list(owner = id, data = rows))
-    query_status(
-      "Query completed using the signed-in person's database permissions."
-    )
+    query_status("")
+    selected$task$invoke(example_query)
   })
 
   output$warehouse_status <- renderText({
@@ -330,7 +334,24 @@ server <- function(input, output, session) {
   })
   output$query_status <- renderText({
     req(current())
-    query_status()
+    selected <- binding()
+    if (is.null(selected)) {
+      return(query_status())
+    }
+    status <- selected$task$status()
+    if (status == "running") {
+      return("Running query...")
+    }
+    if (status == "error") {
+      return(
+        "Couldn't run the query. Check CAN USE, catalog/schema access and SELECT permission on this warehouse. Check SQL syntax if you edited the query. Retry explicitly when ready."
+      )
+    }
+    if (!is.null(result())) {
+      "Query completed using the signed-in person's database permissions."
+    } else {
+      query_status()
+    }
   })
   output$rows <- renderTable({
     reference <- req(current())
@@ -342,7 +363,10 @@ server <- function(input, output, session) {
 }
 
 `%||%` <- function(value, otherwise) if (is.null(value)) otherwise else value
-shinyApp(ui, server, uiPattern = ".*")
+shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
 
 # Open the printed app URL in your regular browser.
 # (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

@@ -4,6 +4,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 issuer <- "https://localhost:18443/realms/shinyoauthdb"
+
 client <- oauth_client(
   oauth_provider_oidc_discover(issuer),
   client_id = "shiny-opensearch",
@@ -13,7 +14,9 @@ client <- oauth_client(
 )
 
 example_index <- "orders"
+
 example_search <- list(size = 20L, sort = list("id"))
+
 example_request <- paste0(
   "POST /",
   example_index,
@@ -52,7 +55,8 @@ ui <- oauth_ui(
       div(
         class = "d-flex gap-2 flex-wrap",
         actionButton("login", "Sign in", class = "btn-primary"),
-        actionButton("logout", "Sign out")
+        actionButton("logout", "Sign out"),
+        actionButton("load", "Load rows")
       ),
       div(role = "status", textOutput("account"), textOutput("sign_in_status")),
       p(
@@ -71,21 +75,7 @@ ui <- oauth_ui(
       )
     ),
     tags$style(
-      ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }
-    .demo-details dt { font-size: .9rem; color: #485867; }
-    .demo-details dd { margin: 0; overflow-wrap: anywhere; }
-    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }
-    .sidebar .demo-details dd { margin-bottom: .5rem; }
-    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }
-    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
-    .demo-results { overflow-x: auto; }
-    .demo-note { color: #485867; font-size: .95rem; }
-    .btn { min-height: 44px; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-    .card-header h3 { font-size: 1.1rem; margin: 0; }
-    .card, .sidebar { background: #fff; }
-    .bslib-card { margin-top: 1rem; }
-    .card-body > p { margin-bottom: 0; }"
+      ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }\n    .demo-details dt { font-size: .9rem; color: #485867; }\n    .demo-details dd { margin: 0; overflow-wrap: anywhere; }\n    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }\n    .sidebar .demo-details dd { margin-bottom: .5rem; }\n    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }\n    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }\n    .demo-results { overflow-x: auto; }\n    .demo-note { color: #485867; font-size: .95rem; }\n    .btn { min-height: 44px; }\n    pre { white-space: pre-wrap; overflow-wrap: anywhere; }\n    .card-header h3 { font-size: 1.1rem; margin: 0; }\n    .card, .sidebar { background: #fff; }\n    .bslib-card { margin-top: 1rem; }\n    .card-body > p { margin-bottom: 0; }"
     ),
     p(
       "Search documents using the signed-in account and its document permissions.",
@@ -140,12 +130,46 @@ ui <- oauth_ui(
   client = client
 )
 
+fetch_rows <- function(database, example_index, example_search) {
+  result <- database$search(example_index, body = example_search)
+  data.frame(
+    marker = vapply(result$hits$hits, function(hit) hit$`_source`$marker, "")
+  )
+}
+
+probe_write <- function(database) {
+  tryCatch(
+    {
+      database$request(
+        c("orders", "_doc", "write-test"),
+        method = "PUT",
+        body = list(marker = "write-test")
+      )
+      FALSE
+    },
+    error = function(error) {
+      if (
+        inherits(error, "shinyOAuthDB_request_failed") &&
+          isTRUE(error$status == 403L)
+      ) {
+        TRUE
+      } else {
+        NA
+      }
+    }
+  )
+}
+
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
   observeEvent(input$stop, stopApp())
-
   output$sign_in_status <- renderText({
     if (
       !is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")
@@ -161,7 +185,6 @@ server <- function(input, output, session) {
       "Sign out before trying the other account."
     }
   })
-
   database <- oauth_db_opensearch_api(
     auth$connection,
     url = "https://localhost:9200",
@@ -172,43 +195,23 @@ server <- function(input, output, session) {
     token <- req(auth$token)
     paste("Signed in as", req(token@userinfo$preferred_username))
   })
-  output$rows <- renderTable({
-    result <- database$search(example_index, body = example_search)
-    data.frame(
-      marker = vapply(result$hits$hits, function(hit) hit$`_source`$marker, "")
+  query_task <- oauth_db_task(database, method = fetch_rows)
+  observeEvent(input$load, {
+    query_task$invoke(
+      example_index = example_index,
+      example_search = example_search
     )
   })
-  check <- reactiveVal(NULL)
+  output$rows <- renderTable(query_task$result())
+  probe_task <- oauth_db_task(database, method = probe_write)
   observeEvent(input$probe, {
-    reference <- req(auth$connection())
-    blocked <- tryCatch(
-      {
-        database$request(
-          c("orders", "_doc", "write-test"),
-          method = "PUT",
-          body = list(marker = "write-test")
-        )
-        FALSE
-      },
-      error = function(error) {
-        if (
-          inherits(error, "shinyOAuthDB_request_failed") && error$status == 403L
-        ) {
-          TRUE
-        } else {
-          NA
-        }
-      }
-    )
-    check(list(id = reference$id, blocked = blocked))
+    probe_task$invoke()
   })
   output$permission <- renderText({
-    reference <- req(auth$connection())
-    result <- req(check())
-    req(identical(result$id, reference$id))
-    if (is.na(result$blocked)) {
+    blocked <- probe_task$result()
+    if (is.na(blocked)) {
       "Could not check write access. Check the connection, then try again."
-    } else if (result$blocked) {
+    } else if (blocked) {
       "Write rejected by database"
     } else {
       "Write was allowed"
@@ -216,7 +219,7 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui, server, uiPattern = ".*")
-
-# Open the printed app URL in your regular browser.
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})

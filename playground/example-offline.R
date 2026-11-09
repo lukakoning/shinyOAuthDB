@@ -1,4 +1,18 @@
-# Try account changes and sign-out with simulated users and SQLite; no OAuth requests.
+pkgs <- c(
+  "shiny",
+  "shinyOAuth",
+  "shinyOAuthDB",
+  "mirai",
+  "jsonlite",
+  "DBI",
+  "RSQLite"
+)
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuthDB)
 
@@ -7,6 +21,7 @@ ui <- fluidPage(
   actionButton("select_a", "Use simulated user A"),
   actionButton("select_b", "Use simulated user B"),
   actionButton("logout", "Sign out"),
+  actionButton("load", "Load rows"),
   tableOutput("rows")
 )
 
@@ -16,7 +31,6 @@ server <- function(input, output, session) {
   select_user <- function(user) {
     login_number <<- login_number + 1L
     id <- paste(user, login_number, sep = "-")
-    # This list is a test fixture for the shinyOAuth connection methods.
     authorization(list(
       id = id,
       access_token = function(...) {
@@ -29,27 +43,28 @@ server <- function(input, output, session) {
   observeEvent(input$select_a, select_user("A"))
   observeEvent(input$select_b, select_user("B"))
   observeEvent(input$logout, authorization(NULL))
-
   con <- oauth_db_connect(authorization, connect = function(token) {
     user <- sub("^fixture-", "", token)
     con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
     DBI::dbWriteTable(
       con,
       "example",
-      data.frame(
-        user = user,
-        message = c("First row", "Second row")
-      )
+      data.frame(user = user, message = c("First row", "Second row"))
     )
     con
   })
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT * FROM example")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT * FROM example")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-app <- shinyApp(ui, server)
+app <- shinyApp(ui, server, onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
+
 if (interactive()) {
   runApp(
     app,
@@ -58,5 +73,4 @@ if (interactive()) {
   )
 }
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.

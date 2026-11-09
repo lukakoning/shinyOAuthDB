@@ -121,7 +121,17 @@ and token settings.
 Replace `orders` and the requested scope with those used by your deployment.
 The realm's user role must permit reading the index.
 
+After signing in,
+click **Load rows**. The app starts its workers once and stops them at shutdown.
+
 ```{r app}
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -129,6 +139,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_ELASTICSEARCH_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -141,33 +152,52 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
   id = "auth",
   client = client
 )
 
+fetch_rows <- function(database) {
+  database$database(
+    "orders",
+    body = list(size = 20L, query = list(term = list(country = "NL")))
+  )$hits
+}
+
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   search <- oauth_db_elasticsearch_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_ELASTICSEARCH_URL"),
     client_secret = Sys.getenv("OAUTHDB_ELASTICSEARCH_REALM_SECRET"),
     required_scopes = "search.read"
   )
-  output$rows <- renderPrint({
-    search$search("orders", body = list(
-      size = 20L,
-      query = list(term = list(country = "NL"))
-    ))$hits
+  query_task <- oauth_db_task(search, method = fetch_rows)
+  observeEvent(input$load, {
+    query_task$invoke()
   })
+  output$rows <- renderPrint(query_task$result())
 }
 
-runApp(shinyApp(ui, server, uiPattern = ".*"),
-  port = 8100, launch.browser = FALSE)
+runApp(
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
+  port = 8100,
+  launch.browser = FALSE
+)
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Open `http://localhost:8100` in your regular browser. For a private CA,

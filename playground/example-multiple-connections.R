@@ -1,9 +1,16 @@
-# Save several database sign-ins and choose which account to query.
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "openssl")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 app_origin <- Sys.getenv("OAUTHDB_APP_ORIGIN", "http://localhost:8100")
+
 client <- oauth_db_microsoft_client(
   services = "sql",
   tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
@@ -11,18 +18,19 @@ client <- oauth_db_microsoft_client(
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = paste0(app_origin, "/callback/database")
 )
+
 manager <- oauth_connections(
   clients = list(database = client),
   app_origin = app_origin,
   retention = "browser",
   owner_policy = oauth_browser_owner(allow_http_loopback = TRUE),
   store = oauth_connection_store_memory(),
-  # Demo keys last for this process. Configure persistent keys/store in production.
   keys = list(
     credentials = openssl::rand_bytes(32L),
     owner = openssl::rand_bytes(32L)
   )
 )
+
 ui <- oauth_connections_ui(
   fluidPage(
     titlePanel("Choose a database authorization"),
@@ -30,9 +38,10 @@ ui <- oauth_connections_ui(
     selectInput(
       "authorization_id",
       "Use authorization",
-      choices = c("Choose" = "")
+      choices = c(Choose = "")
     ),
     actionButton("disconnect", "Remove selected authorization"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "authorizations",
@@ -40,7 +49,7 @@ ui <- oauth_connections_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_connections_server("authorizations", manager)
+  auth <- oauth_connections_server("authorizations", manager, async = TRUE)
   observeEvent(input$connect, auth$connect("database"))
   observeEvent(input$disconnect, {
     req(input$authorization_id)
@@ -61,7 +70,7 @@ server <- function(input, output, session) {
     updateSelectInput(
       session,
       "authorization_id",
-      choices = c("Choose" = "", stats::setNames(ids, labels)),
+      choices = c(Choose = "", stats::setNames(ids, labels)),
       selected = selected
     )
   })
@@ -77,13 +86,18 @@ server <- function(input, output, session) {
     server = Sys.getenv("OAUTHDB_SERVER"),
     database = Sys.getenv("OAUTHDB_DATABASE")
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT CURRENT_USER AS database_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-app <- shinyApp(ui, server, uiPattern = ".*")
+app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
+
 if (interactive()) {
   runApp(
     app,
@@ -93,4 +107,3 @@ if (interactive()) {
 }
 
 # Open the app in your regular browser at its registered redirect URI.
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

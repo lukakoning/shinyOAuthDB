@@ -39,7 +39,7 @@ make_access <- function(authorization) {
     driver = settings$driver
   )
 }
-run_query <- function(access) DBI::dbGetQuery(access(), example_query)
+run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value
 

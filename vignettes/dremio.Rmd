@@ -23,13 +23,7 @@ console does not configure this integration.
 
 ## Install the driver
 
-Install the R packages:
-
-```{r install}
-install.packages(c("adbi", "adbcdrivermanager"))
-```
-
-Use adbcdrivermanager 0.25.0 or later. The R packages do not include the
+The app below installs the R packages if needed. Use adbcdrivermanager 0.25.0 or later. The R packages do not include the
 Flight SQL shared library. Follow Apache Arrow's
 [driver installation instructions](https://arrow.apache.org/adbc/current/driver/installation.html).
 With the `dbc` driver manager installed, run:
@@ -79,7 +73,17 @@ The app shows the Dremio user for the current connection. Replace the
 query with a query against a table the user can access. Use fully qualified
 table paths when the query needs a specific source or schema.
 
+After signing in,
+click **Load rows**. The app starts its workers once and stops them at shutdown.
+
 ```{r app}
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "adbi", "adbcdrivermanager")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -87,6 +91,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_DREMIO_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -99,6 +104,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -106,23 +112,35 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_dremio(
     auth$connection,
     host = Sys.getenv("OAUTHDB_DREMIO_HOST")
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT CURRENT_USER AS database_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-runApp(shinyApp(ui, server, uiPattern = ".*"),
-  port = 8100, launch.browser = FALSE
+runApp(
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
+  port = 8100,
+  launch.browser = FALSE
 )
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Open `http://localhost:8100` in your regular browser. Sign in with an account

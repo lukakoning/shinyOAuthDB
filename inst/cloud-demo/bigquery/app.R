@@ -36,10 +36,11 @@ make_access <- function(authorization) {
     required_scopes = query_scopes
   )
 }
-run_query <- function(access) {
+query_arguments <- list(maximum_bytes_billed = settings$maximum_bytes_billed)
+run_query <- function(access, statement, maximum_bytes_billed) {
   access$query(
-    example_query,
-    maximum_bytes_billed = settings$maximum_bytes_billed
+    statement,
+    maximum_bytes_billed = maximum_bytes_billed
   )
 }
 

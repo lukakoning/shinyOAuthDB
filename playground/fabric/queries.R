@@ -51,9 +51,10 @@ fabric_demo_read <- function(
   min_id = 1L,
   category = "All",
   backend = "odbc",
-  shared = FALSE
+  shared = FALSE,
+  item_fun = fabric_demo_item
 ) {
-  item <- function(name, type) fabric_demo_item(sandbox, name, type)
+  item <- function(name, type) item_fun(sandbox, name, type)
   switch(
     source,
     warehouse = ,
@@ -182,6 +183,30 @@ fabric_demo_read <- function(
       Type = vapply(sandbox$items, function(x) x[["type"]], character(1))
     ),
     stop("Unknown data source.")
+  )
+}
+
+fabric_demo_fetch <- function(
+  client,
+  workspace_name,
+  source,
+  min_id,
+  category,
+  backend,
+  shared,
+  helpers
+) {
+  token <- if (is.function(client)) client else client$token_provider()
+  sandbox <- helpers$discover(token, workspace_name)
+  helpers$read(
+    source,
+    sandbox,
+    token,
+    min_id = min_id,
+    category = category,
+    backend = backend,
+    shared = shared,
+    item_fun = helpers$item
   )
 }
 

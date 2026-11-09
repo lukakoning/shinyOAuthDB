@@ -1,5 +1,6 @@
 # Evaluate complete app definitions without starting a server or worker pool.
 playground_load_example <- function(filename) {
+  task_app_workers(envir = parent.frame())
   path <- testthat::test_path("..", "..", "playground", filename)
   if (!file.exists(path)) {
     testthat::skip("Playground examples require a source checkout.")
@@ -138,6 +139,7 @@ playground_databricks_provider <- function(host, token_auth_style = "public") {
 }
 
 playground_fabric_app <- function() {
+  task_app_workers(envir = parent.frame())
   path <- testthat::test_path("..", "..", "playground", "fabric")
   if (!dir.exists(path)) {
     testthat::skip("Fabric example requires a source checkout.")

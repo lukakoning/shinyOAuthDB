@@ -4,6 +4,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 issuer <- "https://localhost:18443/realms/shinyoauthdb"
+
 client <- oauth_client(
   oauth_provider_oidc_discover(issuer),
   client_id = "shiny-db",
@@ -45,7 +46,8 @@ ui <- oauth_ui(
       div(
         class = "d-flex gap-2 flex-wrap",
         actionButton("login", "Sign in", class = "btn-primary"),
-        actionButton("logout", "Sign out")
+        actionButton("logout", "Sign out"),
+        actionButton("load", "Load rows")
       ),
       div(role = "status", textOutput("account"), textOutput("sign_in_status")),
       p(
@@ -64,21 +66,7 @@ ui <- oauth_ui(
       )
     ),
     tags$style(
-      ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }
-    .demo-details dt { font-size: .9rem; color: #485867; }
-    .demo-details dd { margin: 0; overflow-wrap: anywhere; }
-    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }
-    .sidebar .demo-details dd { margin-bottom: .5rem; }
-    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }
-    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }
-    .demo-results { overflow-x: auto; }
-    .demo-note { color: #485867; font-size: .95rem; }
-    .btn { min-height: 44px; }
-    pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-    .card-header h3 { font-size: 1.1rem; margin: 0; }
-    .card, .sidebar { background: #fff; }
-    .bslib-card { margin-top: 1rem; }
-    .card-body > p { margin-bottom: 0; }"
+      ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }\n    .demo-details dt { font-size: .9rem; color: #485867; }\n    .demo-details dd { margin: 0; overflow-wrap: anywhere; }\n    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }\n    .sidebar .demo-details dd { margin-bottom: .5rem; }\n    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }\n    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }\n    .demo-results { overflow-x: auto; }\n    .demo-note { color: #485867; font-size: .95rem; }\n    .btn { min-height: 44px; }\n    pre { white-space: pre-wrap; overflow-wrap: anywhere; }\n    .card-header h3 { font-size: 1.1rem; margin: 0; }\n    .card, .sidebar { background: #fff; }\n    .bslib-card { margin-top: 1rem; }\n    .card-body > p { margin-bottom: 0; }"
     ),
     p(
       "Query StarRocks using the signed-in account and its database permissions.",
@@ -125,11 +113,15 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
   observeEvent(input$stop, stopApp())
-
   output$sign_in_status <- renderText({
     if (
       !is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")
@@ -149,7 +141,6 @@ server <- function(input, output, session) {
     token <- req(auth$token)
     paste("Signed in as", req(token@userinfo$preferred_username))
   })
-
   con <- oauth_db_starrocks(
     auth$connection,
     server = "localhost",
@@ -160,13 +151,16 @@ server <- function(input, output, session) {
     plugin_dir = "/usr/lib/x86_64-linux-gnu/mysql/libmyodbc9/plugin",
     ssl_ca = "/fixtures/tls/ca-cert.pem"
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, example_query)
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke(example_query)
   })
+  output$rows <- renderTable(query_task$result())
 }
 
-shinyApp(ui, server, uiPattern = ".*")
+shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
 
-# Open the printed app URL in your regular browser.
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.

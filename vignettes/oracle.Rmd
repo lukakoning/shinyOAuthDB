@@ -78,15 +78,27 @@ OAUTHDB_ORACLE_DRIVER=Oracle in instantclient_19_30
 The app first displays the Oracle end-user identity. Save it as
 `example.R`, using your database's connection settings:
 
+After signing in,
+click **Load rows**. The app starts its workers once and stops them at shutdown.
+
 ```{r app}
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 scope <- Sys.getenv("OAUTHDB_ORACLE_SCOPE")
+
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_ORACLE_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -100,6 +112,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -107,10 +120,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_oracle(
     auth$connection,
     host = Sys.getenv("OAUTHDB_ORACLE_HOST"),
@@ -119,20 +136,25 @@ server <- function(input, output, session) {
     port = 1522L,
     authorization_model = "end_user"
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(
-      connection,
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke(
       "SELECT ORA_END_USER_CONTEXT.username AS database_user FROM DUAL"
     )
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Save the code as `example.R`, set your TCPS port and any wallet or

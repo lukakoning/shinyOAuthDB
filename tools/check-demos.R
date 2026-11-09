@@ -351,6 +351,11 @@ check_demo <- function() {
     prefix <- if (shared) "shared" else user
     wait(
       browser,
+      "document.querySelector('#sign_in_status')?.textContent.includes('Sign out before')"
+    )
+    value(browser, "document.querySelector('#load').click()")
+    wait(
+      browser,
       sprintf(
         "Boolean(document.querySelector('#rows')?.textContent.includes('%s-visible-1'))",
         prefix

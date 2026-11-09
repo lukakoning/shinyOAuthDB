@@ -48,15 +48,27 @@ OAUTHDB_ORDS_URL=https://data.example.org/ords/reporting
 
 ## A complete app
 
+After signing in,
+click **Load rows**. The app starts its workers once and stops them at shutdown.
+
 ```{r app}
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
 scope <- Sys.getenv("OAUTHDB_ORDS_SCOPE")
+
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_ORDS_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -70,32 +82,48 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
   id = "auth",
   client = client
 )
 
+fetch_rows <- function(database) {
+  database$select("orders", query = list(limit = 20L))$items
+}
+
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   ords <- oauth_db_oracle_ords_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_ORDS_URL"),
     required_scopes = scope
   )
-  output$rows <- renderPrint({
-    ords$select("orders", query = list(limit = 20L))$items
+  query_task <- oauth_db_task(ords, method = fetch_rows)
+  observeEvent(input$load, {
+    query_task$invoke()
   })
+  output$rows <- renderPrint(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Save this as `example.R`, run `source("example.R")`, and open

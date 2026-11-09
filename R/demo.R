@@ -524,6 +524,7 @@ oauth_db_demo <- function(
 }
 
 .odb_demo_local_require <- function(database) {
+  .odb_require("mirai", version = "2.5.1")
   .odb_require("bslib", version = "0.9.0")
   .odb_require("callr")
   if (database %in% c("postgrest", "libsql", "cratedb", "opensearch")) {

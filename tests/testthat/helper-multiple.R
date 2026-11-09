@@ -140,6 +140,7 @@ multiple_fixture <- function(
 }
 
 multiple_app <- function(fixture, env = parent.frame()) {
+  task_app_workers(envir = env)
   withr::local_envvar(playground_env(), .local_envir = env)
   app <- playground_load_example("example-multiple-connections.R")
   app$manager <- fixture$manager

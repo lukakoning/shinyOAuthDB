@@ -1,3 +1,10 @@
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "openssl")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 # Use independent Azure SQL and Databricks sign-ins in one app.
 library(shiny)
 library(shinyOAuth)
@@ -42,6 +49,7 @@ ui <- oauth_connections_ui(
     actionButton("connect_sql", "Authorize Azure SQL"),
     selectInput("sql_id", "SQL authorization", choices = c("Choose" = "")),
     actionButton("disconnect_sql", "Remove SQL authorization"),
+    actionButton("load_sql", "Load SQL rows"),
     tableOutput("sql_rows"),
     actionButton("connect_databricks", "Authorize Databricks"),
     selectInput(
@@ -50,6 +58,7 @@ ui <- oauth_connections_ui(
       choices = c("Choose" = "")
     ),
     actionButton("disconnect_databricks", "Remove Databricks authorization"),
+    actionButton("load_databricks", "Load Databricks rows"),
     tableOutput("databricks_rows")
   ),
   id = "authorizations",
@@ -57,7 +66,7 @@ ui <- oauth_connections_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_connections_server("authorizations", manager)
+  auth <- oauth_connections_server("authorizations", manager, async = TRUE)
   observeEvent(input$connect_sql, auth$connect("database"))
   observeEvent(input$connect_databricks, auth$connect("warehouse"))
   observeEvent(
@@ -110,17 +119,22 @@ server <- function(input, output, session) {
     host = Sys.getenv("OAUTHDB_DATABRICKS_HOST"),
     warehouse_id = Sys.getenv("OAUTHDB_DATABRICKS_WAREHOUSE")
   )
-  output$sql_rows <- renderTable({
-    connection <- sql()
-    DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
+  sql_task <- oauth_db_task(sql)
+  databricks_task <- oauth_db_task(databricks)
+  observeEvent(input$load_sql, {
+    sql_task$invoke("SELECT CURRENT_USER AS database_user")
   })
-  output$databricks_rows <- renderTable({
-    connection <- databricks()
-    DBI::dbGetQuery(connection, "SELECT current_user() AS database_user")
+  observeEvent(input$load_databricks, {
+    databricks_task$invoke("SELECT current_user() AS database_user")
   })
+  output$sql_rows <- renderTable(sql_task$result())
+  output$databricks_rows <- renderTable(databricks_task$result())
 }
 
-app <- shinyApp(ui, server, uiPattern = ".*")
+app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
 if (interactive()) {
   runApp(
     app,

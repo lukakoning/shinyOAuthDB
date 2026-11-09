@@ -187,7 +187,7 @@ test_that("local PostgreSQL and StarRocks apps pass the published port to their 
       port = NULL
     ) {
       observed_port <<- port
-      function() shiny::req(FALSE)
+      oauth_db_connect(authorization, connect = identity)
     }
     shiny::testServer(app$server, {
       session$flushReact()

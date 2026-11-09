@@ -274,6 +274,7 @@ oauth_db_cloud_demo <- function(
   .odb_require("jsonlite")
   .odb_require("processx")
   .odb_require("bslib", version = "0.9.0")
+  .odb_require("mirai", version = "2.5.1")
   .odb_cloud_check_workspace(config)
   secret <- if (config$client_type == "confidential") {
     .odb_cloud_secret(prompt)

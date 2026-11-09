@@ -22,7 +22,7 @@ within that catalog.
 
 ## Set up sign-in
 
-Run `install.packages("RTrino")` in R (version 0.1.0 or later).
+The app below installs RTrino (version 0.1.0 or later) if needed.
 Ask the cluster administrator for an OAuth
 app registration the cluster accepts, with `http://localhost:8100` as its
 redirect URI.
@@ -59,7 +59,17 @@ different audience from the Shiny app.
 Save this as `example.R`. Replace the cluster URL, catalog, and schema, and
 use the scopes your registration allows:
 
+After signing in,
+click **Load rows**. The app starts its workers once and stops them at shutdown.
+
 ```{r app}
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RTrino")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -67,6 +77,7 @@ library(shinyOAuthDB)
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_TRINO_ISSUER")
 )
+
 client <- oauth_client(
   provider,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -79,6 +90,7 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -86,10 +98,14 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   con <- oauth_db_trino(
     auth$connection,
     host = "https://trino.example.org",
@@ -97,20 +113,23 @@ server <- function(input, output, session) {
     schema = "reporting",
     user = function() req(auth$token@userinfo$email)
   )
-  output$rows <- renderTable({
-    connection <- con()
-    DBI::dbGetQuery(connection, "SELECT current_user")
+  query_task <- oauth_db_task(con)
+  observeEvent(input$load, {
+    query_task$invoke("SELECT current_user")
   })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(ui, server, uiPattern = ".*"),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 8100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:8100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Run `source("example.R")` and open

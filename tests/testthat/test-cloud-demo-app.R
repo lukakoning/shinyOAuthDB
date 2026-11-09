@@ -1,4 +1,7 @@
 test_that("the cloud app lists on sign-in but runs SQL only on a click and clears old output", {
+  task_app_workers()
+  skip_if_not_installed("RSQLite")
+  skip_if_not_installed("brickster")
   path <- cloud_demo_path()
   oauth_db_cloud_demo(
     host = "workspace.example",
@@ -25,7 +28,7 @@ test_that("the cloud app lists on sign-in but runs SQL only on a click and clear
     dbGetQuery = function(conn, statement, ...) {
       control$query_calls <- control$query_calls + 1L
       expect_identical(statement, "SELECT current_user() AS signed_in_user")
-      data.frame(signed_in_user = conn$user)
+      data.frame(signed_in_user = attr(conn, "user"))
     },
     .package = "DBI"
   )
@@ -55,17 +58,19 @@ test_that("the cloud app lists on sign-in but runs SQL only on a click and clear
       }
     )
   }
-  envir$oauth_db_databricks_api <- function(authorization, ...) {
-    list(warehouses = function() {
-      shiny::req(authorization())
+  local_mocked_bindings(
+    .odb_databricks_warehouses = function(token, ...) {
+      token()
       control$list_calls <- control$list_calls + 1L
       data.frame(id = "warehouse", name = "Reporting", state = "RUNNING")
-    })
-  }
-  envir$oauth_db_databricks <- function(authorization, ...) {
-    control$connect_calls <- control$connect_calls + 1L
-    function() list(user = shiny::req(authorization())$id)
-  }
+    },
+    .odb_backend_databricks = function(token, ...) {
+      control$connect_calls <- control$connect_calls + 1L
+      con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+      attr(con, "user") <- sub("^fixture-", "", token())
+      con
+    }
+  )
   shiny::testServer(envir$server, {
     session$flushReact()
     expect_identical(control$list_calls, 0L)
@@ -73,13 +78,16 @@ test_that("the cloud app lists on sign-in but runs SQL only on a click and clear
     expect_error(output$rows, class = "shiny.silent.error")
     control$choose("A")
     session$flushReact()
+    task_app_flush(session)
     expect_identical(control$list_calls, 1L)
     expect_identical(control$query_calls, 0L)
     expect_identical(control$connect_calls, 0L)
     session$setInputs(manual_warehouse = "", warehouse = "warehouse", run = 1L)
+    task_app_flush(session)
     expect_identical(control$query_calls, 1L)
     expect_match(output$rows, ">[[:space:]]*A[[:space:]]*<")
     session$setInputs(refresh = 1L)
+    task_app_flush(session)
     expect_identical(control$query_calls, 1L)
     control$a$token(control$a$make_token(
       "fixture-A",
@@ -101,6 +109,7 @@ test_that("the cloud app lists on sign-in but runs SQL only on a click and clear
       manual_warehouse = "/sql/1.0/warehouses/warehouse",
       run = 2L
     )
+    task_app_flush(session)
     expect_match(output$rows, ">[[:space:]]*B[[:space:]]*<")
     expect_false(grepl(">[[:space:]]*A[[:space:]]*<", output$rows))
     expect_identical(control$query_calls, 2L)

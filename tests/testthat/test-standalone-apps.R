@@ -60,7 +60,6 @@ for (playground_case in playground_cases) {
               force(token)
               con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
               attr(con, "example_user") <- sub("^fixture-", "", token)
-              calls$connections <- c(calls$connections, list(con))
               con
             })
           }
@@ -90,6 +89,8 @@ for (playground_case in playground_cases) {
 
         shiny::testServer(app$server, {
           session$flushReact()
+          session$setInputs(load = 1L)
+          task_app_flush(session)
           expect_match(output$rows, "\\bA\\b")
           expect_length(calls$requests, 1L)
           session$setInputs(login = 1L)
@@ -101,6 +102,8 @@ for (playground_case in playground_cases) {
 
           calls$select("B")
           session$flushReact()
+          session$setInputs(load = 2L)
+          task_app_flush(session)
           expect_match(output$rows, "\\bB\\b")
           expect_false(grepl("\\bA\\b", output$rows))
           expect_length(calls$requests, 2L)
@@ -108,10 +111,14 @@ for (playground_case in playground_cases) {
           calls$fail <- TRUE
           calls$select("C")
           session$flushReact()
+          session$setInputs(load = 3L)
+          task_app_flush(session)
           expect_error(output$rows, "Example query failed")
           calls$fail <- FALSE
           calls$select("D")
           session$flushReact()
+          session$setInputs(load = 4L)
+          task_app_flush(session)
           expect_match(output$rows, "\\bD\\b")
           session$setInputs(logout = 1L)
           expect_error(output$rows, class = "shiny.silent.error")

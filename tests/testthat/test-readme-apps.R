@@ -56,6 +56,7 @@ for (title in c(
     test_that(
       paste("the documented", source_name, "app follows the visitor's login"),
       {
+        task_app_workers()
         skip_if_not_installed("RSQLite")
         if (source_name == "StarRocks") {
           skip_if_not_installed("odbc")
@@ -190,9 +191,14 @@ for (title in c(
           expect_length(requests, 0L)
           actions$select("A")
           session$flushReact()
+          session$setInputs(load = 1L)
+          task_app_flush(session)
           expect_match(output$rows, "\\bA\\b")
           actions$select("B")
           session$flushReact()
+          expect_error(output$rows, class = "shiny.silent.error")
+          session$setInputs(load = 2L)
+          task_app_flush(session)
           expect_match(output$rows, "\\bB\\b")
           expect_false(grepl("\\bA\\b", output$rows))
           session$setInputs(logout = 1L)

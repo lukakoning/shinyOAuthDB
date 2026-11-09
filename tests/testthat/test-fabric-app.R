@@ -99,10 +99,13 @@ test_that("the integrated app routes all native reads and clears results on logo
     )
     expect_error(output$rows, class = "shiny.silent.error")
     session$setInputs(run = 1L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-A", fixed = TRUE)
     expect_identical(tail(calls$requests, 1L)[[1L]]$args$params, list(1L))
     for (source in setdiff(unname(app$fabric_demo_sources), "discovery")) {
       session$setInputs(source = source)
+      session$setInputs(run = isolate(input$run) + 1L)
+      task_app_flush(session)
       expect_match(output$rows, "fixture-A", fixed = TRUE)
     }
     expect_setequal(
@@ -119,13 +122,19 @@ test_that("the integrated app routes all native reads and clears results on logo
     )
     calls$select("B")
     session$flushReact()
+    session$setInputs(run = isolate(input$run) + 1L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-B", fixed = TRUE)
     expect_false(grepl("fixture-A", output$rows))
     calls$fail <- TRUE
     session$setInputs(source = "kql")
+    session$setInputs(run = isolate(input$run) + 1L)
+    task_app_flush(session)
     expect_error(output$rows, "Native service failed")
     calls$fail <- FALSE
     session$setInputs(source = "files")
+    session$setInputs(run = isolate(input$run) + 1L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-B", fixed = TRUE)
     session$setInputs(logout = 1L)
     expect_error(output$rows, class = "shiny.silent.error")
@@ -147,6 +156,6 @@ test_that("the integrated app keeps delegated and shared credentials separate", 
   withr::local_envvar(FABRIC_SHINY_AUTH = "sandbox")
   shared <- playground_fabric_app()
   expect_null(shared$client)
-  expect_true(is.function(shared$shared_token))
+  expect_true(is.function(shared$worker_functions$shared_token))
   expect_match(as.character(shared$ui), "Shared sandbox identity", fixed = TRUE)
 })

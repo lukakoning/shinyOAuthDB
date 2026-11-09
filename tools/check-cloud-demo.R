@@ -156,11 +156,12 @@ check_cloud_demo <- function(platform) {
     '    scopes = c("openid", "profile", "sql"))',
     '}',
     'oauth_db_databricks_api <- function(authorization, ...) {',
-    '  token <- oauth_db_token(authorization, required_scopes = "sql")',
-    '  list(warehouses = function() {',
-    '    fixture_log(paste("list", fixture_user(token())))',
-    '    data.frame(id = "demo-warehouse", name = "Demo warehouse", state = "RUNNING")',
-    '  })',
+    '  oauth_db_connect(authorization, required_scopes = "sql", connect = function(token, fixture_log, fixture_user) {',
+    '    list(warehouses = function() {',
+    '      fixture_log(paste("list", fixture_user(token)))',
+    '      data.frame(id = "demo-warehouse", name = "Demo warehouse", state = "RUNNING")',
+    '    })',
+    '  }, fixture_log = fixture_log, fixture_user = fixture_user, disconnect = function(value) NULL)',
     '}',
     'if (!methods::isClass("CloudDemoFixtureConnection")) {',
     '  methods::setClass("CloudDemoFixtureConnection", contains = "DBIConnection", slots = c(user = "character"))',
@@ -172,11 +173,11 @@ check_cloud_demo <- function(platform) {
     '  data.frame(signed_in_user = conn@user)',
     '})',
     'oauth_db_databricks <- function(authorization, ...) {',
-    '  oauth_db_connect(authorization, required_scopes = "sql", connect = function(token) {',
+    '  oauth_db_connect(authorization, required_scopes = "sql", connect = function(token, fixture_log, fixture_user) {',
     '    user <- fixture_user(token)',
     '    fixture_log(paste("connect", user))',
     '    methods::new("CloudDemoFixtureConnection", user = user)',
-    '  })',
+    '  }, fixture_log = fixture_log, fixture_user = fixture_user)',
     '}'
   )
   fixture_target <- switch(
@@ -209,25 +210,50 @@ check_cloud_demo <- function(platform) {
     '}',
     'oauth_db_microsoft_client <- oauth_db_bigquery_client <- oauth_db_snowflake_client <- fixture_client',
     'fixture_database <- function(authorization, ...) {',
-    '  oauth_db_connect(authorization, target = fixture_target, required_scopes = "sql", connect = function(token) {',
+    '  oauth_db_connect(authorization, target = fixture_target, required_scopes = "sql", connect = function(token, fixture_log, fixture_user) {',
     '    user <- fixture_user(token)',
     '    fixture_log(paste("connect", user))',
     '    methods::new("CloudDemoFixtureConnection", user = user)',
-    '  })',
+    '  }, fixture_log = fixture_log, fixture_user = fixture_user)',
     '}',
     'oauth_db_fabric_sql <- oauth_db_azure_sql <- oauth_db_azure_postgres <- oauth_db_redshift <- oauth_db_snowflake <- fixture_database',
     'fixture_api <- function(authorization, ...) {',
-    '  token <- oauth_db_token(authorization, target = fixture_target, required_scopes = "sql")',
-    '  list(query = function(sql, ...) {',
-    '    user <- fixture_user(token())',
-    '    fixture_log(paste("query", user))',
-    '    data.frame(signed_in_user = user)',
-    '  })',
+    '  oauth_db_connect(authorization, target = fixture_target, required_scopes = "sql", connect = function(token, fixture_log, fixture_user) {',
+    '    list(query = function(sql, ...) {',
+    '      user <- fixture_user(token)',
+    '      fixture_log(paste("query", user))',
+    '      data.frame(signed_in_user = user)',
+    '    })',
+    '  }, fixture_log = fixture_log, fixture_user = fixture_user, disconnect = function(value) NULL)',
     '}',
     'oauth_db_bigquery_api <- oauth_db_clickhouse_api <- fixture_api'
   )
+  # The synthetic driver must also exist in each real mirai worker.
+  log_line <- grep("^fixture_log <-", prefix)
+  prefix[[log_line]] <- paste0(
+    'fixture_log <- function(text, file = ',
+    encodeString(file.path(path, "events.txt"), quote = '"'),
+    ') cat(text, "\\n", sep = "", file = file, append = TRUE)'
+  )
+  fixture_code <- file.path(path, "fixture.R")
+  writeLines(prefix, fixture_code)
+  startup <- c(
+    paste0('fixture_code <- ', encodeString(fixture_code, quote = '"')),
+    'shinyApp <- function(...) {',
+    '  app <- shiny::shinyApp(...)',
+    '  start <- app$onStart',
+    '  app$onStart <- function() {',
+    '    if (is.function(start)) start()',
+    '    mirai::everywhere({',
+    '      .libPaths(paths)',
+    '      sys.source(fixture_code, envir = globalenv())',
+    '    }, paths = .libPaths(), fixture_code = fixture_code)',
+    '  }',
+    '  app',
+    '}'
+  )
   appfile <- file.path(path, "app.R")
-  writeLines(c(prefix, readLines(appfile)), appfile)
+  writeLines(c(prefix, startup, readLines(appfile)), appfile)
   process <- callr::r_bg(
     function(path, ca, platform) {
       Sys.setenv(CURL_SSL_BACKEND = "openssl", CURL_CA_BUNDLE = ca)

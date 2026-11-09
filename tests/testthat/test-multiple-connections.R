@@ -8,11 +8,13 @@ test_that("the manager example selects a database grant explicitly", {
     expect_error(output$rows, class = "shiny.silent.error")
     session$setInputs(authorization_id = fixture$ids$login)
     expect_error(output$rows, class = "shiny.silent.error")
-    session$setInputs(authorization_id = fixture$ids$a)
+    session$setInputs(authorization_id = fixture$ids$a, load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*A\\s*<")
     con_a <- con()
 
-    session$setInputs(authorization_id = fixture$ids$b)
+    session$setInputs(authorization_id = fixture$ids$b, load = 2L)
+    task_app_flush(session)
     expect_false(DBI::dbIsValid(con_a))
     expect_match(output$rows, ">\\s*B\\s*<")
 
@@ -29,7 +31,8 @@ test_that("retained manager grants restore without restoring a result or selecti
   app <- multiple_app(fixture)
   previous <- NULL
   shiny::testServer(app$server, session = multiple_session(fixture$cookie), {
-    session$setInputs(authorization_id = fixture$ids$a)
+    session$setInputs(authorization_id = fixture$ids$a, load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*A\\s*<")
     previous <<- con()
   })
@@ -37,7 +40,8 @@ test_that("retained manager grants restore without restoring a result or selecti
   shiny::testServer(app$server, session = multiple_session(fixture$cookie), {
     expect_length(auth$connections(), 3L)
     expect_error(output$rows, class = "shiny.silent.error")
-    session$setInputs(authorization_id = fixture$ids$b)
+    session$setInputs(authorization_id = fixture$ids$b, load = 2L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*B\\s*<")
     expect_false(identical(con(), previous))
   })

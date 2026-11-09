@@ -116,6 +116,7 @@ for (source in names(vignette_sources)) {
 }
 
 test_that("the Cosmos guide queries with the selected visitor and clears signed-out results", {
+  task_app_workers()
   withr::local_envvar(playground_env())
   app <- new.env(parent = globalenv())
   app$runApp <- function(app, ...) app
@@ -149,9 +150,14 @@ test_that("the Cosmos guide queries with the selected visitor and clears signed-
   })
   shiny::testServer(app$server, {
     session$flushReact()
+    session$setInputs(load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-A", fixed = TRUE)
     calls$select()
     session$flushReact()
+    expect_error(output$rows, class = "shiny.silent.error")
+    session$setInputs(load = 2L)
+    task_app_flush(session)
     expect_match(output$rows, "fixture-B", fixed = TRUE)
     expect_false(grepl("fixture-A", output$rows, fixed = TRUE))
     session$setInputs(logout = 1L)

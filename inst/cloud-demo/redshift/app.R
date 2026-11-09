@@ -47,7 +47,7 @@ make_access <- function(authorization) {
     required_scopes = settings$scope
   )
 }
-run_query <- function(access) DBI::dbGetQuery(access(), example_query)
+run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value
 

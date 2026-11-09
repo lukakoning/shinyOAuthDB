@@ -1,4 +1,10 @@
-# Run Databricks API queries as the signed-in user; see playground/README.md for setup.
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "brickster")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -8,6 +14,7 @@ host <- sub(
   "",
   sub("^https://", "", Sys.getenv("OAUTHDB_DATABRICKS_HOST"))
 )
+
 client <- oauth_db_databricks_client(
   host = host,
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
@@ -20,6 +27,7 @@ ui <- oauth_ui(
     titlePanel("Databricks SQL"),
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
   id = "auth",
@@ -27,13 +35,18 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
   databricks <- oauth_db_databricks_api(auth$connection, host = host)
-  output$rows <- renderPrint({
-    databricks$call(
+  query_task <- oauth_db_task(databricks, method = "call")
+  observeEvent(input$load, {
+    query_task$invoke(
       brickster::db_sql_query,
       warehouse_id = Sys.getenv("OAUTHDB_DATABRICKS_WAREHOUSE"),
       statement = "SELECT current_user() AS database_user",
@@ -41,9 +54,14 @@ server <- function(input, output, session) {
       show_progress = FALSE
     )
   })
+  output$rows <- renderPrint(query_task$result())
 }
 
-app <- shinyApp(ui, server, uiPattern = ".*")
+app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
+
 if (interactive()) {
   runApp(
     app,
@@ -53,4 +71,3 @@ if (interactive()) {
 }
 
 # Open the app in your regular browser at its registered redirect URI.
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)

@@ -111,8 +111,17 @@ ui <- oauth_ui(
   client = client
 )
 
+if (!exists("query_arguments", inherits = FALSE)) {
+  query_arguments <- list()
+}
+
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
   observeEvent(input$setup, stopApp("setup"))
@@ -142,28 +151,36 @@ server <- function(input, output, session) {
       NULL
     }
   })
-  owner <- reactiveVal(NULL)
-  access <- reactiveVal(NULL)
-  result <- reactiveVal(NULL)
-  query_status <- reactiveVal("")
-  observe(
-    {
-      reference <- current()
-      id <- if (is.null(reference)) NULL else reference$id
-      allowed <- !is.null(reference) &&
-        isTRUE(reference$has_scopes(query_scopes, target = query_target))
-      if (
-        !identical(id, isolate(owner())) ||
-          !allowed && !is.null(isolate(result()))
-      ) {
-        owner(id)
-        access(NULL)
-        result(NULL)
-        query_status("")
-      }
-    },
-    priority = 100
-  )
+  query_task <- oauth_db_task(make_access(auth$connection), method = run_query)
+  result <- reactive({
+    reference <- current()
+    if (is.null(reference)) {
+      return(NULL)
+    }
+    value <- tryCatch(query_task$result(), error = function(error) NULL)
+    if (is.null(value)) NULL else list(owner = reference$id, data = value)
+  })
+  query_status <- reactive({
+    if (is.null(current())) {
+      return("")
+    }
+    status <- query_task$status()
+    if (status == "running") {
+      return("Running query...")
+    }
+    if (status == "error") {
+      return(paste(
+        query_help,
+        "If you edited the SQL, check its syntax and table names too."
+      ))
+    }
+    if (!is.null(result())) {
+      return(
+        "Query completed using the signed-in person's database permissions."
+      )
+    }
+    ""
+  })
   output$account <- renderText({
     if (
       !is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")
@@ -190,37 +207,15 @@ server <- function(input, output, session) {
     "run",
     "Run example query",
     class = "btn-primary",
-    disabled = if (is.null(current())) TRUE else NULL
+    disabled = if (is.null(current()) || query_task$status() == "running") {
+      TRUE
+    } else {
+      NULL
+    }
   ))
   observeEvent(input$run, {
-    reference <- req(current())
-    id <- reference$id
-    result(NULL)
-    rows <- tryCatch(
-      {
-        selected <- access()
-        if (is.null(selected) || !identical(selected$owner, id)) {
-          selected <- list(owner = id, value = make_access(auth$connection))
-          access(selected)
-        }
-        run_query(selected$value)
-      },
-      error = function(error) {
-        query_status(paste(
-          query_help,
-          "If you edited the SQL, check its syntax and table names too."
-        ))
-        NULL
-      }
-    )
-    now <- current()
-    if (is.null(rows) || is.null(now) || !identical(now$id, id)) {
-      return()
-    }
-    result(list(owner = id, data = rows))
-    query_status(
-      "Query completed using the signed-in person's database permissions."
-    )
+    req(current())
+    do.call(query_task$invoke, c(list(example_query), query_arguments))
   })
   output$query_status <- renderText({
     req(current())
@@ -234,4 +229,7 @@ server <- function(input, output, session) {
     value$data
   })
 }
-shinyApp(ui, server, uiPattern = ".*")
+shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})

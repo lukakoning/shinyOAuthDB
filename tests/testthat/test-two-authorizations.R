@@ -66,13 +66,17 @@ test_that("the two-provider app queries and disconnects each authorization indep
     expect_error(output$databricks_rows, class = "shiny.silent.error")
     session$setInputs(
       sql_id = fixture$ids$a,
-      databricks_id = fixture$ids$warehouse
+      databricks_id = fixture$ids$warehouse,
+      load_sql = 1L,
+      load_databricks = 1L
     )
+    task_app_flush(session)
     expect_match(output$sql_rows, ">\\s*A\\s*<")
     expect_match(output$databricks_rows, ">\\s*WAREHOUSE\\s*<")
     sql_a <- sql()
     saved <<- databricks()
-    session$setInputs(sql_id = fixture$ids$b)
+    session$setInputs(sql_id = fixture$ids$b, load_sql = 2L)
+    task_app_flush(session)
     expect_false(DBI::dbIsValid(sql_a))
     expect_match(output$sql_rows, ">\\s*B\\s*<")
     expect_identical(databricks(), saved)

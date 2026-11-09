@@ -43,30 +43,9 @@ they also need the relevant database permissions.
 
 ## Install
 
-Installing from GitHub builds the package from source. Install the build
-tools for your R version first:
-
-- **Windows:** [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
-  matching your R version.
-- **macOS:** [Xcode Command Line Tools](https://mac.r-project.org/tools/),
-  installed with `xcode-select --install` in Terminal.
-- **Linux:** your distribution's R development package and C build tools;
-  for example, `r-base-dev` and `build-essential` on Debian or Ubuntu.
-
-These tools are needed even for HTTP backends that do not need a database
-driver.
-
-```{r installation}
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")
-}
-remotes::install_github("lukakoning/shinyOAuthDB")
-```
-
-This also installs shinyOAuth. Some data sources need an additional R
-package or database driver; their guides list the requirements. Add
-`build_vignettes = TRUE` to the installation call if you want to read the
-guides locally with `vignette()`.
+The examples below install missing R packages from CRAN before loading
+them. shinyOAuthDB also installs shinyOAuth. Some data sources need an
+additional database driver; their guides list the requirements.
 
 ## Build a small app
 
@@ -76,21 +55,25 @@ and Keycloak sign-in service in Docker. You don't need a cloud account or a
 database driver.
 
 Install and start Docker with Linux containers and Docker Compose 2.24.4
-or later. Install `jsonlite` for the API responses and `mirai` for background
-OAuth requests:
+or later. The app uses `jsonlite` for API responses and `mirai` for
+background OAuth requests and data fetching.
 
-```{r demo-dependency}
-install.packages(c("jsonlite", "mirai"))
-```
-
-Save the following as `example.R` and run `source("example.R")`:
+Save the following as `example.R` and run `source("example.R")`. After
+signing in, click **Load rows**. The app starts its workers once and stops
+them at shutdown.
 
 ```{r app}
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-# Start PostgreSQL, PostgREST and Keycloak in Docker
 demo <- oauth_db_demo("postgrest", action = "services")
 
 client <- oauth_client(
@@ -105,6 +88,8 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
+    textOutput("account"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -113,33 +98,35 @@ ui <- oauth_ui(
 
 server <- function(input, output, session) {
   auth <- oauth_module_server(
-    "auth", client, auto_redirect = FALSE, async = TRUE
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
   )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
-  postgres <- oauth_db_postgrest_api(
-    auth$connection,
-    url = demo$url
-  )
-  output$rows <- renderTable({
-    postgres$select("visible_rows", order = "row_id.asc")
+  output$account <- renderText({
+    if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
   })
+  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+  query_task <- oauth_db_task(postgres, method = "select")
+  observeEvent(input$load, {
+    query_task$invoke("visible_rows", order = "row_id.asc")
+  })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(
-    ui, server,
-    uiPattern = ".*",
-    onStart = function() {
-      onStop(demo$stop)
-      mirai::daemons(2)
-      onStop(function() mirai::daemons(0))
-    }
-  ),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    onStop(demo$stop)
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 18100,
   launch.browser = FALSE
 )
+
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 The first Docker build takes a few minutes and needs internet access and
@@ -148,9 +135,9 @@ several GB of disk space. When Shiny is ready, open
 viewers can't complete the sign-in redirects. Your browser may ask you to
 accept Keycloak's generated local test certificate.
 
-Sign in as `alice` with password `alice`. The table shows
-`alice-visible-1` and `alice-visible-2`. Sign out, then sign in as
-`bob` with password `bob`: you'll see Bob's rows instead. The app sends
+Sign in as `alice` with password `alice`, then click **Load rows**. The table
+shows `alice-visible-1` and `alice-visible-2`. Sign out, then sign in as
+`bob` with password `bob` and click **Load rows** to fetch Bob's rows. The app sends
 the same request for both users; PostgreSQL's row policies determine the
 result.
 
@@ -187,13 +174,14 @@ Pass the function, without parentheses, to `oauth_db_postgrest_api()` so
 the API client can check it each time it needs a token. Create this helper
 inside `server()` to keep it with the visitor who signed in.
 
-Finally, `$select()` reads the table and returns a data frame for
-`renderTable()`. Before sign-in, the helper waits quietly, like
-`shiny::req()`. Because the call runs inside a reactive output, Shiny
-updates the table when the authorization changes and clears it on sign-out.
+The **Load rows** button invokes the task's `select` operation in a worker.
+`result()` supplies its data frame to `renderTable()`. Before sign-in, the
+helper waits quietly, like `shiny::req()`. Authorization changes clear the
+previous result; click **Load rows** to fetch again after signing in.
 See `?oauth_db_postgrest_api` for filters and other request methods.
-The `$select()` call itself is synchronous. For longer requests, use the
-[background fetching example](#fetch-data-in-the-background).
+Calling `$select()` directly runs synchronously; the task keeps that work
+in its worker. See [background fetching](#fetch-data-in-the-background)
+for the task's lifecycle and deployment options.
 
 ## Connect your own data
 
@@ -205,8 +193,8 @@ settings and data helper with the ones in your guide.
 
 For deployment, also follow [async OAuth setup](#enable-asynchronous-oauth)
 and [background fetching](#fetch-data-in-the-background). The source guides'
-ordinary DBI and HTTP calls are synchronous; a worker needs its own native
-connection or request, rather than a serialized copy of the guide's helper.
+apps use `oauth_db_task()` for background fetching; synchronous DBI and
+HTTP methods remain available for direct use in the owning session.
 
 See [Recorded backend checks](#recorded-backend-checks) for tested versions
 and the parts of each integration that still need deployment validation.
@@ -286,16 +274,21 @@ con <- oauth_db_azure_sql(
   database = "Reporting"
 )
 
-output$rows <- renderTable({
-  connection <- con()
-  DBI::dbGetQuery(connection, "SELECT TOP (10) * FROM sales")
+query_task <- oauth_db_task(con)
+observeEvent(input$load, {
+  query_task$invoke("SELECT TOP (10) * FROM sales")
 })
+output$rows <- renderTable(query_task$result())
 ```
 
-Call `con()` inside each render or reactive expression that queries data.
-It checks the current authorization and reuses the visitor's connection
-when possible. For dbplyr, pass `connection` to `dplyr::tbl()` and use
-`dplyr::collect()` when you need a data frame.
+The task checks authorization in the Shiny session and runs `DBI::dbGetQuery()`
+with its own worker connection. For dbplyr, use a custom task function that
+passes its worker connection to `dplyr::tbl()` and calls `dplyr::collect()`
+before returning a data frame.
+
+For synchronous work, call `con()` inside the render or reactive expression
+that queries data. It checks the current authorization and reuses the
+visitor's connection when possible.
 
 Other sources provide API clients: BigQuery has `$query()`, while Fabric
 and Databricks can call functions from their supporting R packages through
@@ -386,112 +379,72 @@ For an explicitly asynchronous acquisition, use
 
 ### Fetch data in the background
 
-Use background fetching when a query or download could delay the app. Shiny's
-`ExtendedTask` keeps the visitor's session responsive while a promise is
-pending. Its function must start nonblocking work: wrapping a synchronous
-query in `promise_resolve()` or an `async = TRUE` OAuth module does not move
-that query off the main process.
-
-The following replaces `server()` in the small PostgREST app above. Add
-`actionButton("load", "Load rows")` beside the sign-in buttons in its UI.
-Keep its mirai startup and shutdown code. The example reads one page on a
-button click, acquiring the token asynchronously in the owning session and
-sending only the bearer string and URL to a worker:
+The small app above uses `oauth_db_task()` to run its fetch in a mirai
+worker. Create the task once inside `server()`. The existing backend helper
+supplies its validated connection settings; the task obtains credentials
+asynchronously in the owning session and creates its own worker client.
 
 ```{r async-fetch}
-server <- function(input, output, session) {
-  auth <- oauth_module_server(
-    "auth", client, auto_redirect = FALSE, async = TRUE
-  )
-  observeEvent(input$login, auth$request_login())
-  observeEvent(input$logout, auth$logout())
-
-  permissions <- "database.read"
-  authorization <- reactive({
-    grant <- auth$connection()
-    if (is.null(grant) || !grant$has_scopes(permissions)) return(NULL)
-    grant
-  })
-  generation <- reactiveVal(0L)
-  previous <- NULL
-  observe({
-    grant <- authorization()
-    if (!identical(grant, previous)) {
-      previous <<- grant
-      generation(isolate(generation()) + 1L)
-    }
-  }, priority = 100)
-
-  requested <- reactiveVal(NULL)
-  load_rows <- ExtendedTask$new(function(grant, captured) {
-    isolate({
-      pending <- grant$access_token(
-        required_scopes = permissions,
-        min_valid_for_seconds = 120,
-        async = TRUE
-      )
-      promises::then(pending, function(token) {
-        stale <- isolate(
-          session$isClosed() ||
-            !identical(authorization(), grant) ||
-            !identical(generation(), captured)
-        )
-        if (stale) return(NULL)
-        mirai::mirai({
-          response <- httr2::request(url) |>
-            httr2::req_url_path_append("visible_rows") |>
-            httr2::req_url_query(order = "row_id.asc", limit = 100L) |>
-            httr2::req_auth_bearer_token(token) |>
-            httr2::req_options(followlocation = FALSE) |>
-            httr2::req_timeout(30) |>
-            httr2::req_perform()
-          httr2::resp_body_json(
-            response, simplifyVector = TRUE, bigint_as_char = TRUE
-          )
-        }, token = token, url = demo$url)
-      })
-    })
-  })
-  observeEvent(input$load, {
-    req(load_rows$status() != "running")
-    grant <- req(authorization())
-    captured <- generation()
-    requested(captured)
-    load_rows$invoke(grant, captured)
-  })
-  output$rows <- renderTable({
-    req(authorization())
-    req(identical(requested(), generation()))
-    load_rows$result()
-  })
-}
+query_task <- oauth_db_task(postgres, method = "select")
+observeEvent(input$load, {
+  query_task$invoke("visible_rows", order = "row_id.asc")
+})
+output$rows <- renderTable(query_task$result())
 ```
 
-The task includes both token acquisition and the data request. Repeated
-clicks while it is running are ignored, and `result()` clears the table
-while the next fetch runs. Errors from the current fetch appear in the
-output. A changed authorization hides results and errors from older tasks,
-including after switching away from an account and back. The generation
-counter also changes when the required permission is lost and restored;
-ordinary token rotation keeps the same authorization.
+For a DBI helper, pass `con`, without calling it. The default operation is
+`DBI::dbGetQuery()`:
 
-This worker uses httr2 directly instead of `$select()`. It reads at most 100
-rows and has no pagination or refresh-and-retry policy. Use HTTPS for a real
-PostgREST deployment; the URL supplied by the local Docker demo uses its
-loopback HTTP endpoint. Adjust the requested token lifetime to cover worker
-queueing and the operation. The copied token cannot refresh itself, and
-sign-out hides results without guaranteeing cancellation of the server's work.
-OAuth operations and data requests share the worker pool in this example;
+```{r async-dbi}
+query_task <- oauth_db_task(con)
+observeEvent(input$load, {
+  query_task$invoke("SELECT * FROM reporting.orders LIMIT 20")
+})
+output$rows <- renderTable(query_task$result())
+```
+
+`invoke()` snapshots its arguments and starts one operation. Repeated clicks
+while the task is busy are ignored. `result()` clears the output while a new
+fetch is pending, returns data on success and raises the current fetch's error
+on failure. Several outputs can read the same result without another query.
+Use `status()` for progress displays and `cancel()` for best-effort cancellation.
+
+Sign-out, account changes and permission loss hide earlier results and cancel
+pending worker work where possible. Restoring the account or permission does
+not reveal old results or rerun a query: the user explicitly invokes a new fetch.
+Ordinary token rotation does not repeat completed work. Each invocation opens
+and closes its own connection; put a transaction in one custom task function.
+
+The default token lifetime budget is 120 seconds. Increase `min_valid_for`
+on the task when queueing, polling or downloads need more time. Workers receive
+short-lived access tokens and cannot refresh those snapshots. A failed operation
+is not automatically replayed. Cancellation cannot undo work already accepted
+by a database server. OAuth and data jobs share the configured mirai pool;
 allow capacity for token renewal as well as queries.
 
-For a native database driver, use the same task pattern but open and close
-the connection inside the worker, returning data rather than the connection.
-Keep `con()`, API clients, authorization objects and token callbacks in the
-Shiny process. Fabric and Databricks `$call()` also accept promise-returning
-functions and check authorization when their results resolve; a callback
-needed by a worker must first be resolved to a bearer string in its owning
-session. See the [Shiny background-task guide](https://shiny.posit.co/r/articles/improve/nonblocking/)
-for task buttons and status displays.
+For sustained database work, reserve the default pool for OAuth and use a
+separate mirai compute profile for queries:
+
+```{r async-pools}
+# At app startup:
+mirai::daemons(2)
+mirai::daemons(2, .compute = "database")
+shiny::onStop(function() {
+  mirai::daemons(0, .compute = "database")
+  mirai::daemons(0)
+})
+
+# Inside server():
+query_task <- oauth_db_task(con, compute = "database")
+```
+
+Custom operations can use a self-contained function whose first argument is
+the worker's connection or client. Keep native handles inside that function
+and return ordinary R data. Pass reactive query inputs through `invoke()`;
+keep authorization objects and token callbacks in the owning Shiny session.
+See `?oauth_db_task` for the interface and the
+[Shiny background-task guide](https://shiny.posit.co/r/articles/improve/nonblocking/)
+for the underlying execution model.
 
 ### Save query results
 

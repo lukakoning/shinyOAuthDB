@@ -1,3 +1,10 @@
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 # Run SQL on a button click and clear saved results when access changes.
 library(shiny)
 library(shinyOAuth)
@@ -23,17 +30,15 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
   permissions <- "https://database.windows.net//user_impersonation"
-  authorization <- reactive({
-    grant <- auth$connection()
-    if (is.null(grant) || !grant$has_scopes(permissions, target = "sql")) {
-      return(NULL)
-    }
-    grant
-  })
   con <- oauth_db_azure_sql(
     auth$connection,
     required_scopes = permissions,
@@ -41,32 +46,17 @@ server <- function(input, output, session) {
     database = Sys.getenv("OAUTHDB_DATABASE")
   )
 
-  rows <- reactiveVal(NULL)
-  observeEvent(authorization(), rows(NULL), ignoreNULL = FALSE, priority = 100)
+  rows <- oauth_db_task(con)
   observeEvent(input$run, {
-    rows(NULL)
-    grant <- req(authorization())
-    value <- tryCatch(
-      {
-        connection <- con()
-        DBI::dbGetQuery(connection, "SELECT CURRENT_USER AS database_user")
-      },
-      error = identity
-    )
-    rows(list(authorization = grant, value = value))
+    rows$invoke("SELECT CURRENT_USER AS database_user")
   })
-  output$rows <- renderTable({
-    grant <- req(authorization())
-    result <- req(rows())
-    req(identical(result$authorization, grant))
-    if (inherits(result$value, "error")) {
-      stop(result$value)
-    }
-    result$value
-  })
+  output$rows <- renderTable(rows$result())
 }
 
-app <- shinyApp(ui, server, uiPattern = ".*")
+app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+  mirai::daemons(2)
+  onStop(function() mirai::daemons(0))
+})
 if (interactive()) {
   runApp(
     app,

@@ -5,11 +5,15 @@ test_that("the offline app reads through native connections and follows A/B sele
   shiny::testServer(app$server, {
     expect_error(output$rows, class = "shiny.silent.error")
     session$setInputs(select_a = 1L)
+    session$setInputs(load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*A\\s*<")
     con_a <- con()
     expect_identical(con(), con_a)
 
     session$setInputs(select_b = 1L)
+    session$setInputs(load = 2L)
+    task_app_flush(session)
     expect_false(DBI::dbIsValid(con_a))
     expect_match(output$rows, ">\\s*B\\s*<")
     expect_false(grepl(">\\s*A\\s*<", output$rows))
@@ -19,6 +23,8 @@ test_that("the offline app reads through native connections and follows A/B sele
     expect_error(output$rows, class = "shiny.silent.error")
 
     session$setInputs(select_a = 2L)
+    session$setInputs(load = 3L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*A\\s*<")
     saved <<- con()
   })
@@ -31,6 +37,8 @@ test_that("separate offline sessions cannot reuse another user's connection", {
   first_connection <- NULL
   shiny::testServer(app$server, {
     session$setInputs(select_a = 1L)
+    session$setInputs(load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*A\\s*<")
     first_connection <<- con()
   })
@@ -38,6 +46,8 @@ test_that("separate offline sessions cannot reuse another user's connection", {
   shiny::testServer(app$server, {
     expect_error(output$rows, class = "shiny.silent.error")
     session$setInputs(select_b = 1L)
+    session$setInputs(load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, ">\\s*B\\s*<")
     expect_false(identical(con(), first_connection))
   })

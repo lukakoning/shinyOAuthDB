@@ -68,9 +68,15 @@ Supported databases and data platforms (links open their setup guides):
 
 ## Install
 
+The example below installs missing packages from CRAN. To install the
+development version from GitHub instead:
+
 ```r
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")
+pkgs <- c("remotes")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
 }
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
@@ -86,14 +92,19 @@ This example uses PostgREST since it does not require a database driver to be in
 See the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) for that.
 
 ```r
+pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+for (pkg in pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
-# Start a local demo with PostgreSQL and Keycloak sign-in in Docker
 demo <- oauth_db_demo("postgrest", action = "services")
 
-# Create an OAuth client for the demo Keycloak server
 client <- oauth_client(
   demo$provider,
   client_id = "shiny-db",
@@ -106,6 +117,8 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+    actionButton("load", "Load rows"),
+    textOutput("account"),
     tableOutput("rows")
   ),
   id = "auth",
@@ -113,31 +126,36 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
-
-  postgres <- oauth_db_postgrest_api(
-    auth$connection,
-    url = demo$url
-  )
-  output$rows <- renderTable({
-    postgres$select("visible_rows", order = "row_id.asc")
+  output$account <- renderText({
+    if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
   })
+  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+  query_task <- oauth_db_task(postgres, method = "select")
+  observeEvent(input$load, {
+    query_task$invoke("visible_rows", order = "row_id.asc")
+  })
+  output$rows <- renderTable(query_task$result())
 }
 
 runApp(
-  shinyApp(
-    ui, server, 
-    uiPattern = ".*", 
-    onStart = function() { onStop(demo$stop) }
-  ),
+  shinyApp(ui, server, uiPattern = ".*", onStart = function() {
+    onStop(demo$stop)
+    mirai::daemons(2)
+    onStop(function() mirai::daemons(0))
+  }),
   port = 18100,
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at http://localhost:18100
-# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
+# Open the app in your regular browser at its registered redirect URI.
 ```
 
 Sign in as `alice` / `alice` or `bob` / `bob` (username / password).

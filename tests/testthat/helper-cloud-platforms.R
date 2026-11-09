@@ -58,6 +58,7 @@ cloud_platform_settings <- function() {
 }
 
 cloud_platform_app <- function(platform) {
+  task_app_workers(envir = parent.frame())
   secret_env <- paste0(
     "OAUTHDB_",
     toupper(gsub("-", "_", platform)),

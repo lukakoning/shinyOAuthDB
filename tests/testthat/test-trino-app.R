@@ -62,11 +62,16 @@ test_that("the Trino playground uses each selected profile and clears on sign-ou
   retained <- NULL
   shiny::testServer(app$server, {
     session$flushReact()
+    session$setInputs(load = 1L)
+    task_app_flush(session)
     expect_match(output$rows, "A@example.org", fixed = TRUE)
     first <- con()
     calls$select("B")
     session$flushReact()
     expect_false(DBI::dbIsValid(first))
+    expect_error(output$rows, class = "shiny.silent.error")
+    session$setInputs(load = 2L)
+    task_app_flush(session)
     expect_match(output$rows, "B@example.org", fixed = TRUE)
     expect_false(grepl("A@example.org", output$rows, fixed = TRUE))
     retained <<- con()
@@ -79,6 +84,8 @@ test_that("the Trino playground uses each selected profile and clears on sign-ou
     c(
       "Bearer fixture-A",
       "Bearer fixture-A",
+      "Bearer fixture-A",
+      "Bearer fixture-B",
       "Bearer fixture-B",
       "Bearer fixture-B"
     )

@@ -154,11 +154,15 @@ test_that("BigQuery demo requires a Web registration and limits query billing", 
     "confidential"
   )
   expect_error(.odb_cloud_value("123456", "project"), "project ID")
-  app$run_query(list(query = function(sql, maximum_bytes_billed) {
-    expect_identical(sql, "SELECT SESSION_USER() AS signed_in_user")
-    expect_identical(maximum_bytes_billed, "10000000")
-    data.frame(user = "fixture")
-  }))
+  app$run_query(
+    list(query = function(sql, maximum_bytes_billed) {
+      expect_identical(sql, "SELECT SESSION_USER() AS signed_in_user")
+      expect_identical(maximum_bytes_billed, "10000000")
+      data.frame(user = "fixture")
+    }),
+    app$example_query,
+    app$query_arguments$maximum_bytes_billed
+  )
 })
 
 test_that("Snowflake demo binds its OAuth role and warehouse to the SQL connection", {
@@ -343,17 +347,19 @@ test_that("a signed-in user can click Query before a named API token has been ac
   app$make_access <- function(authorization) {
     oauth_db_token(authorization, target = "sql")
   }
-  app$run_query <- function(access) {
-    access()
+  local_mocked_bindings(.odb_backend_token = function(token) {
+    token()
     calls$queries <- calls$queries + 1L
     data.frame(user = "A")
-  }
+  })
+  app$run_query <- function(access, statement) access
   shiny::testServer(app$server, {
     session$flushReact()
     expect_match(output$account, "Signed in")
     expect_identical(calls$auth$calls$acquire, 0L)
     expect_identical(calls$queries, 0L)
     session$setInputs(run = 1L)
+    task_app_flush(session)
     expect_match(output$rows, ">[[:space:]]*A[[:space:]]*<")
     expect_identical(calls$auth$calls$acquire, 1L)
     expect_identical(calls$queries, 1L)
@@ -370,6 +376,8 @@ for (cloud_platform in names(cloud_platform_settings())) {
       ),
       {
         app <- cloud_platform_app(platform)
+        expect_silent(.odb_task_function(app$run_query))
+        expect_silent(.odb_task_snapshot(app$query_arguments))
         expect_identical(app$client@client_id, "demo-client")
         expect_identical(app$client@redirect_uri, "http://localhost:8100")
         content <- app$ui(playground_request())$content
@@ -428,18 +436,23 @@ for (cloud_platform in names(cloud_platform_settings())) {
             connect = function(token) {
               con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
               attr(con, "user") <- sub("^fixture-", "", token)
-              control$connections[[length(control$connections) + 1L]] <- con
               con
             }
           )
         }
-        app$run_query <- function(access) {
-          con <- access()
-          control$queries <- control$queries + 1L
-          if (isTRUE(control$fail)) {
-            stop("private raw service error")
-          }
-          data.frame(signed_in_user = attr(con, "user"))
+        local_mocked_bindings(
+          dbGetQuery = function(conn, statement, ...) {
+            control$connections[[length(control$connections) + 1L]] <- conn
+            control$queries <- control$queries + 1L
+            if (isTRUE(control$fail)) {
+              stop("private raw service error")
+            }
+            data.frame(signed_in_user = attr(conn, "user"))
+          },
+          .package = "DBI"
+        )
+        app$run_query <- function(connection, statement, ...) {
+          DBI::dbGetQuery(connection, statement)
         }
         shiny::testServer(app$server, {
           session$flushReact()
@@ -464,6 +477,7 @@ for (cloud_platform in names(cloud_platform_settings())) {
           expect_length(control$connections, 0L)
           expect_identical(control$queries, 0L)
           session$setInputs(run = 1L)
+          task_app_flush(session)
           expect_match(output$rows, ">[[:space:]]*A[[:space:]]*<")
           expect_identical(control$queries, 1L)
           control$a$current(FALSE)
@@ -479,9 +493,11 @@ for (cloud_platform in names(cloud_platform_settings())) {
           expect_false(DBI::dbIsValid(control$connections[[1L]]))
           expect_identical(control$queries, 1L)
           session$setInputs(run = 2L)
+          task_app_flush(session)
           expect_match(output$rows, ">[[:space:]]*B[[:space:]]*<")
           control$fail <- TRUE
           session$setInputs(run = 3L)
+          task_app_flush(session)
           expect_error(output$rows, class = "shiny.silent.error")
           expect_false(grepl("private raw", output$query_status, fixed = TRUE))
           session$setInputs(logout = 1L)

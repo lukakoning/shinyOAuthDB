@@ -19,6 +19,7 @@ check_readme_demo <- function() {
   process <- callr::r_bg(
     function(path) {
       setwd(tempdir())
+      Sys.setenv(R_LIBS = paste(.libPaths(), collapse = .Platform$path.sep))
       previous <- options()[c(
         "shinyOAuth.allowed_hosts",
         "shinyOAuth.allow_insecure_oidc_loopback"
@@ -28,6 +29,13 @@ check_readme_demo <- function() {
         unset = NA_character_
       )
       envir <- new.env(parent = globalenv())
+      envir$oauth_module_server <- function(...) {
+        auth <- shinyOAuth::oauth_module_server(...)
+        shiny::observe({
+          if (!is.null(auth$error)) message("OAuth fixture state: ", auth$error)
+        })
+        auth
+      }
       # Use a fresh configuration; the startup function itself runs unchanged.
       envir$oauth_db_demo <- function(...) {
         shinyOAuthDB::oauth_db_demo(..., path = path)
@@ -194,6 +202,11 @@ check_readme_demo <- function() {
         user
       )
     )
+    wait(
+      browser,
+      "Boolean(document.querySelector('#account')?.textContent.includes('Signed in.'))"
+    )
+    value(browser, "document.querySelector('#load').click()")
     wait(
       browser,
       sprintf(
