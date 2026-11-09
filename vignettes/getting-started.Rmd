@@ -43,6 +43,19 @@ they also need the relevant database permissions.
 
 ## Install
 
+Installing from GitHub builds the package from source. Install the build
+tools for your R version first:
+
+- **Windows:** [Rtools](https://cran.r-project.org/bin/windows/Rtools/)
+  matching your R version.
+- **macOS:** [Xcode Command Line Tools](https://mac.r-project.org/tools/),
+  installed with `xcode-select --install` in Terminal.
+- **Linux:** your distribution's R development package and C build tools;
+  for example, `r-base-dev` and `build-essential` on Debian or Ubuntu.
+
+These tools are needed even for HTTP backends that do not need a database
+driver.
+
 ```{r installation}
 if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
