@@ -1,10 +1,10 @@
 # Set up Microsoft sign-in for database access
 
 Set up Microsoft sign-in for a Shiny app that queries Azure SQL, Azure
-PostgreSQL or other supported Microsoft services. Choose the services
-your app uses, then pass this client to shinyOAuth's UI and server
-modules. The client holds your app's sign-in settings; each visitor
-signs in with their own account.
+PostgreSQL, Azure MySQL or other supported Microsoft services. Choose
+the services your app uses, then pass this client to shinyOAuth's UI and
+server modules. The client holds your app's sign-in settings; each
+visitor signs in with their own account.
 
 ## Usage
 
@@ -33,9 +33,9 @@ names(token_targets)[[1L]]
 
 - services:
 
-  One or more of `"sql"`, `"postgres"`, `"fabric"`, `"kql"`, `"dax"`,
-  `"graphql"`, `"onelake"`, or `"databricks_entra"`. The first service
-  selects the default token target.
+  One or more of `"sql"`, `"postgres"`, `"mysql"`, `"fabric"`, `"kql"`,
+  `"dax"`, `"graphql"`, `"onelake"`, or `"databricks_entra"`. The first
+  service selects the default token target.
 
 - tenant_id:
 
@@ -93,10 +93,10 @@ The preset creates named token targets for the selected services. Custom
 `scopes`, `provider` and `token_targets` replace their defaults. An
 existing shinyOAuth client can also supply suitable tokens.
 
-When PostgreSQL is combined with other services, its preset requests
-`user_impersonation` instead of `.default`. For a custom resource such
-as Oracle Database, supply `token_targets`; the Oracle vignette has an
-example.
+When PostgreSQL or MySQL is combined with other services, its preset
+requests `user_impersonation` instead of `.default`. For a custom
+resource such as Oracle Database, supply `token_targets`; the Oracle
+vignette has an example.
 
 ## See also
 

@@ -20,6 +20,11 @@
 - [`oauth_db_azure_postgres()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.md)
   : Query Azure PostgreSQL as the signed-in user
 
+## Azure MySQL
+
+- [`oauth_db_azure_mysql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_mysql.md)
+  : Query Azure MySQL as the signed-in user
+
 ## Azure SQL and SQL Server
 
 - [`oauth_db_azure_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.md)
@@ -36,6 +41,11 @@
 
 - [`oauth_db_cratedb_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.md)
   : Query CrateDB as the signed-in user
+
+## CockroachDB
+
+- [`oauth_db_cockroachdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cockroachdb.md)
+  : Query CockroachDB as the signed-in user
 
 ## Databricks
 
@@ -120,6 +130,11 @@
   : Query Snowflake as the signed-in user
 - [`oauth_db_snowflake_provider()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.md)
   : Create a Snowflake OAuth provider
+
+## SingleStore
+
+- [`oauth_db_singlestore()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_singlestore.md)
+  : Query SingleStore as the signed-in user
 
 ## StarRocks
 

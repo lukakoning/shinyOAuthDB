@@ -2,10 +2,12 @@ pandoc: 3.8.3
 pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
+  azure-mysql: azure-mysql.html
   azure-postgres: azure-postgres.html
   azure-sql: azure-sql.html
   bigquery: bigquery.html
   clickhouse: clickhouse.html
+  cockroachdb: cockroachdb.html
   cratedb: cratedb.html
   databricks: databricks.html
   duckdb: duckdb.html
@@ -21,11 +23,12 @@ articles:
   postgrest: postgrest.html
   redshift: redshift.html
   salesforce: salesforce.html
+  singlestore: singlestore.html
   snowflake: snowflake.html
   starrocks: starrocks.html
   supabase: supabase.html
   trino: trino.html
-last_built: 2026-11-09T18:58Z
+last_built: 2026-11-09T19:35Z
 urls:
   reference: https://lukakoning.github.io/shinyOAuthDB/reference
   article: https://lukakoning.github.io/shinyOAuthDB/articles

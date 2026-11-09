@@ -3,6 +3,27 @@
 ## shinyOAuthDB 0.0.0.9000
 
 - Add
+  [`oauth_db_cockroachdb()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cockroachdb.md)
+  for self-hosted and cloud CockroachDB clusters configured for JWT SQL
+  authentication. Includes verified TLS, per-user DBI connections,
+  credential rotation and a complete Shiny setup guide.
+
+- Add
+  [`oauth_db_singlestore()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_singlestore.md)
+  for SingleStore and Helios SQL connections using visitor JWT access
+  tokens through SingleStore ODBC. Require verified TLS and reconnect
+  with current credentials through the session helper. Includes a
+  complete setup guide and a real database integration check.
+
+- Add
+  [`oauth_db_azure_mysql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_mysql.md)
+  for Azure Database for MySQL Flexible Server through MariaDB
+  Connector/ODBC and each visitor’s Entra access token. Includes the
+  Microsoft `mysql` sign-in preset, verified TLS, connection replacement
+  after token renewal, and a complete Shiny setup guide. Local protocol
+  checks cover the real driver; live Azure remains unverified.
+
+- Add
   [`oauth_db_elasticsearch_api()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_elasticsearch_api.md)
   for per-visitor searches, SQL and ES\|QL using external JWT access
   tokens and optional realm client authentication. Includes a setup

@@ -40,6 +40,8 @@ Supported databases and data platforms (links open their setup guides):
 
 [PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 ·
+[CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.html)
+·
 [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html)
 · [DuckDB (over
 Quack)](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html)
@@ -58,6 +60,8 @@ Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html)
 Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html)
 · [Azure
 PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html)
+· [Azure
+MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.html)
 · [SAP HANA and HANA
 Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.html) ·
 [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html)
@@ -69,6 +73,8 @@ Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.html)
 [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html)
 ·
 [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html)
+·
+[SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html)
 · [libSQL and
 Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html)

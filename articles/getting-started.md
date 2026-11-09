@@ -203,8 +203,10 @@ validation.
 |----|----|
 | PostgreSQL | [Native OAuth](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.md), [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md), [Supabase](https://lukakoning.github.io/shinyOAuthDB/articles/supabase.md), [Azure PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md) |
 | SQL Server | [Azure SQL and SQL Server](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.md) |
+| CockroachDB | [CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.md) |
+| MySQL | [Azure Database for MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.md) |
 | Cloud data platforms | [Fabric and Power BI](https://lukakoning.github.io/shinyOAuthDB/articles/fabric.md), [Databricks](https://lukakoning.github.io/shinyOAuthDB/articles/databricks.md), [Snowflake](https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.md), [BigQuery](https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.md), [Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md) |
-| Query engines | [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md), [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md), [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md), [DuckDB over Quack](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md) |
+| Query engines | [Trino and Starburst](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md), [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md), [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.md), [ClickHouse](https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.md), [DuckDB over Quack](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md) |
 | Other databases and APIs | [libSQL and Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.md), [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md), [OpenSearch](https://lukakoning.github.io/shinyOAuthDB/articles/opensearch.md), [Elasticsearch](https://lukakoning.github.io/shinyOAuthDB/articles/elasticsearch.md), [SAP HANA](https://lukakoning.github.io/shinyOAuthDB/articles/hana.md), [Oracle Database](https://lukakoning.github.io/shinyOAuthDB/articles/oracle.md), [Oracle REST Data Services](https://lukakoning.github.io/shinyOAuthDB/articles/oracle-ords.md), [Salesforce](https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.md) |
 
 ### Register your app
@@ -393,9 +395,11 @@ version.
 
 | Source | Checks and versions | Coverage limit |
 |----|----|----|
+| CockroachDB | CockroachDB 25.4.0, RPostgres 1.4.10 and libpq 16.10; native JWT validation, per-user grants, token replacement and TLS | Signed fixture tokens; browser sign-in, live JWKS rotation and CockroachDB Cloud are untested |
 | Native PostgreSQL | PostgreSQL 18.3, shared libpq 18 and RPostgres 1.4.10; real Keycloak sign-in, user grants and TLS | Native OAuth is tested in Linux containers; Windows uses the unsupported-platform branch |
 | PostgREST | PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies, writes and TLS | Covers the local deployment, not Supabase’s hosted gateway |
 | Trino | Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and TLS | A Starburst deployment still needs its own configuration check |
+| SingleStore | SingleStore 10.9.0 and Connector/ODBC 1.2.1; JWT validation, per-user grants, bound SQL, dbplyr, reconnects and TLS | Signed fixture tokens; browser sign-in, live JWKS rotation and SingleStore Helios are untested |
 | StarRocks | StarRocks 3.5.0 and MySQL Connector/ODBC 9.5.0; local JWT sign-in and grants | The Docker app is tested; the Windows local-app driver remains unverified |
 | DuckDB over Quack | DuckDB 1.5.4; real JWT validation, server policies and TLS | The Quack client and server must have compatible versions |
 | libSQL | libSQL 0.24.33; real signed tokens, database permissions and HTTPS | Hosted Turso external-provider sign-in is not established by this fixture |
@@ -404,6 +408,7 @@ version.
 | Elasticsearch | Elasticsearch 9.2.0; native JWT realm, document/field permissions, search, SQL, ES\|QL and verified HTTPS | Signed fixture tokens; browser sign-in, live JWKS rotation and Elastic Cloud Hosted are untested; Serverless has no JWT realms |
 | ClickHouse | Local SQL/HTTPS fixture uses ClickHouse 26.1.2.11 and checks typed parameters and failed write responses | The fixture proxy supplies authentication; it does not validate ClickHouse Cloud’s custom-JWT feature |
 | Azure PostgreSQL | PostgreSQL 18.3 password fixture, RPostgres 1.4.10 and libpq 16.10; real TLS and recovery after credential replacement | Entra token validation and a hosted Azure server are not exercised |
+| Azure MySQL | MariaDB Connector/ODBC 3.1.15 and R odbc 1.7.2; local password protocol, 12 KB tokens, credential replacement and verified TLS | Entra token validation, Azure user/group mapping and database grants are untested |
 | Databricks | brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow and pagination | MiniLake accepts every token and does not enforce grants; it does not validate Databricks authentication |
 | Fabric and Power BI | fabricQueryR 1.0.1 routing, callbacks and generated-app checks | Platform calls are mocked; hosted service permissions and native drivers need deployment checks |
 | BigQuery | Mocked REST responses cover parameters, polling, pagination, result types and account changes | Google browser sign-in, IAM grants and billed query execution are not covered by these mocks |

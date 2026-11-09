@@ -2,10 +2,12 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/404.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/CI.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/LICENSE-text.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/bigquery.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/databricks.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.html</loc></url>
@@ -22,6 +24,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/salesforce.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/articles/supabase.html</loc></url>
@@ -30,12 +33,14 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/news/index.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/index.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_mysql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_postgres.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_azure_sql.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_bigquery_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_clickhouse_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cloud_demo.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cockroachdb.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_connect.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_cratedb_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_databricks.html</loc></url>
@@ -60,6 +65,7 @@
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_api.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_salesforce_data_cloud_api.html</loc></url>
+<url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_singlestore.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_client.html</loc></url>
 <url><loc>https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_snowflake_provider.html</loc></url>

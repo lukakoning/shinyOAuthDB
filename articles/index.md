@@ -7,6 +7,7 @@
 
 ### Databases and related services
 
+- [CockroachDB](https://lukakoning.github.io/shinyOAuthDB/articles/cockroachdb.md):
 - [CrateDB](https://lukakoning.github.io/shinyOAuthDB/articles/cratedb.md):
 - [Remote
   DuckDB](https://lukakoning.github.io/shinyOAuthDB/articles/duckdb.md):
@@ -22,6 +23,7 @@
 - [PostgREST](https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.md):
 - [SAP HANA and HANA
   Cloud](https://lukakoning.github.io/shinyOAuthDB/articles/hana.md):
+- [SingleStore](https://lukakoning.github.io/shinyOAuthDB/articles/singlestore.md):
 - [StarRocks](https://lukakoning.github.io/shinyOAuthDB/articles/starrocks.md):
 - [Trino and Starburst
   Enterprise](https://lukakoning.github.io/shinyOAuthDB/articles/trino.md):
@@ -30,6 +32,8 @@
 
 - [Amazon
   Redshift](https://lukakoning.github.io/shinyOAuthDB/articles/redshift.md):
+- [Azure
+  MySQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-mysql.md):
 - [Azure
   PostgreSQL](https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.md):
 - [Azure SQL and SQL

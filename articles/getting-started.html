@@ -272,6 +272,14 @@ PostgreSQL</a>
 <td><a href="azure-sql.html">Azure SQL and SQL Server</a></td>
 </tr>
 <tr class="odd">
+<td>CockroachDB</td>
+<td><a href="cockroachdb.html">CockroachDB</a></td>
+</tr>
+<tr class="even">
+<td>MySQL</td>
+<td><a href="azure-mysql.html">Azure Database for MySQL</a></td>
+</tr>
+<tr class="odd">
 <td>Cloud data platforms</td>
 <td>
 <a href="fabric.html">Fabric and Power BI</a>, <a href="databricks.html">Databricks</a>, <a href="snowflake.html">Snowflake</a>, <a href="bigquery.html">BigQuery</a>, <a href="redshift.html">Redshift</a>
@@ -280,7 +288,7 @@ PostgreSQL</a>
 <tr class="even">
 <td>Query engines</td>
 <td>
-<a href="trino.html">Trino and Starburst</a>, <a href="starrocks.html">StarRocks</a>, <a href="clickhouse.html">ClickHouse</a>, <a href="duckdb.html">DuckDB over
+<a href="trino.html">Trino and Starburst</a>, <a href="starrocks.html">StarRocks</a>, <a href="singlestore.html">SingleStore</a>, <a href="clickhouse.html">ClickHouse</a>, <a href="duckdb.html">DuckDB over
 Quack</a>
 </td>
 </tr>
@@ -504,23 +512,37 @@ supported server version.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
+<td>CockroachDB</td>
+<td>CockroachDB 25.4.0, RPostgres 1.4.10 and libpq 16.10; native JWT
+validation, per-user grants, token replacement and TLS</td>
+<td>Signed fixture tokens; browser sign-in, live JWKS rotation and
+CockroachDB Cloud are untested</td>
+</tr>
+<tr class="even">
 <td>Native PostgreSQL</td>
 <td>PostgreSQL 18.3, shared libpq 18 and RPostgres 1.4.10; real Keycloak
 sign-in, user grants and TLS</td>
 <td>Native OAuth is tested in Linux containers; Windows uses the
 unsupported-platform branch</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>PostgREST</td>
 <td>PostgREST 16.5 with PostgreSQL 18.3; real sign-in, row policies,
 writes and TLS</td>
 <td>Covers the local deployment, not Supabase’s hosted gateway</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Trino</td>
 <td>Trino 484 and RTrino 0.1.0; real JWT sign-in, user grants and
 TLS</td>
 <td>A Starburst deployment still needs its own configuration check</td>
+</tr>
+<tr class="odd">
+<td>SingleStore</td>
+<td>SingleStore 10.9.0 and Connector/ODBC 1.2.1; JWT validation,
+per-user grants, bound SQL, dbplyr, reconnects and TLS</td>
+<td>Signed fixture tokens; browser sign-in, live JWKS rotation and
+SingleStore Helios are untested</td>
 </tr>
 <tr class="even">
 <td>StarRocks</td>
@@ -575,39 +597,46 @@ real TLS and recovery after credential replacement</td>
 exercised</td>
 </tr>
 <tr class="even">
+<td>Azure MySQL</td>
+<td>MariaDB Connector/ODBC 3.1.15 and R odbc 1.7.2; local password
+protocol, 12 KB tokens, credential replacement and verified TLS</td>
+<td>Entra token validation, Azure user/group mapping and database grants
+are untested</td>
+</tr>
+<tr class="odd">
 <td>Databricks</td>
 <td>brickster 0.2.15 with a MiniLake fixture for DBI/API results, Arrow
 and pagination</td>
 <td>MiniLake accepts every token and does not enforce grants; it does
 not validate Databricks authentication</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Fabric and Power BI</td>
 <td>fabricQueryR 1.0.1 routing, callbacks and generated-app checks</td>
 <td>Platform calls are mocked; hosted service permissions and native
 drivers need deployment checks</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>BigQuery</td>
 <td>Mocked REST responses cover parameters, polling, pagination, result
 types and account changes</td>
 <td>Google browser sign-in, IAM grants and billed query execution are
 not covered by these mocks</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Azure SQL, Snowflake and Redshift</td>
 <td>R ODBC connection arguments, credential handling and lifecycle
 tests</td>
 <td>Real vendor drivers and cloud database authentication remain outside
 the mocked connection boundary</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Supabase, Oracle REST Data Services and Salesforce</td>
 <td>Mocked HTTP responses and complete app definitions</td>
 <td>Hosted provider sign-in, server policies and real refresh behavior
 need configured deployments</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>SAP HANA and Oracle Database</td>
 <td>R ODBC boundary, token handling and lifecycle tests; mocked Oracle
 authentication/context checks</td>
