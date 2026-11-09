@@ -306,6 +306,14 @@ each operation instead of keeping a native connection or copied token for
 later use. shinyOAuth handles token renewal. See `?oauth_db_connect` for
 token lifetime and connection options.
 
+### Longer queries
+
+The built-in HTTP query methods and ordinary DBI queries run synchronously.
+While a query, result download or polling loop waits, it can delay other
+Shiny sessions in the same R process. For HTTP clients, set `timeout` to suit
+the operation; the helper's help explains whether it covers one request or
+the full operation.
+
 Keep live connections and token callbacks in the Shiny session that
 created them. For background work, use the database package's supported
 approach and check the current authorization before displaying a result.

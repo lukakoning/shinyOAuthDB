@@ -49,6 +49,8 @@
 #' result; the data frame can have no columns.
 #' @section Longer queries:
 #' Queries wait for completion and collect all result pages in R memory.
+#' Polling is synchronous: other Shiny sessions in the same R process can
+#' wait until the call returns.
 #' A timeout or sign-out stops fetching results but doesn't cancel a
 #' submitted BigQuery job. Each request uses a current token. HTTP 401 can
 #' trigger one refresh attempt; other errors stop the operation without
