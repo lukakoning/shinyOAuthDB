@@ -31,6 +31,9 @@ jobs:
         with:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
+      - name: Install the macOS ODBC driver manager
+        if: runner.os == 'macOS'
+        run: brew install unixodbc
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: |
