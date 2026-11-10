@@ -3,8 +3,7 @@ test_that("unsupported installed backend versions fail before opening a connecti
   skip_if_not_installed("fabricQueryR")
   skip_if_not_installed("brickster")
   local_mocked_bindings(
-    packageVersion = function(pkg, ...) package_version("0.0.1"),
-    .package = "utils"
+    .odb_package_version = function(pkg, ...) package_version("0.0.1")
   )
   expect_error(
     oauth_db_fabric_sql(NULL, "server", "db"),

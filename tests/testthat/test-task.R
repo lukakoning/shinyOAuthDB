@@ -1,8 +1,7 @@
 test_that("tasks reject an installed mirai below the supported version", {
   skip_if_not_installed("mirai")
   local_mocked_bindings(
-    packageVersion = function(package) package_version("2.5.0"),
-    .package = "utils"
+    .odb_package_version = function(package) package_version("2.5.0")
   )
   expect_error(
     oauth_db_task(NULL),

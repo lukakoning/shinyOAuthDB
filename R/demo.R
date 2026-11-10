@@ -131,7 +131,7 @@ oauth_db_demo <- function(
   }
   if (is.null(path)) {
     path <- file.path(
-      tools::R_user_dir("shinyOAuthDB", "cache"),
+      .odb_user_cache(),
       "demo",
       paste0(
         database,

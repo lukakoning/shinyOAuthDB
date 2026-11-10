@@ -1,5 +1,5 @@
 .odb_cloud_default_path <- function(platform) {
-  file.path(tools::R_user_dir("shinyOAuthDB", "cache"), "cloud-demo", platform)
+  file.path(.odb_user_cache(), "cloud-demo", platform)
 }
 
 .odb_cloud_identity_fields <- function(platform) {

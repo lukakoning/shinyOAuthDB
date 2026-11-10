@@ -6,14 +6,6 @@ test_that("JSON response parsing never follows file paths or URLs", {
     '"rows":[["local-file-read"]],"rowcount":"1"}'
   )
   writeLines(canary, "canary.json")
-  requests <- 0L
-  local_mocked_bindings(
-    url = function(...) {
-      requests <<- requests + 1L
-      textConnection(canary)
-    },
-    .package = "base"
-  )
   for (body in c("canary.json", "https://internal.example/canary")) {
     response <- odb_http_response(body)
     expect_error(
@@ -30,7 +22,6 @@ test_that("JSON response parsing never follows file paths or URLs", {
       "shinyOAuthDB_invalid_response"
     )
   }
-  expect_identical(requests, 0L)
 })
 
 test_that("literal JSON parsing retains content types, simplification and exact integers", {

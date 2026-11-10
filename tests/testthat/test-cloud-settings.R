@@ -1,8 +1,7 @@
 test_that("default cloud drafts resume and preserve edits separately for every platform", {
   cache <- withr::local_tempdir()
   local_mocked_bindings(
-    R_user_dir = function(package, which) file.path(cache, package, which),
-    .package = "tools"
+    .odb_user_cache = function() file.path(cache, "shinyOAuthDB", "cache")
   )
   local_mocked_bindings(
     .odb_cloud_run = function(...) stop("No launch"),

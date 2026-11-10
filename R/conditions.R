@@ -79,11 +79,15 @@
   unique(value)
 }
 
+.odb_package_version <- function(package) utils::packageVersion(package)
+
+.odb_user_cache <- function() tools::R_user_dir("shinyOAuthDB", "cache")
+
 .odb_require <- function(package, feature = package, version = NULL) {
   if (
     !requireNamespace(package, quietly = TRUE) ||
       (!is.null(version) &&
-        utils::packageVersion(package) < package_version(version))
+        .odb_package_version(package) < package_version(version))
   ) {
     .odb_abort(
       paste0(

@@ -48,17 +48,16 @@ test_that("public helpers reject outdated SDKs before acquiring credentials", {
   for (case in cases) {
     local({
       skip_if_not_installed(case$package, case$minimum)
-      original <- utils::packageVersion
+      original <- .odb_package_version
       reported <- case$older
       local_mocked_bindings(
-        packageVersion = function(package) {
+        .odb_package_version = function(package) {
           if (identical(package, case$package)) {
             package_version(reported)
           } else {
             original(package)
           }
-        },
-        .package = "utils"
+        }
       )
       odb_test_domain(function(session) {
         auth <- odb_test_authorization(session)
