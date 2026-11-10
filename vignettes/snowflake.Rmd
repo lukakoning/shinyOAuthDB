@@ -144,8 +144,10 @@ output.
 
 ## Query a table
 
-Replace the output expression with SQL for your data. For example, if your
-table is `ANALYTICS.PUBLIC.ORDERS`:
+To read `ANALYTICS.PUBLIC.ORDERS`, replace the complete block inside
+`server()` from `query_task <- oauth_db_task(con)` through
+`output$rows <- renderTable(query_task$result())`, including the **Load rows**
+observer, with:
 
 ```{r table-query}
 fetch_rows <- function(connection) {

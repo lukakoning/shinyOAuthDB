@@ -138,7 +138,11 @@ to the same database name.
 
 ## Query your tables
 
-Pass `con` to `oauth_db_task()` to open a worker connection for DBI. For values supplied by users, use bound parameters:
+Pass `con` to `oauth_db_task()` to open a worker connection for DBI. For values
+supplied by users, use bound parameters. Inside `server()`, replace the
+complete block from `query_task <- oauth_db_task(con)` through
+`output$rows <- renderTable(query_task$result())`, including the **Load rows**
+observer, with:
 
 ```{r table-query}
 fetch_rows <- function(connection) {

@@ -163,8 +163,11 @@ output.
 
 In the app, `con` is a function. The task opens the signed-in user's DBI connection in its worker.
 
-To read an `Orders` table with dbplyr, install `dbplyr` and `dplyr`,
-then replace the output expression with:
+To read an `Orders` table with dbplyr, install `dbplyr` and `dplyr`.
+Inside `server()`, replace the complete block from
+`query_task <- oauth_db_task(con)` through
+`output$rows <- renderTable(query_task$result())`, including the **Load rows**
+observer, with:
 
 ```{r dbplyr-query}
 fetch_rows <- function(connection) {

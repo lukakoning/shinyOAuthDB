@@ -146,8 +146,10 @@ output.
 
 ## Read a table
 
-The first query shows the PostgreSQL role. To read your data, replace that
-output expression with a query for your table:
+The first query shows the PostgreSQL role. To read your table, replace the
+complete block inside `server()` from `query_task <- oauth_db_task(con)`
+through `output$rows <- renderTable(query_task$result())`, including the
+**Load rows** observer, with:
 
 ```{r table-query}
 fetch_rows <- function(connection) {
