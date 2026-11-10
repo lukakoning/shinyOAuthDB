@@ -78,13 +78,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -108,9 +101,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -122,8 +117,10 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_oracle(
     auth$connection,
     host = Sys.getenv("OAUTHDB_ORACLE_HOST"),
@@ -132,18 +129,22 @@ server <- function(input, output, session) {
     port = 1522L,
     authorization_model = "end_user"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke(
       "SELECT ORA_END_USER_CONTEXT.username AS database_user FROM DUAL"
     )
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -202,6 +203,7 @@ registration](https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html#
 
 resource <- Sys.getenv("OAUTHDB_ORACLE_RESOURCE")
 scope <- paste0(resource, "/session:scope:connect")
+
 client <- oauth_db_microsoft_client(
   tenant_id = Sys.getenv("OAUTHDB_TENANT_ID"),
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),

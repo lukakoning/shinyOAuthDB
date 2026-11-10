@@ -14,7 +14,7 @@ are tokens signed by a trusted sign-in provider.
 
 For an editable app using Microsoft Entra sign-in, run
 `shinyOAuthDB::oauth_db_cloud_demo("clickhouse")` in the R console.
-Install `bslib`, `processx`, `jsonlite` and `askpass` first.
+Install `processx` and `askpass` first.
 
 The ClickHouse service must already trust your Entra tokens. The
 launcher explains the setup and can save a draft while an administrator
@@ -51,13 +51,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -78,9 +71,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -92,24 +87,30 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   clickhouse <- oauth_db_clickhouse_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_CLICKHOUSE_URL")
   )
+
   query_task <- oauth_db_task(clickhouse)
+
   observeEvent(input$load, {
     query_task$invoke(
       "SELECT currentUser() AS database_user, version() AS server_version"
     )
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -150,11 +151,14 @@ rows <- clickhouse$query(
   "SELECT id, total FROM reporting.orders WHERE country = {country:String} AND id > {after:UInt64} LIMIT 20",
   parameters = list(country = "NL", after = "9007199254740993")
 )
+
 day <- clickhouse$query(
   "SELECT {day:Date} AS day",
   parameters = list(day = as.Date("2026-11-03"))
 )
+
 at <- as.POSIXct("2026-11-03 12:00:00", tz = "Europe/Amsterdam")
+
 times <- clickhouse$query(
   "SELECT {at:DateTime('UTC')} AS at, {precise:DateTime64(6, 'UTC')} AS precise",
   parameters = list(at = at, precise = at + 0.125)
@@ -186,6 +190,7 @@ result <- clickhouse$query(
   "SELECT count() AS rows FROM reporting.orders",
   raw = TRUE
 )
+
 result$meta
 result$statistics
 

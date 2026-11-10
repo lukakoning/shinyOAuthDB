@@ -45,13 +45,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -75,9 +68,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -93,23 +88,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   ords <- oauth_db_oracle_ords_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_ORDS_URL"),
     required_scopes = scope
   )
+
   query_task <- oauth_db_task(ords, method = fetch_rows)
+
   observeEvent(input$load, {
     query_task$invoke()
   })
+
   output$rows <- renderPrint(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,

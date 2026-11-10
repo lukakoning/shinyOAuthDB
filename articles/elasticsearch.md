@@ -126,13 +126,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -153,9 +146,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -174,24 +169,30 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   search <- oauth_db_elasticsearch_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_ELASTICSEARCH_URL"),
     client_secret = Sys.getenv("OAUTHDB_ELASTICSEARCH_REALM_SECRET"),
     required_scopes = "search.read"
   )
+
   query_task <- oauth_db_task(search, method = fetch_rows)
+
   observeEvent(input$load, {
     query_task$invoke()
   })
+
   output$rows <- renderPrint(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -216,6 +217,7 @@ sql <- search$sql(
   "SELECT country, total FROM orders WHERE country = ?",
   parameters = list("NL")
 )
+
 sql$columns
 sql$rows
 
@@ -223,6 +225,7 @@ esql <- search$esql(
   "FROM orders | WHERE country == ? | KEEP country, total | LIMIT 20",
   parameters = list("NL")
 )
+
 esql$values
 ```
 
@@ -238,11 +241,18 @@ cursor:
 ``` r
 
 if (!is.null(sql$cursor)) {
-  page <- search$request("_sql", method = "POST",
-    body = list(cursor = sql$cursor))
+  page <- search$request(
+    "_sql",
+    method = "POST",
+    body = list(cursor = sql$cursor)
+  )
+
   if (!is.null(page$cursor)) {
-    search$request(c("_sql", "close"), method = "POST",
-      body = list(cursor = page$cursor))
+    search$request(
+      c("_sql", "close"),
+      method = "POST",
+      body = list(cursor = page$cursor)
+    )
   }
 }
 ```

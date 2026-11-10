@@ -13,9 +13,9 @@ signed-in account before reading any tables.
 ## Try the guided demo
 
 Run `shinyOAuthDB::oauth_db_cloud_demo("bigquery")` in the R console for
-an editable app. Install `bslib`, `processx`, `jsonlite` and `askpass`
-first; no database driver is needed. The launcher walks you through the
-query project and Google app registration.
+an editable app. Install `processx` and `askpass` first; no database
+driver is needed. The launcher walks you through the query project and
+Google app registration.
 
 After sign-in, click **Run example query** to check the Google account.
 The demo initially uses the `US` query location; change it to your
@@ -69,13 +69,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -90,9 +83,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -104,23 +99,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   bigquery <- oauth_db_bigquery_api(
     auth$connection,
     project = "billing-project",
     location = "EU"
   )
+
   query_task <- oauth_db_task(bigquery)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT SESSION_USER() AS signed_in_user")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -149,6 +150,7 @@ observeEvent(input$load, {
     parameters = list(country = "NL")
   )
 })
+
 output$rows <- renderTable(query_task$result())
 ```
 
@@ -162,10 +164,12 @@ lists the table IDs in that dataset. Add these outputs inside
 
 datasets_task <- oauth_db_task(bigquery, method = "datasets")
 tables_task <- oauth_db_task(bigquery, method = "tables")
+
 observeEvent(input$load, {
   datasets_task$invoke()
   tables_task$invoke("reporting")
 })
+
 output$datasets <- renderPrint(datasets_task$result())
 output$tables <- renderPrint(tables_task$result())
 ```

@@ -147,14 +147,7 @@ user.</p>
 <p>After signing in, click <strong>Load rows</strong>. The app starts
 its workers once and stops them at shutdown.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pkgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="st">"shinyOAuth"</span>, <span class="st">"shinyOAuthDB"</span>, <span class="st">"mirai"</span>, <span class="st">"RPostgres"</span><span class="op">)</span></span>
-<span><span class="kw">for</span> <span class="op">(</span><span class="va">pkg</span> <span class="kw">in</span> <span class="va">pkgs</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="va">pkg</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pkg</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://shiny.posit.co/" class="external-link">shiny</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/lukakoning/shinyOAuth" class="external-link">shinyOAuth</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://lukakoning.github.io/shinyOAuthDB/">shinyOAuthDB</a></span><span class="op">)</span></span>
 <span></span>
@@ -181,9 +174,11 @@ its workers once and stops them at shutdown.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/fluidPage.html" class="external-link">fluidPage</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"login"</span>, <span class="st">"Sign in"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"logout"</span>, <span class="st">"Sign out"</span><span class="op">)</span>,</span>
+<span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/actionButton.html" class="external-link">actionButton</a></span><span class="op">(</span><span class="st">"load"</span>, <span class="st">"Load rows"</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">tableOutput</a></span><span class="op">(</span><span class="st">"rows"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
+<span></span>
 <span>  id <span class="op">=</span> <span class="st">"auth"</span>,</span>
 <span>  client <span class="op">=</span> <span class="va">client</span></span>
 <span><span class="op">)</span></span>
@@ -195,9 +190,12 @@ its workers once and stops them at shutdown.</p>
 <span>    auto_redirect <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>    async <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>  <span class="op">)</span></span>
+<span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">login</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">request_login</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">logout</span>, <span class="va">auth</span><span class="op">$</span><span class="fu">logout</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
 <span>  <span class="va">ca</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_COCKROACHDB_SSLROOTCERT"</span><span class="op">)</span></span>
+<span></span>
 <span>  <span class="va">con</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_cockroachdb.html">oauth_db_cockroachdb</a></span><span class="op">(</span></span>
 <span>    <span class="va">auth</span><span class="op">$</span><span class="va">connection</span>,</span>
 <span>    host <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"OAUTHDB_COCKROACHDB_HOST"</span><span class="op">)</span>,</span>
@@ -214,7 +212,9 @@ its workers once and stops them at shutdown.</p>
 <span>    <span class="op">}</span>,</span>
 <span>    required_scopes <span class="op">=</span> <span class="st">"database.read"</span></span>
 <span>  <span class="op">)</span></span>
+<span></span>
 <span>  <span class="va">query_task</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/oauth_db_task.html">oauth_db_task</a></span><span class="op">(</span><span class="va">con</span><span class="op">)</span></span>
+<span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="op">{</span></span>
 <span>    <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
 <span>      <span class="st">"SELECT table_schema, table_name FROM information_schema.tables"</span>,</span>
@@ -222,12 +222,14 @@ its workers once and stops them at shutdown.</p>
 <span>      <span class="st">"ORDER BY table_schema, table_name LIMIT 20"</span></span>
 <span>    <span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
+<span></span>
 <span>  <span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/runApp.html" class="external-link">runApp</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/shinyApp.html" class="external-link">shinyApp</a></span><span class="op">(</span><span class="va">ui</span>, <span class="va">server</span>, onStart <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/onStop.html" class="external-link">onStop</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span>,</span>
 <span>  port <span class="op">=</span> <span class="fl">8100</span>,</span>
@@ -244,7 +246,7 @@ started</a> for shared registration settings and deployment.</p>
 <div class="section level2">
 <h2 id="configure-the-cluster">Configure the cluster<a class="anchor" aria-label="anchor" href="#configure-the-cluster"></a>
 </h2>
-<p>Follow CockroachDB’s <a href="https://www.cockroachlabs.com/docs/stable/sso-sql" class="external-link">cluster SSO
+<p>Follow CockroachDB’s <a href="https://docs.cockroachlabs.com/docs/stable/sso-sql" class="external-link">cluster SSO
 guide</a> for the settings supported by your cluster version and cloud
 tier. A configuration using a trusted OIDC provider includes:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sql"><code class="sourceCode sql"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="kw">SET</span> <span class="kw">CLUSTER</span> SETTING server.jwt_authentication.enabled <span class="op">=</span> <span class="kw">true</span>;</span>
@@ -266,7 +268,7 @@ certificate and hostname. Supply the CA bundle from the cluster’s
 connection settings when libpq’s configured bundle doesn’t include it.
 Unset <code>PGSERVICE</code> and <code>PGSERVICEFILE</code> so local
 service files cannot change the connection.</p>
-<p>CockroachDB also supports <a href="https://www.cockroachlabs.com/docs/stable/oauth-authentication" class="external-link">SASL
+<p>CockroachDB also supports <a href="https://docs.cockroachlabs.com/docs/stable/oauth-authentication" class="external-link">SASL
 OAUTHBEARER</a> on newer clusters with libpq 18 clients. This helper
 uses JWT-as-password authentication instead, so it requires the
 <code>server.jwt_authentication</code> configuration rather than the

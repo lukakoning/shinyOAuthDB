@@ -17,12 +17,8 @@ Shiny:
 
 ``` r
 
-pkgs <- c("reticulate")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
+install.packages("reticulate")
+
 reticulate::virtualenv_create("shiny-mongodb")
 reticulate::py_install(c("pymongo>=4.10", "numpy"), envname = "shiny-mongodb")
 reticulate::use_virtualenv("shiny-mongodb", required = TRUE)
@@ -60,13 +56,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "reticulate")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -87,9 +76,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -101,8 +92,10 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   mongo <- oauth_db_mongodb(
     auth$connection,
     url = Sys.getenv("OAUTHDB_MONGODB_URL"),
@@ -110,16 +103,20 @@ server <- function(input, output, session) {
     issuer = issuer,
     client_id = Sys.getenv("OAUTHDB_CLIENT_ID")
   )
+
   query_task <- oauth_db_task(mongo, method = "find")
+
   observeEvent(input$load, {
     query_task$invoke("orders", filter = "{\"country\":\"NL\"}", limit = 20)
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -168,10 +165,15 @@ types can be supplied without converting them to ordinary strings:
 ``` r
 
 mongo$find("orders", filter = '{"_id":{"$oid":"507f1f77bcf86cd799439011"}}')
-mongo$aggregate("orders", '[
+
+mongo$aggregate(
+  "orders",
+  '[
   {"$match":{"country":"NL"}},
   {"$group":{"_id":"$category","total":{"$sum":"$amount"}}}
-]')
+]'
+)
+
 mongo$count("orders", filter = '{"country":"NL"}')
 mongo$run('{"connectionStatus":1}')
 ```

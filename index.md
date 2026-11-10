@@ -98,14 +98,14 @@ Turso](https://lukakoning.github.io/shinyOAuthDB/articles/libsql.html) ·
 
 ## Install
 
-The example below installs missing packages from CRAN. To install the
-development version from GitHub instead:
+Install the development version from GitHub:
 
 ``` r
 
 if (!requireNamespace("remotes", quietly = TRUE)) {
-    install.packages("remotes")
+  install.packages("remotes")
 }
+
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
@@ -150,6 +150,7 @@ ui <- oauth_ui(
     textOutput("account"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -169,11 +170,16 @@ server <- function(input, output, session) {
 
   # Show whether the user is signed in
   output$account <- renderText({
-    if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
+    if (is.null(auth$connection())) {
+      "Not signed in"
+    } else {
+      "Signed in. Click 'Load rows'."
+    }
   })
 
   # Retrieve data from the database using the user's access token
-  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)  
+  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+
   # Use a background task to run the query so the app remains responsive
   query_task <- oauth_db_task(postgres, method = "select")
 

@@ -46,13 +46,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -73,9 +66,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -87,23 +82,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   postgrest <- oauth_db_postgrest_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_POSTGREST_URL"),
     schema = "reporting"
   )
+
   query_task <- oauth_db_task(postgrest, method = "select")
+
   observeEvent(input$load, {
     query_task$invoke("orders", order = "id.asc", limit = 20L)
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -133,6 +134,7 @@ rows <- postgrest$select(
   limit = 20L,
   offset = 20L
 )
+
 response <- postgrest$select(
   "orders",
   order = "id.asc",
@@ -140,6 +142,7 @@ response <- postgrest$select(
   count = "exact",
   raw = TRUE
 )
+
 httr2::resp_header(response, "Content-Range")
 ```
 

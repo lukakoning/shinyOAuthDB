@@ -36,9 +36,12 @@ table; they also need the relevant database permissions.
 
 ## Install
 
-The examples below install missing R packages from CRAN before loading
-them. shinyOAuthDB also installs shinyOAuth. Some data sources need an
-additional database driver; their guides list the requirements.
+The examples assume shinyOAuthDB is already installed; see the
+[installation
+instructions](https://lukakoning.github.io/shinyOAuthDB/#install).
+Installing it also installs shinyOAuth, shiny and their required
+dependencies, including jsonlite. Some data sources need an additional
+client package or database driver; their guides list the requirements.
 
 ## Build a small app
 
@@ -56,13 +59,6 @@ signing in, click **Load rows**. The app starts its workers once and
 stops them at shutdown.
 
 ``` r
-
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
 
 library(shiny)
 library(shinyOAuth)
@@ -82,10 +78,12 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     textOutput("account"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -97,23 +95,35 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   output$account <- renderText({
-    if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
+    if (is.null(auth$connection())) {
+      "Not signed in"
+    } else {
+      "Signed in. Click Load rows."
+    }
   })
+
   postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+
   query_task <- oauth_db_task(postgres, method = "select")
+
   observeEvent(input$load, {
     query_task$invoke("visible_rows", order = "row_id.asc")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     onStop(demo$stop)
+
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 18100,
@@ -291,9 +301,11 @@ con <- oauth_db_azure_sql(
 )
 
 query_task <- oauth_db_task(con)
+
 observeEvent(input$load, {
   query_task$invoke("SELECT TOP (10) * FROM sales")
 })
+
 output$rows <- renderTable(query_task$result())
 ```
 
@@ -376,21 +388,26 @@ stop them at application shutdown:
 ``` r
 
 mirai::daemons(2)
+
 shiny::onStop(function() mirai::daemons(0))
 
 server <- function(input, output, session) {
   auth <- shinyOAuth::oauth_module_server(
-    "auth", client, auto_redirect = FALSE, async = TRUE
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
   )
   # Add the app's observers and outputs here.
 }
 ```
 
-Setting `async = TRUE` alone is not enough: install mirai and configure
-its workers before the module runs. The pool belongs to the app’s R
-process, so visitors share it; do not start a pool for each visitor.
-Choose its size for your deployment’s memory and concurrency limits. For
-an existing future deployment, a non-sequential
+Install mirai (2.5.1 or newer) once with `install.packages("mirai")`; it
+is an optional dependency. Setting `async = TRUE` also requires
+configuring its workers before the module runs. The pool belongs to the
+app’s R process, so visitors share it; do not start a pool for each
+visitor. Choose its size for your deployment’s memory and concurrency
+limits. For an existing future deployment, a non-sequential
 [`future::multisession`](https://future.futureverse.org/reference/multisession.html)
 plan is another supported backend. A sequential future plan still
 blocks. See shinyOAuth’s [async setup
@@ -421,9 +438,11 @@ owning session and creates its own worker client.
 ``` r
 
 query_task <- oauth_db_task(postgres, method = "select")
+
 observeEvent(input$load, {
   query_task$invoke("visible_rows", order = "row_id.asc")
 })
+
 output$rows <- renderTable(query_task$result())
 ```
 
@@ -434,9 +453,11 @@ is
 ``` r
 
 query_task <- oauth_db_task(con)
+
 observeEvent(input$load, {
   query_task$invoke("SELECT * FROM reporting.orders LIMIT 20")
 })
+
 output$rows <- renderTable(query_task$result())
 ```
 
@@ -470,6 +491,7 @@ a separate mirai compute profile for queries:
 # At app startup:
 mirai::daemons(2)
 mirai::daemons(2, .compute = "database")
+
 shiny::onStop(function() {
   mirai::daemons(0, .compute = "database")
   mirai::daemons(0)

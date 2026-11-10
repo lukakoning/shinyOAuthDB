@@ -76,13 +76,6 @@ keeps the app responsive while Salesforce runs and returns its results.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -91,7 +84,10 @@ client <- oauth_db_salesforce_client(
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = "http://localhost:8100",
-  login_url = Sys.getenv("OAUTHDB_SALESFORCE_LOGIN_URL", "https://login.salesforce.com"),
+  login_url = Sys.getenv(
+    "OAUTHDB_SALESFORCE_LOGIN_URL",
+    "https://login.salesforce.com"
+  ),
   data_cloud = TRUE
 )
 
@@ -99,36 +95,53 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     selectInput("source", "Query source", c("CRM", "Data Cloud")),
+
     actionButton("query", "Run query"),
     tableOutput("rows")
   ),
-  id = "auth", client = client
+
+  id = "auth",
+  client = client
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE, async = TRUE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
   instance_url <- Sys.getenv(
-    "OAUTHDB_SALESFORCE_INSTANCE_URL", "https://example.my.salesforce.com"
+    "OAUTHDB_SALESFORCE_INSTANCE_URL",
+    "https://example.my.salesforce.com"
   )
+
   crm <- oauth_db_salesforce_api(auth$connection, instance_url)
   cloud <- oauth_db_salesforce_data_cloud_api(auth$connection, instance_url)
 
   tasks <- list(CRM = oauth_db_task(crm), `Data Cloud` = oauth_db_task(cloud))
+
   observeEvent(input$query, {
     selected <- req(tasks[[req(input$source)]])
+
     statement <- if (input$source == "CRM") {
       "SELECT Id, Name FROM Account LIMIT 20"
     } else {
       "SELECT ssot__Id__c FROM ssot__Individual__dlm LIMIT 20"
     }
+
     selected$invoke(statement)
   })
+
   output$rows <- renderTable({
     selected <- req(tasks[[req(input$source)]])
+
     selected$result()
   })
 }
@@ -136,6 +149,7 @@ server <- function(input, output, session) {
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -167,6 +181,7 @@ crm$objects()
 crm$describe("Account")
 
 count <- crm$query("SELECT COUNT() FROM Account", raw = TRUE)
+
 count$totalSize
 ```
 

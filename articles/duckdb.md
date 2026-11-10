@@ -62,13 +62,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "duckdb")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -89,9 +82,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -103,24 +98,30 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_duckdb(
     auth$connection,
     host = "duckdb.example.org",
     port = 443,
     required_scopes = "quack:read"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT * FROM orders LIMIT 20")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -148,13 +149,10 @@ Install the client extensions before running the Shiny app:
 
 ``` r
 
-pkgs <- c("DBI", "duckdb")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
+install.packages("duckdb")
+
 connection <- DBI::dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+
 DBI::dbExecute(connection, "INSTALL quack")
 DBI::dbExecute(connection, "INSTALL httpfs")
 DBI::dbDisconnect(connection, shutdown = TRUE)

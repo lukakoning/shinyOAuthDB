@@ -54,13 +54,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -81,9 +74,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -95,8 +90,10 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_starrocks(
     auth$connection,
     server = Sys.getenv("OAUTHDB_STARROCKS_SERVER"),
@@ -109,16 +106,20 @@ server <- function(input, output, session) {
     driver = Sys.getenv("OAUTHDB_STARROCKS_DRIVER"),
     ssl_ca = Sys.getenv("OAUTHDB_STARROCKS_SSL_CA")
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT CURRENT_USER() AS database_user")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -171,7 +172,9 @@ Get a current connection inside each render or reactive expression:
 ``` r
 
 connection <- con()
+
 DBI::dbGetQuery(connection, "SELECT id, total FROM orders LIMIT 20")
+
 dplyr::tbl(connection, "orders") |>
   dplyr::filter(total >= 100) |>
   dplyr::collect()

@@ -14,9 +14,9 @@ web console does not configure this integration.
 
 ## Install the driver
 
-The app below installs the R packages if needed. Use adbcdrivermanager
-0.25.0 or later. The R packages do not include the Flight SQL shared
-library. Follow Apache Arrow’s [driver installation
+Install `adbi` and `adbcdrivermanager` (0.25.0 or later) before running
+the app. These R packages do not include the Flight SQL shared library.
+Follow Apache Arrow’s [driver installation
 instructions](https://arrow.apache.org/adbc/current/driver/installation.html).
 With the `dbc` driver manager installed, run:
 
@@ -71,13 +71,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "adbi", "adbcdrivermanager")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -98,9 +91,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -112,22 +107,28 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_dremio(
     auth$connection,
     host = Sys.getenv("OAUTHDB_DREMIO_HOST")
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT CURRENT_USER AS database_user")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,

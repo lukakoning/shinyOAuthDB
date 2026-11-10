@@ -72,13 +72,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RPostgres")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -95,9 +88,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -109,8 +104,10 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_azure_postgres(
     auth$connection,
     host = "example.postgres.database.azure.com",
@@ -118,16 +115,20 @@ server <- function(input, output, session) {
     user = "reporting-readers",
     sslrootcert = "path/to/root-ca.pem"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT current_user")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -150,8 +151,11 @@ that output expression with a query for your table:
 fetch_rows <- function(connection) {
   DBI::dbGetQuery(connection, "SELECT * FROM reporting.orders LIMIT 20")
 }
+
 query_task <- oauth_db_task(con, method = fetch_rows)
+
 observeEvent(input$load, query_task$invoke())
+
 output$rows <- renderTable(query_task$result())
 ```
 

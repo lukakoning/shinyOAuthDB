@@ -93,13 +93,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -117,9 +110,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -131,23 +126,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   supabase <- oauth_db_supabase_api(
     auth$connection,
     url = project_url,
     api_key = Sys.getenv("OAUTHDB_SUPABASE_KEY")
   )
+
   query_task <- oauth_db_task(supabase, method = "select")
+
   observeEvent(input$load, {
     query_task$invoke("oauthdb_notes", order = "id.asc", limit = 20L)
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -178,6 +179,7 @@ Replace the app’s client with your existing shinyOAuth client, or pass
 provider <- oauth_provider_oidc_discover(
   issuer = Sys.getenv("OAUTHDB_SUPABASE_ISSUER")
 )
+
 client <- oauth_db_supabase_client(
   client_id = Sys.getenv("OAUTHDB_CLIENT_ID"),
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),

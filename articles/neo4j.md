@@ -74,13 +74,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -101,9 +94,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -115,27 +110,33 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   graph <- oauth_db_neo4j_api(
     auth$connection,
     url = Sys.getenv("OAUTHDB_NEO4J_URL"),
     database = Sys.getenv("OAUTHDB_NEO4J_DATABASE", "neo4j"),
     required_scopes = "graph.read"
   )
+
   query_task <- oauth_db_task(graph)
+
   observeEvent(input$load, {
     query_task$invoke(
       "MATCH (p:Person) WHERE p.country = $country RETURN p.name AS name, p.country AS country LIMIT 20",
       parameters = list(country = "NL")
     )
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -193,12 +194,14 @@ people <- graph$query(
   "MATCH (p:Person) WHERE p.name = $name RETURN p, p.name AS name",
   parameters = list(name = "Alice")
 )
+
 people$p[[1L]]$properties
 
 result <- graph$query(
   "MATCH (p:Person) RETURN p.name AS name LIMIT 20",
   raw = TRUE
 )
+
 result$data$fields
 result$data$values
 result$notifications
@@ -221,6 +224,7 @@ counters <- graph$execute(
   "CREATE (:Person {name: $name, country: $country})",
   parameters = list(name = "Alice", country = "NL")
 )
+
 counters$nodesCreated
 ```
 

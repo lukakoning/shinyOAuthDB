@@ -61,13 +61,13 @@ Creating an app registration doesn’t open the database firewall.
 
 ### Register a Microsoft Entra app
 
-In the [Entra admin center](https://entra.microsoft.com/), open **App
-registrations** and create a registration in your organization’s tenant.
-Copy **Application (client) ID** and **Directory (tenant) ID** from its
-overview. Under **Authentication**, add a **Web** platform with
-`http://localhost:8100` as the redirect URI. Under **Certificates &
-secrets**, create a client secret and copy its **Value** before leaving.
-Microsoft’s [registration
+In the Entra admin center, open **App registrations** and [create a
+registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+in your organization’s tenant. Copy **Application (client) ID** and
+**Directory (tenant) ID** from its overview. Under **Authentication**,
+add a **Web** platform with `http://localhost:8100` as the redirect URI.
+Under **Certificates & secrets**, create a client secret and copy its
+**Value** before leaving. Microsoft’s [registration
 instructions](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
 describe the available account types.
 
@@ -89,13 +89,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -112,9 +105,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -126,23 +121,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_azure_sql(
     auth$connection,
     server = "example.database.windows.net",
     database = "Reporting"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT TOP (20) name FROM sys.tables")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -165,20 +166,16 @@ then replace the output expression with:
 
 ``` r
 
-pkgs <- c("dplyr", "dbplyr")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 fetch_rows <- function(connection) {
   dplyr::tbl(connection, "Orders") |>
     dplyr::filter(amount > 100) |>
     dplyr::collect()
 }
+
 query_task <- oauth_db_task(con, method = fetch_rows)
+
 observeEvent(input$load, query_task$invoke())
+
 output$rows <- renderTable(query_task$result())
 ```
 

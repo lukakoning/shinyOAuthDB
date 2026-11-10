@@ -12,16 +12,11 @@ through the brickster package.
 
 ## Try the guided demo
 
-Run this in the R console for an editable app that walks through setup:
+Install `brickster`, `processx` and `askpass`, then run this in the R
+console for an editable app that walks through setup:
 
 ``` r
 
-pkgs <- c("shinyOAuthDB", "brickster", "jsonlite", "processx", "askpass", "bslib", "mirai")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
 shinyOAuthDB::oauth_db_cloud_demo("databricks")
 ```
 
@@ -75,13 +70,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "brickster")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -99,9 +87,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -113,23 +103,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_databricks(
     auth$connection,
     host = host,
     warehouse_id = "warehouse-id"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT current_user()")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -156,9 +152,11 @@ this code inside `server()`:
 databricks <- oauth_db_databricks_api(auth$connection, host = host)
 
 warehouse_task <- oauth_db_task(databricks, method = "call")
+
 observeEvent(input$load, {
   warehouse_task$invoke(brickster::db_sql_warehouse_list)
 })
+
 output$warehouses <- renderPrint(warehouse_task$result())
 ```
 
@@ -171,6 +169,7 @@ For example, to use brickster’s query API, replace the table output with
 ``` r
 
 api_task <- oauth_db_task(databricks, method = "call")
+
 observeEvent(input$load, {
   api_task$invoke(
     brickster::db_sql_query,
@@ -180,6 +179,7 @@ observeEvent(input$load, {
     show_progress = FALSE
   )
 })
+
 output$rows <- renderPrint(api_task$result())
 ```
 

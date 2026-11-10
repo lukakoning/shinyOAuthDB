@@ -61,13 +61,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -88,9 +81,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -102,26 +97,32 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   crate <- oauth_db_cratedb_api(
     auth$connection,
     url = "https://crate.example.org:4200/_sql",
     schema = "doc"
   )
+
   query_task <- oauth_db_task(crate)
+
   observeEvent(input$load, {
     query_task$invoke(
       "SELECT id, total FROM orders WHERE country = $1 LIMIT 20",
       parameters = list("NL")
     )
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -196,6 +197,6 @@ local demo uses a gateway to make Keycloak’s keys available there. Check
 this with your provider before reusing an existing login. Global
 `auth.host_based.jwt.iss` settings override per-user properties; see
 [JWT
-authentication](https://cratedb.com/docs/crate/reference/en/latest/admin/auth/methods.html#jwt-authentication-method)
+authentication](https://docs.cratedb.com/projects/crate-reference/en/latest/admin/auth/methods.html#jwt-authentication-method)
 and [user
-settings](https://cratedb.com/docs/crate/reference/en/latest/sql/statements/create-user.html).
+settings](https://docs.cratedb.com/projects/crate-reference/en/latest/sql/statements/create-user.html).

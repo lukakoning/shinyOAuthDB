@@ -51,13 +51,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "odbc")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -74,9 +67,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -88,8 +83,10 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_azure_mysql(
     auth$connection,
     server = "example.mysql.database.azure.com",
@@ -98,18 +95,22 @@ server <- function(input, output, session) {
     driver = "MariaDB ODBC 3.2 Driver",
     ssl_ca = "path/to/azure-ca.pem"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke(
       "SELECT CURRENT_USER() AS database_user, DATABASE() AS database_name"
     )
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -146,8 +147,11 @@ fetch_rows <- function(connection) {
     params = list("NL")
   )
 }
+
 query_task <- oauth_db_task(con, method = fetch_rows)
+
 observeEvent(input$load, query_task$invoke())
+
 output$rows <- renderTable(query_task$result())
 ```
 

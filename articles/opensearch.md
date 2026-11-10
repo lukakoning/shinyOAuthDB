@@ -62,13 +62,6 @@ and stops them at shutdown.
 
 ``` r
 
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -89,9 +82,11 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -101,6 +96,7 @@ fetch_rows <- function(database) {
     "orders",
     body = list(size = 20L, query = list(term = list(country = "NL")))
   )
+
   result$hits
 }
 
@@ -111,23 +107,29 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   search <- oauth_db_opensearch_api(
     auth$connection,
     url = "https://search.example.org",
     required_scopes = "search.read"
   )
+
   query_task <- oauth_db_task(search, method = fetch_rows)
+
   observeEvent(input$load, {
     query_task$invoke()
   })
+
   output$rows <- renderPrint(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -160,6 +162,7 @@ result <- search$search(
     aggs = list(countries = list(terms = list(field = "country")))
   )
 )
+
 result$aggregations$countries$buckets
 ```
 
@@ -180,6 +183,7 @@ page <- search$sql(
   "SELECT owner, total FROM orders WHERE country = ?",
   parameters = list(list(type = "keyword", value = "NL"))
 )
+
 page$schema
 page$datarows
 ```
