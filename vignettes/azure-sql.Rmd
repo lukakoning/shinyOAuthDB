@@ -169,7 +169,7 @@ then replace the output expression with:
 ```{r dbplyr-query}
 fetch_rows <- function(connection) {
   dplyr::tbl(connection, "Orders") |>
-    dplyr::filter(amount > 100) |>
+    dplyr::filter(.data$amount > 100) |>
     dplyr::collect()
 }
 
@@ -179,6 +179,10 @@ observeEvent(input$load, query_task$invoke())
 
 output$rows <- renderTable(query_task$result())
 ```
+
+Use `.data$amount` to identify a data column in the worker function. Pass
+other query inputs through `invoke()`; workers can't capture variables from
+the Shiny session.
 
 For SQL queries that include values entered by a user, use DBI parameter
 binding.
