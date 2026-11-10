@@ -165,10 +165,5 @@ oauth_db_dremio <- function(
     },
     options
   )
-  # Retain argument references, rather than bearer values, in native error calls.
-  values <- lapply(seq_along(args), function(i) {
-    substitute(args[[index]], list(index = i))
-  })
-  names(values) <- names(args)
-  eval(as.call(c(list(quote(DBI::dbConnect)), values)), envir = environment())
+  .odb_odbc_connect(args)
 }
