@@ -60,9 +60,7 @@ OAUTHDB_DATABASE=reporting
 OAUTHDB_COSMOS_CONTAINER=orders
 ```
 
-Install shinyOAuthDB using the
-[installation instructions](getting-started.html#install). Install
-`jsonlite` too. This backend doesn't need ODBC, Python, Azure CLI or an
+This backend uses HTTPS and doesn't need ODBC, Python, Azure CLI or an
 Azure SDK.
 
 ## Build an app
@@ -72,13 +70,6 @@ Change the query and partition key to match your container. Save it as
 `app.R` and run it in R:
 
 ```{r app}
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -94,15 +85,23 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
 
 server <- function(input, output, session) {
-  auth <- oauth_module_server("auth", client, auto_redirect = FALSE, async = TRUE)
+  auth <- oauth_module_server(
+    "auth",
+    client,
+    auto_redirect = FALSE,
+    async = TRUE
+  )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
 
@@ -115,7 +114,9 @@ server <- function(input, output, session) {
     database = Sys.getenv("OAUTHDB_DATABASE"),
     container = Sys.getenv("OAUTHDB_COSMOS_CONTAINER", "orders")
   )
+
   query_task <- oauth_db_task(cosmos)
+
   observeEvent(input$load, {
     query_task$invoke(
       "SELECT TOP 20 c.id, c.total FROM c WHERE c.country = @country",
@@ -123,12 +124,14 @@ server <- function(input, output, session) {
       partition_key = "NL"
     )
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, onStart = function() {
     mirai::daemons(2)
+
     onStop(function() mirai::daemons(0))
   }),
   port = 8100,
@@ -156,6 +159,7 @@ cosmos$query(
 )
 
 document <- cosmos$read("order-123", partition_key = "NL")
+
 document$total
 ```
 
@@ -204,6 +208,7 @@ first <- cosmos$query_page(
   "SELECT c.id, c.total FROM c",
   partition_key = "NL"
 )
+
 first$documents
 first$request_charge
 

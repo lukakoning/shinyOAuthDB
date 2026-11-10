@@ -3,6 +3,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
+
 client <- oauth_db_snowflake_client(
   server = settings$server,
   role = settings$role,
@@ -12,6 +13,7 @@ client <- oauth_db_snowflake_client(
 )
 
 demo_title <- "Snowflake Shiny demo"
+
 demo_details <- list(
   "Account server" = settings$server,
   "Role" = settings$role,
@@ -20,6 +22,7 @@ demo_details <- list(
   "Schema" = settings$schema,
   "ODBC driver" = settings$driver
 )
+
 platform_note <- "The OAuth role and SQL role match. Table queries also need database/schema USAGE and SELECT; warehouse visibility alone does not grant those permissions."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/snowflake.html"
 example_query <- "SELECT CURRENT_USER() AS signed_in_user, CURRENT_ROLE() AS database_role"
@@ -40,6 +43,7 @@ make_access <- function(authorization) {
     driver = settings$driver
   )
 }
+
 run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value

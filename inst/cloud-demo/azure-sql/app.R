@@ -3,6 +3,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
+
 client <- oauth_db_microsoft_client(
   services = "sql",
   tenant_id = settings$tenant_id,
@@ -16,12 +17,14 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Azure SQL Shiny demo"
+
 demo_details <- list(
   "SQL server" = settings$server,
   "Database" = settings$database,
   "Database port" = settings$database_port,
   "ODBC driver" = settings$driver
 )
+
 platform_note <- "An Entra user or group must exist in this database and hold the needed SQL grants. Successful Microsoft sign-in alone does not grant table access."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/azure-sql.html"
 example_query <- "SELECT CURRENT_USER AS signed_in_user"
@@ -40,6 +43,7 @@ make_access <- function(authorization) {
     port = as.integer(settings$database_port)
   )
 }
+
 run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value

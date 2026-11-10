@@ -27,6 +27,7 @@ example_request <- paste0(
 ui <- oauth_ui(
   page_sidebar(
     title = h2("OpenSearch OAuth demo", class = "h3 mb-0"),
+
     theme = bs_theme(
       version = 5,
       primary = "#17646c",
@@ -34,8 +35,10 @@ ui <- oauth_ui(
       fg = "#23313d",
       base_font = "system-ui"
     ),
+
     fillable = FALSE,
     lang = "en",
+
     sidebar = sidebar(
       width = 320,
       bg = "#fff",
@@ -74,13 +77,16 @@ ui <- oauth_ui(
         class = "demo-note"
       )
     ),
+
     tags$style(
       ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }\n    .demo-details dt { font-size: .9rem; color: #485867; }\n    .demo-details dd { margin: 0; overflow-wrap: anywhere; }\n    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }\n    .sidebar .demo-details dd { margin-bottom: .5rem; }\n    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }\n    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }\n    .demo-results { overflow-x: auto; }\n    .demo-note { color: #485867; font-size: .95rem; }\n    .btn { min-height: 44px; }\n    pre { white-space: pre-wrap; overflow-wrap: anywhere; }\n    .card-header h3 { font-size: 1.1rem; margin: 0; }\n    .card, .sidebar { background: #fff; }\n    .bslib-card { margin-top: 1rem; }\n    .card-body > p { margin-bottom: 0; }"
     ),
+
     p(
       "Search documents using the signed-in account and its document permissions.",
       class = "lead"
     ),
+
     card(
       fill = FALSE,
       card_header(h3("2. Search your documents")),
@@ -94,6 +100,7 @@ ui <- oauth_ui(
       ),
       div(class = "demo-results", tableOutput("rows"))
     ),
+
     card(
       fill = FALSE,
       card_header(h3("3. Check write permission")),
@@ -103,6 +110,7 @@ ui <- oauth_ui(
       actionButton("probe", "Check write permission"),
       div(role = "status", textOutput("permission"))
     ),
+
     card(
       fill = FALSE,
       card_header(h3("About this connection")),
@@ -126,12 +134,14 @@ ui <- oauth_ui(
       )
     )
   ),
+
   id = "auth",
   client = client
 )
 
 fetch_rows <- function(database, example_index, example_search) {
   result <- database$search(example_index, body = example_search)
+
   data.frame(
     marker = vapply(result$hits$hits, function(hit) hit$`_source`$marker, "")
   )
@@ -145,6 +155,7 @@ probe_write <- function(database) {
         method = "PUT",
         body = list(marker = "write-test")
       )
+
       FALSE
     },
     error = function(error) {
@@ -167,9 +178,12 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   observeEvent(input$stop, stopApp())
+
   output$sign_in_status <- renderText({
     if (
       !is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")
@@ -178,37 +192,49 @@ server <- function(input, output, session) {
         "Sign-in didn't finish. Check the local test certificate in your browser, then try Sign in again."
       )
     }
+
     reference <- tryCatch(auth$connection(), error = function(error) NULL)
+
     if (is.null(reference)) {
       "Not signed in. Choose one of the demo accounts above."
     } else {
       "Sign out before trying the other account."
     }
   })
+
   database <- oauth_db_opensearch_api(
     auth$connection,
     url = "https://localhost:9200",
     required_scopes = "search.read",
     ca_bundle = "/fixtures/tls/ca-cert.pem"
   )
+
   output$account <- renderText({
     token <- req(auth$token)
+
     paste("Signed in as", req(token@userinfo$preferred_username))
   })
+
   query_task <- oauth_db_task(database, method = fetch_rows)
+
   observeEvent(input$load, {
     query_task$invoke(
       example_index = example_index,
       example_search = example_search
     )
   })
+
   output$rows <- renderTable(query_task$result())
+
   probe_task <- oauth_db_task(database, method = probe_write)
+
   observeEvent(input$probe, {
     probe_task$invoke()
   })
+
   output$permission <- renderText({
     blocked <- probe_task$result()
+
     if (is.na(blocked)) {
       "Could not check write access. Check the connection, then try again."
     } else if (blocked) {
@@ -221,5 +247,6 @@ server <- function(input, output, session) {
 
 shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })

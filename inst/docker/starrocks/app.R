@@ -18,6 +18,7 @@ example_query <- "SELECT marker FROM visible_rows ORDER BY id"
 ui <- oauth_ui(
   page_sidebar(
     title = h2("StarRocks OAuth demo", class = "h3 mb-0"),
+
     theme = bs_theme(
       version = 5,
       primary = "#17646c",
@@ -25,8 +26,10 @@ ui <- oauth_ui(
       fg = "#23313d",
       base_font = "system-ui"
     ),
+
     fillable = FALSE,
     lang = "en",
+
     sidebar = sidebar(
       width = 320,
       bg = "#fff",
@@ -65,13 +68,16 @@ ui <- oauth_ui(
         class = "demo-note"
       )
     ),
+
     tags$style(
       ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }\n    .demo-details dt { font-size: .9rem; color: #485867; }\n    .demo-details dd { margin: 0; overflow-wrap: anywhere; }\n    .sidebar .demo-details { grid-template-columns: 1fr; gap: .25rem; }\n    .sidebar .demo-details dd { margin-bottom: .5rem; }\n    @media (max-width: 575px) { .main .demo-details { grid-template-columns: 1fr; gap: .25rem; } .main .demo-details dd { margin-bottom: .6rem; } }\n    .demo-details code, #demo-accounts code { color: inherit; white-space: normal; overflow-wrap: anywhere; }\n    .demo-results { overflow-x: auto; }\n    .demo-note { color: #485867; font-size: .95rem; }\n    .btn { min-height: 44px; }\n    pre { white-space: pre-wrap; overflow-wrap: anywhere; }\n    .card-header h3 { font-size: 1.1rem; margin: 0; }\n    .card, .sidebar { background: #fff; }\n    .bslib-card { margin-top: 1rem; }\n    .card-body > p { margin-bottom: 0; }"
     ),
+
     p(
       "Query StarRocks using the signed-in account and its database permissions.",
       class = "lead"
     ),
+
     card(
       fill = FALSE,
       card_header(h3("2. Query sample data")),
@@ -85,6 +91,7 @@ ui <- oauth_ui(
       ),
       div(class = "demo-results", tableOutput("rows"))
     ),
+
     card(
       fill = FALSE,
       card_header(h3("About this connection")),
@@ -108,6 +115,7 @@ ui <- oauth_ui(
       )
     )
   ),
+
   id = "auth",
   client = client
 )
@@ -119,9 +127,12 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   observeEvent(input$stop, stopApp())
+
   output$sign_in_status <- renderText({
     if (
       !is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")
@@ -130,17 +141,22 @@ server <- function(input, output, session) {
         "Sign-in didn't finish. Check the local test certificate in your browser, then try Sign in again."
       )
     }
+
     reference <- tryCatch(auth$connection(), error = function(error) NULL)
+
     if (is.null(reference)) {
       "Not signed in. Choose one of the demo accounts above."
     } else {
       "Sign out before trying the other account."
     }
   })
+
   output$account <- renderText({
     token <- req(auth$token)
+
     paste("Signed in as", req(token@userinfo$preferred_username))
   })
+
   con <- oauth_db_starrocks(
     auth$connection,
     server = "localhost",
@@ -151,15 +167,19 @@ server <- function(input, output, session) {
     plugin_dir = "/usr/lib/x86_64-linux-gnu/mysql/libmyodbc9/plugin",
     ssl_ca = "/fixtures/tls/ca-cert.pem"
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke(example_query)
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })
 

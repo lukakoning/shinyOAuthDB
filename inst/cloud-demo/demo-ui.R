@@ -2,9 +2,11 @@
 library(bslib)
 
 details <- if (exists("demo_details")) Filter(length, demo_details) else list()
+
 ui <- oauth_ui(
   page_sidebar(
     title = h2(demo_title, class = "h3 mb-0"),
+
     theme = bs_theme(
       version = 5,
       primary = "#17646c",
@@ -12,8 +14,10 @@ ui <- oauth_ui(
       fg = "#23313d",
       base_font = "system-ui"
     ),
+
     fillable = FALSE,
     lang = "en",
+
     sidebar = sidebar(
       width = 320,
       bg = "#fff",
@@ -47,6 +51,7 @@ ui <- oauth_ui(
         class = "demo-note"
       )
     ),
+
     tags$style(
       ".demo-details { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 3fr); gap: .6rem 1rem; }
     .demo-details dt { font-size: .9rem; color: #485867; }
@@ -64,10 +69,12 @@ ui <- oauth_ui(
     .bslib-card { margin-top: 1rem; }
     .card-body > p { margin-bottom: 0; }"
     ),
+
     p(
       "Query your data platform from Shiny, using the account of the person who signs in.",
       class = "lead"
     ),
+
     card(
       fill = FALSE,
       card_header(h3("2. Check your database identity")),
@@ -78,6 +85,7 @@ ui <- oauth_ui(
       div(class = "demo-results", tableOutput("rows")),
       if (exists("result_explanation")) p(result_explanation)
     ),
+
     card(
       fill = FALSE,
       card_header(h3("About this connection")),
@@ -97,6 +105,7 @@ ui <- oauth_ui(
       if (exists("demo_context")) p(demo_context),
       if (exists("platform_note")) p(platform_note)
     ),
+
     tags$details(
       tags$summary("3. Try your own query"),
       p(
@@ -107,6 +116,7 @@ ui <- oauth_ui(
       )
     )
   ),
+
   id = "auth",
   client = client
 )
@@ -122,65 +132,85 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   observeEvent(input$setup, stopApp("setup"))
   observeEvent(input$stop, stopApp())
+
   current <- reactive({
     reference <- tryCatch(
       auth$connection(),
       shiny.silent.error = function(error) NULL
     )
+
     if (is.null(reference)) {
       return(NULL)
     }
+
     # Named API tokens can be acquired lazily when the query button is clicked.
     if (!is.null(query_target)) {
       status <- tryCatch(
         reference$summary(target = query_target)$status,
         error = function(error) NULL
       )
+
       if (is.null(status)) {
         return(NULL)
       }
+
       if (identical(status, "not_acquired")) return(reference)
     }
+
     if (isTRUE(reference$has_scopes(query_scopes, target = query_target))) {
       reference
     } else {
       NULL
     }
   })
+
   query_task <- oauth_db_task(make_access(auth$connection), method = run_query)
+
   result <- reactive({
     reference <- current()
+
     if (is.null(reference)) {
       return(NULL)
     }
+
     value <- tryCatch(query_task$result(), error = function(error) NULL)
+
     if (is.null(value)) NULL else list(owner = reference$id, data = value)
   })
+
   query_status <- reactive({
     if (is.null(current())) {
       return("")
     }
+
     status <- query_task$status()
+
     if (status == "running") {
       return("Running query...")
     }
+
     if (status == "error") {
       return(paste(
         query_help,
         "If you edited the SQL, check its syntax and table names too."
       ))
     }
+
     if (!is.null(result())) {
       return(
         "Query completed using the signed-in person's database permissions."
       )
     }
+
     ""
   })
+
   output$account <- renderText({
     if (
       !is.null(auth$error) && !auth$error %in% c("logged_out", "access_denied")
@@ -189,20 +219,26 @@ server <- function(input, output, session) {
         "Sign-in didn't finish. Check the registered return address and app registration using the setup guide below, then try again."
       )
     }
+
     reference <- tryCatch(auth$connection(), error = function(error) NULL)
+
     if (is.null(reference)) {
       return("Not signed in. Click Sign in to use your own platform account.")
     }
+
     if (is.null(current())) {
       return(
         "Your sign-in needs query access. Check the app's requested permissions, or use Back to setup to correct the registration."
       )
     }
+
     if (!is.null(result())) {
       return("Signed in. Sign out to switch accounts.")
     }
+
     "Signed in. Click Run example query to check your database identity."
   })
+
   output$query_actions <- renderUI(actionButton(
     "run",
     "Run example query",
@@ -213,23 +249,31 @@ server <- function(input, output, session) {
       NULL
     }
   ))
+
   observeEvent(input$run, {
     req(current())
+
     do.call(query_task$invoke, c(list(example_query), query_arguments))
   })
+
   output$query_status <- renderText({
     req(current())
+
     query_status()
   })
+
   output$rows <- renderTable({
     reference <- req(current())
     req(reference$has_scopes(query_scopes, target = query_target))
     value <- req(result())
     req(identical(value$owner, reference$id))
+
     value$data
   })
 }
+
 shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })

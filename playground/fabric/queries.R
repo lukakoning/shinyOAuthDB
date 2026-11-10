@@ -11,22 +11,28 @@ fabric_demo_sources <- c(
   "GraphQL / paginated" = "graphql",
   "Workspace / discovery" = "discovery"
 )
+
 fabric_demo_discover <- function(token, workspace_name) {
   workspaces <- fabricQueryR::fabric_workspaces(token = token)
+
   matches <- Filter(
     function(x) identical(x[["displayName"]], workspace_name),
     workspaces
   )
+
   if (length(matches) != 1L) {
     stop("Expected one accessible workspace named ", workspace_name, ".")
   }
+
   workspace <- matches[[1L]]
+
   items <- fabricQueryR::fabric_items(
     workspace,
     detail = TRUE,
     detail_errors = "record",
     token = token
   )
+
   list(workspace = workspace, items = items)
 }
 
@@ -38,9 +44,11 @@ fabric_demo_item <- function(sandbox, name, type) {
     },
     sandbox$items
   )
+
   if (length(matches) != 1L) {
     stop("The sandbox is missing ", name, " (", type, ").")
   }
+
   matches[[1L]]
 }
 
@@ -55,6 +63,7 @@ fabric_demo_read <- function(
   item_fun = fabric_demo_item
 ) {
   item <- function(name, type) item_fun(sandbox, name, type)
+
   switch(
     source,
     warehouse = ,
@@ -64,11 +73,13 @@ fabric_demo_read <- function(
       } else {
         item("TestLakehouse", "Lakehouse")
       }
+
       table <- if (source == "warehouse") {
         "fabricqueryr_sql_types"
       } else {
         "fabricqueryr_basic"
       }
+
       # fabric_sql_query() opens/closes a native ODBC or ADBC connection.
       fabricQueryR::fabric_sql_query(
         target,
@@ -95,12 +106,15 @@ fabric_demo_read <- function(
         },
         "SemanticModel"
       )
+
       stopifnot(category %in% c("All", "A", "B"))
+
       filter <- if (category == "All") {
         ""
       } else {
         paste0('TREATAS({"', category, '"}, \'Facts\'[category]), ')
       }
+
       result <- fabricQueryR::fabric_pbi_dax_query(
         target,
         dax = paste0(
@@ -111,6 +125,7 @@ fabric_demo_read <- function(
         api = if (source == "dax") "json" else "arrow",
         token = token
       )
+
       names(result) <- c("Category", "Rows", "Amount")
       result
     },
@@ -169,6 +184,7 @@ fabric_demo_read <- function(
           "https://analysis.windows.net/powerbi/api/GraphQLApi.Execute.All"
         }
       )
+
       fabricQueryR::fabric_graphql_collect(
         pages,
         c("fabricqueryr_basics", "items")
@@ -198,6 +214,7 @@ fabric_demo_fetch <- function(
 ) {
   token <- if (is.function(client)) client else client$token_provider()
   sandbox <- helpers$discover(token, workspace_name)
+
   helpers$read(
     source,
     sandbox,
@@ -218,14 +235,18 @@ fabric_demo_shared_token <- function() {
     "FABRICQUERYR_CLIENT_ID",
     "FABRICQUERYR_CLIENT_SECRET"
   ))
+
   if (!all(nzchar(settings))) {
     stop(
       "Set all three FABRICQUERYR_* sandbox credentials or configure delegated sign-in."
     )
   }
+
   cache <- new.env(parent = emptyenv())
+
   function(audience, force_refresh = FALSE) {
     token <- cache[[audience]]
+
     if (is.null(token)) {
       token <- AzureAuth::get_azure_token(
         resource = audience,
@@ -235,10 +256,12 @@ fabric_demo_shared_token <- function() {
         auth_type = "client_credentials",
         version = 2
       )
+
       cache[[audience]] <- token
     } else if (force_refresh || !token$validate()) {
       token$refresh()
     }
+
     token$credentials$access_token
   }
 }

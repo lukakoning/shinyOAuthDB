@@ -1,10 +1,3 @@
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "brickster")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -25,11 +18,14 @@ client <- oauth_db_databricks_client(
 ui <- oauth_ui(
   fluidPage(
     titlePanel("Databricks SQL"),
+
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     verbatimTextOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -41,10 +37,14 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   databricks <- oauth_db_databricks_api(auth$connection, host = host)
+
   query_task <- oauth_db_task(databricks, method = "call")
+
   observeEvent(input$load, {
     query_task$invoke(
       brickster::db_sql_query,
@@ -54,11 +54,13 @@ server <- function(input, output, session) {
       show_progress = FALSE
     )
   })
+
   output$rows <- renderPrint(query_task$result())
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })
 

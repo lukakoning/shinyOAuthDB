@@ -68,15 +68,20 @@ Supported databases and data platforms (links open their setup guides):
 
 ## Install
 
-The example below installs missing packages from CRAN. To install the
-development version from GitHub instead:
+Install the development version from GitHub:
 
 ```r
 if (!requireNamespace("remotes", quietly = TRUE)) {
-    install.packages("remotes")
+  install.packages("remotes")
 }
+
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
+
+Installing shinyOAuthDB also installs shinyOAuth, shiny and their required
+dependencies, including jsonlite. The examples assume shinyOAuthDB is already
+installed. For background workers, see the
+[async setup](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#enable-asynchronous-oauth).
 
 ## Example usage with PostgreSQL
 
@@ -109,10 +114,12 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     textOutput("account"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -132,11 +139,16 @@ server <- function(input, output, session) {
 
   # Show whether the user is signed in
   output$account <- renderText({
-    if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
+    if (is.null(auth$connection())) {
+      "Not signed in"
+    } else {
+      "Signed in. Click Load rows."
+    }
   })
 
   # Retrieve data from the database using the user's access token
-  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)  
+  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+
   # Use a background task to run the query so the app remains responsive
   query_task <- oauth_db_task(postgres, method = "select")
 
@@ -152,6 +164,7 @@ server <- function(input, output, session) {
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
+
     onStop(function() {
       mirai::daemons(0)
       demo$stop()

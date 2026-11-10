@@ -1,10 +1,3 @@
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "openssl")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -34,39 +27,52 @@ manager <- oauth_connections(
 ui <- oauth_connections_ui(
   fluidPage(
     titlePanel("Choose a database authorization"),
+
     actionButton("connect", "Add authorization"),
+
     selectInput(
       "authorization_id",
       "Use authorization",
       choices = c(Choose = "")
     ),
+
     actionButton("disconnect", "Remove selected authorization"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "authorizations",
   manager = manager
 )
 
 server <- function(input, output, session) {
   auth <- oauth_connections_server("authorizations", manager, async = TRUE)
+
   observeEvent(input$connect, auth$connect("database"))
+
   observeEvent(input$disconnect, {
     req(input$authorization_id)
+
     auth$disconnect(input$authorization_id, revoke = FALSE)
   })
+
   observeEvent(input$authorization_id, auth$touch(), ignoreInit = TRUE)
+
   observe({
     records <- Filter(
       function(x) !x$status %in% c("disconnected", "unavailable"),
       auth$connections()
     )
+
     ids <- vapply(records, function(x) x$connection_id, character(1))
     labels <- paste("Authorization", seq_along(ids), recycle0 = TRUE)
     selected <- isolate(input$authorization_id)
+
     if (is.null(selected) || !selected %in% ids) {
       selected <- ""
     }
+
     updateSelectInput(
       session,
       "authorization_id",
@@ -74,27 +80,35 @@ server <- function(input, output, session) {
       selected = selected
     )
   })
+
   authorization <- reactive({
     id <- input$authorization_id
+
     if (is.null(id) || !nzchar(id)) {
       return(NULL)
     }
+
     auth$connection(id)
   })
+
   con <- oauth_db_azure_sql(
     authorization,
     server = Sys.getenv("OAUTHDB_SERVER"),
     database = Sys.getenv("OAUTHDB_DATABASE")
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke("SELECT CURRENT_USER AS database_user")
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })
 

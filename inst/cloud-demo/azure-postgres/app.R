@@ -3,6 +3,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
+
 client <- oauth_db_microsoft_client(
   services = "postgres",
   tenant_id = settings$tenant_id,
@@ -16,6 +17,7 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Azure PostgreSQL Shiny demo"
+
 demo_details <- list(
   "PostgreSQL server" = settings$server,
   "Database" = settings$database,
@@ -23,6 +25,7 @@ demo_details <- list(
   "Database port" = settings$database_port,
   "Trusted CA bundle" = settings$sslrootcert
 )
+
 platform_note <- "Each person signs in individually. PostgreSQL checks that their token matches the requested database user or its mapped group membership."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/azure-postgres.html"
 example_query <- "SELECT current_user AS database_role, current_database() AS database_name"
@@ -42,6 +45,7 @@ make_access <- function(authorization) {
     port = as.integer(settings$database_port)
   )
 }
+
 run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value

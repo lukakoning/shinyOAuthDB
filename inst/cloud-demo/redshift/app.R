@@ -3,6 +3,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
+
 client <- oauth_db_microsoft_client(
   tenant_id = settings$tenant_id,
   client_id = settings$client_id,
@@ -18,6 +19,7 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "Amazon Redshift Shiny demo"
+
 demo_details <- list(
   "Endpoint" = settings$server,
   "Database" = settings$database,
@@ -26,6 +28,7 @@ demo_details <- list(
   "Delegated scope" = settings$scope,
   "ODBC driver" = settings$driver
 )
+
 platform_note <- "This connection uses IdpTokenAuthPlugin with an external JWT. IAM Identity Center must trust the issuer and audience and map the user to Redshift privileges."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/redshift.html"
 example_query <- "SELECT current_user AS signed_in_user"
@@ -47,6 +50,7 @@ make_access <- function(authorization) {
     required_scopes = settings$scope
   )
 }
+
 run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value

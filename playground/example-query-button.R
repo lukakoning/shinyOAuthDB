@@ -1,10 +1,3 @@
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 # Run SQL on a button click and clear saved results when access changes.
 library(shiny)
 library(shinyOAuth)
@@ -17,14 +10,18 @@ client <- oauth_db_microsoft_client(
   client_secret = Sys.getenv("OAUTHDB_CLIENT_SECRET"),
   redirect_uri = Sys.getenv("OAUTHDB_REDIRECT_URI", "http://localhost:8100")
 )
+
 ui <- oauth_ui(
   fluidPage(
     titlePanel("Query on demand"),
+
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("run", "Run query"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -36,9 +33,12 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   permissions <- "https://database.windows.net//user_impersonation"
+
   con <- oauth_db_azure_sql(
     auth$connection,
     required_scopes = permissions,
@@ -47,16 +47,20 @@ server <- function(input, output, session) {
   )
 
   rows <- oauth_db_task(con)
+
   observeEvent(input$run, {
     rows$invoke("SELECT CURRENT_USER AS database_user")
   })
+
   output$rows <- renderTable(rows$result())
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })
+
 if (interactive()) {
   runApp(
     app,

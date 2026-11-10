@@ -3,6 +3,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
+
 client <- oauth_db_microsoft_client(
   services = "sql",
   tenant_id = settings$tenant_id,
@@ -17,11 +18,13 @@ client <- oauth_db_microsoft_client(
 
 # Change the SQL here after the identity query works.
 demo_title <- "Microsoft Fabric Shiny demo"
+
 demo_details <- list(
   "SQL server" = settings$server,
   "Database" = settings$database,
   "ODBC driver" = settings$driver
 )
+
 platform_note <- "This connects to the Warehouse or SQL analytics endpoint. Fabric item permissions and SQL grants determine which tables you can read."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/fabric.html"
 example_query <- "SELECT CURRENT_USER AS signed_in_user"
@@ -39,6 +42,7 @@ make_access <- function(authorization) {
     driver = settings$driver
   )
 }
+
 run_query <- function(access, statement) DBI::dbGetQuery(access, statement)
 
 source("demo-ui.R", local = TRUE)$value

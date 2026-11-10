@@ -3,6 +3,7 @@ library(shinyOAuth)
 library(shinyOAuthDB)
 
 settings <- as.list(read.dcf("settings.dcf")[1L, ])
+
 client <- oauth_db_microsoft_client(
   tenant_id = settings$tenant_id,
   client_id = settings$client_id,
@@ -18,12 +19,14 @@ client <- oauth_db_microsoft_client(
 )
 
 demo_title <- "ClickHouse Cloud Shiny demo"
+
 demo_details <- list(
   "HTTPS query endpoint" = settings$url,
   "Database" = settings$database,
   "Accepted API resource" = settings$resource,
   "Delegated scope" = settings$scope
 )
+
 platform_note <- "The query endpoint accepts the visitor's JWT. The service must trust its issuer and audience and map the token's role claims to existing ClickHouse roles."
 demo_guide <- "https://lukakoning.github.io/shinyOAuthDB/articles/clickhouse.html"
 example_query <- "SELECT currentUser() AS signed_in_user, version() AS server_version"
@@ -42,6 +45,7 @@ make_access <- function(authorization) {
     required_scopes = settings$scope
   )
 }
+
 run_query <- function(access, statement) access$query(statement)
 
 source("demo-ui.R", local = TRUE)$value

@@ -1,10 +1,3 @@
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "RPostgres")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -30,11 +23,14 @@ client <- oauth_client(
 ui <- oauth_ui(
   fluidPage(
     titlePanel("Self-hosted PostgreSQL"),
+
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
+
     actionButton("load", "Load rows"),
     tableOutput("rows")
   ),
+
   id = "auth",
   client = client
 )
@@ -46,8 +42,10 @@ server <- function(input, output, session) {
     auto_redirect = FALSE,
     async = TRUE
   )
+
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
   con <- oauth_db_postgres(
     auth$connection,
     host = Sys.getenv("OAUTHDB_POSTGRES_HOST"),
@@ -61,18 +59,22 @@ server <- function(input, output, session) {
     scope = database_scope,
     sslrootcert = Sys.getenv("OAUTHDB_POSTGRES_SSLROOTCERT")
   )
+
   query_task <- oauth_db_task(con)
+
   observeEvent(input$load, {
     query_task$invoke(paste(
       "SELECT current_user::text AS database_user, table_schema, table_name",
       "FROM information_schema.tables ORDER BY table_schema, table_name LIMIT 20"
     ))
   })
+
   output$rows <- renderTable(query_task$result())
 }
 
 app <- shinyApp(ui, server, uiPattern = ".*", onStart = function() {
   mirai::daemons(2)
+
   onStop(function() mirai::daemons(0))
 })
 
