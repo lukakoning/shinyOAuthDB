@@ -205,6 +205,7 @@ oauth_db_token <- function(
   checks_changed <- shiny::reactiveVal(0L)
   background <- FALSE
   permission_validation <- NULL
+  identity_pending <- shiny::reactiveVal(FALSE)
   task_changed <- shiny::reactiveVal(0L)
 
   assert_owner <- function() {
@@ -298,7 +299,7 @@ oauth_db_token <- function(
   sync <- function(async = background) {
     assert_owner()
     next_grant <- next_identity <- next_failure <- NULL
-    next_available <- next_denied <- FALSE
+    next_available <- next_denied <- next_identity_pending <- FALSE
     tryCatch(
       {
         next_grant <- reader()
@@ -315,12 +316,16 @@ oauth_db_token <- function(
             required_scopes,
             target
           )
-          # Permission evidence drives notifications. Watching token status here
-          # could retrigger renewal indefinitely when expiry remains unknown.
-          status <- shiny::isolate(.odb_authorization_status(
-            next_grant,
-            target
-          ))
+          # Identity callbacks can wait on refresh status. Other sources watch
+          # permission evidence alone so unknown expiry cannot loop renewal.
+          read_status <- function() {
+            .odb_authorization_status(next_grant, target)
+          }
+          status <- if (is.function(identity_key)) {
+            read_status()
+          } else {
+            shiny::isolate(read_status())
+          }
           # has_scopes() checks operation scopes, not the client's requirements.
           # Validate those separately when expiry masks the permission status;
           # preserve a previous denial while a refresh hides its evidence.
@@ -365,7 +370,17 @@ oauth_db_token <- function(
             ))
           }
           if (next_available && is.function(identity_key)) {
-            next_identity <- identity_key()
+            next_identity <- tryCatch(identity_key(), error = function(error) {
+              pending <- identical(status, "refreshing") ||
+                (async &&
+                  !is.null(permission_validation) &&
+                  permission_validation$pending)
+              if (!pending) {
+                stop(error)
+              }
+              next_identity_pending <<- TRUE
+              if (identical(next_grant, grant)) identity else NULL
+            })
           }
         }
       },
@@ -397,6 +412,7 @@ oauth_db_token <- function(
     denied <<- next_denied
     failure <<- next_failure
     failure_key <<- next_failure_key
+    identity_pending(next_identity_pending)
     checks_changed()
     for (check in scope_checks) {
       check$changed(scope_coverage(check$scopes))
@@ -410,6 +426,12 @@ oauth_db_token <- function(
       .odb_abort(
         "This provider's authorization is no longer current.",
         "authorization_unavailable"
+      )
+    }
+    if (identity_pending()) {
+      .odb_abort(
+        "The account identity is unavailable while credentials renew.",
+        "authorization_pending"
       )
     }
     if (
@@ -429,6 +451,7 @@ oauth_db_token <- function(
     background_token <- .token_only && background
     shiny::isolate(sync(async = background_token))
     changed() # Depend on authorization changes, never on ordinary token rotation.
+    shiny::req(!identity_pending())
     if (!is.null(failure)) {
       stop(failure)
     }
@@ -616,6 +639,7 @@ oauth_db_token <- function(
     watch = function() {
       assert_owner()
       changed()
+      identity_pending()
       task_changed()
       invisible(NULL)
     },
