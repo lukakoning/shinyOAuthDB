@@ -72,11 +72,8 @@
 </h2>
 <p>The example below installs missing packages from CRAN. To install the development version from GitHub instead:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pkgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
-<span><span class="kw">for</span> <span class="op">(</span><span class="va">pkg</span> <span class="kw">in</span> <span class="va">pkgs</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="va">pkg</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pkg</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"remotes"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lukakoning/shinyOAuthDB"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -87,7 +84,7 @@
 <p>It launches PostgreSQL and Keycloak sign-in in Docker (so install and launch <a href="https://docs.docker.com/engine/install/" class="external-link">Docker</a> if you wish to run it).</p>
 <p>This example uses PostgREST since it does not require a database driver to be installed, but you could also use DBI with a PostgreSQL driver. See the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html">PostgreSQL guide</a> for that.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pkgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"shiny"</span>, <span class="st">"shinyOAuth"</span>, <span class="st">"shinyOAuthDB"</span>, <span class="st">"mirai"</span>, <span class="st">"jsonlite"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">pkgs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mirai"</span>, <span class="st">"jsonlite"</span><span class="op">)</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">pkg</span> <span class="kw">in</span> <span class="va">pkgs</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="va">pkg</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="va">pkg</span><span class="op">)</span></span>
@@ -150,7 +147,9 @@
 <span>  launch.browser <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Open the app in your regular browser at its registered redirect URI.</span></span></code></pre></div>
+<span></span>
+<span><span class="co"># Open the app in your regular browser at http://localhost:18100</span></span>
+<span><span class="co"># (viewers in RStudio/Positron/etc. cannot perform necessary redirects)</span></span></code></pre></div>
 <p>Sign in as <code>alice</code> / <code>alice</code> or <code>bob</code> / <code>bob</code> (username / password). The first build takes a few minutes; your browser may ask you to accept the local sign-in certificate. Stopping the app removes its Docker services.</p>
 <p>For your own PostgreSQL server, follow the <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html">PostgreSQL</a> or <a href="https://lukakoning.github.io/shinyOAuthDB/articles/postgrest.html">PostgREST</a> guides. For other databases and data platforms, refer to the links above.</p>
 </div>
