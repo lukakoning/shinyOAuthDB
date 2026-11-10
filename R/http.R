@@ -240,7 +240,8 @@
     force(value)
     credentials <<- union(credentials, value)
     remaining <- deadline - .odb_http_time()
-    if (remaining <= 0) {
+    # httr2 requires more than one millisecond to configure a request.
+    if (remaining <= 0.001) {
       .odb_abort(paste0(service, " operation timed out."), "timeout")
     }
     request <- httr2::req_timeout(req, remaining)

@@ -491,7 +491,7 @@ oauth_db_bigquery_client <- function(
 ) {
   started <- .odb_bigquery_time()
   remaining <- deadline - started
-  if (remaining <= 0) {
+  if (remaining <= 0.001) {
     .odb_abort(
       "BigQuery operation timed out; the remote job may still be running.",
       "timeout"
@@ -516,7 +516,7 @@ oauth_db_bigquery_client <- function(
     force(value)
     credentials <<- union(credentials, value)
     remaining <- deadline - .odb_bigquery_time()
-    if (remaining <= 0) {
+    if (remaining <= 0.001) {
       .odb_abort(
         "BigQuery operation timed out; the remote job may still be running.",
         "timeout"
