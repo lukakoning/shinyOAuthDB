@@ -214,8 +214,11 @@ out clears the output.</p>
 <div class="section level2">
 <h2 id="query-a-table">Query a table<a class="anchor" aria-label="anchor" href="#query-a-table"></a>
 </h2>
-<p>Replace the output expression with SQL for your data. For example, if
-your table is <code>ANALYTICS.PUBLIC.ORDERS</code>:</p>
+<p>To read <code>ANALYTICS.PUBLIC.ORDERS</code>, replace the complete
+block inside <code>server()</code> from
+<code>query_task &lt;- oauth_db_task(con)</code> through
+<code>output$rows &lt;- renderTable(query_task$result())</code>,
+including the <strong>Load rows</strong> observer, with:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fetch_rows</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">connection</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT * FROM ANALYTICS.PUBLIC.ORDERS LIMIT 20"</span><span class="op">)</span></span>

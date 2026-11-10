@@ -161,14 +161,17 @@ run the query; signing out clears the output.
 In the app, `con` is a function. The task opens the signed-in user’s DBI
 connection in its worker.
 
-To read an `Orders` table with dbplyr, install `dbplyr` and `dplyr`,
-then replace the output expression with:
+To read an `Orders` table with dbplyr, install `dbplyr` and `dplyr`.
+Inside `server()`, replace the complete block from
+`query_task <- oauth_db_task(con)` through
+`output$rows <- renderTable(query_task$result())`, including the **Load
+rows** observer, with:
 
 ``` r
 
 fetch_rows <- function(connection) {
   dplyr::tbl(connection, "Orders") |>
-    dplyr::filter(amount > 100) |>
+    dplyr::filter(.data$amount > 100) |>
     dplyr::collect()
 }
 
@@ -178,6 +181,10 @@ observeEvent(input$load, query_task$invoke())
 
 output$rows <- renderTable(query_task$result())
 ```
+
+Use `.data$amount` to identify a data column in the worker function.
+Pass other query inputs through `invoke()`; workers can’t capture
+variables from the Shiny session.
 
 For SQL queries that include values entered by a user, use DBI parameter
 binding.

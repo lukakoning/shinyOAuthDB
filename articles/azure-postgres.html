@@ -223,8 +223,11 @@ out clears the output.</p>
 <div class="section level2">
 <h2 id="read-a-table">Read a table<a class="anchor" aria-label="anchor" href="#read-a-table"></a>
 </h2>
-<p>The first query shows the PostgreSQL role. To read your data, replace
-that output expression with a query for your table:</p>
+<p>The first query shows the PostgreSQL role. To read your table,
+replace the complete block inside <code>server()</code> from
+<code>query_task &lt;- oauth_db_task(con)</code> through
+<code>output$rows &lt;- renderTable(query_task$result())</code>,
+including the <strong>Load rows</strong> observer, with:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fetch_rows</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">connection</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"SELECT * FROM reporting.orders LIMIT 20"</span><span class="op">)</span></span>

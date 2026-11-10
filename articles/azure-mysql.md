@@ -136,7 +136,10 @@ tenant maps an email address to the same database name.
 Pass `con` to
 [`oauth_db_task()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_task.md)
 to open a worker connection for DBI. For values supplied by users, use
-bound parameters:
+bound parameters. Inside `server()`, replace the complete block from
+`query_task <- oauth_db_task(con)` through
+`output$rows <- renderTable(query_task$result())`, including the **Load
+rows** observer, with:
 
 ``` r
 

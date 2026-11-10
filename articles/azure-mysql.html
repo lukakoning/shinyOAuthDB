@@ -189,7 +189,10 @@ assume every tenant maps an email address to the same database name.</p>
 </h2>
 <p>Pass <code>con</code> to <code><a href="../reference/oauth_db_task.html">oauth_db_task()</a></code> to open a
 worker connection for DBI. For values supplied by users, use bound
-parameters:</p>
+parameters. Inside <code>server()</code>, replace the complete block
+from <code>query_task &lt;- oauth_db_task(con)</code> through
+<code>output$rows &lt;- renderTable(query_task$result())</code>,
+including the <strong>Load rows</strong> observer, with:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fetch_rows</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">connection</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">DBI</span><span class="fu">::</span><span class="fu"><a href="https://dbi.r-dbi.org/reference/dbGetQuery.html" class="external-link">dbGetQuery</a></span><span class="op">(</span></span>

@@ -223,11 +223,10 @@ fabric <- oauth_db_fabric_api(
 )
 
 read_orders <- function(client) {
-  lakehouse <- fabricQueryR::fabric_item(
+  lakehouse <- client$call(
     fabricQueryR::fabric_item,
     workspace = "workspace-guid",
-    item = "lakehouse-guid",
-    token = client$token_provider()
+    item = "lakehouse-guid"
   )
 
   lakehouse$read_table("Orders", limit = 100L)

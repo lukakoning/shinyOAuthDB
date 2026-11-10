@@ -243,12 +243,15 @@ out clears the output.</p>
 <p>In the app, <code>con</code> is a function. The task opens the
 signed-in user’s DBI connection in its worker.</p>
 <p>To read an <code>Orders</code> table with dbplyr, install
-<code>dbplyr</code> and <code>dplyr</code>, then replace the output
-expression with:</p>
+<code>dbplyr</code> and <code>dplyr</code>. Inside
+<code>server()</code>, replace the complete block from
+<code>query_task &lt;- oauth_db_task(con)</code> through
+<code>output$rows &lt;- renderTable(query_task$result())</code>,
+including the <strong>Load rows</strong> observer, with:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fetch_rows</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">connection</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/tbl.html" class="external-link">tbl</a></span><span class="op">(</span><span class="va">connection</span>, <span class="st">"Orders"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">amount</span> <span class="op">&gt;</span> <span class="fl">100</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">.data</span><span class="op">$</span><span class="va">amount</span> <span class="op">&gt;</span> <span class="fl">100</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
@@ -257,6 +260,9 @@ expression with:</p>
 <span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/observeEvent.html" class="external-link">observeEvent</a></span><span class="op">(</span><span class="va">input</span><span class="op">$</span><span class="va">load</span>, <span class="va">query_task</span><span class="op">$</span><span class="fu">invoke</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">output</span><span class="op">$</span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/shiny/man/renderTable.html" class="external-link">renderTable</a></span><span class="op">(</span><span class="va">query_task</span><span class="op">$</span><span class="fu">result</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Use <code>.data$amount</code> to identify a data column in the worker
+function. Pass other query inputs through <code>invoke()</code>; workers
+can’t capture variables from the Shiny session.</p>
 <p>For SQL queries that include values entered by a user, use DBI
 parameter binding.</p>
 </div>

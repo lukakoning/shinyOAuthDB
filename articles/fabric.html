@@ -317,11 +317,10 @@ processes:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">read_orders</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">client</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">lakehouse</span> <span class="op">&lt;-</span> <span class="fu">fabricQueryR</span><span class="fu">::</span><span class="fu"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_item.html" class="external-link">fabric_item</a></span><span class="op">(</span></span>
+<span>  <span class="va">lakehouse</span> <span class="op">&lt;-</span> <span class="va">client</span><span class="op">$</span><span class="fu">call</span><span class="op">(</span></span>
 <span>    <span class="fu">fabricQueryR</span><span class="fu">::</span><span class="va"><a href="https://kennispunttwente.github.io/fabricQueryR/reference/fabric_item.html" class="external-link">fabric_item</a></span>,</span>
 <span>    workspace <span class="op">=</span> <span class="st">"workspace-guid"</span>,</span>
-<span>    item <span class="op">=</span> <span class="st">"lakehouse-guid"</span>,</span>
-<span>    token <span class="op">=</span> <span class="va">client</span><span class="op">$</span><span class="fu">token_provider</span><span class="op">(</span><span class="op">)</span></span>
+<span>    item <span class="op">=</span> <span class="st">"lakehouse-guid"</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">lakehouse</span><span class="op">$</span><span class="fu">read_table</span><span class="op">(</span><span class="st">"Orders"</span>, limit <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span></span>
