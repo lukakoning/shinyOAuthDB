@@ -119,11 +119,10 @@ oauth_db_task <- function(
     shiny::isolate({
       pending <- lapply(seq_along(pins), function(index) {
         budget <- max(min_valid_for, spec$plans[[index]]$min_valid_for)
-        deadline <- as.numeric(Sys.time()) + budget
         promises::then(
           pins[[index]](.async = TRUE, .min_valid_for = budget),
           function(token) {
-            list(token = token, until = deadline)
+            list(token = token, until = .odb_task_time() + budget)
           }
         )
       })
@@ -515,6 +514,8 @@ oauth_db_task <- function(
   )
 }
 
+.odb_task_time <- function() as.numeric(Sys.time())
+
 .odb_task_run <- function(worker, tokens, until, method, arguments) {
   restore <- function(value) {
     if (inherits(value, "shinyOAuthDB_worker_function")) {
@@ -541,7 +542,7 @@ oauth_db_task <- function(
   providers <- lapply(seq_along(tokens), function(index) {
     force(index)
     function(force_refresh = FALSE, scopes = character(), .check_only = FALSE) {
-      if (as.numeric(Sys.time()) >= until[[index]]) {
+      if (.odb_task_time() >= until[[index]]) {
         .odb_abort(
           "The worker's token lifetime budget expired.",
           "authorization_unavailable"
