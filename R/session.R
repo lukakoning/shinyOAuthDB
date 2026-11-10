@@ -428,7 +428,7 @@ oauth_db_token <- function(
         "authorization_unavailable"
       )
     }
-    if (identity_pending()) {
+    if (shiny::isolate(identity_pending())) {
       .odb_abort(
         "The account identity is unavailable while credentials renew.",
         "authorization_pending"
@@ -451,7 +451,10 @@ oauth_db_token <- function(
     background_token <- .token_only && background
     shiny::isolate(sync(async = background_token))
     changed() # Depend on authorization changes, never on ordinary token rotation.
-    shiny::req(!identity_pending())
+    if (shiny::isolate(identity_pending())) {
+      identity_pending() # Only waiting acquisition subscribes to resumption.
+      shiny::req(FALSE)
+    }
     if (!is.null(failure)) {
       stop(failure)
     }
