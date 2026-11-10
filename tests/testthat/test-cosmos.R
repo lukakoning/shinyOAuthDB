@@ -196,7 +196,7 @@ test_that("Cosmos object projections retain heterogeneous fields and scalar valu
   )
   httr2::local_mocked_responses(function(req) response)
   odb_test_domain(function(session) {
-    api <- cosmos_test_api(odb_test_authorization(session)$connection)
+    api <- cosmos_test_api(odb_test_response_authorization()$connection)
     result <- api$query("SELECT * FROM c")
     expect_identical(result$n, c(1, 2.5, NA_real_))
     expect_identical(result$flag, c(TRUE, NA, NA))
@@ -226,7 +226,7 @@ test_that("Cosmos parameters encode null, arrays, objects, dates and precise dou
     cosmos_response()
   })
   odb_test_domain(function(session) {
-    api <- cosmos_test_api(odb_test_authorization(session)$connection)
+    api <- cosmos_test_api(odb_test_response_authorization()$connection)
     api$query(
       "SELECT * FROM c",
       list(
@@ -446,7 +446,7 @@ test_that("Cosmos malformed pages, counts and response headers fail without disc
   response <- NULL
   httr2::local_mocked_responses(function(req) response)
   odb_test_domain(function(session) {
-    api <- cosmos_test_api(odb_test_authorization(session)$connection)
+    api <- cosmos_test_api(odb_test_response_authorization()$connection)
     for (body in c(
       "not JSON",
       "17",
@@ -515,7 +515,7 @@ test_that("Cosmos validates configuration and JSON inputs before making requests
     class = "shinyOAuthDB_invalid_configuration"
   )
   odb_test_domain(function(session) {
-    api <- cosmos_test_api(odb_test_authorization(session)$connection)
+    api <- cosmos_test_api(odb_test_response_authorization()$connection)
     for (parameters in list(
       1,
       list("unnamed"),

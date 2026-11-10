@@ -189,7 +189,7 @@ test_that("PostgREST validates endpoints, paths, arguments, and malformed result
   payload <- "not-json"
   httr2::local_mocked_responses(function(req) odb_http_response(payload))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_postgrest_api(auth$connection, "https://data.example")
     expect_error(api$select("orders"), class = "shinyOAuthDB_invalid_response")
     payload <<- "17"
@@ -239,7 +239,7 @@ test_that("PostgREST distinguishes empty table arrays from objects and RPC value
   payload <- "[]"
   httr2::local_mocked_responses(function(req) odb_http_response(payload))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_postgrest_api(auth$connection, "https://data.example")
     expect_identical(api$select("orders"), data.frame())
     for (body in c("{}", "null", "[1,2]", '{"private":"response-canary"}')) {

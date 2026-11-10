@@ -133,7 +133,7 @@ test_that("libSQL preserves exact integers, binary data, mixed types and empty m
   httr2::local_mocked_responses(function(req) libsql_test_response(result))
   odb_test_domain(function(session) {
     api <- oauth_db_libsql_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://db.example"
     )
     rows <- api$query("SELECT values")
@@ -170,7 +170,7 @@ test_that("libSQL decodes non-finite floats separately from SQL NULL", {
   httr2::local_mocked_responses(function(req) libsql_test_response(result))
   odb_test_domain(function(session) {
     api <- oauth_db_libsql_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://db.example"
     )
     rows <- api$query("SELECT value, mixed")
@@ -441,7 +441,7 @@ test_that("libSQL validates Hrana envelopes, rows, values and metadata before re
   httr2::local_mocked_responses(function(req) payload)
   odb_test_domain(function(session) {
     api <- oauth_db_libsql_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://db.example"
     )
     mutations <- list(

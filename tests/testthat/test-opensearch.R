@@ -9,7 +9,7 @@ test_that("OpenSearch preserves search metadata, nested documents and exact inte
     odb_http_response(opensearch_response())
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_opensearch_api(
       auth$connection,
       "https://search.example/proxy/",
@@ -61,7 +61,7 @@ test_that("OpenSearch SQL uses native typed parameters without interpolation", {
     )
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_opensearch_api(auth$connection, "https://search.example")
     parameters <- list(list(
       type = "keyword",
@@ -216,7 +216,7 @@ test_that("OpenSearch rejects incomplete and malformed query results without exp
   payload <- "not-json"
   httr2::local_mocked_responses(function(req) odb_http_response(payload))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_opensearch_api(auth$connection, "https://search.example")
     for (value in c(
       "not-json",
@@ -290,7 +290,7 @@ test_that("OpenSearch validates native destinations and options before requests"
     class = "shinyOAuthDB_invalid_configuration"
   )
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_opensearch_api(auth$connection, "https://search.example")
     for (path in list("..", "a/b", "https://evil.example", c("orders", ".."))) {
       expect_error(

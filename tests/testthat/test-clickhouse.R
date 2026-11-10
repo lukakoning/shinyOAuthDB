@@ -27,7 +27,7 @@ test_that("ClickHouse rejects malformed dates in all date wrappers and result mo
     )))
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_clickhouse_api(
       auth$connection,
       "https://clickhouse.example"
@@ -137,7 +137,7 @@ test_that("ClickHouse validates integer cells in queries, raw results and statem
   })
   odb_test_domain(function(session) {
     api <- oauth_db_clickhouse_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://clickhouse.example"
     )
     operations <- list(
@@ -433,7 +433,7 @@ test_that("ClickHouse raw queries and statements validate without constructing d
     )))
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_clickhouse_api(
       auth$connection,
       "https://clickhouse.example"

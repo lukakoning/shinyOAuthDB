@@ -15,7 +15,7 @@ test_that("CrateDB preserves finite double parameters in serialized JSON", {
   })
   odb_test_domain(function(session) {
     api <- oauth_db_cratedb_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://crate.example/_sql"
     )
     values <- c(
@@ -84,7 +84,7 @@ test_that("CrateDB byte columns return numbers with nulls and typed empty result
   httr2::local_mocked_responses(function(req) odb_http_response(body))
   odb_test_domain(function(session) {
     api <- oauth_db_cratedb_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://crate.example/_sql"
     )
     expect_identical(
@@ -109,7 +109,7 @@ test_that("CrateDB rejects invalid byte values in scalar and array results", {
   httr2::local_mocked_responses(function(req) odb_http_response(body))
   odb_test_domain(function(session) {
     api <- oauth_db_cratedb_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://crate.example/_sql"
     )
     operations <- list(
@@ -191,7 +191,7 @@ test_that("CrateDB handles nested parameters and rejects ambiguous or lossy valu
     cratedb_test_response()
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_cratedb_api(auth$connection, "https://crate.example/_sql")
     expect_error(api$query("SELECT $1", list(Inf)), "finite")
     expect_identical(requests, 0L)
@@ -270,7 +270,7 @@ test_that("CrateDB validates original JSON before preserving exact numeric lexem
   }
   odb_test_domain(function(session) {
     api <- oauth_db_cratedb_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://crate.example/_sql"
     )
     operations <- list(
@@ -332,7 +332,7 @@ test_that("CrateDB validates exact row-count boundaries before numeric conversio
     ))
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_cratedb_api(auth$connection, "https://crate.example/_sql")
     operations <- list(
       function() api$execute("UPDATE orders SET n = n + 1"),
@@ -375,7 +375,7 @@ test_that("CrateDB validates cells for queries, raw results and execution counts
     '{"cols":["x"],"col_types":[9],"rows":[[1,2]],"rowcount":1}'
   )
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_cratedb_api(auth$connection, "https://crate.example/_sql")
     operations <- list(
       function() api$query("SELECT x"),

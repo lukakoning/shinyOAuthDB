@@ -19,7 +19,7 @@ test_that("BigQuery rejects malformed successful responses without exposing thei
         )
       })
       odb_test_domain(function(session) {
-        auth <- odb_test_authorization(session)
+        auth <- odb_test_response_authorization()
         api <- oauth_db_bigquery_api(auth$connection, "billing")
         for (operation in list(function() api$query("SELECT 1"), function() {
           api$datasets()
@@ -53,7 +53,7 @@ test_that("BigQuery sanitizes malformed row and schema structures", {
       payload[[replacement[[1L]]]] <- replacement[[2L]]
       httr2::local_mocked_responses(function(req) bq_test_response(payload))
       odb_test_domain(function(session) {
-        auth <- odb_test_authorization(session)
+        auth <- odb_test_response_authorization()
         api <- oauth_db_bigquery_api(auth$connection, "billing")
         error <- tryCatch(api$query("SELECT value"), error = identity)
         expect_s3_class(error, "shinyOAuthDB_invalid_response")
@@ -149,7 +149,7 @@ test_that("BigQuery metadata rejects malformed pages without exposing response d
         bq_test_response(body)
       })
       odb_test_domain(function(session) {
-        auth <- odb_test_authorization(session)
+        auth <- odb_test_response_authorization()
         api <- oauth_db_bigquery_api(
           auth$connection,
           "billing",
@@ -192,7 +192,7 @@ test_that("BigQuery metadata accepts empty collections and empty intermediate pa
           bq_test_response(result)
         })
         odb_test_domain(function(session) {
-          auth <- odb_test_authorization(session)
+          auth <- odb_test_response_authorization()
           api <- oauth_db_bigquery_api(
             auth$connection,
             "billing",
@@ -233,7 +233,7 @@ test_that("BigQuery rejects dataset listings that omit unreachable locations", {
           bq_test_response(result)
         })
         odb_test_domain(function(session) {
-          auth <- odb_test_authorization(session)
+          auth <- odb_test_response_authorization()
           api <- oauth_db_bigquery_api(auth$connection, "billing")
           error <- expect_error(
             api$datasets(),

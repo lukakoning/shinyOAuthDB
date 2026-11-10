@@ -32,7 +32,7 @@ test_that("BigQuery accepts explicitly encoded BYTES parameters", {
   })
   odb_test_domain(function(session) {
     api <- oauth_db_bigquery_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "billing"
     )
     api$query(
@@ -87,7 +87,7 @@ test_that("BigQuery round-trips explicit DATETIME and TIME parameters without in
     bq_test_response(bq_test_result())
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     api$query(
       "SELECT @daytime, @clock",
@@ -186,7 +186,7 @@ test_that("BigQuery rejects invalid scalars in ordinary, repeated and nested fie
   body <- NULL
   httr2::local_mocked_responses(function(req) bq_test_response(body))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     for (case in invalid) {
       for (shape in c("scalar", "repeated", "record", "record-repeated")) {
@@ -206,7 +206,7 @@ test_that("BigQuery rejects invalid dates after valid rows as well as before the
   body <- NULL
   httr2::local_mocked_responses(function(req) bq_test_response(body))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     for (invalid in c(
       "2026-02-30",
@@ -229,7 +229,7 @@ test_that("BigQuery scalar decoding preserves NULL, dates, NaN, infinities and e
   body <- NULL
   httr2::local_mocked_responses(function(req) bq_test_response(body))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     for (type in c(
       "DATE",

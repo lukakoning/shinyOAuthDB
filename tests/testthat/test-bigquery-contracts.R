@@ -24,7 +24,7 @@ test_that("BigQuery rejects invalid job identities before polling another job", 
         bq_test_response(value)
       })
       odb_test_domain(function(session) {
-        auth <- odb_test_authorization(session)
+        auth <- odb_test_response_authorization()
         api <- oauth_db_bigquery_api(auth$connection, "billing")
         error <- expect_error(
           api$query("SELECT value"),
@@ -111,7 +111,7 @@ test_that("BigQuery metadata pagination rejects repeated cursors without an extr
         bq_test_response(payload)
       })
       odb_test_domain(function(session) {
-        auth <- odb_test_authorization(session)
+        auth <- odb_test_response_authorization()
         api <- oauth_db_bigquery_api(
           auth$connection,
           "billing",

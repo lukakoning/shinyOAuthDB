@@ -193,7 +193,7 @@ test_that("BigQuery uses query parameters without interpolating SQL", {
     bq_test_response(bq_test_result("done"))
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     sql <- "SELECT @country, @ids, @missing, @date, @time, @flag, @amount"
     api$query(
@@ -268,7 +268,7 @@ test_that("BigQuery preserves NaN separately from null in scalar and array param
     bq_test_response(bq_test_result("done"))
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     api$query(
       "SELECT IS_NAN(@nan), @missing IS NULL, @values",
@@ -376,7 +376,7 @@ test_that("BigQuery metadata lists all pages and raw queries preserve the schema
     bq_test_response(bq_test_result())
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(
       auth$connection,
       "billing",
@@ -423,7 +423,7 @@ test_that("BigQuery combines result and metadata pages across empty pages", {
     bq_test_response(result)
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing", page_size = 2L)
     expect_identical(
       api$query("SELECT value")$value,
@@ -472,7 +472,7 @@ test_that("BigQuery retains submission metadata through polling and result pages
         bq_test_response(result)
       })
       odb_test_domain(function(session) {
-        auth <- odb_test_authorization(session)
+        auth <- odb_test_response_authorization()
         result <- oauth_db_bigquery_api(auth$connection, "billing")$query(
           "SELECT value",
           raw = TRUE
@@ -513,7 +513,7 @@ test_that("BigQuery distinguishes warnings from failed jobs and bounds polling",
     bq_test_response(result)
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing")
     expect_equal(nrow(api$query("SELECT value")), 2L)
     failure <<- TRUE
@@ -524,7 +524,7 @@ test_that("BigQuery distinguishes warnings from failed jobs and bounds polling",
     bq_test_response(bq_test_result())
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_bigquery_api(auth$connection, "billing", timeout = 0.02)
     expect_error(api$query("SELECT value"), class = "shinyOAuthDB_timeout")
   })

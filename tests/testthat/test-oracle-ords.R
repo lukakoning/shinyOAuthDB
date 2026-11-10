@@ -159,7 +159,7 @@ test_that("ORDS validates routes and preserves HTTP failure boundaries", {
     odb_http_response(body, status)
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_oracle_ords_api(
       auth$connection,
       "https://data.example/ords/reports"

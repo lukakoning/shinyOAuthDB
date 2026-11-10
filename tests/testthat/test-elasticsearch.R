@@ -71,7 +71,7 @@ test_that("Elasticsearch SQL and ES|QL use their own protocols and bound paramet
     ))
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_elasticsearch_api(auth$connection, "https://search.example")
     parameters <- list("NL'; DROP INDEX orders; --", 42L, TRUE, NULL)
     result <- api$sql("SELECT * FROM orders WHERE country = ?", parameters)
@@ -236,7 +236,7 @@ test_that("Elasticsearch rejects partial and malformed results while allowing ra
   payload <- "{}"
   httr2::local_mocked_responses(function(req) odb_http_response(payload))
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     api <- oauth_db_elasticsearch_api(auth$connection, "https://search.example")
     for (metadata in c(
       '"timed_out":true',
@@ -391,7 +391,7 @@ test_that("Elasticsearch native requests support cursors and keep realm secrets 
     response
   })
   odb_test_domain(function(session) {
-    auth <- odb_test_authorization(session)
+    auth <- odb_test_response_authorization()
     secret <- "15e2b56b-357e-4f1d-9424-8291f07e030d"
     api <- oauth_db_elasticsearch_api(
       auth$connection,

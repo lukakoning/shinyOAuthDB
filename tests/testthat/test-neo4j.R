@@ -255,7 +255,7 @@ test_that("Neo4j rejects unsafe configuration and ambiguous parameters before se
   })
   odb_test_domain(function(session) {
     graph <- oauth_db_neo4j_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://graph.example"
     )
     for (parameters in list(
@@ -294,7 +294,7 @@ test_that("Neo4j preserves floating parameters, nulls, nested maps and temporal 
   })
   odb_test_domain(function(session) {
     graph <- oauth_db_neo4j_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://graph.example"
     )
     values <- c(
@@ -328,7 +328,7 @@ test_that("Neo4j validates complete result envelopes even for raw results and wr
   httr2::local_mocked_responses(function(req) odb_http_response(body, 202L))
   odb_test_domain(function(session) {
     graph <- oauth_db_neo4j_api(
-      odb_test_authorization(session)$connection,
+      odb_test_response_authorization()$connection,
       "https://graph.example"
     )
     for (invalid in c(
