@@ -199,5 +199,5 @@ CrateDB expects the issuer URL to serve its public signing keys. The local
 demo uses a gateway to make Keycloak's keys available there. Check this
 with your provider before reusing an existing login. Global
 `auth.host_based.jwt.iss` settings override per-user properties; see
-[JWT authentication](https://cratedb.com/docs/crate/reference/en/latest/admin/auth/methods.html#jwt-authentication-method)
-and [user settings](https://cratedb.com/docs/crate/reference/en/latest/sql/statements/create-user.html).
+[JWT authentication](https://docs.cratedb.com/projects/crate-reference/en/latest/admin/auth/methods.html#jwt-authentication-method)
+and [user settings](https://docs.cratedb.com/projects/crate-reference/en/latest/sql/statements/create-user.html).

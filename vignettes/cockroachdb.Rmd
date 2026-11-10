@@ -163,7 +163,7 @@ registration settings and deployment.
 ## Configure the cluster
 
 Follow CockroachDB's
-[cluster SSO guide](https://www.cockroachlabs.com/docs/stable/sso-sql)
+[cluster SSO guide](https://docs.cockroachlabs.com/docs/stable/sso-sql)
 for the settings supported by your cluster version and cloud tier. A
 configuration using a trusted OIDC provider includes:
 
@@ -190,7 +190,7 @@ when libpq's configured bundle doesn't include it. Unset `PGSERVICE`
 and `PGSERVICEFILE` so local service files cannot change the connection.
 
 CockroachDB also supports
-[SASL OAUTHBEARER](https://www.cockroachlabs.com/docs/stable/oauth-authentication)
+[SASL OAUTHBEARER](https://docs.cockroachlabs.com/docs/stable/oauth-authentication)
 on newer clusters with libpq 18 clients. This helper uses JWT-as-password
 authentication instead, so it requires the `server.jwt_authentication`
 configuration rather than the separate `server.oauthbearer_authentication`

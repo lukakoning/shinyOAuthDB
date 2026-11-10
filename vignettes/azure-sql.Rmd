@@ -67,9 +67,9 @@ Creating an app registration doesn't open the database firewall.
 
 ### Register a Microsoft Entra app
 
-In the [Entra admin center](https://entra.microsoft.com/), open
-**App registrations** and create a registration in your organization's
-tenant. Copy **Application (client) ID** and **Directory (tenant) ID**
+In the Entra admin center, open **App registrations** and
+[create a registration](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app)
+in your organization's tenant. Copy **Application (client) ID** and **Directory (tenant) ID**
 from its overview. Under **Authentication**, add a **Web** platform with
 `http://localhost:8100` as the redirect URI. Under **Certificates & secrets**,
 create a client secret and copy its **Value** before leaving.
