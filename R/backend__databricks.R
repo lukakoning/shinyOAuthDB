@@ -229,11 +229,12 @@ oauth_db_databricks_api <- function(
       )
       provider <- private$provider()
       token <- provider()
-      result <- withVisible(do.call(
+      .odb_api_call(
         .fn,
-        c(args, list(host = private$host, token = token))
-      ))
-      .odb_api_result(result, function() provider(.check_only = TRUE))
+        c(args, list(host = private$host, token = token)),
+        check = function() provider(.check_only = TRUE),
+        credentials = token
+      )
     },
     print = function(...) {
       cat("<OAuthDatabricksAPI>\n")

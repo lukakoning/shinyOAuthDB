@@ -36,18 +36,134 @@
   args
 }
 
-.odb_api_result <- function(result, check) {
+.odb_api_error <- function(error, credentials) {
+  credentials <- unique(credentials[!is.na(credentials) & nzchar(credentials)])
+  credentials <- credentials[order(nchar(credentials), decreasing = TRUE)]
+  redact <- function(value) {
+    if (
+      is.environment(value) ||
+        is.function(value) ||
+        isS4(value) ||
+        typeof(value) %in% c("externalptr", "weakref")
+    ) {
+      return(NULL)
+    }
+    if (is.symbol(value)) {
+      return(as.name(redact(as.character(value))))
+    }
+    metadata <- attributes(value)
+    metadata[c("srcref", "wholeSrcref", "srcfile")] <- NULL
+    if (is.call(value) || is.pairlist(value) || is.expression(value)) {
+      items <- as.list(value)
+      items <- lapply(seq_along(items), function(index) {
+        if (identical(items[[index]], quote(expr = ))) {
+          return(quote(expr = ))
+        }
+        item <- items[[index]]
+        if (is.function(item) || is.environment(item)) {
+          return(quote(.redacted))
+        }
+        redact(item)
+      }) |>
+        stats::setNames(names(items))
+      value <- if (is.call(value)) {
+        as.call(items)
+      } else if (is.pairlist(value)) {
+        as.pairlist(items)
+      } else {
+        as.expression(items)
+      }
+    } else if (is.list(value)) {
+      for (index in seq_along(value)) {
+        value[index] <- list(redact(value[[index]]))
+      }
+    } else if (is.character(value)) {
+      for (credential in credentials) {
+        value <- gsub(
+          credential,
+          "[REDACTED]",
+          value,
+          fixed = TRUE,
+          useBytes = TRUE
+        )
+      }
+    } else if (is.raw(value)) {
+      text <- tryCatch(rawToChar(value), error = function(error) NULL)
+      return(if (is.null(text)) NULL else charToRaw(redact(text)))
+    }
+    attributes(value) <- if (length(metadata)) {
+      lapply(metadata, redact)
+    } else {
+      NULL
+    }
+    value
+  }
+  redact(error)
+}
+
+.odb_api_call <- function(
+  .fn,
+  args,
+  check,
+  credentials = character(),
+  finished = NULL
+) {
+  fail <- function(error) {
+    # Prevent Shiny from attaching unsanitized stacks after this cleanup.
+    if (is.null(attr(error, "stack.trace", exact = TRUE))) {
+      calls <- sys.calls()
+      attr(calls, "parents") <- sys.parents()
+      attr(error, "stack.trace") <- calls
+    }
+    if (is.null(attr(error, "deep.stack.trace", exact = TRUE))) {
+      attr(error, "deep.stack.trace") <- list()
+    }
+    error <- .odb_api_error(
+      error,
+      if (is.function(credentials)) credentials() else credentials
+    )
+    args <<- .fn <<- NULL
+    if (is.function(finished)) {
+      finished()
+    }
+    error
+  }
+  # Symbolic arguments keep credentials and callbacks out of native error calls.
+  values <- lapply(seq_along(args), function(index) {
+    substitute(args[[i]], list(i = index))
+  })
+  names(values) <- names(args)
+  result <- tryCatch(
+    withVisible(eval(as.call(c(list(quote(.fn)), values)), environment())),
+    error = function(error) stop(fail(error))
+  )
+  .odb_api_result(result, check, on_error = fail, finished = finished)
+}
+
+.odb_api_result <- function(
+  result,
+  check,
+  on_error = identity,
+  finished = NULL
+) {
   checked <- function(value, .visible = TRUE) {
     tryCatch(shiny::isolate(check()), error = function(error) {
       tryCatch(.odb_disconnect(value), error = function(error) {
         .odb_cleanup_failure()
       })
-      stop(error)
+      stop(on_error(error))
     })
+    if (is.function(finished)) {
+      finished()
+    }
     if (.visible) value else invisible(value)
   }
   if (promises::is.promising(result$value)) {
-    value <- promises::then(result$value, onFulfilled = checked)
+    value <- promises::then(
+      result$value,
+      onFulfilled = checked,
+      onRejected = function(error) promises::promise_reject(on_error(error))
+    )
   } else {
     return(checked(result$value, result$visible))
   }

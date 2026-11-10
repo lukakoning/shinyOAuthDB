@@ -359,16 +359,24 @@ oauth_db_fabric_api <- function(
       checks <- new.env(parent = emptyenv())
       checks$active <- TRUE
       checks$callbacks <- list()
+      checks$credentials <- character()
       provider <- private$make_token_provider(checks)
-      result <- withVisible(do.call(.fn, c(args, list(token = provider))))
-      .odb_api_result(result, function() {
-        assert_current()
-        for (check in checks$callbacks) {
-          check()
+      .odb_api_call(
+        .fn,
+        c(args, list(token = provider)),
+        check = function() {
+          assert_current()
+          for (check in checks$callbacks) {
+            check()
+          }
+        },
+        credentials = function() checks$credentials,
+        finished = function() {
+          checks$active <- FALSE
+          checks$callbacks <- list()
+          checks$credentials <- character()
         }
-        checks$active <- FALSE
-        checks$callbacks <- list()
-      })
+      )
     },
     token_provider = function() {
       private$make_token_provider()
@@ -394,6 +402,7 @@ oauth_db_fabric_api <- function(
           assert_current()
           value <- provider(force_refresh = force_refresh, scopes = scopes)
           if (!is.null(checks) && checks$active) {
+            checks$credentials <- union(checks$credentials, value)
             key <- paste(c(index, sort(scopes)), collapse = "\r")
             checks$callbacks[[key]] <- function() {
               provider(scopes = scopes, .check_only = TRUE)

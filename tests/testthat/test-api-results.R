@@ -96,7 +96,9 @@ test_that("native API result checks preserve token rotation, visibility and nati
         fixture$call(function(token, ...) stop(failure)),
         error = identity
       )
-      expect_identical(error, failure)
+      expect_identical(class(error), class(failure))
+      expect_identical(conditionMessage(error), conditionMessage(failure))
+      expect_identical(conditionCall(error), conditionCall(failure))
     })
   }
 })
@@ -205,7 +207,7 @@ test_that("native API promises check authorization when their values resolve", {
   }
 })
 
-test_that("native API promise rejections keep their original failure", {
+test_that("native API promise rejections keep their original diagnostics", {
   for (backend in c("fabric", "databricks")) {
     odb_test_domain(function(session) {
       fixture <- api_result_fixture(session, backend)
@@ -213,7 +215,10 @@ test_that("native API promise rejections keep their original failure", {
       pending <- fixture$call(function(token, ...) {
         promises::promise_reject(failure)
       })
-      expect_identical(api_result_await(pending)$error, failure)
+      error <- api_result_await(pending)$error
+      expect_identical(class(error), class(failure))
+      expect_identical(conditionMessage(error), conditionMessage(failure))
+      expect_identical(conditionCall(error), conditionCall(failure))
     })
   }
 })
@@ -272,5 +277,113 @@ test_that("native API results close rejected DBI connections", {
         expect_false(DBI::dbIsValid(connection))
       })
     }
+  }
+})
+
+api_expect_private_error <- function(error, credential) {
+  expect_false(any(grepl(
+    credential,
+    capture.output(print(error)),
+    fixed = TRUE
+  )))
+  expect_false(any(grepl(
+    credential,
+    capture.output(print(error$trace, simplify = "none")),
+    fixed = TRUE
+  )))
+  expect_false(grepl(
+    credential,
+    rawToChar(serialize(error, NULL, ascii = TRUE)),
+    fixed = TRUE
+  ))
+}
+
+test_that("Databricks SDK HTTP errors do not retain bearer credentials", {
+  skip_if_not_installed("brickster", "0.2.14")
+  credential <- paste(format(openssl::rand_bytes(24)), collapse = "")
+  httr2::local_mocked_responses(list(odb_http_response(
+    '{"error_code":"PERMISSION_DENIED","message":"denied"}',
+    status = 403L
+  )))
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    auth$token(auth$make_token(credential))
+    api <- oauth_db_databricks_api(auth$connection, "workspace.example")
+    error <- tryCatch(
+      api$call(brickster::db_sql_warehouse_list),
+      error = identity
+    )
+    expect_s3_class(error, "httr2_http_403")
+    expect_identical(httr2::resp_status(error$resp), 403L)
+    api_expect_private_error(error, credential)
+  })
+})
+
+test_that("API failures redact nested diagnostics and discard retained callbacks", {
+  for (backend in c("fabric", "databricks")) {
+    for (async in c(FALSE, TRUE)) {
+      odb_test_domain(function(session) {
+        fixture <- api_result_fixture(session, backend)
+        credential <- fixture$call(function(token, ...) {
+          fixture$credential(token)
+        })
+        result <- tryCatch(
+          shiny::captureStackTraces(fixture$call(function(token, ...) {
+            reject_error <- NULL
+            fail <- function() {
+              value <- fixture$credential(token)
+              failure <- simpleError(paste("parent", value))
+              error <- errorCondition(
+                paste("native failure", value),
+                class = "native_api_failure",
+                parent = failure,
+                trace = rlang::trace_back(),
+                callback = token,
+                frame = environment(),
+                response = list(body = charToRaw(value)),
+                status = 403L
+              )
+              if (async) reject_error(error) else stop(error)
+            }
+            if (async) {
+              promise <- promises::promise(function(resolve, no) {
+                reject_error <<- no
+              })
+              # Acquire the callback's token after the API method has returned.
+              later::later(fail)
+              promise
+            } else {
+              fail()
+            }
+          })),
+          error = identity
+        )
+        error <- if (async) api_result_await(result)$error else result
+        expect_s3_class(error, "native_api_failure")
+        expect_identical(error$status, 403L)
+        expect_identical(conditionMessage(error), "native failure [REDACTED]")
+        expect_identical(conditionMessage(error$parent), "parent [REDACTED]")
+        expect_null(error$frame)
+        if (backend == "fabric") {
+          expect_null(error$callback)
+        }
+        api_expect_private_error(error, credential)
+      })
+    }
+  }
+})
+
+test_that("API invocations preserve credentials captured lazily by native resources", {
+  for (backend in c("fabric", "databricks")) {
+    odb_test_domain(function(session) {
+      fixture <- api_result_fixture(session, backend)
+      resource <- fixture$call(function(token, ...) {
+        list(read = function() fixture$credential(token))
+      })
+      expect_identical(
+        resource$read(),
+        if (backend == "fabric") "A-fabric" else "fixture-A"
+      )
+    })
   }
 })
