@@ -72,11 +72,8 @@ The example below installs missing packages from CRAN. To install the
 development version from GitHub instead:
 
 ```r
-pkgs <- c("remotes")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
+if (!requireNamespace("remotes", quietly = TRUE)) {
+    install.packages("remotes")
 }
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
@@ -92,7 +89,7 @@ This example uses PostgREST since it does not require a database driver to be in
 See the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) for that.
 
 ```r
-pkgs <- c("shiny", "shinyOAuth", "shinyOAuthDB", "mirai", "jsonlite")
+pkgs <- c("mirai", "jsonlite")
 for (pkg in pkgs) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
     install.packages(pkg)
@@ -155,7 +152,9 @@ runApp(
   launch.browser = FALSE
 )
 
-# Open the app in your regular browser at its registered redirect URI.
+
+# Open the app in your regular browser at http://localhost:18100
+# (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
 ```
 
 Sign in as `alice` / `alice` or `bob` / `bob` (username / password).
@@ -183,5 +182,3 @@ you will be walked through first setup with your existing platform workspace and
 
 See [Getting started](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#more-ways-to-try-an-app),
 `?oauth_db_demo` and `?oauth_db_cloud_demo` for the demo options.
-
-
