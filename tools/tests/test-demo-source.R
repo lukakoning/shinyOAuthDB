@@ -176,6 +176,29 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
         ),
         error = identity
       )
+      testthat::local_mocked_bindings(
+        .odb_http_time = function() 0,
+        .odb_bigquery_time = function() 0,
+        .package = "shinyOAuthDB"
+      )
+      http_deadline <- tryCatch(
+        getFromNamespace(".odb_http_request", "shinyOAuthDB")(
+          function(...) "fixture-token",
+          httr2::request("https://example.invalid"),
+          "demo",
+          0.0005
+        ),
+        error = identity
+      )
+      bigquery_deadline <- tryCatch(
+        getFromNamespace(".odb_bigquery_request", "shinyOAuthDB")(
+          function(...) "fixture-token",
+          "GET",
+          c("projects", "billing", "datasets"),
+          0.0005
+        ),
+        error = identity
+      )
       list(
         references = references,
         isolated = identical(
@@ -190,6 +213,10 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
         parameters = sent$args,
         expected_parameters = values,
         native_queries = native_queries,
+        deadline_timeouts = c(
+          inherits(http_deadline, "shinyOAuthDB_timeout"),
+          inherits(bigquery_deadline, "shinyOAuthDB_timeout")
+        ),
         retains_credential = grepl(
           credential,
           rawToChar(serialize(native_error, NULL, ascii = TRUE)),
@@ -207,6 +234,7 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
   testthat::expect_identical(observed$parameters, observed$expected_parameters)
   testthat::expect_false(observed$retains_credential)
   testthat::expect_identical(observed$native_queries, 1L)
+  testthat::expect_identical(observed$deadline_timeouts, c(TRUE, TRUE))
 })
 
 testthat::test_that("released Docker demos install the launcher's exact CRAN version", {
