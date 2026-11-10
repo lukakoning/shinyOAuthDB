@@ -89,19 +89,14 @@ This example uses PostgREST since it does not require a database driver to be in
 See the [PostgreSQL guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html) for that.
 
 ```r
-pkgs <- c("mirai", "jsonlite")
-for (pkg in pkgs) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-}
-
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
 
+# Launch a local demo with PostgreSQL and Keycloak sign-in in Docker
 demo <- oauth_db_demo("postgrest", action = "services")
 
+# Set up the OAuth client for the demo provider
 client <- oauth_client(
   demo$provider,
   client_id = "shiny-db",
@@ -123,35 +118,47 @@ ui <- oauth_ui(
 )
 
 server <- function(input, output, session) {
+  # Set up the OAuth module server to handle sign-in and sign-out
   auth <- oauth_module_server(
     "auth",
     client,
     auto_redirect = FALSE,
     async = TRUE
   )
+
+  # Login and logout buttons trigger the OAuth flow and sign-out, respectively
   observeEvent(input$login, auth$request_login())
   observeEvent(input$logout, auth$logout())
+
+  # Show whether the user is signed in
   output$account <- renderText({
     if (is.null(auth$connection())) "Not signed in" else "Signed in. Click Load rows."
   })
-  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)
+
+  # Retrieve data from the database using the user's access token
+  postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)  
   query_task <- oauth_db_task(postgres, method = "select")
+
+  # Button to load rows from the database; the query runs in the background
   observeEvent(input$load, {
     query_task$invoke("visible_rows", order = "row_id.asc")
   })
+
+  # Display the query results in a table
   output$rows <- renderTable(query_task$result())
 }
 
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
-    onStop(demo$stop)
     mirai::daemons(2)
-    onStop(function() mirai::daemons(0))
+    onStop(function() {
+      mirai::daemons(0)
+      demo$stop()
+    }
   }),
   port = 18100,
   launch.browser = FALSE
 )
-
 
 # Open the app in your regular browser at http://localhost:18100
 # (viewers in RStudio/Positron/etc. cannot perform necessary redirects)
