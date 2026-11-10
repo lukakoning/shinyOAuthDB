@@ -17,8 +17,7 @@ user's permissions.
 \code{vignette("getting-started", package = "shinyOAuthDB")} explains the
 package and walks through a complete app. The
 \href{https://lukakoning.github.io/shinyOAuthDB/articles/index.html}{source guides}
-cover each database or platform. Use \code{build_vignettes = TRUE} when
-installing from GitHub to read the guides locally.
+cover each database or platform.
 
 Try \code{\link[=oauth_db_demo]{oauth_db_demo()}} for a local database and sign-in service in Docker,
 or \code{\link[=oauth_db_cloud_demo]{oauth_db_cloud_demo()}} for an editable app using your cloud workspace.

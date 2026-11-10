@@ -10,8 +10,7 @@
 #' `vignette("getting-started", package = "shinyOAuthDB")` explains the
 #' package and walks through a complete app. The
 #' [source guides](https://lukakoning.github.io/shinyOAuthDB/articles/index.html)
-#' cover each database or platform. Use `build_vignettes = TRUE` when
-#' installing from GitHub to read the guides locally.
+#' cover each database or platform.
 #'
 #' Try [oauth_db_demo()] for a local database and sign-in service in Docker,
 #' or [oauth_db_cloud_demo()] for an editable app using your cloud workspace.
