@@ -39,10 +39,11 @@ client. Credentials stay coordinated by the owning Shiny session; each
 invocation opens its own connection or client in a mirai worker.
 }
 \details{
-Install mirai (2.5.1 or newer), configure \code{mirai::daemons()} once before the
-server starts, and stop those workers when the app stops. The task never
-starts a worker pool itself. Enable \code{async = TRUE} on shinyOAuth's module
-separately for background OAuth operations.
+mirai (2.5.1 or newer) is installed with shinyOAuthDB. Configure
+\code{mirai::daemons()} once before the server starts, and stop those workers
+when the app stops. The task never starts a worker pool itself. Enable
+\code{async = TRUE} on shinyOAuth's module separately for background OAuth
+operations.
 
 Sign-out, account changes, permission loss and session end invalidate results
 and attempt to cancel pending worker work. Cancellation cannot undo a query
