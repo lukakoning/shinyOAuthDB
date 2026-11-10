@@ -302,6 +302,12 @@ oauth_db_token <- function(
     tryCatch(
       {
         next_grant <- reader()
+        if (
+          !is.null(permission_validation) &&
+            !identical(permission_validation$grant, next_grant)
+        ) {
+          permission_validation <<- NULL
+        }
         if (!is.null(next_grant)) {
           .odb_authorization_validate(next_grant)
           next_available <- .odb_authorization_has_scopes(
