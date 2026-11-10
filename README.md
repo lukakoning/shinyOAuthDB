@@ -78,11 +78,6 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
 remotes::install_github("lukakoning/shinyOAuthDB")
 ```
 
-Installing shinyOAuthDB also installs shinyOAuth, shiny and their required
-dependencies, including jsonlite. The examples assume shinyOAuthDB is already
-installed. For background workers, see the
-[async setup](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.html#enable-asynchronous-oauth).
-
 ## Example usage with PostgreSQL
 
 Below is a minimal example of a Shiny app that queries a PostgreSQL database.
@@ -114,7 +109,6 @@ ui <- oauth_ui(
   fluidPage(
     actionButton("login", "Sign in"),
     actionButton("logout", "Sign out"),
-
     actionButton("load", "Load rows"),
     textOutput("account"),
     tableOutput("rows")
@@ -142,7 +136,7 @@ server <- function(input, output, session) {
     if (is.null(auth$connection())) {
       "Not signed in"
     } else {
-      "Signed in. Click Load rows."
+      "Signed in. Click 'Load rows'."
     }
   })
 
@@ -164,7 +158,6 @@ server <- function(input, output, session) {
 runApp(
   shinyApp(ui, server, uiPattern = ".*", onStart = function() {
     mirai::daemons(2)
-
     onStop(function() {
       mirai::daemons(0)
       demo$stop()
