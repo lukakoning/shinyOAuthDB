@@ -115,7 +115,7 @@ and data they query.</p>
 
 
 <p>A fabricQueryR object, such as a Lakehouse, keeps the authorization used
-to create it. Put the lookup inside <code>reactive()</code> so it runs again when
+to create it. Put the lookup inside <code><a href="https://rdrr.io/pkg/shiny/man/reactive.html" class="external-link">reactive()</a></code> so it runs again when
 the visitor changes accounts, as in the example.</p>
 <p>For a DBI connection managed by shinyOAuthDB, use <code><a href="oauth_db_fabric_sql.html">oauth_db_fabric_sql()</a></code>.
 Your app must close connections it opens through fabricQueryR functions

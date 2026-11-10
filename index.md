@@ -125,6 +125,7 @@ guide](https://lukakoning.github.io/shinyOAuthDB/articles/postgres.html)
 for that.
 
 ``` r
+
 library(shiny)
 library(shinyOAuth)
 library(shinyOAuthDB)
@@ -173,9 +174,10 @@ server <- function(input, output, session) {
 
   # Retrieve data from the database using the user's access token
   postgres <- oauth_db_postgrest_api(auth$connection, url = demo$url)  
+  # Use a background task to run the query so the app remains responsive
   query_task <- oauth_db_task(postgres, method = "select")
 
-  # Button to load rows from the database; the query runs in the background
+  # Button to start the task which loads the rows from the database
   observeEvent(input$load, {
     query_task$invoke("visible_rows", order = "row_id.asc")
   })
@@ -190,7 +192,7 @@ runApp(
     onStop(function() {
       mirai::daemons(0)
       demo$stop()
-    }
+    })
   }),
   port = 18100,
   launch.browser = FALSE
