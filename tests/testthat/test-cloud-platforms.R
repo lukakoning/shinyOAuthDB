@@ -1,3 +1,33 @@
+test_that("cloud platforms reject missing mirai before secrets or app startup", {
+  local_mocked_bindings(
+    .odb_cloud_port_available = function(...) NULL,
+    .odb_cloud_secret = function(...) stop("Must not ask for a secret"),
+    .odb_cloud_run = function(...) stop("Must not start the app"),
+    .odb_require = function(package, feature = package, version = NULL) {
+      if (package == "mirai") {
+        expect_identical(version, "2.5.1")
+        .odb_abort("Install mirai >= 2.5.1.", "missing_dependency")
+      }
+      invisible(TRUE)
+    }
+  )
+  settings <- cloud_platform_settings()
+  for (platform in names(settings)) {
+    expect_error(
+      do.call(
+        oauth_db_cloud_demo,
+        c(
+          list(platform = platform, path = cloud_demo_path(), prompt = FALSE),
+          settings[[platform]]
+        )
+      ),
+      "Install mirai >= 2.5.1.",
+      class = "shinyOAuthDB_missing_dependency",
+      fixed = TRUE
+    )
+  }
+})
+
 test_that("cloud platform drafts are isolated, offline and preserve edits", {
   expect_setequal(names(cloud_platform_settings()), names(.odb_cloud_specs()))
   local_mocked_bindings(

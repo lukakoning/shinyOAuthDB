@@ -493,6 +493,7 @@
 }
 
 .odb_cloud_platform_require <- function(spec, config) {
+  .odb_require("mirai", version = "2.5.1")
   .odb_require("bslib", version = "0.9.0")
   .odb_require("processx")
   for (package in names(spec$packages)) {

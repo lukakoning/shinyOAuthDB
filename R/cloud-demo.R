@@ -38,7 +38,8 @@
 #' Queries use the platform's normal compute or query allowance. Stopping
 #' the app doesn't stop shared cloud services or cancel submitted jobs.
 #'
-#' All demos need bslib and processx; install askpass for masked secret input.
+#' All demos need mirai 2.5.1 or later, bslib and processx; install askpass for
+#' masked secret input.
 #' Databricks also needs brickster 0.2.14 or later and jsonlite. Fabric needs
 #' fabricQueryR, odbc and Microsoft ODBC Driver 18. BigQuery and ClickHouse
 #' use jsonlite without a database driver. Snowflake, Azure SQL and Redshift
