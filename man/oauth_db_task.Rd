@@ -30,7 +30,8 @@ Invocation arguments go to the selected operation. Busy invocations are
 ignored and return \code{FALSE}; accepted invocations return \code{TRUE}, invisibly.
 \code{result()} waits quietly before completion, checks authorization on every
 read, and returns ordinary R data. Native handles cannot leave the worker.
-Status is \code{"initial"}, \code{"running"}, \code{"success"} or \code{"error"}.
+Status is \code{"initial"}, \code{"running"}, \code{"success"} or \code{"error"}. Cancelled or
+invalidated results report \code{"initial"} until another invocation is accepted.
 }
 \description{
 Create a task inside \code{server()} from an existing database helper or API

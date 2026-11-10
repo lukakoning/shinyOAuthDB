@@ -22,7 +22,8 @@
 #'   ignored and return `FALSE`; accepted invocations return `TRUE`, invisibly.
 #'   `result()` waits quietly before completion, checks authorization on every
 #'   read, and returns ordinary R data. Native handles cannot leave the worker.
-#'   Status is `"initial"`, `"running"`, `"success"` or `"error"`.
+#'   Status is `"initial"`, `"running"`, `"success"` or `"error"`. Cancelled or
+#'   invalidated results report `"initial"` until another invocation is accepted.
 #' @details
 #' Install mirai (2.5.1 or newer), configure `mirai::daemons()` once before the
 #' server starts, and stop those workers when the app stops. The task never
@@ -286,6 +287,13 @@ oauth_db_task <- function(
       },
       status = function() {
         assert_owner()
+        for (plan in spec$plans) {
+          plan$watch()
+        }
+        check <- valid()
+        if (is.null(check) || !current(check)) {
+          return("initial")
+        }
         status <- task$status()
         if (status != "success") {
           return(status)

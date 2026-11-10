@@ -120,6 +120,48 @@ test_that("manual cancellation hides results and does not replay operations", {
   })
 })
 
+test_that("task status reacts to cancellation and authorization invalidation", {
+  skip_if_not_installed("mirai", "2.5.1")
+  skip_if_not_installed("RSQLite")
+  calls <- new.env(parent = emptyenv())
+  task_mock_workers(calls)
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    rows <- oauth_db_task(oauth_db_connect(
+      auth$connection,
+      task_sqlite_connect,
+      required_scopes = "read"
+    ))
+    status <- shiny::reactive(rows$status())
+    finish <- function() {
+      expect_true(rows$invoke("SELECT 1"))
+      task_flush()
+      calls$pending[[length(calls$pending)]]$resolve(data.frame(value = 1L))
+      task_flush()
+      expect_identical(status(), "success")
+    }
+    expect_identical(status(), "initial")
+    finish()
+    rows$cancel()
+    expect_identical(status(), "initial")
+    finish()
+    auth$current(FALSE)
+    session$flushReact()
+    expect_identical(status(), "initial")
+    expect_error(rows$result(), class = "shiny.silent.error")
+    auth$current(TRUE)
+    session$flushReact()
+    expect_identical(status(), "initial")
+    finish()
+    auth$token(auth$make_token("denied", "other"))
+    session$flushReact()
+    expect_identical(status(), "initial")
+    auth$token(auth$make_token("restored"))
+    session$flushReact()
+    expect_identical(status(), "initial")
+  })
+})
+
 test_that("workers close native connections on success, errors and rejected handles", {
   skip_if_not_installed("RSQLite")
   for (method in list(
