@@ -155,7 +155,7 @@ runApp(
     onStop(function() {
       mirai::daemons(0)
       demo$stop()
-    }
+    })
   }),
   port = 18100,
   launch.browser = FALSE
