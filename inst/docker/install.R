@@ -3,7 +3,7 @@ install_demo_package <- function(version) {
   if (length(parts) > 3L && as.integer(tail(parts, 1L)) >= 9000L) {
     # The development snapshot includes the native credential-frame fixes.
     remotes::install_github(
-      "lukakoning/shinyOAuthDB@f6d61ddd4e533acbb53cee92542862dafe877d35",
+      "lukakoning/shinyOAuthDB@c0d954d5afef9bc2d0aecf0c01a588371d7da64c",
       upgrade = "never"
     )
   } else {

@@ -123,6 +123,44 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
       )
       values <- list(1.0000000000000002, 1e-100)
       crate$query("SELECT $1, $2", values)
+      session <- shiny::MockShinySession$new()
+      native_queries <- shiny::withReactiveDomain(
+        session,
+        shiny::isolate({
+          status <- shiny::reactiveVal("active")
+          grant <- list(
+            id = "native-demo-fixture",
+            has_scopes = function(...) TRUE,
+            summary = function() list(status = status()),
+            access_token = function(...) "fixture-token"
+          )
+          con <- getFromNamespace(".odb_bind", "shinyOAuthDB")(
+            grant,
+            function(token) {
+              token()
+              DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+            },
+            identity_key = function() {
+              shiny::req(status() != "refreshing")
+              "alice"
+            }
+          )
+          queries <- 0L
+          rows <- shiny::reactive({
+            connection <- con()
+            queries <<- queries + 1L
+            DBI::dbGetQuery(connection, "SELECT 1 AS value")
+          })
+          rows()
+          status("refreshing")
+          session$flushReact()
+          status("active")
+          session$flushReact()
+          rows()
+          queries
+        })
+      )
+      session$close()
       testthat::local_mocked_bindings(
         dbConnect = function(...) {
           error <- simpleError("native connection failed")
@@ -151,6 +189,7 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
         real = if (is.data.frame(real)) real$n else NULL,
         parameters = sent$args,
         expected_parameters = values,
+        native_queries = native_queries,
         retains_credential = grepl(
           credential,
           rawToChar(serialize(native_error, NULL, ascii = TRUE)),
@@ -167,6 +206,7 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
   testthat::expect_identical(observed$real, 9007199254740994)
   testthat::expect_identical(observed$parameters, observed$expected_parameters)
   testthat::expect_false(observed$retains_credential)
+  testthat::expect_identical(observed$native_queries, 1L)
 })
 
 testthat::test_that("released Docker demos install the launcher's exact CRAN version", {
