@@ -8,7 +8,13 @@ remotes::install_github(
   upgrade = "never"
 )
 remotes::install_github(
-  "lukakoning/shinyOAuthDB@2097f2ce16395f9bd60fb841afc0c9cd1c5bad7b",
+  "lukakoning/shinyOAuthDB@2ad177f82fbe5b9fe37ddf28bc7a8bf3deb89d29",
   upgrade = "never"
 )
-stopifnot(requireNamespace("shinyOAuth"), requireNamespace("shinyOAuthDB"))
+stopifnot(
+  requireNamespace("shinyOAuth"),
+  requireNamespace("shinyOAuthDB"),
+  requireNamespace("mirai"),
+  utils::packageVersion("mirai") >= package_version("2.5.1"),
+  "oauth_db_task" %in% getNamespaceExports("shinyOAuthDB")
+)
