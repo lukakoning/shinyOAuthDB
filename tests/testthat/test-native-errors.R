@@ -68,3 +68,54 @@ test_that("native ODBC connection errors retain diagnostics without bearer token
     }
   })
 })
+
+test_that("ODBC errors cannot retain credentials through the evaluation frame", {
+  local_mocked_bindings(
+    dbConnect = function(...) {
+      error <- simpleError("native connection failed")
+      error$frame <- parent.frame()
+      stop(error)
+    },
+    .package = "DBI"
+  )
+  token <- paste(format(openssl::rand_bytes(24)), collapse = "")
+  error <- tryCatch(
+    .odb_odbc_connect(list(drv = "fixture", pwd = token)),
+    error = identity
+  )
+  expect_s3_class(error, "simpleError")
+  expect_identical(conditionMessage(error), "native connection failed")
+  expect_false(grepl(
+    token,
+    rawToChar(serialize(error, NULL, ascii = TRUE)),
+    fixed = TRUE
+  ))
+})
+
+test_that("ODBC errors preserve trace calls without their source environments", {
+  token <- paste(format(openssl::rand_bytes(24)), collapse = "")
+  source <- srcfilecopy("driver.R", "native_connect()")
+  source$credential <- token
+  call <- quote(native_connect())
+  attr(call, "srcref") <- srcref(source, c(1L, 1L, 1L, 16L, 1L, 16L))
+  trace <- rlang::trace_back(top = globalenv())
+  trace$call[[1L]] <- call
+  local_mocked_bindings(
+    dbConnect = function(...) {
+      error <- simpleError("native connection failed", call = call)
+      error$trace <- trace
+      stop(error)
+    },
+    .package = "DBI"
+  )
+  error <- tryCatch(.odb_odbc_connect(list(drv = "fixture")), error = identity)
+  expect_s3_class(error, "simpleError")
+  expect_identical(conditionMessage(error), "native connection failed")
+  expect_identical(conditionCall(error), quote(native_connect()))
+  expect_identical(error$trace$call[[1L]], quote(native_connect()))
+  expect_false(grepl(
+    token,
+    rawToChar(serialize(error, NULL, ascii = TRUE)),
+    fixed = TRUE
+  ))
+})

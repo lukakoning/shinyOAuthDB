@@ -41,11 +41,29 @@
 # matching quote inside. Checking the entire value prevents trailing keywords.
 .odb_odbc_quoted <- function(value) grepl("^\"[^\"]*\"$|^'[^']*'$", value)
 
-# Keep credential values out of the evaluated calls retained by driver errors.
+# Keep credential values out of calls and evaluation frames retained by driver errors.
 .odb_odbc_connect <- function(args) {
+  on.exit(
+    {
+      args <- NULL
+    },
+    add = TRUE
+  )
   values <- lapply(seq_along(args), function(i) {
     substitute(args[[index]], list(index = i))
   })
   names(values) <- names(args)
-  eval(as.call(c(list(quote(DBI::dbConnect)), values)), envir = environment())
+  tryCatch(
+    eval(
+      as.call(c(list(quote(DBI::dbConnect)), values)),
+      envir = environment()
+    ),
+    error = function(error) {
+      error$call <- rlang::zap_srcref(error$call)
+      if (inherits(error$trace, "rlang_trace")) {
+        error$trace$call <- lapply(error$trace$call, rlang::zap_srcref)
+      }
+      stop(error)
+    }
+  )
 }
