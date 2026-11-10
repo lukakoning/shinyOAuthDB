@@ -11,8 +11,7 @@ user's permissions.
 [`vignette("getting-started", package = "shinyOAuthDB")`](https://lukakoning.github.io/shinyOAuthDB/articles/getting-started.md)
 explains the package and walks through a complete app. The [source
 guides](https://lukakoning.github.io/shinyOAuthDB/articles/index.html)
-cover each database or platform. Use `build_vignettes = TRUE` when
-installing from GitHub to read the guides locally.
+cover each database or platform.
 
 Try
 [`oauth_db_demo()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_demo.md)
