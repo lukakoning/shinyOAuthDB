@@ -185,7 +185,7 @@ oauth_db_cratedb_api <- function(
       )
     }
     if (length(value) != 1L) {
-      return(lapply(as.list(value), encode))
+      return(lapply(unname(as.list(value)), encode))
     }
     if (is.na(value)) NULL else unname(value)
   }

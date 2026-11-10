@@ -524,7 +524,7 @@ oauth_db_cosmos_api <- function(
     )
   }
   if (length(value) != 1L) {
-    return(lapply(as.list(value), .odb_cosmos_value))
+    return(lapply(unname(as.list(value)), .odb_cosmos_value))
   }
   unname(value)
 }
