@@ -48,7 +48,8 @@ ignored and return `FALSE`; accepted invocations return `TRUE`,
 invisibly. `result()` waits quietly before completion, checks
 authorization on every read, and returns ordinary R data. Native handles
 cannot leave the worker. Status is `"initial"`, `"running"`, `"success"`
-or `"error"`.
+or `"error"`. Cancelled or invalidated results report `"initial"` until
+another invocation is accepted.
 
 ## Details
 

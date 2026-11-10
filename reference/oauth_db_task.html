@@ -89,7 +89,8 @@ Invocation arguments go to the selected operation. Busy invocations are
 ignored and return <code>FALSE</code>; accepted invocations return <code>TRUE</code>, invisibly.
 <code>result()</code> waits quietly before completion, checks authorization on every
 read, and returns ordinary R data. Native handles cannot leave the worker.
-Status is <code>"initial"</code>, <code>"running"</code>, <code>"success"</code> or <code>"error"</code>.</p>
+Status is <code>"initial"</code>, <code>"running"</code>, <code>"success"</code> or <code>"error"</code>. Cancelled or
+invalidated results report <code>"initial"</code> until another invocation is accepted.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
