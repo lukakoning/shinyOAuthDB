@@ -71,9 +71,8 @@ items and data they query.
 ## Resource objects
 
 A fabricQueryR object, such as a Lakehouse, keeps the authorization used
-to create it. Put the lookup inside
-[`reactive()`](https://rdrr.io/pkg/shiny/man/reactive.html) so it runs
-again when the visitor changes accounts, as in the example.
+to create it. Put the lookup inside `reactive()` so it runs again when
+the visitor changes accounts, as in the example.
 
 For a DBI connection managed by shinyOAuthDB, use
 [`oauth_db_fabric_sql()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_fabric_sql.md).
