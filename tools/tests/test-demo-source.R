@@ -79,6 +79,7 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
       bootstrap <- new.env(parent = globalenv())
       bootstrap$install.packages <- function(...) invisible(NULL)
       sys.source(file.path(root, "inst", "docker", "install.R"), bootstrap)
+      bootstrap$install_demo_runtime("0.0.0.9000")
       package <- find.package("shinyOAuthDB")
       canary <- tempfile(fileext = ".json")
       writeLines('{"proof":"local file"}', canary)
@@ -122,6 +123,21 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
       )
       values <- list(1.0000000000000002, 1e-100)
       crate$query("SELECT $1, $2", values)
+      testthat::local_mocked_bindings(
+        dbConnect = function(...) {
+          error <- simpleError("native connection failed")
+          error$frame <- parent.frame()
+          stop(error)
+        },
+        .package = "DBI"
+      )
+      credential <- "docker-credential-canary"
+      native_error <- tryCatch(
+        getFromNamespace(".odb_odbc_connect", "shinyOAuthDB")(
+          list(drv = "fixture", pwd = credential)
+        ),
+        error = identity
+      )
       list(
         references = references,
         isolated = identical(
@@ -134,17 +150,38 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
         ),
         real = if (is.data.frame(real)) real$n else NULL,
         parameters = sent$args,
-        expected_parameters = values
+        expected_parameters = values,
+        retains_credential = grepl(
+          credential,
+          rawToChar(serialize(native_error, NULL, ascii = TRUE)),
+          fixed = TRUE
+        )
       )
     },
     args = list(root, library),
     libpath = .libPaths()
   )
-  testthat::expect_length(observed$references, 2L)
+  testthat::expect_length(observed$references, 1L)
   testthat::expect_true(observed$isolated)
   testthat::expect_true(observed$rejects_file_response)
   testthat::expect_identical(observed$real, 9007199254740994)
   testthat::expect_identical(observed$parameters, observed$expected_parameters)
+  testthat::expect_false(observed$retains_credential)
+})
+
+testthat::test_that("released Docker demos install the launcher's exact CRAN version", {
+  bootstrap <- new.env(parent = globalenv())
+  sys.source(file.path("..", "..", "inst", "docker", "install.R"), bootstrap)
+  installed <- NULL
+  testthat::local_mocked_bindings(
+    install_version = function(package, version, upgrade) {
+      installed <<- list(package, version, upgrade)
+    },
+    install_github = function(...) stop("Released demos must use CRAN"),
+    .package = "remotes"
+  )
+  bootstrap$install_demo_package("1.2.3")
+  testthat::expect_identical(installed, list("shinyOAuthDB", "1.2.3", "never"))
 })
 
 testthat::test_that("demo source staging installs the candidate code with its fingerprint", {

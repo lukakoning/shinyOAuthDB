@@ -8,6 +8,10 @@ test_that("demo files ship with the package and can be edited without Docker", {
     normalizePath(path, winslash = "/")
   )
   expect_true(file.exists(file.path(path, "postgres", "app.R")))
+  expect_identical(
+    readLines(file.path(path, "package-source", "version")),
+    as.character(utils::packageVersion("shinyOAuthDB"))
+  )
   expect_true(file.exists(file.path(
     path,
     "postgres",
@@ -36,6 +40,19 @@ test_that("demo files ship with the package and can be edited without Docker", {
     )))
     expect_true(file.exists(file.path(path, backend, "app.R")))
   }
+})
+
+test_that("release demo files select the installed release version", {
+  local_mocked_bindings(
+    .odb_package_version = function(...) package_version("1.2.3")
+  )
+  path <- file.path(withr::local_tempdir(), "release demo")
+  oauth_db_demo(action = "files", path = path)
+  expect_identical(
+    readLines(file.path(path, "package-source", "version")),
+    "1.2.3"
+  )
+  expect_identical(readLines(file.path(path, ".shinyOAuthDB-demo")), "1.2.3")
 })
 
 test_that("demo commands isolate the project and clean up after a failed start", {

@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     r-base-dev ca-certificates curl libcurl4-openssl-dev libssl-dev libxml2-dev libuv1-dev unixodbc-dev \
     && rm -rf /var/lib/apt/lists/*
 COPY install.R /tmp/install.R
+COPY package-source/version /tmp/demo-version
 RUN Rscript /tmp/install.R
 RUN Rscript -e 'if (!requireNamespace("bslib", quietly=TRUE) || packageVersion("bslib") < "0.9.0") install.packages("bslib", repos="https://cloud.r-project.org"); stopifnot(packageVersion("bslib") >= "0.9.0")'
 COPY entrypoint.sh /usr/local/bin/demo-entrypoint.sh

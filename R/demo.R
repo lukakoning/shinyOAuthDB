@@ -177,7 +177,9 @@ oauth_db_demo <- function(
     if (!all(file.copy(files, path, recursive = TRUE))) {
       stop("Could not copy the demo configuration to path.", call. = FALSE)
     }
-    writeLines(as.character(utils::packageVersion("shinyOAuthDB")), marker)
+    version <- as.character(.odb_package_version("shinyOAuthDB"))
+    writeLines(version, file.path(path, "package-source", "version"))
+    writeLines(version, marker)
   }
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   if (action %in% c("start", "services")) {
