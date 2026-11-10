@@ -203,6 +203,9 @@ oauth_db_token <- function(
   changed <- shiny::reactiveVal(0L)
   scope_checks <- list()
   checks_changed <- shiny::reactiveVal(0L)
+  background <- FALSE
+  permission_validation <- NULL
+  task_changed <- shiny::reactiveVal(0L)
 
   assert_owner <- function() {
     if (
@@ -249,7 +252,50 @@ oauth_db_token <- function(
     check$changed()
     invisible(NULL)
   }
-  sync <- function() {
+  validate_async <- function(next_grant, status) {
+    if (
+      is.null(permission_validation) ||
+        !identical(permission_validation$grant, next_grant)
+    ) {
+      state <- new.env(parent = emptyenv())
+      state$grant <- next_grant
+      state$pending <- TRUE
+      state$denied <- FALSE
+      state$error <- NULL
+      permission_validation <<- state
+      finish <- function(denied = FALSE, error = NULL) {
+        if (!closed && identical(permission_validation, state)) {
+          shiny::withReactiveDomain(
+            owner,
+            shiny::isolate({
+              state$pending <- FALSE
+              state$denied <- denied
+              state$error <- error
+              task_changed(task_changed() + 1L)
+              sync()
+            })
+          )
+        }
+        invisible(NULL)
+      }
+      state$promise <- promises::then(
+        .odb_authorization_denied(
+          next_grant,
+          required_scopes,
+          target,
+          status,
+          async = TRUE
+        ),
+        function(denied) finish(denied = denied),
+        function(error) finish(error = error)
+      )
+    }
+    if (!is.null(permission_validation$error)) {
+      stop(permission_validation$error)
+    }
+    permission_validation$denied
+  }
+  sync <- function(async = background) {
     assert_owner()
     next_grant <- next_identity <- next_failure <- NULL
     next_available <- next_denied <- FALSE
@@ -272,12 +318,18 @@ oauth_db_token <- function(
           # has_scopes() checks operation scopes, not the client's requirements.
           # Validate those separately when expiry masks the permission status;
           # preserve a previous denial while a refresh hides its evidence.
-          next_denied <- .odb_authorization_denied(
-            next_grant,
-            required_scopes,
-            target,
-            status
-          )
+          next_denied <- if (
+            async && isTRUE(status %in% c("expired", "expiry_unknown"))
+          ) {
+            validate_async(next_grant, status)
+          } else {
+            .odb_authorization_denied(
+              next_grant,
+              required_scopes,
+              target,
+              status
+            )
+          }
           if (isTRUE(status %in% c("expired", "expiry_unknown"))) {
             # Validation can renew credentials or end local access on failure.
             next_available <- .odb_authorization_has_scopes(
@@ -345,19 +397,31 @@ oauth_db_token <- function(
     }
     invisible(NULL)
   }
-  current <- function(captured) {
+  current <- function(captured, async = FALSE, allow_pending = FALSE) {
     assert_owner()
-    shiny::isolate(sync())
+    shiny::isolate(sync(async = async))
     if (!available || !identical(epoch, captured)) {
       .odb_abort(
         "This provider's authorization is no longer current.",
         "authorization_unavailable"
       )
     }
+    if (
+      async &&
+        !allow_pending &&
+        !is.null(permission_validation) &&
+        permission_validation$pending
+    ) {
+      .odb_abort(
+        "Authorization validation is still running.",
+        "authorization_pending"
+      )
+    }
   }
   connection <- function(.token_only = FALSE) {
     assert_owner()
-    shiny::isolate(sync())
+    background_token <- .token_only && background
+    shiny::isolate(sync(async = background_token))
     changed() # Depend on authorization changes, never on ordinary token rotation.
     if (!is.null(failure)) {
       stop(failure)
@@ -379,7 +443,11 @@ oauth_db_token <- function(
       .odb_flag(.allow_unacquired, ".allow_unacquired")
       .odb_seconds(.min_valid_for, ".min_valid_for")
       operation_scopes <- union(required_scopes, .odb_scopes(scopes))
-      current(captured)
+      current(
+        captured,
+        async = background_token || .async,
+        allow_pending = .async || .allow_unacquired
+      )
       if (.check_only) {
         if (
           !shiny::isolate(.odb_authorization_has_scopes(
@@ -405,15 +473,27 @@ oauth_db_token <- function(
       if (length(setdiff(operation_scopes, required_scopes))) {
         watch_scopes(operation_scopes)
       }
-      value <- shiny::isolate(pinned$access_token(
-        required_scopes = operation_scopes,
-        min_valid_for_seconds = max(min_valid_for, .min_valid_for),
-        force_refresh = force_refresh,
-        async = .async,
-        target = target
-      ))
+      read <- function() {
+        current(captured, async = background_token || .async)
+        shiny::isolate(pinned$access_token(
+          required_scopes = operation_scopes,
+          min_valid_for_seconds = max(min_valid_for, .min_valid_for),
+          force_refresh = force_refresh,
+          async = .async,
+          target = target
+        ))
+      }
+      value <- if (
+        .async &&
+          !is.null(permission_validation) &&
+          permission_validation$pending
+      ) {
+        promises::then(permission_validation$promise, function(value) read())
+      } else {
+        read()
+      }
       checked <- function(value) {
-        current(captured)
+        current(captured, async = background_token || .async)
         if (
           !shiny::isolate(.odb_authorization_has_scopes(
             pinned,
@@ -501,7 +581,16 @@ oauth_db_token <- function(
       }
     )
   }
-  observer <- shiny::observe(sync(), priority = 100, domain = owner)
+  observer <- shiny::observe(
+    {
+      if (!is.null(permission_validation) && !permission_validation$pending) {
+        permission_validation <<- NULL
+      }
+      sync()
+    },
+    priority = 100,
+    domain = owner
+  )
   owner$onSessionEnded(function() {
     close_native()
     closed <<- TRUE
@@ -512,10 +601,16 @@ oauth_db_token <- function(
     observer$destroy()
   })
   attr(connection, ".odb_task") <- list(
+    enable_async = function() {
+      assert_owner()
+      background <<- TRUE
+      invisible(NULL)
+    },
     pin = function() connection(.token_only = TRUE),
     watch = function() {
       assert_owner()
       changed()
+      task_changed()
       invisible(NULL)
     },
     connect = connect,

@@ -91,6 +91,9 @@ oauth_db_task <- function(
     }
   }
   assert_owner()
+  for (plan in spec$plans) {
+    plan$enable_async()
+  }
   running <- NULL
   active <- NULL
   valid <- shiny::reactiveVal(NULL)
@@ -100,7 +103,9 @@ oauth_db_task <- function(
         check(.ready = ready)
         TRUE
       },
-      error = function(error) FALSE
+      error = function(error) {
+        if (inherits(error, "shinyOAuthDB_authorization_pending")) NA else FALSE
+      }
     )
   }
   cancel_worker <- function() {
@@ -125,7 +130,7 @@ oauth_db_task <- function(
       promises::then(
         promises::promise_all(.list = pending),
         function(snapshots) {
-          if (!shiny::isolate(current(check, ready = TRUE))) {
+          if (!isTRUE(shiny::isolate(current(check, ready = TRUE)))) {
             return(NULL)
           }
           tokens <- lapply(snapshots, function(snapshot) snapshot$token)
@@ -151,14 +156,14 @@ oauth_db_task <- function(
             running,
             onFulfilled = function(value) {
               running <<- NULL
-              if (!shiny::isolate(current(check))) {
+              if (isFALSE(shiny::isolate(current(check)))) {
                 return(NULL)
               }
               value
             },
             onRejected = function(error) {
               running <<- NULL
-              if (shiny::isolate(current(check))) {
+              if (!isFALSE(shiny::isolate(current(check)))) {
                 return(list(ok = FALSE, error = error))
               }
               NULL
@@ -166,7 +171,7 @@ oauth_db_task <- function(
           )
         },
         onRejected = function(error) {
-          if (shiny::isolate(current(check))) {
+          if (!isFALSE(shiny::isolate(current(check)))) {
             return(list(ok = FALSE, error = error))
           }
           NULL
@@ -180,7 +185,7 @@ oauth_db_task <- function(
         plan$watch()
       }
       check <- valid()
-      if (!is.null(check) && !current(check)) {
+      if (!is.null(check) && isFALSE(current(check))) {
         if (!is.null(active)) {
           active$valid <- FALSE
         }
@@ -277,7 +282,7 @@ oauth_db_task <- function(
         }
         check <- valid()
         shiny::req(!is.null(check))
-        shiny::req(current(check))
+        shiny::req(isTRUE(current(check)))
         value <- task$result()
         shiny::req(!is.null(value))
         if (!isTRUE(value$ok)) {
@@ -291,7 +296,7 @@ oauth_db_task <- function(
           plan$watch()
         }
         check <- valid()
-        if (is.null(check) || !current(check)) {
+        if (is.null(check) || !isTRUE(current(check))) {
           return("initial")
         }
         status <- task$status()

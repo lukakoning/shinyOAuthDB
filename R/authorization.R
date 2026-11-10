@@ -50,50 +50,64 @@
   value$status
 }
 
-.odb_authorization_denied <- function(grant, required_scopes, target, status) {
+.odb_authorization_denied <- function(
+  grant,
+  required_scopes,
+  target,
+  status,
+  async = FALSE
+) {
   if (identical(status, "insufficient_scope")) {
     return(TRUE)
   }
   if (!isTRUE(status %in% c("expired", "expiry_unknown"))) {
     return(FALSE)
   }
-  # Export validation checks client and target requirements before lifetime.
-  # Expiry alone must not retire a live database session. This public check
-  # may renew an expired credential when the authorization can refresh it.
-  tryCatch(
-    {
-      shiny::isolate(grant$access_token(
-        required_scopes = required_scopes,
-        min_valid_for_seconds = 0,
-        force_refresh = FALSE,
-        async = FALSE,
-        target = target
-      ))
-      FALSE
-    },
-    error = function(error) {
-      if (!inherits(error, "shinyOAuth_access_error")) {
-        stop(error)
-      }
-      reason <- error$context$reason
-      if (identical(reason, "insufficient_scope")) {
-        return(TRUE)
-      }
-      # These failures follow successful permission validation in shinyOAuth.
-      if (
-        isTRUE(
-          reason %in%
-            c(
-              "interaction_required",
-              "refresh_unavailable",
-              "lifetime_unavailable"
-            )
-        )
-      ) {
-        return(FALSE)
-      }
+  read <- function() {
+    shiny::isolate(grant$access_token(
+      required_scopes = required_scopes,
+      min_valid_for_seconds = 0,
+      force_refresh = FALSE,
+      async = async,
+      target = target
+    ))
+  }
+  denied <- function(error) {
+    if (!inherits(error, "shinyOAuth_access_error")) {
       stop(error)
     }
+    reason <- error$context$reason
+    if (identical(reason, "insufficient_scope")) {
+      return(TRUE)
+    }
+    # These failures follow successful permission validation in shinyOAuth.
+    if (
+      isTRUE(
+        reason %in%
+          c(
+            "interaction_required",
+            "refresh_unavailable",
+            "lifetime_unavailable"
+          )
+      )
+    ) {
+      return(FALSE)
+    }
+    stop(error)
+  }
+  if (async) {
+    value <- tryCatch(
+      promises::promise_resolve(read()),
+      error = promises::promise_reject
+    )
+    return(promises::then(value, function(value) FALSE, denied))
+  }
+  tryCatch(
+    {
+      read()
+      FALSE
+    },
+    error = denied
   )
 }
 
