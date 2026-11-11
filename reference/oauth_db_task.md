@@ -53,7 +53,7 @@ another invocation is accepted.
 
 ## Details
 
-Install mirai (2.5.1 or newer), configure
+mirai (2.5.1 or newer) is installed with shinyOAuthDB. Configure
 [`mirai::daemons()`](https://mirai.r-lib.org/reference/daemons.html)
 once before the server starts, and stop those workers when the app
 stops. The task never starts a worker pool itself. Enable `async = TRUE`

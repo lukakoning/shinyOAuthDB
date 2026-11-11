@@ -103,9 +103,9 @@ database or table; they also need the relevant database permissions.</p>
 </h2>
 <p>The examples assume shinyOAuthDB is already installed; see the <a href="https://lukakoning.github.io/shinyOAuthDB/#install">installation
 instructions</a>. Installing it also installs shinyOAuth, shiny and
-their required dependencies, including jsonlite. Some data sources need
-an additional client package or database driver; their guides list the
-requirements.</p>
+their required dependencies, including jsonlite and mirai (2.5.1 or
+newer). Some data sources need an additional client package or database
+driver; their guides list the requirements.</p>
 </div>
 <div class="section level2">
 <h2 id="build-a-small-app">Build a small app<a class="anchor" aria-label="anchor" href="#build-a-small-app"></a>
@@ -527,15 +527,14 @@ configure workers once at application startup, outside
 <span>  <span class="op">)</span></span>
 <span>  <span class="co"># Add the app's observers and outputs here.</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>Install mirai (2.5.1 or newer) once with
-<code>install.packages("mirai")</code>; it is an optional dependency.
-Setting <code>async = TRUE</code> also requires configuring its workers
-before the module runs. The pool belongs to the app’s R process, so
-visitors share it; do not start a pool for each visitor. Choose its size
-for your deployment’s memory and concurrency limits. For an existing
-future deployment, a non-sequential <code><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">future::multisession</a></code>
-plan is another supported backend. A sequential future plan still
-blocks. See shinyOAuth’s <a href="https://lukakoning.github.io/shinyOAuth/articles/usage.html#asynchronous-execution" class="external-link">async
+<p>mirai (2.5.1 or newer) is installed with shinyOAuthDB. Setting
+<code>async = TRUE</code> also requires configuring its workers before
+the module runs. The pool belongs to the app’s R process, so visitors
+share it; do not start a pool for each visitor. Choose its size for your
+deployment’s memory and concurrency limits. For an existing future
+deployment, a non-sequential <code><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">future::multisession</a></code> plan is
+another supported backend. A sequential future plan still blocks. See
+shinyOAuth’s <a href="https://lukakoning.github.io/shinyOAuth/articles/usage.html#asynchronous-execution" class="external-link">async
 setup guide</a> for that alternative and its package requirements.</p>
 <p>This setting covers shinyOAuth’s module operations. Provider
 discovery at app setup, database connections, queries, polling and

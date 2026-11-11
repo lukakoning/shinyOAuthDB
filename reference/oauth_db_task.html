@@ -94,10 +94,11 @@ invalidated results report <code>"initial"</code> until another invocation is ac
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Install mirai (2.5.1 or newer), configure <code><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">mirai::daemons()</a></code> once before the
-server starts, and stop those workers when the app stops. The task never
-starts a worker pool itself. Enable <code>async = TRUE</code> on shinyOAuth's module
-separately for background OAuth operations.</p>
+    <p>mirai (2.5.1 or newer) is installed with shinyOAuthDB. Configure
+<code><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">mirai::daemons()</a></code> once before the server starts, and stop those workers
+when the app stops. The task never starts a worker pool itself. Enable
+<code>async = TRUE</code> on shinyOAuth's module separately for background OAuth
+operations.</p>
 <p>Sign-out, account changes, permission loss and session end invalidate results
 and attempt to cancel pending worker work. Cancellation cannot undo a query
 or write already accepted by a server. Operations are never automatically

@@ -40,8 +40,9 @@ The examples assume shinyOAuthDB is already installed; see the
 [installation
 instructions](https://lukakoning.github.io/shinyOAuthDB/#install).
 Installing it also installs shinyOAuth, shiny and their required
-dependencies, including jsonlite. Some data sources need an additional
-client package or database driver; their guides list the requirements.
+dependencies, including jsonlite and mirai (2.5.1 or newer). Some data
+sources need an additional client package or database driver; their
+guides list the requirements.
 
 ## Build a small app
 
@@ -402,12 +403,12 @@ server <- function(input, output, session) {
 }
 ```
 
-Install mirai (2.5.1 or newer) once with `install.packages("mirai")`; it
-is an optional dependency. Setting `async = TRUE` also requires
-configuring its workers before the module runs. The pool belongs to the
-app’s R process, so visitors share it; do not start a pool for each
-visitor. Choose its size for your deployment’s memory and concurrency
-limits. For an existing future deployment, a non-sequential
+mirai (2.5.1 or newer) is installed with shinyOAuthDB. Setting
+`async = TRUE` also requires configuring its workers before the module
+runs. The pool belongs to the app’s R process, so visitors share it; do
+not start a pool for each visitor. Choose its size for your deployment’s
+memory and concurrency limits. For an existing future deployment, a
+non-sequential
 [`future::multisession`](https://future.futureverse.org/reference/multisession.html)
 plan is another supported backend. A sequential future plan still
 blocks. See shinyOAuth’s [async setup
