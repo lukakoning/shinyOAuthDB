@@ -47,8 +47,9 @@
 #' parameter forms or query options.
 #'
 #' Large JSON integers remain strings; nested documents and multivalued
-#' fields remain lists. Search timeouts, shard failures and partial query
-#' results raise errors. Use `raw = TRUE` for the httr2 response instead.
+#' fields remain lists. Search timeouts, shard failures, skipped remote
+#' clusters and partial query results raise errors. Use `raw = TRUE` for the
+#' httr2 response instead.
 #'
 #' There is no automatic pagination. Use `search_after` for searches, or
 #' `$request("_sql", method = "POST", body = list(cursor = cursor))` for SQL
@@ -329,7 +330,10 @@ oauth_db_elasticsearch_api <- function(
           "invalid_response"
         )
       }
-      for (field in c("failed", if (name == "_clusters") "partial")) {
+      for (field in c(
+        "failed",
+        if (name == "_clusters") c("partial", "skipped")
+      )) {
         value <- metadata[[field]]
         if (!is.null(value)) {
           if (

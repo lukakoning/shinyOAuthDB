@@ -267,7 +267,11 @@ test_that("Elasticsearch rejects partial and malformed results while allowing ra
     expect_identical(api$search()$hits$hits, list())
     for (kind in c("sql", "esql")) {
       field <- if (kind == "sql") "rows" else "values"
-      for (metadata in c('"is_partial":true', '"is_running":true')) {
+      for (metadata in c(
+        '"is_partial":true',
+        '"is_running":true',
+        '"_clusters":{"skipped":1}'
+      )) {
         payload <<- paste0('{"columns":[],"', field, '":[],', metadata, '}')
         expect_error(api[[kind]]("query"), class = "shinyOAuthDB_query_failed")
         expect_s3_class(api[[kind]]("query", raw = TRUE), "httr2_response")
@@ -286,6 +290,43 @@ test_that("Elasticsearch rejects partial and malformed results while allowing ra
       }
       payload <<- paste0('{"columns":[],"', field, '":[]}')
       expect_identical(api[[kind]]("query")[[field]], list())
+    }
+  })
+})
+
+test_that("Elasticsearch rejects skipped remote clusters but permits prefiltered shards", {
+  payload <- paste0(
+    '{"timed_out":false,"_shards":{"total":2,"successful":2,"skipped":1,"failed":0},',
+    '"_clusters":{"total":2,"successful":1,"skipped":1,"running":0,"partial":0,"failed":0},',
+    '"hits":{"hits":[{"_id":"local-row"}]},"aggregations":{"sales":{"value":25}}}'
+  )
+  httr2::local_mocked_responses(function(req) odb_http_response(payload))
+  odb_test_domain(function(session) {
+    auth <- odb_test_response_authorization()
+    api <- oauth_db_elasticsearch_api(auth$connection, "https://search.example")
+    expect_error(
+      api$search(c("orders", "remote:orders")),
+      class = "shinyOAuthDB_query_failed"
+    )
+    raw <- api$search(c("orders", "remote:orders"), raw = TRUE)
+    expect_identical(
+      .odb_http_json(raw, "Elasticsearch")[["_clusters"]]$skipped,
+      1L
+    )
+    payload <<- sub(
+      '"skipped":1,"running"',
+      '"skipped":0,"running"',
+      payload,
+      fixed = TRUE
+    )
+    expect_identical(api$search()$hits$hits[[1L]][["_id"]], "local-row")
+    for (skipped in c("-1", "0.5", '"unknown"')) {
+      payload <<- sub(
+        '"skipped":[^,]+,"running"',
+        paste0('"skipped":', skipped, ',"running"'),
+        payload
+      )
+      expect_error(api$search(), class = "shinyOAuthDB_invalid_response")
     }
   })
 })

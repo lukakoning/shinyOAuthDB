@@ -92,8 +92,9 @@ a server version that supports them. Use \verb{$request()} for other native
 parameter forms or query options.
 
 Large JSON integers remain strings; nested documents and multivalued
-fields remain lists. Search timeouts, shard failures and partial query
-results raise errors. Use \code{raw = TRUE} for the httr2 response instead.
+fields remain lists. Search timeouts, shard failures, skipped remote
+clusters and partial query results raise errors. Use \code{raw = TRUE} for the
+httr2 response instead.
 
 There is no automatic pagination. Use \code{search_after} for searches, or
 \verb{$request("_sql", method = "POST", body = list(cursor = cursor))} for SQL
