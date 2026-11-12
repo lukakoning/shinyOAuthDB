@@ -473,6 +473,19 @@ test_that("real worker queries keep their owning Shiny session responsive", {
     }
     expect_identical(generic_rows$status(), "success")
     expect_identical(generic_rows$result(), data.frame(value = 42L))
+    expect_true(rows$invoke(5))
+    task_flush()
+    expect_false(rows$invoke(0))
+    rows$cancel()
+    expect_identical(rows$status(), "initial")
+    expect_true(rows$invoke(0))
+    deadline <- proc.time()[["elapsed"]] + 30
+    while (rows$status() == "running" && proc.time()[["elapsed"]] < deadline) {
+      later::run_now(0.01)
+      session$flushReact()
+    }
+    expect_identical(rows$status(), "success")
+    expect_identical(rows$result()$token, "fixture-A")
   })
 })
 

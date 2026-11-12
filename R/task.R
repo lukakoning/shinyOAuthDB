@@ -95,7 +95,6 @@ oauth_db_task <- function(
   for (plan in spec$plans) {
     plan$enable_async()
   }
-  running <- NULL
   active <- NULL
   valid <- shiny::reactiveVal(NULL)
   current <- function(check, ready = FALSE) {
@@ -110,13 +109,21 @@ oauth_db_task <- function(
     )
   }
   cancel_worker <- function() {
-    if (!is.null(running)) {
-      tryCatch(mirai::stop_mirai(running), error = function(error) NULL)
-      running <<- NULL
+    if (!is.null(active) && !is.null(active$running)) {
+      job <- active$running
+      active$running <- NULL
+      tryCatch(mirai::stop_mirai(job), error = function(error) NULL)
     }
     invisible(NULL)
   }
-  task <- shiny::ExtendedTask$new(function(pins, worker, arguments, check) {
+  retire <- function() {
+    if (!is.null(active)) {
+      active$valid <- FALSE
+      cancel_worker()
+    }
+    invisible(NULL)
+  }
+  run <- function(pins, worker, arguments, check, control) {
     shiny::isolate({
       pending <- lapply(seq_along(pins), function(index) {
         budget <- max(min_valid_for, spec$plans[[index]]$min_valid_for)
@@ -135,7 +142,7 @@ oauth_db_task <- function(
           }
           tokens <- lapply(snapshots, function(snapshot) snapshot$token)
           until <- vapply(snapshots, function(snapshot) snapshot$until, 0)
-          running <<- mirai::mirai(
+          control$running <- mirai::mirai(
             {
               get(".odb_task_job", asNamespace("shinyOAuthDB"))(
                 worker,
@@ -153,16 +160,16 @@ oauth_db_task <- function(
             .compute = compute
           )
           promises::then(
-            running,
+            control$running,
             onFulfilled = function(value) {
-              running <<- NULL
+              control$running <- NULL
               if (isFALSE(shiny::isolate(current(check)))) {
                 return(NULL)
               }
               value
             },
             onRejected = function(error) {
-              running <<- NULL
+              control$running <- NULL
               if (!isFALSE(shiny::isolate(current(check)))) {
                 return(list(ok = FALSE, error = error))
               }
@@ -178,7 +185,7 @@ oauth_db_task <- function(
         }
       )
     })
-  })
+  }
   watcher <- shiny::observe(
     {
       for (plan in spec$plans) {
@@ -186,25 +193,26 @@ oauth_db_task <- function(
       }
       check <- valid()
       if (!is.null(check) && isFALSE(current(check))) {
-        if (!is.null(active)) {
-          active$valid <- FALSE
-        }
-        cancel_worker()
+        retire()
       }
     },
     priority = 100,
     domain = owner
   )
   owner$onSessionEnded(function() {
-    cancel_worker()
+    retire()
     watcher$destroy()
   })
   structure(
     list(
       invoke = function(...) {
         assert_owner()
-        if (shiny::isolate(task$status()) == "running") {
-          return(invisible(FALSE))
+        if (!is.null(active) && active$valid) {
+          if (isFALSE(shiny::isolate(current(valid())))) {
+            retire()
+          } else if (shiny::isolate(active$task$status()) == "running") {
+            return(invisible(FALSE))
+          }
         }
         if (!isTRUE(mirai::daemons_set(.compute = compute))) {
           .odb_abort(
@@ -242,10 +250,10 @@ oauth_db_task <- function(
         ) &&
           identical(worker$args$url, "http://127.0.0.1:19444")
         captured_args <- worker$args
-        active <<- new.env(parent = emptyenv())
-        control <- active
+        control <- new.env(parent = emptyenv())
         control$valid <- TRUE
         control$ready <- FALSE
+        control$running <- NULL
         check <- function(.ready = FALSE) {
           if (.ready) {
             control$ready <- TRUE
@@ -271,8 +279,10 @@ oauth_db_task <- function(
           invisible(NULL)
         }
         check()
+        control$task <- shiny::ExtendedTask$new(run)
+        active <<- control
         valid(check)
-        task$invoke(pins, worker, arguments, check)
+        control$task$invoke(pins, worker, arguments, check, control)
         invisible(TRUE)
       },
       result = function() {
@@ -283,7 +293,7 @@ oauth_db_task <- function(
         check <- valid()
         shiny::req(!is.null(check))
         shiny::req(isTRUE(current(check)))
-        value <- task$result()
+        value <- active$task$result()
         shiny::req(!is.null(value))
         if (!isTRUE(value$ok)) {
           stop(value$error)
@@ -299,11 +309,11 @@ oauth_db_task <- function(
         if (is.null(check) || !isTRUE(current(check))) {
           return("initial")
         }
-        status <- task$status()
+        status <- active$task$status()
         if (status != "success") {
           return(status)
         }
-        value <- task$result()
+        value <- active$task$result()
         if (is.null(value)) {
           "initial"
         } else if (isTRUE(value$ok)) {
@@ -314,11 +324,8 @@ oauth_db_task <- function(
       },
       cancel = function() {
         assert_owner()
-        if (!is.null(active)) {
-          active$valid <- FALSE
-        }
+        retire()
         valid(NULL)
-        cancel_worker()
         invisible(NULL)
       }
     ),
