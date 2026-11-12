@@ -362,14 +362,29 @@ oauth_db_mongodb <- function(
     !is.character(allowed_hosts) ||
       !length(allowed_hosts) ||
       anyNA(allowed_hosts) ||
-      !all(grepl("^(\\*\\.)?[A-Za-z0-9][A-Za-z0-9.:-]*$", allowed_hosts)) ||
-      any(grepl("^\\*\\.[^.]+$", allowed_hosts))
+      !all(vapply(allowed_hosts, .odb_mongodb_host, logical(1)))
   ) {
     .odb_abort(
       "allowed_hosts must contain explicit hostnames or *.domain names."
     )
   }
   unique(tolower(allowed_hosts))
+}
+
+.odb_mongodb_host <- function(host) {
+  if (!grepl(":", host, fixed = TRUE)) {
+    return(
+      grepl("^(\\*\\.)?[A-Za-z0-9][A-Za-z0-9.-]*$", host) &&
+        !grepl("^\\*\\.[^.]+$", host)
+    )
+  }
+  if (!grepl("^[0-9A-Fa-f:.]+$", host)) {
+    return(FALSE)
+  }
+  !is.null(tryCatch(
+    httr2::url_parse(paste0("https://[", host, "]")),
+    error = function(error) NULL
+  ))
 }
 
 .odb_mongodb_open <- function(

@@ -266,6 +266,51 @@ test_that("MongoDB restricts endpoints, authentication and TLS configuration", {
   })
 })
 
+test_that("MongoDB accepts compressed IPv6 hosts without broadening allowlists", {
+  for (host in c("::1", "::", "::ffff:192.0.2.10", "2001:db8::1")) {
+    expect_identical(
+      .odb_mongodb_url(paste0("mongodb://[", host, "]:27017"), NULL),
+      host
+    )
+    expect_identical(.odb_mongodb_url("mongodb://mongo.example", host), host)
+  }
+  expect_identical(
+    .odb_mongodb_url("mongodb://[::1]:27017,mongo.example:27018", NULL),
+    c("::1", "mongo.example")
+  )
+  for (host in c(":", ":::1", "2001::db8::1", "::gg", "::ffff:999.1.1.1")) {
+    expect_error(
+      .odb_mongodb_url(paste0("mongodb://[", host, "]:27017"), NULL),
+      "allowed_hosts"
+    )
+  }
+  for (host in c("*::1", "*.::1", "[::1]", "::1/path", "::1@mongo.example")) {
+    expect_error(
+      .odb_mongodb_url("mongodb://mongo.example", host),
+      "allowed_hosts"
+    )
+  }
+})
+
+test_that("MongoDB passes IPv6 loopback allowlists to the native client", {
+  state <- mongodb_fixture()
+  local_mocked_bindings(.odb_mongodb_open = state$open)
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    for (hosts in list(NULL, "::1")) {
+      mongo <- oauth_db_mongodb(
+        auth$connection,
+        "mongodb://[::1]:27017",
+        "reports",
+        "https://login.example.org",
+        allowed_hosts = hosts
+      )
+      expect_identical(mongo$find("orders"), data.frame(total = 12L))
+      expect_identical(state$clients[[length(state$clients)]]$hosts, "::1")
+    }
+  })
+})
+
 test_that("MongoDB checks literal scopes and named token targets", {
   state <- mongodb_fixture()
   local_mocked_bindings(.odb_mongodb_open = state$open)
