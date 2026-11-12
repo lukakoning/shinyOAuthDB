@@ -407,7 +407,8 @@ test_that("real worker queries keep their owning Shiny session responsive", {
   skip_if_not_installed("mirai", "2.5.1")
   skip_if_not_installed("RSQLite")
   skip_if(mirai::daemons_set(), "Preserve an existing worker pool")
-  mirai::daemons(1)
+  # Let coverage finalizers finish writing when the worker disconnects.
+  mirai::daemons(1, autoexit = NA)
   withr::defer(mirai::daemons(0))
   paths <- .libPaths()
   package_path <- system.file(package = "shinyOAuthDB")
