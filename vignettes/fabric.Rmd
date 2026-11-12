@@ -162,7 +162,7 @@ fabric <- oauth_db_fabric_api(auth$connection, targets = c(fabric = "fabric"))
 workspace_task <- oauth_db_task(fabric, method = "call")
 
 observeEvent(input$load, {
-  workspace_task$invoke(fabricQueryR::fabric_workspaces)
+  workspace_task$invoke(fabricQueryR::fabric_workspaces, output = "list")
 })
 
 output$workspaces <- renderPrint(workspace_task$result())
