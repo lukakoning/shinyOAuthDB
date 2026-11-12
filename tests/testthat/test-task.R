@@ -436,6 +436,13 @@ test_that("real worker queries keep their owning Shiny session responsive", {
     auth <- odb_test_authorization(session)
     source <- oauth_db_connect(auth$connection, connect = task_sqlite_connect)
     rows <- oauth_db_task(source, method = fetch)
+    generic_source <- oauth_db_connect(
+      auth$connection,
+      drv = RSQLite::SQLite(),
+      dbname = ":memory:",
+      disconnect = DBI::dbDisconnect
+    )
+    generic_rows <- oauth_db_task(generic_source, method = DBI::dbGetQuery)
     shiny::observeEvent(input$ping, {
       calls$ping <- input$ping
     })
@@ -456,6 +463,16 @@ test_that("real worker queries keep their owning Shiny session responsive", {
     expect_identical(rows$status(), "success")
     expect_identical(rows$result()$token, "fixture-A")
     expect_false(identical(rows$result()$pid, Sys.getpid()))
+    expect_true(generic_rows$invoke("SELECT 42 AS value"))
+    deadline <- proc.time()[["elapsed"]] + 30
+    while (
+      generic_rows$status() == "running" && proc.time()[["elapsed"]] < deadline
+    ) {
+      later::run_now(0.01)
+      session$flushReact()
+    }
+    expect_identical(generic_rows$status(), "success")
+    expect_identical(generic_rows$result(), data.frame(value = 42L))
   })
 })
 

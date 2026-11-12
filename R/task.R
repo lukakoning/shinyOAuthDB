@@ -327,6 +327,19 @@ oauth_db_task <- function(
 }
 
 .odb_task_function <- function(value) {
+  if (methods::is(value, "genericFunction")) {
+    package <- as.character(methods::slot(value, "package"))
+    name <- as.character(methods::slot(value, "generic"))
+    exported <- tryCatch(getExportedValue(package, name), error = function(e) {
+      NULL
+    })
+    if (identical(value, exported)) {
+      return(structure(
+        list(package = package, name = name),
+        class = "shinyOAuthDB_worker_function"
+      ))
+    }
+  }
   envir <- environment(value)
   if (is.null(envir) || identical(envir, baseenv()) || isNamespace(envir)) {
     metadata <- attributes(value)
@@ -529,6 +542,8 @@ oauth_db_task <- function(
     }
     value
   }
+  worker <- restore(worker)
+  method <- restore(method)
   arguments <- restore(arguments)
   if (isTRUE(worker$allow_demo_http)) {
     previous <- .odb_demo_http$active
