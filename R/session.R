@@ -638,12 +638,22 @@ oauth_db_token <- function(
       background <<- TRUE
       invisible(NULL)
     },
-    pin = function() connection(.token_only = TRUE),
-    watch = function() {
+    pin = function(scopes = required_scopes) {
+      scopes <- union(required_scopes, .odb_scopes(scopes))
+      provider <- connection(.token_only = TRUE)
+      if (!length(setdiff(scopes, required_scopes))) {
+        return(provider)
+      }
+      function(...) provider(..., scopes = scopes)
+    },
+    watch = function(scopes = required_scopes) {
       assert_owner()
       changed()
       identity_pending()
       task_changed()
+      if (length(setdiff(scopes, required_scopes))) {
+        watch_scopes(scopes)
+      }
       invisible(NULL)
     },
     connect = connect,

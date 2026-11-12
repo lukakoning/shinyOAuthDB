@@ -53,6 +53,11 @@ Create the client inside \code{server()} and call its methods from render or
 reactive expressions. Configure \code{\link[=oauth_db_microsoft_client]{oauth_db_microsoft_client()}} for the
 services your app needs first. Users need access to the Fabric items
 and data they query.
+
+With \code{\link[=oauth_db_task]{oauth_db_task()}}, each configured service uses its read/query
+permission defaults unless it has an explicit entry in \code{required_scopes}.
+The task validates these permissions before dispatch and monitors them
+until its result is retired.
 }
 \section{Resource objects}{
 

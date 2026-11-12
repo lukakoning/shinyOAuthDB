@@ -264,6 +264,11 @@ oauth_db_fabric <- function(
 #' reactive expressions. Configure [oauth_db_microsoft_client()] for the
 #' services your app needs first. Users need access to the Fabric items
 #' and data they query.
+#'
+#' With [oauth_db_task()], each configured service uses its read/query
+#' permission defaults unless it has an explicit entry in `required_scopes`.
+#' The task validates these permissions before dispatch and monitors them
+#' until its result is retired.
 #' @section Resource objects:
 #' A fabricQueryR object, such as a Lakehouse, keeps the authorization used
 #' to create it. Put the lookup inside `reactive()` so it runs again when
@@ -456,7 +461,22 @@ oauth_db_fabric_api <- function(
     if (is.null(permissions)) {
       permissions <- character()
     }
-    list(resource = resource, target = target, scopes = permissions)
+    task_permissions <- as.character(unique(unlist(
+      lapply(selected, function(service) {
+        if (service %in% names(scopes)) {
+          scopes[[service]]
+        } else {
+          .odb_microsoft_scopes(.odb_fabric_profile(service)$scopes)
+        }
+      }),
+      use.names = FALSE
+    )))
+    list(
+      resource = resource,
+      target = target,
+      scopes = permissions,
+      task_scopes = task_permissions
+    )
   })
   target_names <- vapply(
     groups,

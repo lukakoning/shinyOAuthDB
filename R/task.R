@@ -40,8 +40,11 @@
 #'
 #' API tasks reuse the backend's request, parameter, TLS and result-handling
 #' code. Fabric API tasks acquire all token groups configured on their source;
-#' configure `targets` for the services used by that task. Resolve reactive
-#' connection usernames in the owning session; pass query inputs to `invoke()`.
+#' configure `targets` for the services used by that task. Before dispatch,
+#' tasks check each service's read/query defaults, or its explicit entry in
+#' the source's `required_scopes` list. Workers can use only these validated
+#' scopes. Resolve reactive connection usernames in the owning session;
+#' pass query inputs to `invoke()`.
 #' @examples
 #' \dontrun{
 #' # Once at app startup:
@@ -189,7 +192,7 @@ oauth_db_task <- function(
   watcher <- shiny::observe(
     {
       for (plan in spec$plans) {
-        plan$watch()
+        plan$watch(scopes = plan$scopes)
       }
       check <- valid()
       if (!is.null(check) && isFALSE(current(check))) {
@@ -238,7 +241,9 @@ oauth_db_task <- function(
           }
         }
         arguments <- .odb_task_snapshot(arguments)
-        pins <- shiny::isolate(lapply(spec$plans, function(plan) plan$pin()))
+        pins <- shiny::isolate(lapply(spec$plans, function(plan) {
+          plan$pin(scopes = plan$scopes)
+        }))
         worker <- spec$worker
         worker$user_callback <- is.function(worker$args$user)
         worker$args <- shiny::isolate(.odb_task_snapshot(.odb_task_arguments(
@@ -288,7 +293,7 @@ oauth_db_task <- function(
       result = function() {
         assert_owner()
         for (plan in spec$plans) {
-          plan$watch()
+          plan$watch(scopes = plan$scopes)
         }
         check <- valid()
         shiny::req(!is.null(check))
@@ -303,7 +308,7 @@ oauth_db_task <- function(
       status = function() {
         assert_owner()
         for (plan in spec$plans) {
-          plan$watch()
+          plan$watch(scopes = plan$scopes)
         }
         check <- valid()
         if (is.null(check) || !isTRUE(current(check))) {
@@ -523,6 +528,14 @@ oauth_db_task <- function(
   }
   if (!length(plans) || any(vapply(plans, is.null, FALSE))) {
     .odb_abort("This client has no task credential provider.")
+  }
+  if (type == "fabric") {
+    for (index in seq_along(plans)) {
+      plans[[index]]$scopes <- union(
+        plans[[index]]$scopes,
+        private$groups[[index]]$task_scopes
+      )
+    }
   }
   list(
     plans = plans,
