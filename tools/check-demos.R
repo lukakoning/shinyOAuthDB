@@ -84,6 +84,9 @@ check_demo <- function() {
         database,
         path = path,
         app = mode,
+        package_source = if (mode == "docker") {
+          file.path(path, "package-source", "shinyOAuthDB.tar.gz")
+        },
         launch_browser = FALSE
       )
     },

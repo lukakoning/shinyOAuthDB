@@ -25,7 +25,7 @@ demo_source_fixture <- function(root) {
   )
 }
 
-testthat::test_that("the default Docker bootstrap includes the shipped response fixes", {
+testthat::test_that("the Docker bootstrap installs the launcher's exact source revision", {
   root <- normalizePath(file.path("..", ".."), winslash = "/")
   library <- withr::local_tempdir()
   observed <- callr::r(
@@ -79,7 +79,20 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
       bootstrap <- new.env(parent = globalenv())
       bootstrap$install.packages <- function(...) invisible(NULL)
       sys.source(file.path(root, "inst", "docker", "install.R"), bootstrap)
-      bootstrap$install_demo_runtime("0.0.0.9000")
+      revision <- system2(
+        Sys.which("git"),
+        c("-C", shQuote(root), "rev-parse", "HEAD"),
+        stdout = TRUE
+      )
+      expected_reference <- paste0("lukakoning/shinyOAuthDB@", revision)
+      source_path <- tempfile("launcher-source-")
+      dir.create(source_path)
+      file.copy(
+        file.path(root, "inst", "docker", "package-source", "install.R"),
+        source_path
+      )
+      writeLines(expected_reference, file.path(source_path, "github-ref"))
+      bootstrap$install_demo_runtime("0.0.0.9000", source_path)
       package <- find.package("shinyOAuthDB")
       canary <- tempfile(fileext = ".json")
       writeLines('{"proof":"local file"}', canary)
@@ -201,6 +214,7 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
       )
       list(
         references = references,
+        expected_reference = expected_reference,
         isolated = identical(
           normalizePath(package, winslash = "/"),
           normalizePath(file.path(library, "shinyOAuthDB"), winslash = "/")
@@ -227,7 +241,7 @@ testthat::test_that("the default Docker bootstrap includes the shipped response 
     args = list(root, library),
     libpath = .libPaths()
   )
-  testthat::expect_length(observed$references, 1L)
+  testthat::expect_identical(observed$references, observed$expected_reference)
   testthat::expect_true(observed$isolated)
   testthat::expect_true(observed$rejects_file_response)
   testthat::expect_identical(observed$real, 9007199254740994)
@@ -309,6 +323,61 @@ testthat::test_that("demo source installation rejects incomplete or modified pay
   testthat::expect_error(install_demo_source(path), "does not match")
   unlink(archive)
   testthat::expect_error(install_demo_source(path), "both be present")
+})
+
+testthat::test_that("Docker bootstrap installs a verified local archive before considering GitHub", {
+  root <- file.path(withr::local_tempdir(), "source")
+  demo_source_fixture(root)
+  path <- withr::local_tempdir()
+  expected <- demo_source_prepare(root, path, withr::local_tempdir())
+  source <- file.path(path, "package-source")
+  file.copy(
+    file.path("..", "..", "inst", "docker", "package-source", "install.R"),
+    source
+  )
+  writeLines(expected$version, file.path(source, "version"))
+  bootstrap <- normalizePath(file.path(
+    "..",
+    "..",
+    "inst",
+    "docker",
+    "install.R"
+  ))
+  library <- withr::local_tempdir()
+  actual <- callr::r(
+    function(bootstrap, source, library) {
+      .libPaths(c(library, .libPaths()))
+      environment <- new.env(parent = globalenv())
+      sys.source(bootstrap, envir = environment)
+      testthat::local_mocked_bindings(
+        install_github = function(...) {
+          stop("The supplied archive must take precedence")
+        },
+        .package = "remotes"
+      )
+      environment$install_demo_package(
+        "0.0.0.9000",
+        paste0("lukakoning/shinyOAuthDB@", strrep("a", 40L)),
+        source
+      )
+      installer <- new.env(parent = globalenv())
+      sys.source(file.path(source, "install.R"), envir = installer)
+      list(
+        marker = shinyOAuthDB::candidate_marker(),
+        verified = installer$verify_demo_source(source),
+        hash = readLines(system.file(
+          "Meta",
+          "demo-source.sha256",
+          package = "shinyOAuthDB"
+        ))
+      )
+    },
+    args = list(bootstrap, source, library),
+    libpath = .libPaths()
+  )
+  testthat::expect_identical(actual$marker, "checkout source")
+  testthat::expect_true(actual$verified)
+  testthat::expect_identical(actual$hash, expected$source_sha256)
 })
 
 testthat::test_that("demo runtime verification rejects a different package source or version", {

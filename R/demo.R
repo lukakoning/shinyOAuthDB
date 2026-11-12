@@ -23,6 +23,9 @@
 #' @param app Where to run the Shiny app: `"docker"` (the default) supplies
 #'   its R environment and drivers, or `"local"` uses your installed R packages.
 #'   Local mode creates an editable app under `local-app/<database>/` in `path`.
+#' @param package_source Optional shinyOAuthDB R source archive for the Docker
+#'   app. Use this for development packages installed locally without GitHub
+#'   metadata. The archive is copied to the demo and checked by its SHA-256.
 #' @return Invisibly, the directory containing the demo configuration.
 #'   With `action = "services"`, an environment containing `provider` (a
 #'   configured shinyOAuth provider), `url` (the local data endpoint),
@@ -41,6 +44,12 @@
 #' interrupt R to remove the containers and sample data. Copied files and
 #' cached images stay for later runs. After a forced exit, use `action = "stop"`
 #' with the same database, `app` mode and `path`.
+#'
+#' Docker apps use the installed package's exact GitHub revision when available,
+#' or the supplied source archive. A development install without either needs
+#' `package_source`; a CRAN release uses its exact version. The app verifies
+#' its source identity on startup, including when reusing an image with
+#' `build = FALSE`. Older copied demo configurations need a new empty path.
 #'
 #' The accounts and passwords are public demo settings. For your own
 #' deployment, follow the source's setup guide.
@@ -120,7 +129,8 @@ oauth_db_demo <- function(
   path = NULL,
   launch_browser = interactive(),
   build = TRUE,
-  app = c("docker", "local")
+  app = c("docker", "local"),
+  package_source = NULL
 ) {
   database <- match.arg(database)
   action <- match.arg(action)
@@ -184,6 +194,12 @@ oauth_db_demo <- function(
   path <- normalizePath(path, winslash = "/", mustWork = TRUE)
   if (action %in% c("start", "services")) {
     .odb_demo_services_available(path, database)
+  }
+  if (action != "stop") {
+    .odb_demo_package_source(path, package_source)
+  }
+  if (action == "start" && app == "docker") {
+    .odb_demo_source_ready(path)
   }
   if (app == "local" && action != "stop" && !services) {
     .odb_demo_local_files(path, database)
@@ -352,6 +368,107 @@ oauth_db_demo <- function(
     run(c("logs", "--follow", "app"))
   }
   invisible(path)
+}
+
+.odb_demo_package_reference <- function(
+  description = utils::packageDescription("shinyOAuthDB")
+) {
+  if (
+    !identical(description$RemoteType, "github") ||
+      !is.null(description$RemoteHost) &&
+        !description$RemoteHost %in% c("api.github.com", "github.com")
+  ) {
+    return(NULL)
+  }
+  values <- description[c("RemoteUsername", "RemoteRepo", "RemoteSha")]
+  scalar <- function(x) is.character(x) && length(x) == 1L && !is.na(x)
+  if (!all(vapply(values, scalar, logical(1)))) {
+    return(NULL)
+  }
+  reference <- paste0(
+    values[[1L]],
+    "/",
+    values[[2L]],
+    "@",
+    tolower(values[[3L]])
+  )
+  if (
+    grepl(
+      "^[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*@([0-9a-f]{40}|[0-9a-f]{64})$",
+      reference
+    )
+  ) {
+    reference
+  } else {
+    NULL
+  }
+}
+
+.odb_demo_package_source <- function(path, package_source) {
+  .odb_string(package_source, "package_source", optional = TRUE)
+  directory <- file.path(path, "package-source")
+  archive <- file.path(directory, "shinyOAuthDB.tar.gz")
+  if (!is.null(package_source)) {
+    if (!file.exists(package_source) || dir.exists(package_source)) {
+      .odb_abort("package_source must name an existing R source archive.")
+    }
+    if (
+      !identical(
+        normalizePath(package_source, winslash = "/", mustWork = TRUE),
+        normalizePath(archive, winslash = "/", mustWork = FALSE)
+      ) &&
+        !file.copy(package_source, archive, overwrite = TRUE)
+    ) {
+      .odb_abort("Could not copy package_source into the demo.")
+    }
+    connection <- file(archive, "rb")
+    on.exit(close(connection), add = TRUE)
+    hash <- unclass(as.character(openssl::sha256(connection)))
+    writeLines(hash, file.path(directory, "source.sha256"))
+  } else {
+    unlink(c(archive, file.path(directory, "source.sha256")))
+  }
+  writeLines(
+    as.character(.odb_package_version("shinyOAuthDB")),
+    file.path(directory, "version")
+  )
+  reference <- .odb_demo_package_reference()
+  destination <- file.path(directory, "github-ref")
+  if (is.null(reference)) {
+    unlink(destination)
+  } else {
+    writeLines(reference, destination)
+  }
+  invisible(NULL)
+}
+
+.odb_demo_source_ready <- function(path) {
+  directory <- file.path(path, "package-source")
+  format <- file.path(directory, "bootstrap-version")
+  if (
+    !file.exists(format) || !identical(readLines(format, warn = FALSE), "1")
+  ) {
+    .odb_abort(
+      "These demo files predate source matching. Choose a new empty path; existing files are kept."
+    )
+  }
+  version <- strsplit(
+    readLines(file.path(directory, "version")),
+    ".",
+    fixed = TRUE
+  )[[1L]]
+  development <- length(version) > 3L &&
+    as.integer(utils::tail(version, 1L)) >= 9000L
+  if (
+    development &&
+      !file.exists(file.path(directory, "github-ref")) &&
+      !file.exists(file.path(directory, "shinyOAuthDB.tar.gz"))
+  ) {
+    .odb_abort(
+      "This development install has no GitHub source revision. Supply package_source with its R source archive, or install shinyOAuthDB from GitHub before starting the Docker app."
+    )
+  }
+  invisible(NULL)
 }
 
 .odb_demo_http <- new.env(parent = emptyenv())

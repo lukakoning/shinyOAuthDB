@@ -11,7 +11,8 @@ oauth_db_demo(
   path = NULL,
   launch_browser = interactive(),
   build = TRUE,
-  app = c("docker", "local")
+  app = c("docker", "local"),
+  package_source = NULL
 )
 }
 \arguments{
@@ -38,6 +39,10 @@ images from a previous successful build.}
 \item{app}{Where to run the Shiny app: \code{"docker"} (the default) supplies
 its R environment and drivers, or \code{"local"} uses your installed R packages.
 Local mode creates an editable app under \verb{local-app/<database>/} in \code{path}.}
+
+\item{package_source}{Optional shinyOAuthDB R source archive for the Docker
+app. Use this for development packages installed locally without GitHub
+metadata. The archive is copied to the demo and checked by its SHA-256.}
 }
 \value{
 Invisibly, the directory containing the demo configuration.
@@ -65,6 +70,12 @@ Run one demo at a time because they share ports. Click \strong{Stop demo} or
 interrupt R to remove the containers and sample data. Copied files and
 cached images stay for later runs. After a forced exit, use \code{action = "stop"}
 with the same database, \code{app} mode and \code{path}.
+
+Docker apps use the installed package's exact GitHub revision when available,
+or the supplied source archive. A development install without either needs
+\code{package_source}; a CRAN release uses its exact version. The app verifies
+its source identity on startup, including when reusing an image with
+\code{build = FALSE}. Older copied demo configurations need a new empty path.
 
 The accounts and passwords are public demo settings. For your own
 deployment, follow the source's setup guide.

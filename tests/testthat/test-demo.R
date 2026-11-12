@@ -60,6 +60,9 @@ test_that("demo commands isolate the project and clean up after a failed start",
   calls <- list()
   local_mocked_bindings(
     .odb_demo_docker = function() "docker",
+    .odb_demo_package_reference = function() {
+      paste0("lukakoning/shinyOAuthDB@", strrep("a", 40L))
+    },
     .odb_demo_command = function(docker, args, check = TRUE) {
       calls[[length(calls) + 1L]] <<- list(args = args, check = check)
       if ("up" %in% args) {

@@ -1,3 +1,5 @@
+source(file.path("package-source", "install.R"), local = TRUE)
+verify_demo_source("package-source")
 options(shinyOAuth.allowed_hosts = c("localhost", "127.0.0.1", "::1"))
 backend <- Sys.getenv("OAUTHDB_DEMO")
 prepare <- file.path(backend, "prepare.R")
