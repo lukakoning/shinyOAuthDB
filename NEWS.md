@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Require promises 1.4.0 or later so nested task callbacks retain their Shiny
+  session. The local minimum-version suite now includes background task tests.
+
 * Add `oauth_db_task()` for background database and API operations with mirai.
   Acquire credentials asynchronously in the owning Shiny session, open and
   close a separate worker connection, and hide results when authorization

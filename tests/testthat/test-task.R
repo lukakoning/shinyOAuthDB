@@ -249,7 +249,7 @@ test_that("HTTP task factories preserve backend configuration", {
   })
 })
 
-test_that("all HTTP clients expose serializable worker configuration", {
+test_that("HTTP clients without optional SDKs expose serializable worker configuration", {
   constructors <- list(
     function(auth) oauth_db_bigquery_api(auth, "project"),
     function(auth) {
@@ -262,7 +262,6 @@ test_that("all HTTP clients expose serializable worker configuration", {
     },
     function(auth) oauth_db_clickhouse_api(auth, "https://data.example"),
     function(auth) oauth_db_cratedb_api(auth, "https://data.example"),
-    function(auth) oauth_db_databricks_api(auth, "workspace.example"),
     function(auth) oauth_db_elasticsearch_api(auth, "https://data.example"),
     function(auth) oauth_db_libsql_api(auth, "https://data.example"),
     function(auth) oauth_db_neo4j_api(auth, "https://data.example"),
@@ -291,39 +290,6 @@ test_that("all HTTP clients expose serializable worker configuration", {
       expect_silent(.odb_task_plain(spec$worker$args))
       expect_identical(unserialize(serialize(spec$worker, NULL)), spec$worker)
     }
-  })
-})
-
-test_that("Fabric tasks recreate scoped token callbacks in the worker", {
-  skip_if_not_installed("fabricQueryR", "1.0.1")
-  odb_test_domain(function(session) {
-    auth <- odb_test_fabric_authorization(
-      session,
-      services = c("fabric", "kql")
-    )
-    api <- oauth_db_fabric_api(
-      auth$connection,
-      targets = c(fabric = "fabric", kql = "kql")
-    )
-    spec <- .odb_task_source(api)
-    expect_length(spec$plans, 2L)
-    fun <- eval(
-      quote(function(token) {
-        c(
-          token("https://api.fabric.microsoft.com/.default"),
-          token("https://api.kusto.windows.net/.default")
-        )
-      }),
-      globalenv()
-    )
-    result <- .odb_task_run(
-      spec$worker,
-      list("fabric-token", "kql-token"),
-      c(Inf, Inf),
-      "call",
-      list(fun)
-    )
-    expect_identical(result, c("fabric-token", "kql-token"))
   })
 })
 

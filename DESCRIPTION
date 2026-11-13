@@ -49,7 +49,7 @@ Imports:
     methods,
     mirai (>= 2.5.1),
     openssl,
-    promises (>= 1.3.0),
+    promises (>= 1.4.0),
     R6,
     rlang,
     shiny (>= 1.8.1),

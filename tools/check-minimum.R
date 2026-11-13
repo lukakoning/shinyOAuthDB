@@ -9,7 +9,17 @@ Sys.setenv(
   SHINYOAUTHDB_POSTGRES_OAUTH = "disabled"
 )
 source("tools/validation.R")
-floor <- c(DBI = "1.2.0", httr2 = "1.2.0", curl = "6.4.0", shiny = "1.8.1")
+floor <- c(
+  DBI = "1.2.0",
+  httr2 = "1.2.0",
+  curl = "6.4.0",
+  shiny = "1.8.1",
+  promises = "1.4.0",
+  mirai = "2.5.1",
+  # Use mirai's matching transitive floor: newer nanonext releases can remove
+  # internal functions that this older mirai needs.
+  nanonext = "1.7.1"
+)
 expected_testthat <- Sys.getenv("OAUTHDB_EXPECTED_TESTTHAT", unset = "3.2.0")
 if (expected_testthat != "release") {
   floor <- c(floor, testthat = expected_testthat)
@@ -68,6 +78,11 @@ filter <- paste0(
       "clickhouse",
       "query-button",
       "multiple-connections",
+      "task",
+      "task-cancellation",
+      "task-expiry",
+      "task-generics",
+      "task-validation-switch",
       "two-authorizations"
     ),
     collapse = "|"

@@ -1,3 +1,81 @@
+test_that("Fabric tasks recreate scoped token callbacks in the worker", {
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  odb_test_domain(function(session) {
+    auth <- odb_test_fabric_authorization(
+      session,
+      services = c("fabric", "kql")
+    )
+    api <- oauth_db_fabric_api(
+      auth$connection,
+      targets = c(fabric = "fabric", kql = "kql")
+    )
+    spec <- .odb_task_source(api)
+    expect_length(spec$plans, 2L)
+    fun <- eval(
+      quote(function(token) {
+        c(
+          token("https://api.fabric.microsoft.com/.default"),
+          token("https://api.kusto.windows.net/.default")
+        )
+      }),
+      globalenv()
+    )
+    result <- .odb_task_run(
+      spec$worker,
+      list("fabric-token", "kql-token"),
+      c(Inf, Inf),
+      "call",
+      list(fun)
+    )
+    expect_identical(result, c("fabric-token", "kql-token"))
+  })
+})
+
+test_that("multi-service tasks budget each token from its own delivery time", {
+  skip_if_not_installed("mirai", "2.5.1")
+  skip_if_not_installed("fabricQueryR", "1.0.1")
+  now <- 1000
+  local_mocked_bindings(.odb_task_time = function() now)
+  calls <- new.env(parent = emptyenv())
+  task_mock_workers(calls)
+  odb_test_domain(function(session) {
+    resolve <- list()
+    grant <- list(
+      id = "pending-services",
+      has_scopes = function(...) TRUE,
+      summary = function() list(status = "active"),
+      targets = function() {
+        list(
+          fabric = list(status = "active"),
+          sql = list(status = "active")
+        )
+      },
+      access_token = function(target, ...) {
+        promises::promise(function(yes, no) {
+          resolve[[target]] <<- yes
+        })
+      }
+    )
+    api <- oauth_db_fabric_api(
+      grant,
+      targets = c(fabric = "fabric", sql = "sql"),
+      min_valid_for = 0
+    )
+    rows <- oauth_db_task(api, min_valid_for = 20)
+    rows$invoke()
+    task_app_flush(session)
+    now <<- 1005
+    resolve$fabric("first-token")
+    task_app_flush(session)
+    expect_length(calls$pending, 0L)
+    now <<- 1010
+    resolve$sql("second-token")
+    task_app_flush(session)
+    expect_length(calls$pending, 1L)
+    expect_identical(calls$pending[[1L]]$arguments$until, c(1025, 1030))
+  })
+})
+
 test_that("Fabric GraphQL tasks validate default permissions and call the native SDK", {
   skip_if_not_installed("fabricQueryR", "1.0.1")
   task_app_workers()
