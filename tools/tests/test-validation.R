@@ -160,6 +160,88 @@ testthat::test_that("full validation refuses missing and outdated dependencies",
   testthat::expect_true(validation_check_dependencies(c(stats = "0")))
 })
 
+testthat::test_that("build staging prunes ignored directories and preserves working source", {
+  fixture <- validation_git_fixture()
+  on.exit(unlink(fixture$root, recursive = TRUE), add = TRUE)
+  root <- fixture$root
+  writeLines(
+    c("^\\.git$", "^\\.validation$", "^cache$", "^R/omit[.]R$", "^src/.*[.]o$"),
+    file.path(root, ".Rbuildignore")
+  )
+  writeLines("value <- 2", file.path(root, "R", "code.R"))
+  writeLines("added <- TRUE", file.path(root, "R", "untracked.R"))
+  writeLines("omit <- TRUE", file.path(root, "R", "omit.R"))
+  dir.create(file.path(root, "data"))
+  writeLines("data/", file.path(root, ".gitignore"), sep = "\n")
+  bytes <- as.raw(c(0, 1, 127, 128, 255))
+  writeBin(bytes, file.path(root, "data", "fixture.rds"))
+  writeLines("keep extra package files", file.path(root, "extra.txt"))
+  for (directory in c(".validation", "Cache", "src")) {
+    dir.create(file.path(root, directory))
+    writeLines("generated", file.path(root, directory, "output.o"))
+  }
+  listed <- character()
+  stage <- validation_stage_source
+  environment(stage) <- list2env(
+    list(list.files = function(path, ...) {
+      listed <<- c(listed, normalizePath(path, winslash = "/"))
+      base::list.files(path, ...)
+    }),
+    parent = environment(stage)
+  )
+  destination <- stage(root)
+  on.exit(unlink(destination, recursive = TRUE), add = TRUE)
+  testthat::expect_false(startsWith(destination, paste0(root, "/")))
+  testthat::expect_identical(
+    readLines(file.path(destination, "R", "code.R")),
+    "value <- 2"
+  )
+  testthat::expect_identical(
+    readLines(file.path(destination, "R", "untracked.R")),
+    "added <- TRUE"
+  )
+  testthat::expect_identical(
+    readBin(file.path(destination, "data", "fixture.rds"), "raw", 5L),
+    bytes
+  )
+  testthat::expect_identical(
+    readLines(file.path(destination, "extra.txt")),
+    "keep extra package files"
+  )
+  testthat::expect_identical(
+    readLines(file.path(destination, ".Rbuildignore")),
+    readLines(file.path(root, ".Rbuildignore"))
+  )
+  for (path in c(".git", ".validation", "Cache", "R/omit.R", "src/output.o")) {
+    testthat::expect_false(
+      file.exists(file.path(destination, path)),
+      info = path
+    )
+  }
+  testthat::expect_false(any(grepl(
+    "/(\\.git|\\.validation|Cache)(/|$)",
+    listed
+  )))
+  testthat::expect_true(file.exists(file.path(root, ".validation", "output.o")))
+})
+
+testthat::test_that("build staging supports source archives without ignore rules or Git", {
+  root <- withr::local_tempdir()
+  dir.create(file.path(root, "R"))
+  writeLines("Package: fixture", file.path(root, "DESCRIPTION"))
+  writeLines("value <- 1", file.path(root, "R", "code.R"))
+  destination <- validation_stage_source(root)
+  on.exit(unlink(destination, recursive = TRUE), add = TRUE)
+  testthat::expect_identical(
+    readLines(file.path(destination, "DESCRIPTION")),
+    "Package: fixture"
+  )
+  testthat::expect_identical(
+    readLines(file.path(destination, "R", "code.R")),
+    "value <- 1"
+  )
+})
+
 testthat::test_that("dependency requirements include optional backends and their minimum versions", {
   path <- tempfile()
   on.exit(unlink(path), add = TRUE)

@@ -190,6 +190,52 @@ validation_source <- function(path = ".") {
   )
 }
 
+validation_stage_source <- function(path = ".") {
+  root <- normalizePath(path, winslash = "/", mustWork = TRUE)
+  ignore_file <- file.path(root, ".Rbuildignore")
+  patterns <- if (file.exists(ignore_file)) {
+    readLines(ignore_file, warn = FALSE)
+  } else {
+    character()
+  }
+  patterns <- patterns[nzchar(patterns)]
+  destination <- tempfile("shinyOAuthDB-check-source-")
+  if (!dir.create(destination)) {
+    stop("Could not create the package check source directory.", call. = FALSE)
+  }
+  destination <- normalizePath(destination, winslash = "/", mustWork = TRUE)
+  ready <- FALSE
+  on.exit(if (!ready) unlink(destination, recursive = TRUE), add = TRUE)
+  copy_directory <- function(relative = "") {
+    entries <- list.files(
+      file.path(root, relative),
+      all.files = TRUE,
+      no.. = TRUE
+    )
+    paths <- if (nzchar(relative)) file.path(relative, entries) else entries
+    excluded <- rep(FALSE, length(paths))
+    for (pattern in patterns) {
+      excluded <- excluded |
+        grepl(pattern, paths, perl = TRUE, ignore.case = TRUE)
+    }
+    for (name in paths[!excluded]) {
+      from <- file.path(root, name)
+      to <- file.path(destination, name)
+      if (dir.exists(from)) {
+        if (!dir.create(to)) {
+          stop("Could not create a staged source directory.", call. = FALSE)
+        }
+        copy_directory(name)
+      } else if (!file.copy(from, to, copy.mode = TRUE, copy.date = TRUE)) {
+        stop("Could not copy package check source: ", name, call. = FALSE)
+      }
+    }
+  }
+  copy_directory()
+  ready <- TRUE
+  destination
+}
+
 validation_check_source <- function(before, after, output = NULL) {
   changed <- !is.null(before) &&
     !identical(before$source_sha256, after$source_sha256)

@@ -51,11 +51,15 @@ validation_check_results(counts, output, source_before = source_before)
 if (tests_only) {
   quit(status = 0L)
 }
-check <- rcmdcheck::rcmdcheck(
-  root,
-  args = "--no-manual",
-  error_on = "never"
-)
+check <- local({
+  path <- validation_stage_source(root)
+  on.exit(unlink(path, recursive = TRUE), add = TRUE)
+  rcmdcheck::rcmdcheck(
+    path,
+    args = "--no-manual",
+    error_on = "never"
+  )
+})
 jsonlite::write_json(
   list(errors = check$errors, warnings = check$warnings, notes = check$notes),
   file.path(output, "package-check.json"),
