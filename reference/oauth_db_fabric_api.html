@@ -109,6 +109,10 @@ a fabricQueryR function directly.</p></li>
 reactive expressions. Configure <code><a href="oauth_db_microsoft_client.html">oauth_db_microsoft_client()</a></code> for the
 services your app needs first. Users need access to the Fabric items
 and data they query.</p>
+<p>With <code><a href="oauth_db_task.html">oauth_db_task()</a></code>, each configured service uses its read/query
+permission defaults unless it has an explicit entry in <code>required_scopes</code>.
+The task validates these permissions before dispatch and monitors them
+until its result is retired.</p>
     </div>
     <div class="section level2">
     <h2 id="resource-objects">Resource objects<a class="anchor" aria-label="anchor" href="#resource-objects"></a></h2>

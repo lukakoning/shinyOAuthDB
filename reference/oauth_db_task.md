@@ -70,8 +70,10 @@ lifetime for long polling/downloads.
 API tasks reuse the backend's request, parameter, TLS and
 result-handling code. Fabric API tasks acquire all token groups
 configured on their source; configure `targets` for the services used by
-that task. Resolve reactive connection usernames in the owning session;
-pass query inputs to `invoke()`.
+that task. Before dispatch, tasks check each service's read/query
+defaults, or its explicit entry in the source's `required_scopes` list.
+Workers can use only these validated scopes. Resolve reactive connection
+usernames in the owning session; pass query inputs to `invoke()`.
 
 ## Examples
 

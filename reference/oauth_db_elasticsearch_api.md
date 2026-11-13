@@ -114,8 +114,9 @@ a server version that supports them. Use `$request()` for other native
 parameter forms or query options.
 
 Large JSON integers remain strings; nested documents and multivalued
-fields remain lists. Search timeouts, shard failures and partial query
-results raise errors. Use `raw = TRUE` for the httr2 response instead.
+fields remain lists. Search timeouts, shard failures, skipped remote
+clusters and partial query results raise errors. Use `raw = TRUE` for
+the httr2 response instead.
 
 There is no automatic pagination. Use `search_after` for searches, or
 `$request("_sql", method = "POST", body = list(cursor = cursor))` for

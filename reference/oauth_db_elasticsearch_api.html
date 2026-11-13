@@ -151,8 +151,9 @@ sent separately from the query. ES|QL and its parameter syntax require
 a server version that supports them. Use <code>$request()</code> for other native
 parameter forms or query options.</p>
 <p>Large JSON integers remain strings; nested documents and multivalued
-fields remain lists. Search timeouts, shard failures and partial query
-results raise errors. Use <code>raw = TRUE</code> for the httr2 response instead.</p>
+fields remain lists. Search timeouts, shard failures, skipped remote
+clusters and partial query results raise errors. Use <code>raw = TRUE</code> for the
+httr2 response instead.</p>
 <p>There is no automatic pagination. Use <code>search_after</code> for searches, or
 <code>$request("_sql", method = "POST", body = list(cursor = cursor))</code> for SQL
 pages. Close unused SQL cursors with <code>$request(c("_sql", "close"), method = "POST", body = list(cursor = cursor))</code>. Keep cursors and point-in-time

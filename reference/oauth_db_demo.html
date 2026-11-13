@@ -60,7 +60,8 @@ Docker or local R without a cloud account or source checkout.</p>
 <span>  path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  launch_browser <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  build <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  app <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"docker"</span>, <span class="st">"local"</span><span class="op">)</span></span>
+<span>  app <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"docker"</span>, <span class="st">"local"</span><span class="op">)</span>,</span>
+<span>  package_source <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -103,6 +104,12 @@ images from a previous successful build.</p></dd>
 its R environment and drivers, or <code>"local"</code> uses your installed R packages.
 Local mode creates an editable app under <code>local-app/&lt;database&gt;/</code> in <code>path</code>.</p></dd>
 
+
+<dt id="arg-package-source">package_source<a class="anchor" aria-label="anchor" href="#arg-package-source"></a></dt>
+<dd><p>Optional shinyOAuthDB R source archive for the Docker
+app. Use this for development packages installed locally without GitHub
+metadata. The archive is copied to the demo and checked by its SHA-256.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -124,6 +131,11 @@ you to accept Keycloak's local test certificate at <code>https://localhost:18443
 interrupt R to remove the containers and sample data. Copied files and
 cached images stay for later runs. After a forced exit, use <code>action = "stop"</code>
 with the same database, <code>app</code> mode and <code>path</code>.</p>
+<p>Docker apps use the installed package's exact GitHub revision when available,
+or the supplied source archive. A development install without either needs
+<code>package_source</code>; a CRAN release uses its exact version. The app verifies
+its source identity on startup, including when reusing an image with
+<code>build = FALSE</code>. Older copied demo configurations need a new empty path.</p>
 <p>The accounts and passwords are public demo settings. For your own
 deployment, follow the source's setup guide.</p>
     </div>

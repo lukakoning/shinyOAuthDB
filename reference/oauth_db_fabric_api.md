@@ -68,6 +68,13 @@ reactive expressions. Configure
 for the services your app needs first. Users need access to the Fabric
 items and data they query.
 
+With
+[`oauth_db_task()`](https://lukakoning.github.io/shinyOAuthDB/reference/oauth_db_task.md),
+each configured service uses its read/query permission defaults unless
+it has an explicit entry in `required_scopes`. The task validates these
+permissions before dispatch and monitors them until its result is
+retired.
+
 ## Resource objects
 
 A fabricQueryR object, such as a Lakehouse, keeps the authorization used
