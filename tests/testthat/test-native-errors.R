@@ -1,3 +1,104 @@
+native_expect_private_error <- function(error, credentials) {
+  expect_s3_class(error, "error")
+  stored <- rawToChar(serialize(error, NULL, ascii = TRUE))
+  printed <- paste(capture.output(print(error)), collapse = "\n")
+  for (credential in credentials) {
+    expect_false(grepl(credential, stored, fixed = TRUE))
+    expect_false(grepl(credential, printed, fixed = TRUE))
+  }
+}
+
+test_that("generic connector failures redact native calls and traces without losing diagnostics", {
+  for (kind in c("base", "rlang")) {
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      credential <- paste(format(openssl::rand_bytes(24)), collapse = "")
+      auth$token(auth$make_token(credential))
+      ready <- FALSE
+      con <- oauth_db_connect(
+        auth$connection,
+        connect = function(host, password) {
+          if (ready) {
+            return(list(host = host, read = function() password))
+          }
+          if (kind == "base") {
+            stop("Driver failed")
+          }
+          rlang::abort("Driver failed", class = "native_connect_failure")
+        },
+        host = "example.invalid",
+        token_arg = "password"
+      )
+      error <- tryCatch(shiny::captureStackTraces(con()), error = identity)
+      expect_s3_class(
+        error,
+        if (kind == "base") "simpleError" else "native_connect_failure"
+      )
+      expect_identical(conditionMessage(error), "Driver failed")
+      native_expect_private_error(error, credential)
+      ready <- TRUE
+      expect_identical(con()$host, "example.invalid")
+      expect_identical(con()$read(), credential)
+    })
+  }
+})
+
+test_that("native failures redact every credential issued while connecting", {
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    credentials <- vapply(
+      seq_len(2L),
+      function(i) {
+        paste(format(openssl::rand_bytes(24)), collapse = "")
+      },
+      ""
+    )
+    auth$token(auth$make_token(credentials[[1L]]))
+    con <- .odb_bind(auth$connection, function(token) {
+      first <- token()
+      auth$token(auth$make_token(credentials[[2L]]))
+      second <- token()
+      stop(errorCondition(
+        paste("Driver failed", first, second),
+        class = "native_connect_failure",
+        status = 403L,
+        parent = simpleError(first),
+        response = list(body = charToRaw(second)),
+        frame = environment()
+      ))
+    })
+    error <- tryCatch(shiny::captureStackTraces(con()), error = identity)
+    expect_s3_class(error, "native_connect_failure")
+    expect_identical(error$status, 403L)
+    expect_identical(
+      conditionMessage(error),
+      "Driver failed [REDACTED] [REDACTED]"
+    )
+    expect_identical(conditionMessage(error$parent), "[REDACTED]")
+    expect_null(error$frame)
+    native_expect_private_error(error, credentials)
+  })
+})
+
+test_that("real Databricks connection validation errors do not retain bearer credentials", {
+  skip_if_not_installed("brickster", "0.2.14")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    credential <- paste(format(openssl::rand_bytes(24)), collapse = "")
+    auth$token(auth$make_token(credential))
+    con <- oauth_db_databricks(
+      auth$connection,
+      host = "example.invalid",
+      warehouse_id = "fixture",
+      max_active_connections = 0
+    )
+    error <- tryCatch(shiny::captureStackTraces(con()), error = identity)
+    expect_s3_class(error, "rlang_error")
+    expect_match(conditionMessage(error), "max_active_connections")
+    native_expect_private_error(error, credential)
+  })
+})
+
 test_that("native ODBC connection errors retain diagnostics without bearer tokens", {
   skip_if_not_installed("odbc")
   token <- paste(

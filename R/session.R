@@ -461,6 +461,17 @@ oauth_db_token <- function(
     shiny::req(available)
     captured <- epoch
     pinned <- grant
+    # Retained token callbacks must not accumulate a credential history after
+    # this acquisition returns.
+    credentials <- character()
+    recording <- TRUE
+    on.exit(
+      {
+        recording <- FALSE
+        credentials <- character()
+      },
+      add = TRUE
+    )
     token <- function(
       force_refresh = FALSE,
       scopes = character(),
@@ -540,6 +551,9 @@ oauth_db_token <- function(
         }
         .odb_string(value, "access token")
         attributes(value) <- NULL
+        if (recording) {
+          credentials <<- union(credentials, value)
+        }
         if (!grepl("^[A-Za-z0-9._~+/-]+=*$", value)) {
           .odb_abort("Invalid bearer token.", "invalid_credential")
         }
@@ -588,6 +602,7 @@ oauth_db_token <- function(
         value
       },
       error = function(e) {
+        e <- .odb_api_error(e, credentials)
         if (
           inherits(e, "shinyOAuth_access_error") &&
             isTRUE(

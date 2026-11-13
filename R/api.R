@@ -37,6 +37,15 @@
 }
 
 .odb_api_error <- function(error, credentials) {
+  # Prevent Shiny from attaching unsanitized stacks after this cleanup.
+  if (is.null(attr(error, "stack.trace", exact = TRUE))) {
+    calls <- sys.calls()
+    attr(calls, "parents") <- sys.parents()
+    attr(error, "stack.trace") <- calls
+  }
+  if (is.null(attr(error, "deep.stack.trace", exact = TRUE))) {
+    attr(error, "deep.stack.trace") <- list()
+  }
   credentials <- unique(credentials[!is.na(credentials) & nzchar(credentials)])
   credentials <- credentials[order(nchar(credentials), decreasing = TRUE)]
   redact <- function(value) {
@@ -109,15 +118,6 @@
   finished = NULL
 ) {
   fail <- function(error) {
-    # Prevent Shiny from attaching unsanitized stacks after this cleanup.
-    if (is.null(attr(error, "stack.trace", exact = TRUE))) {
-      calls <- sys.calls()
-      attr(calls, "parents") <- sys.parents()
-      attr(error, "stack.trace") <- calls
-    }
-    if (is.null(attr(error, "deep.stack.trace", exact = TRUE))) {
-      attr(error, "deep.stack.trace") <- list()
-    }
     error <- .odb_api_error(
       error,
       if (is.function(credentials)) credentials() else credentials
