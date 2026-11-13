@@ -613,6 +613,10 @@ oauth_db_demo <- function(
 }
 
 .odb_demo_resume <- function(database, path, app, action = NULL) {
+  archive <- file.path(path, "package-source", "shinyOAuthDB.tar.gz")
+  use_archive <- app == "docker" &&
+    (is.null(action) || action == "start") &&
+    file.exists(archive)
   paste0(
     "shinyOAuthDB::oauth_db_demo(",
     deparse(database),
@@ -621,6 +625,7 @@ oauth_db_demo <- function(
     ", path = ",
     deparse(path),
     if (!is.null(action)) paste0(", action = ", deparse(action)),
+    if (use_archive) paste0(", package_source = ", deparse(archive)),
     ")"
   )
 }

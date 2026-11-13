@@ -76,9 +76,25 @@ test_that("saved demo source metadata follows package updates while keeping app 
   expect_error(.odb_demo_source_ready(path), "new empty path", fixed = TRUE)
 })
 
-test_that("local development demos stage source archives with a content fingerprint", {
-  local_mocked_bindings(.odb_demo_package_reference = function() NULL)
-  path <- withr::local_tempdir()
+test_that("archive-based development demos generate working start commands", {
+  commands <- character()
+  docker_calls <- list()
+  local_mocked_bindings(
+    .odb_demo_package_reference = function() NULL,
+    .odb_demo_docker = function() "docker",
+    .odb_demo_command = function(docker, args, check = TRUE) {
+      docker_calls[[length(docker_calls) + 1L]] <<- args
+      0L
+    }
+  )
+  local_mocked_bindings(
+    cli_code = function(lines, ...) {
+      commands <<- c(commands, lines)
+      invisible(NULL)
+    },
+    .package = "cli"
+  )
+  path <- file.path(withr::local_tempdir(), "archive demo with spaces")
   archive <- tempfile(fileext = ".tar.gz")
   withr::defer(unlink(archive))
   source <- withr::local_tempdir()
@@ -111,6 +127,24 @@ test_that("local development demos stage source archives with a content fingerpr
   expect_match(
     readLines(file.path(path, "package-source", "source.sha256")),
     "^[0-9a-f]{64}$"
+  )
+  fingerprint <- readLines(file.path(path, "package-source", "source.sha256"))
+  command <- tail(commands, 1L)
+  expect_match(command, "package_source", fixed = TRUE)
+  command <- parse(text = command)[[1L]]
+  command$launch_browser <- FALSE
+  expect_identical(
+    suppressMessages(eval(command)),
+    normalizePath(path, winslash = "/")
+  )
+  expect_true(any(vapply(docker_calls, function(args) "up" %in% args, FALSE)))
+  expect_identical(
+    readBin(destination, "raw", file.info(destination)$size),
+    readBin(archive, "raw", file.info(archive)$size)
+  )
+  expect_identical(
+    readLines(file.path(path, "package-source", "source.sha256")),
+    fingerprint
   )
   expect_error(
     oauth_db_demo(action = "files", path = path, package_source = source),
