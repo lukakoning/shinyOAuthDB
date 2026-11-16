@@ -110,6 +110,26 @@
   redact(error)
 }
 
+.odb_native_signals <- function(expr, credentials) {
+  redact <- function(condition) {
+    .odb_api_error(
+      condition,
+      if (is.function(credentials)) credentials() else credentials
+    )
+  }
+  withCallingHandlers(
+    expr,
+    warning = function(condition) {
+      warning(redact(condition))
+      invokeRestart("muffleWarning")
+    },
+    message = function(condition) {
+      message(redact(condition))
+      invokeRestart("muffleMessage")
+    }
+  )
+}
+
 .odb_api_call <- function(
   .fn,
   args,
@@ -134,7 +154,10 @@
   })
   names(values) <- names(args)
   result <- tryCatch(
-    withVisible(eval(as.call(c(list(quote(.fn)), values)), environment())),
+    .odb_native_signals(
+      withVisible(eval(as.call(c(list(quote(.fn)), values)), environment())),
+      credentials
+    ),
     error = function(error) stop(fail(error))
   )
   .odb_api_result(result, check, on_error = fail, finished = finished)

@@ -701,7 +701,10 @@ oauth_db_task <- function(
   tryCatch(
     list(
       ok = TRUE,
-      value = .odb_task_run(worker, tokens, until, method, arguments)
+      value = .odb_native_signals(
+        .odb_task_run(worker, tokens, until, method, arguments),
+        unlist(tokens, use.names = FALSE)
+      )
     ),
     error = function(error) {
       message <- conditionMessage(error)

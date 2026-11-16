@@ -587,7 +587,10 @@ oauth_db_token <- function(
           }
           close_native()
         }
-        value <- do.call(connect, c(list(token), args))
+        value <- .odb_native_signals(
+          do.call(connect, c(list(token), args)),
+          function() credentials
+        )
         tryCatch(current(captured), error = function(e) {
           tryCatch(.odb_disconnect(value, disconnect), error = function(error) {
             .odb_cleanup_failure()
