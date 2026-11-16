@@ -11,7 +11,8 @@
 #' @param driver Installed ODBC driver name.
 #' @param port Database port.
 #' @param ... Named odbc connection options, such as `timeout`.
-#'   The helper sets authentication and verified TLS.
+#'   The helper sets authentication and verified TLS. Driver options enabling
+#'   statement retries or overriding certificate identity are rejected.
 #' @return A reactive function, usually named `con`. Call
 #'   `connection <- con()` inside a render or reactive expression, then pass
 #'   the connection to DBI. Before sign-in, the function waits quietly.
@@ -96,7 +97,10 @@ oauth_db_azure_sql <- function(
       "trusted_connection",
       "integrated_security",
       "encrypt",
-      "trust_server_certificate"
+      "trust_server_certificate",
+      "hostname_in_certificate",
+      "server_certificate",
+      "retry_exec"
     ),
     partial = "dsn"
   )

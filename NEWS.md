@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reject SQL Server ODBC options that enable statement retries or override
+  certificate identity, including alternate case and punctuation spellings.
+
 * Reject BigQuery `NULL` array parameters before obtaining credentials instead
   of silently submitting empty arrays. Typed empty vectors, null array elements
   and scalar null parameters retain their existing representations.

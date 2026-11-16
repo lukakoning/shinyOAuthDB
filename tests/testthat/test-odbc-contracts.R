@@ -62,6 +62,37 @@ test_that("ODBC adapters reject alternate spellings of owned identity and authen
   })
 })
 
+test_that("SQL Server rejects native retry and certificate identity overrides before binding", {
+  local_mocked_bindings(
+    .odb_require = function(...) TRUE,
+    .odb_bind = function(...) stop("Unsafe options must not bind authorization")
+  )
+  options <- list(
+    RetryExec = "40501:2,1:INSERT",
+    retry.exec = "40501:2,1:INSERT",
+    HostnameInCertificate = "different.example",
+    HOSTNAME_IN_CERTIFICATE = "different.example",
+    ServerCertificate = "server.pem",
+    server.certificate = "server.pem"
+  )
+  for (helper in list(oauth_db_azure_sql, oauth_db_sql_server)) {
+    for (name in names(options)) {
+      error <- tryCatch(
+        do.call(
+          helper,
+          c(
+            list(NULL, server = "sql.example", database = "reports"),
+            options[name]
+          )
+        ),
+        error = identity
+      )
+      expect_s3_class(error, "shinyOAuthDB_invalid_configuration")
+      expect_match(conditionMessage(error), "cannot be overridden")
+    }
+  }
+})
+
 test_that("ODBC adapters validate port shapes and preserve supported port boundaries", {
   skip_if_not_installed("odbc")
   local_mocked_bindings(.odb_bind = capture_backend)

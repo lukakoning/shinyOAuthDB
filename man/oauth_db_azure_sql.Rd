@@ -27,7 +27,8 @@ To select a saved account, use a function calling \code{auth$connection(id)}.}
 \item{database}{Database name.}
 
 \item{...}{Named odbc connection options, such as \code{timeout}.
-The helper sets authentication and verified TLS.}
+The helper sets authentication and verified TLS. Driver options enabling
+statement retries or overriding certificate identity are rejected.}
 
 \item{target}{Name of the service token to use in your shinyOAuth client.
 Named targets let one sign-in obtain tokens for different services.
