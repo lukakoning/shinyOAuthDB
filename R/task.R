@@ -707,8 +707,10 @@ oauth_db_task <- function(
       )
     ),
     error = function(error) {
+      credentials <- unique(unlist(tokens, use.names = FALSE))
+      credentials <- credentials[order(nchar(credentials), decreasing = TRUE)]
       message <- conditionMessage(error)
-      for (token in tokens) {
+      for (token in credentials) {
         message <- gsub(token, "[REDACTED]", message, fixed = TRUE)
       }
       condition <- errorCondition(
@@ -727,10 +729,10 @@ oauth_db_task <- function(
           is.atomic(value) &&
             length(value) == 1L &&
             !is.na(value) &&
-            !as.character(value) %in% tokens
+            !as.character(value) %in% credentials
         ) {
           if (is.character(value)) {
-            for (token in tokens) {
+            for (token in credentials) {
               value <- gsub(token, "[REDACTED]", value, fixed = TRUE)
             }
           }

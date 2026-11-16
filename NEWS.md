@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Fully redact overlapping worker credentials from error messages and
+  diagnostic fields by replacing longer credentials first.
+
 * Reject SQL Server ODBC options that enable statement retries or override
   certificate identity, including alternate case and punctuation spellings.
 
