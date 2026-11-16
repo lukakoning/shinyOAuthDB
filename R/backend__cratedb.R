@@ -379,7 +379,13 @@ oauth_db_cratedb_api <- function(
   }
   if (type %in% c(2L, 6L, 7L, 8L, 9L)) {
     value <- suppressWarnings(as.numeric(text))
-    bounds <- if (type == 2L) c(-128, 127) else c(-2^31, 2^31 - 1)
+    bounds <- if (type == 2L) {
+      c(-128, 127)
+    } else if (type == 8L) {
+      c(-32768, 32767)
+    } else {
+      c(-2^31, 2^31 - 1)
+    }
     if (
       any(!is.na(text) & is.na(value) & !is.nan(value)) ||
         type %in%

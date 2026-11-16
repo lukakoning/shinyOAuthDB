@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Enforce the signed 16-bit range for CrateDB `SMALLINT` columns and array
+  elements when validating queries, raw results and execution counts.
+
 * Fully redact overlapping worker credentials from error messages and
   diagnostic fields by replacing longer credentials first.
 

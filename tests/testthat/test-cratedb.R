@@ -141,6 +141,86 @@ test_that("CrateDB rejects invalid byte values in scalar and array results", {
   })
 })
 
+test_that("CrateDB preserves SMALLINT boundaries, nulls and typed empty results", {
+  body <- paste0(
+    '{"cols":["value"],"col_types":[8],',
+    '"rows":[[-32768],[32767],[null]],"rowcount":3}'
+  )
+  httr2::local_mocked_responses(function(req) odb_http_response(body))
+  odb_test_domain(function(session) {
+    api <- oauth_db_cratedb_api(
+      odb_test_response_authorization()$connection,
+      "https://crate.example/_sql"
+    )
+    expect_identical(
+      api$query("SELECT x::SMALLINT")$value,
+      c(-32768, 32767, NA_real_)
+    )
+    expect_identical(
+      api$query("SELECT x::SMALLINT", raw = TRUE)$rows,
+      list(list("-32768"), list("32767"), list(NULL))
+    )
+    expect_identical(api$execute("SELECT x::SMALLINT"), 3)
+    body <<- paste0(
+      '{"cols":["value"],"col_types":[[100,8]],',
+      '"rows":[[[-32768,32767,null]],[[]],[null]],"rowcount":3}'
+    )
+    expect_identical(
+      api$query("SELECT x::ARRAY(SMALLINT)")$value,
+      list(list("-32768", "32767", NULL), list(), NULL)
+    )
+    expect_identical(api$execute("SELECT x::ARRAY(SMALLINT)"), 3)
+    body <<- '{"cols":["value"],"col_types":[8],"rows":[],"rowcount":0}'
+    expect_identical(
+      api$query("SELECT x::SMALLINT WHERE false")$value,
+      numeric()
+    )
+    body <<- '{"cols":["value"],"col_types":[[100,8]],"rows":[],"rowcount":0}'
+    expect_identical(
+      api$query("SELECT x::ARRAY(SMALLINT) WHERE false")$value,
+      list()
+    )
+    body <<- paste0(
+      '{"cols":["value"],"col_types":[9],',
+      '"rows":[[-2147483648],[2147483647]],"rowcount":2}'
+    )
+    expect_identical(
+      api$query("SELECT x::INTEGER")$value,
+      c(-2147483648, 2147483647)
+    )
+  })
+})
+
+test_that("CrateDB rejects SMALLINT overflow in scalar and array results", {
+  body <- NULL
+  httr2::local_mocked_responses(function(req) odb_http_response(body))
+  odb_test_domain(function(session) {
+    api <- oauth_db_cratedb_api(
+      odb_test_response_authorization()$connection,
+      "https://crate.example/_sql"
+    )
+    operations <- list(
+      function() api$query("SELECT x"),
+      function() api$query("SELECT x", raw = TRUE),
+      function() api$execute("SELECT x")
+    )
+    for (value in c("-32769", "32768", "-2147483648", "2147483647")) {
+      for (array in c(FALSE, TRUE)) {
+        body <<- paste0(
+          '{"cols":["value"],"col_types":[',
+          if (array) "[100,8]" else "8",
+          '],"rows":[[',
+          if (array) paste0("[", value, "]") else value,
+          ']],"rowcount":1}'
+        )
+        for (operation in operations) {
+          expect_error(operation(), class = "shinyOAuthDB_invalid_response")
+        }
+      }
+    }
+  })
+})
+
 test_that("CrateDB handles nested parameters and rejects ambiguous or lossy values before requests", {
   values <- .odb_cratedb_parameters(list(
     "9007199254740993",
