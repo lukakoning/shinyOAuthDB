@@ -74,7 +74,8 @@ oauth_db_salesforce_client <- function(
 #' @return A client object with these methods:
 #'   \itemize{
 #'     \item \code{$query(soql, include_deleted = FALSE, raw = FALSE)} fetches
-#'       all result pages and returns a data frame. `include_deleted = TRUE`
+#'       all result pages, including child queries, and returns a data frame.
+#'       `include_deleted = TRUE`
 #'       includes deleted or archived records through QueryAll.
 #'       `raw = TRUE` returns combined native records and
 #'       `totalSize`, including the count for `SELECT COUNT()`.
@@ -89,10 +90,10 @@ oauth_db_salesforce_client <- function(
 #' after sign-out or account changes. GET requests can refresh and retry
 #' once after HTTP 401.
 #'
-#' Queries fetch all result pages into R memory. `timeout` applies to the
-#' whole operation. Relationships and child-query results stay in list
-#' columns; ordinary numbers become R numeric values and large integers
-#' stay as strings. Empty results have no field metadata; use `$describe()`
+#' Queries fetch all outer and nested child-query pages into R memory.
+#' `timeout` applies to the whole operation. Relationships and child-query
+#' results stay in list columns. Ordinary numbers become R numeric values;
+#' large integers stay as strings. Empty results have no field metadata; use `$describe()`
 #' for field types.
 #'
 #' Supply SOQL as written. This client doesn't bind SQL parameters or
@@ -155,27 +156,8 @@ oauth_db_salesforce_api <- function(
         deadline,
         list(q = soql)
       )
-      first <- result
-      pages <- list()
       seen <- character()
-      repeat {
-        if (
-          !is.list(result) ||
-            !is.logical(result$done) ||
-            length(result$done) != 1L ||
-            is.na(result$done) ||
-            !.odb_salesforce_array(result$records) ||
-            !all(vapply(result$records, .odb_salesforce_object, logical(1))) ||
-            .odb_salesforce_count(result$totalSize) !=
-              .odb_salesforce_count(first$totalSize)
-        ) {
-          .odb_salesforce_invalid()
-        }
-        pages[[length(pages) + 1L]] <- result$records
-        if (result$done) {
-          break
-        }
-        next_url <- result$nextRecordsUrl
+      fetch <- function(next_url) {
         prefix <- paste0(httr2::url_parse(private$base)$path, "/query/")
         if (
           !.odb_salesforce_string(next_url) ||
@@ -184,28 +166,19 @@ oauth_db_salesforce_api <- function(
               "^[A-Za-z0-9_-]+$",
               substring(next_url, nchar(prefix) + 1L)
             ) ||
-            next_url %in% seen ||
-            !length(result$records)
+            next_url %in% seen
         ) {
           .odb_salesforce_invalid()
         }
-        seen <- c(seen, next_url)
-        result <- private$get(
+        seen <<- c(seen, next_url)
+        private$get(
           token,
           substring(next_url, nchar(httr2::url_parse(private$base)$path) + 2L),
           deadline
         )
       }
-      records <- do.call(c, pages)
-      if (is.null(records)) {
-        records <- list()
-      }
-      if (length(records) && length(records) != first$totalSize) {
-        .odb_salesforce_invalid()
-      }
-      first$records <- records
-      first$done <- TRUE
-      first$nextRecordsUrl <- NULL
+      first <- .odb_salesforce_pages(result, fetch)
+      records <- first$records
       if (raw) first else .odb_salesforce_records(records)
     },
     objects = function() private$read("sobjects"),
@@ -247,6 +220,57 @@ oauth_db_salesforce_api <- function(
     }
   )
 )
+
+.odb_salesforce_pages <- function(result, fetch, nested = FALSE) {
+  if (!.odb_salesforce_object(result)) {
+    .odb_salesforce_invalid()
+  }
+  first <- result
+  total <- .odb_salesforce_count(first$totalSize)
+  pages <- list()
+  repeat {
+    if (
+      !.odb_salesforce_object(result) ||
+        !is.logical(result$done) ||
+        length(result$done) != 1L ||
+        is.na(result$done) ||
+        !.odb_salesforce_array(result$records) ||
+        !all(vapply(result$records, .odb_salesforce_object, logical(1))) ||
+        .odb_salesforce_count(result$totalSize) != total
+    ) {
+      .odb_salesforce_invalid()
+    }
+    pages[[length(pages) + 1L]] <- result$records
+    if (result$done) {
+      break
+    }
+    if (!length(result$records)) {
+      .odb_salesforce_invalid()
+    }
+    result <- fetch(result$nextRecordsUrl)
+  }
+  records <- do.call(c, pages)
+  if (is.null(records)) {
+    records <- list()
+  }
+  # Only an outer COUNT() query can report a positive count without records.
+  if ((nested || length(records) > 0L) && length(records) != total) {
+    .odb_salesforce_invalid()
+  }
+  complete <- function(value) {
+    if (!is.list(value)) {
+      return(value)
+    }
+    if (sum(c("totalSize", "done", "records") %in% names(value)) >= 2L) {
+      return(.odb_salesforce_pages(value, fetch, nested = TRUE))
+    }
+    lapply(value, complete)
+  }
+  first$records <- lapply(records, function(record) lapply(record, complete))
+  first$done <- TRUE
+  first$nextRecordsUrl <- NULL
+  first
+}
 
 .odb_salesforce_origin <- function(url) {
   url <- .odb_http_url(url)

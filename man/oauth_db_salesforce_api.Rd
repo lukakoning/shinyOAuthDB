@@ -49,7 +49,8 @@ create the helper inside \code{server()}.}
 A client object with these methods:
 \itemize{
 \item \code{$query(soql, include_deleted = FALSE, raw = FALSE)} fetches
-all result pages and returns a data frame. \code{include_deleted = TRUE}
+all result pages, including child queries, and returns a data frame.
+\code{include_deleted = TRUE}
 includes deleted or archived records through QueryAll.
 \code{raw = TRUE} returns combined native records and
 \code{totalSize}, including the count for \verb{SELECT COUNT()}.
@@ -70,10 +71,10 @@ The client gets a current token for each request and discards results
 after sign-out or account changes. GET requests can refresh and retry
 once after HTTP 401.
 
-Queries fetch all result pages into R memory. \code{timeout} applies to the
-whole operation. Relationships and child-query results stay in list
-columns; ordinary numbers become R numeric values and large integers
-stay as strings. Empty results have no field metadata; use \verb{$describe()}
+Queries fetch all outer and nested child-query pages into R memory.
+\code{timeout} applies to the whole operation. Relationships and child-query
+results stay in list columns. Ordinary numbers become R numeric values;
+large integers stay as strings. Empty results have no field metadata; use \verb{$describe()}
 for field types.
 
 Supply SOQL as written. This client doesn't bind SQL parameters or

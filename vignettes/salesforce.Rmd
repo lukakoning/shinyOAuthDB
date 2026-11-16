@@ -170,7 +170,8 @@ when adding other result caches.
 
 ## Query CRM objects
 
-`$query()` follows query locators until all result pages have been fetched.
+`$query()` follows query locators until all outer and nested child-query
+pages have been fetched, using one timeout for the whole operation.
 `include_deleted = TRUE` uses QueryAll, which can include deleted and
 archived records under Salesforce's permissions and retention rules.
 
