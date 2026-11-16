@@ -81,6 +81,8 @@ and \code{POSIXct} values are supported; vectors become arrays.
 
 Use a named character vector of \code{parameter_types} to choose the type or
 type a \code{NULL} value. Use \code{"ARRAY<INT64>"} for a one-element integer array.
+\code{NULL} array parameters are rejected. Use a typed empty vector, such as
+\code{integer()}, for an empty array, or construct a null array in SQL.
 }
 
 \section{Query options}{

@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Reject BigQuery `NULL` array parameters before obtaining credentials instead
+  of silently submitting empty arrays. Typed empty vectors, null array elements
+  and scalar null parameters retain their existing representations.
+
 * Recover generic RPostgres connections with the current token when the
   driver's native reconnect fails. Allow other generic drivers to supply
   an `is_valid` check, while preserving healthy connections through renewal

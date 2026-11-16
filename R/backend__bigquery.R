@@ -36,6 +36,8 @@
 #'
 #' Use a named character vector of `parameter_types` to choose the type or
 #' type a `NULL` value. Use `"ARRAY<INT64>"` for a one-element integer array.
+#' `NULL` array parameters are rejected. Use a typed empty vector, such as
+#' `integer()`, for an empty array, or construct a null array in SQL.
 #' @section Query options:
 #' Set `maximum_bytes_billed` to limit the bytes a query may bill.
 #' Set `use_query_cache = FALSE` to disable cached query results.
@@ -641,6 +643,11 @@ oauth_db_bigquery_client <- function(
         )
     ) {
       .odb_abort("Unsupported BigQuery parameter type.")
+    }
+    if (forced_array && is.null(value)) {
+      .odb_abort(
+        "NULL array parameters are not supported. Use a typed empty vector for an empty array, or construct a NULL array in SQL."
+      )
     }
     if (
       !is.null(value) &&

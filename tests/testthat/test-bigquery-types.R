@@ -45,6 +45,81 @@ test_that("BigQuery accepts explicitly encoded BYTES parameters", {
   })
 })
 
+test_that("BigQuery rejects NULL arrays before credentials or HTTP", {
+  requests <- 0L
+  httr2::local_mocked_responses(function(req) {
+    requests <<- requests + 1L
+    bq_test_response(bq_test_result())
+  })
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session, refresh_token = "fixture-refresh")
+    auth$token(auth$make_token("expired", lifetime = -1))
+    api <- oauth_db_bigquery_api(auth$connection, "billing")
+    for (type in c("ARRAY<INT64>", "ARRAY<STRING>", "array<bool>")) {
+      expect_error(
+        api$query(
+          "SELECT @value IS NULL",
+          parameters = list(value = NULL),
+          parameter_types = c(value = type)
+        ),
+        "NULL array parameters",
+        class = "shinyOAuthDB_invalid_configuration"
+      )
+    }
+    expect_identical(requests, 0L)
+    expect_identical(auth$calls$acquire, 0L)
+  })
+})
+
+test_that("BigQuery distinguishes empty arrays, array elements and scalar NULLs", {
+  sent <- NULL
+  httr2::local_mocked_responses(function(req) {
+    body <- jsonlite::parse_json(getFromNamespace("req_body_render", "httr2")(
+      req
+    ))
+    sent <<- body$queryParameters
+    bq_test_response(bq_test_result())
+  })
+  odb_test_domain(function(session) {
+    api <- oauth_db_bigquery_api(
+      odb_test_response_authorization()$connection,
+      "billing"
+    )
+    api$query(
+      "SELECT @empty, @one, @missing, @scalar",
+      parameters = list(
+        empty = integer(),
+        one = 1L,
+        missing = NA_integer_,
+        scalar = NULL
+      ),
+      parameter_types = c(
+        empty = "ARRAY<INT64>",
+        one = "ARRAY<INT64>",
+        missing = "ARRAY<INT64>",
+        scalar = "INT64"
+      )
+    )
+    for (parameter in sent[1:3]) {
+      expect_identical(
+        parameter$parameterType,
+        list(type = "ARRAY", arrayType = list(type = "INT64"))
+      )
+    }
+    expect_identical(sent[[1L]]$parameterValue, list(arrayValues = list()))
+    expect_identical(
+      sent[[2L]]$parameterValue,
+      list(arrayValues = list(list(value = "1")))
+    )
+    expect_identical(
+      sent[[3L]]$parameterValue,
+      list(arrayValues = list(list(value = NULL)))
+    )
+    expect_identical(sent[[4L]]$parameterType, list(type = "INT64"))
+    expect_identical(sent[[4L]]$parameterValue, list(value = NULL))
+  })
+})
+
 test_that("BigQuery rejects ambiguous parameter type maps before credentials or HTTP", {
   invalid <- list(
     c("STRING", "INT64"),
