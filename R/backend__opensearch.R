@@ -127,34 +127,61 @@ oauth_db_opensearch_api <- function(
           "invalid_response"
         )
       }
-      shards <- result[["_shards"]]
       if (
-        (!is.null(shards) && !is.list(shards)) ||
-          (!is.null(result$timed_out) &&
-            (!is.logical(result$timed_out) ||
-              length(result$timed_out) != 1L ||
-              is.na(result$timed_out)))
+        !is.null(result$timed_out) &&
+          (!is.logical(result$timed_out) ||
+            length(result$timed_out) != 1L ||
+            is.na(result$timed_out))
       ) {
         .odb_abort(
           "OpenSearch returned invalid search completion metadata.",
           "invalid_response"
         )
       }
-      failed <- shards[["failed"]]
-      if (
-        !is.null(failed) &&
-          (!is.numeric(failed) ||
-            length(failed) != 1L ||
-            !is.finite(failed) ||
-            failed < 0 ||
-            failed != floor(failed))
-      ) {
-        .odb_abort(
-          "OpenSearch returned invalid shard metadata.",
-          "invalid_response"
-        )
+      incomplete <- isTRUE(result$timed_out)
+      for (name in c("_shards", "_clusters")) {
+        metadata <- result[[name]]
+        if (is.null(metadata)) {
+          next
+        }
+        if (!is.list(metadata) || is.null(names(metadata))) {
+          .odb_abort(
+            "OpenSearch returned invalid search completion metadata.",
+            "invalid_response"
+          )
+        }
+        for (field in c(
+          "total",
+          "successful",
+          "failed",
+          "skipped",
+          "partial"
+        )) {
+          value <- metadata[[field]]
+          if (is.null(value)) {
+            next
+          }
+          if (
+            !is.numeric(value) ||
+              length(value) != 1L ||
+              !is.finite(value) ||
+              value < 0 ||
+              value != floor(value)
+          ) {
+            .odb_abort(
+              "OpenSearch returned invalid search completion counts.",
+              "invalid_response"
+            )
+          }
+          if (
+            field == "failed" ||
+              name == "_clusters" && field %in% c("skipped", "partial")
+          ) {
+            incomplete <- incomplete || value > 0
+          }
+        }
       }
-      if (isTRUE(result$timed_out) || (!is.null(failed) && failed > 0)) {
+      if (incomplete) {
         .odb_abort(
           "OpenSearch returned incomplete search results. Inspect the response with raw = TRUE.",
           "query_failed"

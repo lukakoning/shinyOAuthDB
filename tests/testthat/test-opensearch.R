@@ -2,6 +2,58 @@ opensearch_response <- function() {
   '{"took":2,"timed_out":false,"_shards":{"total":1,"successful":1,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"hits":[{"_index":"orders","_id":"1","_score":null,"_source":{"id":9007199254740993,"tags":["a"],"missing":null}}]},"aggregations":{"countries":{"buckets":[{"key":"NL","doc_count":1}]}}}'
 }
 
+test_that("OpenSearch rejects incomplete cross-cluster searches and malformed counts", {
+  payload <- NULL
+  httr2::local_mocked_responses(function(req) odb_http_response(payload))
+  odb_test_domain(function(session) {
+    auth <- odb_test_response_authorization()
+    api <- oauth_db_opensearch_api(auth$connection, "https://search.example")
+    for (metadata in c(
+      '"_clusters":{"total":2,"successful":1,"skipped":1}',
+      '"_clusters":{"total":2,"successful":1,"failed":1}',
+      '"_clusters":{"total":2,"successful":1,"partial":1}'
+    )) {
+      payload <<- paste0(
+        '{"hits":{"hits":[]},"timed_out":false,',
+        '"_shards":{"total":1,"successful":1,"failed":0},',
+        metadata,
+        '}'
+      )
+      error <- expect_error(
+        api$search(c("local", "remote:orders")),
+        class = "shinyOAuthDB_query_failed"
+      )
+      expect_null(error$parent)
+      expect_identical(
+        httr2::resp_body_string(api$search(raw = TRUE)),
+        payload
+      )
+    }
+    for (metadata in c(
+      '"_clusters":42',
+      '"_clusters":[]',
+      '"_clusters":{"skipped":"private-response"}',
+      '"_clusters":{"failed":-1}',
+      '"_clusters":{"partial":0.5}',
+      '"_clusters":{"total":[2]}',
+      '"_clusters":{"successful":false}'
+    )) {
+      payload <<- paste0('{"hits":{"hits":[]},', metadata, '}')
+      error <- expect_error(
+        api$search(),
+        class = "shinyOAuthDB_invalid_response"
+      )
+      expect_false(grepl("private-response", conditionMessage(error)))
+    }
+    payload <<- paste0(
+      '{"hits":{"hits":[]},"timed_out":false,',
+      '"_shards":{"total":3,"successful":3,"skipped":2,"failed":0},',
+      '"_clusters":{"total":2,"successful":2,"skipped":0,"partial":0,"failed":0}}'
+    )
+    expect_identical(api$search()$`_clusters`$successful, 2L)
+  })
+})
+
 test_that("OpenSearch preserves search metadata, nested documents and exact integers", {
   requests <- list()
   httr2::local_mocked_responses(function(req) {
