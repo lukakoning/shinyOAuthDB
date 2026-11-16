@@ -117,16 +117,31 @@
       if (is.function(credentials)) credentials() else credentials
     )
   }
-  withCallingHandlers(
-    expr,
-    warning = function(condition) {
-      warning(redact(condition))
-      invokeRestart("muffleWarning")
-    },
-    message = function(condition) {
-      message(redact(condition))
-      invokeRestart("muffleMessage")
-    }
+  handle <- function(expr) {
+    withCallingHandlers(
+      expr,
+      warning = function(condition) {
+        warning(redact(condition))
+        invokeRestart("muffleWarning")
+      },
+      message = function(condition) {
+        message(redact(condition))
+        invokeRestart("muffleMessage")
+      }
+    )
+  }
+  wrap <- function(callback) {
+    force(callback)
+    function(...) handle(callback(...))
+  }
+  # Native promise callbacks outlive the calling handlers. Compose their
+  # redaction domain with Shiny's domain so nested callbacks keep the session.
+  promises::with_promise_domain(
+    promises::new_promise_domain(
+      wrapOnFulfilled = wrap,
+      wrapOnRejected = wrap
+    ),
+    handle(expr)
   )
 }
 

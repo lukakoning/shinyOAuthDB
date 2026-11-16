@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Redact credentials from native warnings and messages emitted by deferred
+  API callbacks, including nested promise continuations, while preserving
+  their owning Shiny session and native diagnostics.
+
 * Require promises 1.4.0 or later so nested task callbacks retain their Shiny
   session. The local minimum-version suite now includes background task tests.
 
