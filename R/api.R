@@ -117,17 +117,47 @@
       if (is.function(credentials)) credentials() else credentials
     )
   }
+  forward <- function(condition, kind) {
+    restart <- findRestart(
+      if (kind == "warning") "muffleWarning" else "muffleMessage",
+      condition
+    )
+    sanitized <- redact(condition)
+    if (is.null(restart)) {
+      comparable <- sanitized
+      # Ignore stacks added by the sanitizer when comparing the original data.
+      for (name in c("stack.trace", "deep.stack.trace")) {
+        if (is.null(attr(condition, name, exact = TRUE))) {
+          attr(comparable, name) <- NULL
+        }
+      }
+      if (identical(condition, comparable)) {
+        return(invisible(NULL))
+      }
+      # A raw signal cannot be replaced while resuming its native caller.
+      # Let safe conditions through; never forward data that needed redaction.
+      stop(redact(errorCondition(
+        paste0(
+          "The native diagnostic requires redaction but provides no muffling restart. ",
+          "Signal native diagnostics with warning() or message()."
+        ),
+        class = c("shinyOAuthDB_unmufflable_diagnostic", "shinyOAuthDB_error"),
+        reason = "unmufflable_diagnostic",
+        parent = sanitized
+      )))
+    }
+    if (kind == "warning") {
+      warning(sanitized)
+    } else {
+      message(sanitized)
+    }
+    invokeRestart(restart)
+  }
   handle <- function(expr) {
     withCallingHandlers(
       expr,
-      warning = function(condition) {
-        warning(redact(condition))
-        invokeRestart("muffleWarning")
-      },
-      message = function(condition) {
-        message(redact(condition))
-        invokeRestart("muffleMessage")
-      }
+      warning = function(condition) forward(condition, "warning"),
+      message = function(condition) forward(condition, "message")
     )
   }
   wrap <- function(callback) {
