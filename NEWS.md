@@ -1,5 +1,10 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Recover generic RPostgres connections with the current token when the
+  driver's native reconnect fails. Allow other generic drivers to supply
+  an `is_valid` check, while preserving healthy connections through renewal
+  and leaving failed queries for the app to retry explicitly.
+
 * Redact credentials from native warnings and messages emitted by deferred
   API callbacks, including nested promise continuations, while preserving
   their owning Shiny session and native diagnostics.

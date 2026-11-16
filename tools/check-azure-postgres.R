@@ -91,55 +91,86 @@ check_azure_postgres <- function() {
   )
   on.exit(DBI::dbDisconnect(admin), add = TRUE, after = FALSE)
   retained <- NULL
-  test_that("Azure PostgreSQL recovers with the replacement password after session loss", {
-    odb_test_domain(function(session) {
-      auth <- suppressWarnings(odb_test_authorization(session))
-      con <- oauth_db_azure_postgres(
-        auth$connection,
-        host = "127.0.0.1",
-        dbname = "oauth_audit",
-        user = "postgres",
-        port = port,
-        sslrootcert = ca,
-        target = NULL
-      )
-      runs <- 0L
-      rows <- shiny::reactive({
-        runs <<- runs + 1L
-        connection <- con()
-        DBI::dbGetQuery(connection, "SELECT 1 AS value")
-      })
-      expect_identical(rows()$value, 1L)
-      first <- con()
-      pid <- DBI::dbGetQuery(first, "SELECT pg_backend_pid() AS pid")$pid
-      expect_true(
-        DBI::dbGetQuery(
-          first,
-          "SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()"
-        )$ssl
-      )
-      DBI::dbExecute(admin, "ALTER ROLE postgres PASSWORD 'fixture-B'")
-      auth$token(auth$make_token("fixture-B"))
-      session$flushReact()
-      expect_identical(rows()$value, 1L)
-      expect_identical(runs, 1L)
-      expect_true(
-        DBI::dbGetQuery(
-          admin,
-          paste0("SELECT pg_terminate_backend(", pid, ") AS terminated")
-        )$terminated
-      )
-      expect_error(DBI::dbGetQuery(first, "SELECT 1"))
-      expect_true(DBI::dbIsValid(first))
+  for (backend in c("Azure PostgreSQL", "generic RPostgres")) {
+    DBI::dbExecute(admin, "ALTER ROLE postgres PASSWORD 'fixture-A'")
+    test_that(
+      paste(
+        backend,
+        "recovers with the replacement password after session loss"
+      ),
+      {
+        odb_test_domain(function(session) {
+          auth <- suppressWarnings(odb_test_authorization(session))
+          generic <- backend == "generic RPostgres"
+          con <- do.call(
+            if (generic) oauth_db_connect else oauth_db_azure_postgres,
+            c(
+              list(
+                authorization = auth$connection,
+                host = "127.0.0.1",
+                dbname = "oauth_audit",
+                user = "postgres",
+                port = port,
+                sslrootcert = ca,
+                target = NULL
+              ),
+              if (generic) {
+                list(
+                  connect = DBI::dbConnect,
+                  drv = RPostgres::Postgres(),
+                  token_arg = "password",
+                  sslmode = "verify-full",
+                  gssencmode = "disable",
+                  require_auth = "password"
+                )
+              }
+            )
+          )
+          runs <- 0L
+          rows <- shiny::reactive({
+            runs <<- runs + 1L
+            connection <- con()
+            DBI::dbGetQuery(connection, "SELECT 1 AS value")
+          })
+          expect_identical(rows()$value, 1L)
+          first <- con()
+          pid <- DBI::dbGetQuery(first, "SELECT pg_backend_pid() AS pid")$pid
+          expect_true(
+            DBI::dbGetQuery(
+              first,
+              "SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()"
+            )$ssl
+          )
+          DBI::dbExecute(admin, "ALTER ROLE postgres PASSWORD 'fixture-B'")
+          auth$token(auth$make_token("fixture-B"))
+          session$flushReact()
+          expect_identical(rows()$value, 1L)
+          expect_identical(runs, 1L)
+          if (generic) {
+            expect_identical(con(), first)
+          }
+          expect_true(
+            DBI::dbGetQuery(
+              admin,
+              paste0("SELECT pg_terminate_backend(", pid, ") AS terminated")
+            )$terminated
+          )
+          expect_error(DBI::dbGetQuery(first, "SELECT 1"))
+          expect_true(DBI::dbIsValid(first))
 
-      retained <<- con()
-      expect_false(DBI::dbIsValid(first))
-      expect_identical(DBI::dbGetQuery(retained, "SELECT 1 AS value")$value, 1L)
-      expect_identical(con(), retained)
-      expect_identical(runs, 1L)
-    })
-    expect_false(DBI::dbIsValid(retained))
-  })
+          retained <<- con()
+          expect_false(DBI::dbIsValid(first))
+          expect_identical(
+            DBI::dbGetQuery(retained, "SELECT 1 AS value")$value,
+            1L
+          )
+          expect_identical(con(), retained)
+          expect_identical(runs, 1L)
+        })
+        expect_false(DBI::dbIsValid(retained))
+      }
+    )
+  }
 }
 
 check_azure_postgres()
