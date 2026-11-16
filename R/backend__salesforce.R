@@ -73,7 +73,7 @@ oauth_db_salesforce_client <- function(
 #'   result pages and any permitted refresh retry.
 #' @return A client object with these methods:
 #'   \itemize{
-#'     \item \code{$query(soql, include_deleted = FALSE, raw = FALSE)} fetches
+#'     \item \code{$query(soql, include_deleted = FALSE, raw = FALSE, exact = FALSE)} fetches
 #'       all result pages, including child queries, and returns a data frame.
 #'       `include_deleted = TRUE`
 #'       includes deleted or archived records through QueryAll.
@@ -92,13 +92,17 @@ oauth_db_salesforce_client <- function(
 #'
 #' Queries fetch all outer and nested child-query pages into R memory.
 #' `timeout` applies to the whole operation. Relationships and child-query
-#' results stay in list columns. Ordinary numbers become R numeric values;
-#' large integers stay as strings. Empty results have no field metadata; use `$describe()`
-#' for field types.
+#' results stay in list columns. By default, ordinary numbers become R numeric
+#' values and large integers stay as strings. Set `exact = TRUE` on `$query()`
+#' to preserve every JSON number as a character string, including decimal
+#' precision, exponent notation and counts in raw metadata. Boolean and null
+#' values keep their usual representations. Empty results have no field
+#' metadata; use `$describe()` for field types.
 #'
 #' Supply SOQL as written. This client doesn't bind SQL parameters or
 #' provide a DBI connection. Use `raw = TRUE` for the records and metadata
-#' without conversion to a data frame.
+#' without conversion to a data frame. `raw = TRUE` alone does not preserve
+#' decimal precision; combine it with `exact = TRUE` when needed.
 #' @examples
 #' \dontrun{
 #' crm <- oauth_db_salesforce_api(
@@ -144,17 +148,24 @@ oauth_db_salesforce_api <- function(
       private$timeout <- timeout
       private$ca_bundle <- ca_bundle
     },
-    query = function(soql, include_deleted = FALSE, raw = FALSE) {
+    query = function(
+      soql,
+      include_deleted = FALSE,
+      raw = FALSE,
+      exact = FALSE
+    ) {
       .odb_string(soql, "soql")
       .odb_flag(include_deleted, "include_deleted")
       .odb_flag(raw, "raw")
+      .odb_flag(exact, "exact")
       deadline <- .odb_http_time() + private$timeout
       token <- private$provider()
       result <- private$get(
         token,
         if (include_deleted) "queryAll" else "query",
         deadline,
-        list(q = soql)
+        list(q = soql),
+        exact = exact
       )
       seen <- character()
       fetch <- function(next_url) {
@@ -174,7 +185,8 @@ oauth_db_salesforce_api <- function(
         private$get(
           token,
           substring(next_url, nchar(httr2::url_parse(private$base)$path) + 2L),
-          deadline
+          deadline,
+          exact = exact
         )
       }
       first <- .odb_salesforce_pages(result, fetch)
@@ -199,14 +211,15 @@ oauth_db_salesforce_api <- function(
     base = NULL,
     timeout = NULL,
     ca_bundle = NULL,
-    get = function(token, path, deadline, query = list()) {
+    get = function(token, path, deadline, query = list(), exact = FALSE) {
       .odb_salesforce_request(
         token,
         private$base,
         path,
         deadline,
         private$ca_bundle,
-        query = query
+        query = query,
+        exact = exact
       )
     },
     read = function(path) {

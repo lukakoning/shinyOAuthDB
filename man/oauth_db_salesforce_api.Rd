@@ -48,7 +48,7 @@ create the helper inside \code{server()}.}
 \value{
 A client object with these methods:
 \itemize{
-\item \code{$query(soql, include_deleted = FALSE, raw = FALSE)} fetches
+\item \code{$query(soql, include_deleted = FALSE, raw = FALSE, exact = FALSE)} fetches
 all result pages, including child queries, and returns a data frame.
 \code{include_deleted = TRUE}
 includes deleted or archived records through QueryAll.
@@ -73,13 +73,17 @@ once after HTTP 401.
 
 Queries fetch all outer and nested child-query pages into R memory.
 \code{timeout} applies to the whole operation. Relationships and child-query
-results stay in list columns. Ordinary numbers become R numeric values;
-large integers stay as strings. Empty results have no field metadata; use \verb{$describe()}
-for field types.
+results stay in list columns. By default, ordinary numbers become R numeric
+values and large integers stay as strings. Set \code{exact = TRUE} on \verb{$query()}
+to preserve every JSON number as a character string, including decimal
+precision, exponent notation and counts in raw metadata. Boolean and null
+values keep their usual representations. Empty results have no field
+metadata; use \verb{$describe()} for field types.
 
 Supply SOQL as written. This client doesn't bind SQL parameters or
 provide a DBI connection. Use \code{raw = TRUE} for the records and metadata
-without conversion to a data frame.
+without conversion to a data frame. \code{raw = TRUE} alone does not preserve
+decimal precision; combine it with \code{exact = TRUE} when needed.
 }
 \examples{
 \dontrun{
