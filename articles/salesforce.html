@@ -242,13 +242,15 @@ adding other result caches.</p>
 <div class="section level2">
 <h2 id="query-crm-objects">Query CRM objects<a class="anchor" aria-label="anchor" href="#query-crm-objects"></a>
 </h2>
-<p><code>$query()</code> follows query locators until all result pages
-have been fetched. <code>include_deleted = TRUE</code> uses QueryAll,
+<p><code>$query()</code> follows query locators until all outer and
+nested child-query pages have been fetched, using one timeout for the
+whole operation. <code>include_deleted = TRUE</code> uses QueryAll,
 which can include deleted and archived records under Salesforce’s
 permissions and retention rules.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">crm</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT Id, Name, Parent.Name FROM Account LIMIT 20"</span><span class="op">)</span></span>
 <span><span class="va">crm</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT Id, IsDeleted FROM Account LIMIT 20"</span>, include_deleted <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">crm</span><span class="op">$</span><span class="fu">query</span><span class="op">(</span><span class="st">"SELECT Id, Amount FROM Opportunity LIMIT 20"</span>, exact <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">crm</span><span class="op">$</span><span class="fu">objects</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="va">crm</span><span class="op">$</span><span class="fu">describe</span><span class="op">(</span><span class="st">"Account"</span><span class="op">)</span></span>
 <span></span>
@@ -258,8 +260,12 @@ permissions and retention rules.</p>
 <p>Queries return data frames, with relationships and child-query
 results in list columns. Use <code>$describe()</code> for field
 definitions, or <code>raw = TRUE</code> for the native records and
-metadata. Large integers stay as strings; ordinary JSON numbers become R
-numeric values.</p>
+metadata. By default, large integers stay as strings and ordinary JSON
+numbers become R numeric values. Use <code>exact = TRUE</code> to
+preserve all JSON numbers as strings, including high-precision decimals
+and exponent notation. This works across outer and child pages and with
+<code>raw = TRUE</code>; raw mode alone does not preserve decimal
+precision.</p>
 <p>SOQL is supplied as written. The helper does not interpolate
 parameters, create DBI connections, or implement CRM record mutations.
 See Salesforce’s <a href="https://developer.salesforce.com/docs/platform/api-rest/guide/dome-query.html" class="external-link">Query

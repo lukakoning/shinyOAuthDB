@@ -16,6 +16,7 @@ oauth_db_connect(
   target = NULL,
   required_scopes = character(),
   disconnect = NULL,
+  is_valid = NULL,
   min_valid_for = 60,
   session = shiny::getDefaultReactiveDomain()
 )
@@ -60,6 +61,16 @@ oauth_db_connect(
   [`DBI::dbDisconnect()`](https://dbi.r-dbi.org/reference/dbDisconnect.html);
   other objects have no cleanup.
 
+- is_valid:
+
+  Optional function receiving the cached connection or client. Return
+  `TRUE` to reuse it; errors or other values close it and open a
+  replacement with the current token. `NULL` uses
+  [`DBI::dbIsValid()`](https://dbi.r-dbi.org/reference/dbIsValid.html)
+  for DBI connections and also checks RPostgres connection metadata to
+  detect failed native reconnects. Other objects are reused without a
+  validity check.
+
 - min_valid_for:
 
   Minimum remaining token lifetime, in seconds, when obtaining a token.
@@ -86,8 +97,10 @@ loss of required permissions and session end trigger cleanup.
 
 A connection you save separately may keep copied credentials, depending
 on the driver. Obtain it through `con()` each time. A valid DBI
-connection can stay open through token renewal; a broken one reopens on
-the next call.
+connection can stay open through token renewal. A connection reported
+invalid by its driver or `is_valid` check reopens on the next call.
+Supply `is_valid` when another driver's default check cannot detect a
+lost connection. The helper never replays a failed query or write.
 
 If token refresh is running, reactive outputs wait until it finishes. A
 button-triggered query may need another click. `min_valid_for` checks

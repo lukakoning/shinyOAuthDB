@@ -104,7 +104,9 @@ and `POSIXct` values are supported; vectors become arrays.
 
 Use a named character vector of `parameter_types` to choose the type or
 type a `NULL` value. Use `"ARRAY<INT64>"` for a one-element integer
-array.
+array. `NULL` array parameters are rejected. Use a typed empty vector,
+such as [`integer()`](https://rdrr.io/r/base/integer.html), for an empty
+array, or construct a null array in SQL.
 
 ## Query options
 

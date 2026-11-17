@@ -146,7 +146,9 @@ to match the datasets you query.</p>
 SQL containing <code>@country</code>. Character, logical, integer, numeric, <code>Date</code>
 and <code>POSIXct</code> values are supported; vectors become arrays.</p>
 <p>Use a named character vector of <code>parameter_types</code> to choose the type or
-type a <code>NULL</code> value. Use <code>"ARRAY&lt;INT64&gt;"</code> for a one-element integer array.</p>
+type a <code>NULL</code> value. Use <code>"ARRAY&lt;INT64&gt;"</code> for a one-element integer array.
+<code>NULL</code> array parameters are rejected. Use a typed empty vector, such as
+<code><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer()</a></code>, for an empty array, or construct a null array in SQL.</p>
     </div>
     <div class="section level2">
     <h2 id="query-options">Query options<a class="anchor" aria-label="anchor" href="#query-options"></a></h2>

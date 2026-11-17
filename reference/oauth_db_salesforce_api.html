@@ -115,8 +115,9 @@ create the helper inside <code>server()</code>.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A client object with these methods:</p><ul><li><p><code>$query(soql, include_deleted = FALSE, raw = FALSE)</code> fetches
-all result pages and returns a data frame. <code>include_deleted = TRUE</code>
+    <p>A client object with these methods:</p><ul><li><p><code>$query(soql, include_deleted = FALSE, raw = FALSE, exact = FALSE)</code> fetches
+all result pages, including child queries, and returns a data frame.
+<code>include_deleted = TRUE</code>
 includes deleted or archived records through QueryAll.
 <code>raw = TRUE</code> returns combined native records and
 <code>totalSize</code>, including the count for <code>SELECT COUNT()</code>.</p></li>
@@ -131,14 +132,18 @@ inside <code>server()</code> and call its methods from render or reactive expres
 The client gets a current token for each request and discards results
 after sign-out or account changes. GET requests can refresh and retry
 once after HTTP 401.</p>
-<p>Queries fetch all result pages into R memory. <code>timeout</code> applies to the
-whole operation. Relationships and child-query results stay in list
-columns; ordinary numbers become R numeric values and large integers
-stay as strings. Empty results have no field metadata; use <code>$describe()</code>
-for field types.</p>
+<p>Queries fetch all outer and nested child-query pages into R memory.
+<code>timeout</code> applies to the whole operation. Relationships and child-query
+results stay in list columns. By default, ordinary numbers become R numeric
+values and large integers stay as strings. Set <code>exact = TRUE</code> on <code>$query()</code>
+to preserve every JSON number as a character string, including decimal
+precision, exponent notation and counts in raw metadata. Boolean and null
+values keep their usual representations. Empty results have no field
+metadata; use <code>$describe()</code> for field types.</p>
 <p>Supply SOQL as written. This client doesn't bind SQL parameters or
 provide a DBI connection. Use <code>raw = TRUE</code> for the records and metadata
-without conversion to a data frame.</p>
+without conversion to a data frame. <code>raw = TRUE</code> alone does not preserve
+decimal precision; combine it with <code>exact = TRUE</code> when needed.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

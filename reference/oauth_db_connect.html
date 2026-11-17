@@ -61,6 +61,7 @@ connection and keeps that connection in their Shiny session.</p>
 <span>  target <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  required_scopes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  disconnect <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  is_valid <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_valid_for <span class="op">=</span> <span class="fl">60</span>,</span>
 <span>  session <span class="op">=</span> <span class="fu">shiny</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/shiny/man/domains.html" class="external-link">getDefaultReactiveDomain</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -105,6 +106,14 @@ consent or grant database privileges.</p></dd>
 connections use <code><a href="https://dbi.r-dbi.org/reference/dbDisconnect.html" class="external-link">DBI::dbDisconnect()</a></code>; other objects have no cleanup.</p></dd>
 
 
+<dt id="arg-is-valid">is_valid<a class="anchor" aria-label="anchor" href="#arg-is-valid"></a></dt>
+<dd><p>Optional function receiving the cached connection or client.
+Return <code>TRUE</code> to reuse it; errors or other values close it and open a
+replacement with the current token. <code>NULL</code> uses <code><a href="https://dbi.r-dbi.org/reference/dbIsValid.html" class="external-link">DBI::dbIsValid()</a></code> for DBI
+connections and also checks RPostgres connection metadata to detect failed
+native reconnects. Other objects are reused without a validity check.</p></dd>
+
+
 <dt id="arg-min-valid-for">min_valid_for<a class="anchor" aria-label="anchor" href="#arg-min-valid-for"></a></dt>
 <dd><p>Minimum remaining token lifetime, in seconds, when
 obtaining a token. Use <code>0</code> to accept any unexpired token.</p></dd>
@@ -129,7 +138,10 @@ authorization and reuses a valid connection. Sign-out, account changes,
 loss of required permissions and session end trigger cleanup.</p>
 <p>A connection you save separately may keep copied credentials, depending
 on the driver. Obtain it through <code>con()</code> each time. A valid DBI connection
-can stay open through token renewal; a broken one reopens on the next call.</p>
+can stay open through token renewal. A connection reported invalid by its
+driver or <code>is_valid</code> check reopens on the next call. Supply <code>is_valid</code> when
+another driver's default check cannot detect a lost connection. The helper
+never replays a failed query or write.</p>
 <p>If token refresh is running, reactive outputs wait until it finishes.
 A button-triggered query may need another click. <code>min_valid_for</code> checks
 the token's remaining lifetime at the start; it doesn't guarantee validity

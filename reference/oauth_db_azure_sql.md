@@ -41,7 +41,8 @@ oauth_db_azure_sql(
 - ...:
 
   Named odbc connection options, such as `timeout`. The helper sets
-  authentication and verified TLS.
+  authentication and verified TLS. Driver options enabling statement
+  retries or overriding certificate identity are rejected.
 
 - target:
 

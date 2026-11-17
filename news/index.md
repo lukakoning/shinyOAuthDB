@@ -2,6 +2,31 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Enforce the signed 16-bit range for CrateDB `SMALLINT` columns and
+  array elements when validating queries, raw results and execution
+  counts.
+
+- Fully redact overlapping worker credentials from error messages and
+  diagnostic fields by replacing longer credentials first.
+
+- Reject SQL Server ODBC options that enable statement retries or
+  override certificate identity, including alternate case and
+  punctuation spellings.
+
+- Reject BigQuery `NULL` array parameters before obtaining credentials
+  instead of silently submitting empty arrays. Typed empty vectors, null
+  array elements and scalar null parameters retain their existing
+  representations.
+
+- Recover generic RPostgres connections with the current token when the
+  driver’s native reconnect fails. Allow other generic drivers to supply
+  an `is_valid` check, while preserving healthy connections through
+  renewal and leaving failed queries for the app to retry explicitly.
+
+- Redact credentials from native warnings and messages emitted by
+  deferred API callbacks, including nested promise continuations, while
+  preserving their owning Shiny session and native diagnostics.
+
 - Require promises 1.4.0 or later so nested task callbacks retain their
   Shiny session. The local minimum-version suite now includes background
   task tests.

@@ -168,15 +168,16 @@ when adding other result caches.
 
 ## Query CRM objects
 
-`$query()` follows query locators until all result pages have been
-fetched. `include_deleted = TRUE` uses QueryAll, which can include
-deleted and archived records under Salesforce’s permissions and
-retention rules.
+`$query()` follows query locators until all outer and nested child-query
+pages have been fetched, using one timeout for the whole operation.
+`include_deleted = TRUE` uses QueryAll, which can include deleted and
+archived records under Salesforce’s permissions and retention rules.
 
 ``` r
 
 crm$query("SELECT Id, Name, Parent.Name FROM Account LIMIT 20")
 crm$query("SELECT Id, IsDeleted FROM Account LIMIT 20", include_deleted = TRUE)
+crm$query("SELECT Id, Amount FROM Opportunity LIMIT 20", exact = TRUE)
 crm$objects()
 crm$describe("Account")
 
@@ -187,8 +188,12 @@ count$totalSize
 
 Queries return data frames, with relationships and child-query results
 in list columns. Use `$describe()` for field definitions, or
-`raw = TRUE` for the native records and metadata. Large integers stay as
-strings; ordinary JSON numbers become R numeric values.
+`raw = TRUE` for the native records and metadata. By default, large
+integers stay as strings and ordinary JSON numbers become R numeric
+values. Use `exact = TRUE` to preserve all JSON numbers as strings,
+including high-precision decimals and exponent notation. This works
+across outer and child pages and with `raw = TRUE`; raw mode alone does
+not preserve decimal precision.
 
 SOQL is supplied as written. The helper does not interpolate parameters,
 create DBI connections, or implement CRM record mutations. See

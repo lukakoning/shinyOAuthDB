@@ -74,11 +74,11 @@ oauth_db_salesforce_api(
 
 A client object with these methods:
 
-- `$query(soql, include_deleted = FALSE, raw = FALSE)` fetches all
-  result pages and returns a data frame. `include_deleted = TRUE`
-  includes deleted or archived records through QueryAll. `raw = TRUE`
-  returns combined native records and `totalSize`, including the count
-  for `SELECT COUNT()`.
+- `$query(soql, include_deleted = FALSE, raw = FALSE, exact = FALSE)`
+  fetches all result pages, including child queries, and returns a data
+  frame. `include_deleted = TRUE` includes deleted or archived records
+  through QueryAll. `raw = TRUE` returns combined native records and
+  `totalSize`, including the count for `SELECT COUNT()`.
 
 - `$objects()` returns the API's object catalog.
 
@@ -94,15 +94,19 @@ methods from render or reactive expressions. The client gets a current
 token for each request and discards results after sign-out or account
 changes. GET requests can refresh and retry once after HTTP 401.
 
-Queries fetch all result pages into R memory. `timeout` applies to the
-whole operation. Relationships and child-query results stay in list
-columns; ordinary numbers become R numeric values and large integers
-stay as strings. Empty results have no field metadata; use `$describe()`
-for field types.
+Queries fetch all outer and nested child-query pages into R memory.
+`timeout` applies to the whole operation. Relationships and child-query
+results stay in list columns. By default, ordinary numbers become R
+numeric values and large integers stay as strings. Set `exact = TRUE` on
+`$query()` to preserve every JSON number as a character string,
+including decimal precision, exponent notation and counts in raw
+metadata. Boolean and null values keep their usual representations.
+Empty results have no field metadata; use `$describe()` for field types.
 
 Supply SOQL as written. This client doesn't bind SQL parameters or
 provide a DBI connection. Use `raw = TRUE` for the records and metadata
-without conversion to a data frame.
+without conversion to a data frame. `raw = TRUE` alone does not preserve
+decimal precision; combine it with `exact = TRUE` when needed.
 
 ## See also
 
