@@ -1,5 +1,5 @@
 testthat::test_that("real browser users receive only their server-enforced rows", {
-  fixture <- fixture_setup()
+  fixture <- fixture_setup(fixture_config(request_timeout = 2))
   on.exit(fixture$close(), add = TRUE)
   a <- fixture$new_browser()
   b <- fixture$new_browser()

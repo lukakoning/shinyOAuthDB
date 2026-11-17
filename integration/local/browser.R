@@ -67,10 +67,11 @@ fixture_check_natural_expiry <- function() {
   )
 }
 
-fixture_config <- function(client_id = "shiny-db") {
+fixture_config <- function(client_id = "shiny-db", request_timeout = 10) {
   list(
     backend = Sys.getenv("OAUTHDB_FIXTURE"),
     client_id = client_id,
+    request_timeout = request_timeout,
     issuer = "https://localhost:18443/realms/shinyoauthdb",
     origin = "http://localhost:18100",
     ca = "/fixtures/tls/ca-cert.pem",

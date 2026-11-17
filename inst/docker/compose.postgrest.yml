@@ -12,12 +12,11 @@ services:
       timeout: 3s
       retries: 60
   jwks:
-    build:
-      context: .
-      target: app
+    image: python:3.12.12-slim
     network_mode: service:keycloak
-    entrypoint: ["Rscript", "-e", "jsonlite::write_json(httr2::resp_body_json(httr2::req_perform(httr2::request('http://localhost:18080/realms/shinyoauthdb/protocol/openid-connect/certs'))), '/jwks/keys.json', auto_unbox=TRUE)"]
+    entrypoint: ["python", "/demo/postgrest/jwks.py"]
     volumes:
+      - ./postgrest/jwks.py:/demo/postgrest/jwks.py:ro
       - jwks:/jwks
     depends_on:
       keycloak:

@@ -33,7 +33,7 @@ fixture_backend <- list(
       schema = "reporting",
       required_scopes = "database.read",
       min_valid_for = 1,
-      timeout = 2,
+      timeout = config$request_timeout,
       ca_bundle = config$ca
     )
     function() api
