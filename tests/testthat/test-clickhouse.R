@@ -127,6 +127,48 @@ test_that("ClickHouse enforces signedness and width for small integer columns", 
   }
 })
 
+test_that("ClickHouse Float64 results preserve adjacent doubles and finite limits", {
+  values <- c(
+    1.0000000000000002,
+    -1.0000000000000002,
+    1.2345678901234567,
+    .Machine$double.xmax,
+    -.Machine$double.xmax,
+    .Machine$double.xmin,
+    .Machine$double.xmin * .Machine$double.eps
+  )
+  body <- NULL
+  httr2::local_mocked_responses(function(req) {
+    odb_http_response(as.character(jsonlite::toJSON(
+      body,
+      auto_unbox = TRUE,
+      null = "null",
+      digits = 22
+    )))
+  })
+  odb_test_domain(function(session) {
+    api <- oauth_db_clickhouse_api(
+      odb_test_response_authorization()$connection,
+      "https://clickhouse.example"
+    )
+    for (type in c(
+      "Float64",
+      "Nullable(Float64)",
+      "LowCardinality(Float64)",
+      "LowCardinality(Nullable(Float64))"
+    )) {
+      body <<- list(
+        meta = list(list(name = "value", type = type)),
+        data = lapply(c(as.list(values), list(NULL)), function(x) list(x)),
+        rows = length(values) + 1L
+      )
+      expect_identical(api$query("SELECT value")$value, c(values, NA_real_))
+      raw <- api$query("SELECT value", raw = TRUE)
+      expect_identical(unlist(raw$data, use.names = FALSE), values)
+    }
+  })
+})
+
 test_that("ClickHouse validates integer cells in queries, raw results and statements", {
   body <- NULL
   httr2::local_mocked_responses(function(req) {

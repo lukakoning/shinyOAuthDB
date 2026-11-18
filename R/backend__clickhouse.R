@@ -337,7 +337,18 @@ oauth_db_clickhouse_api <- function(
   )
   if (grepl("^(U?Int(8|16|32)|Float(32|64))$", type)) {
     text[!is.na(text) & tolower(text) %in% c("nan", "+nan", "-nan")] <- "NaN"
-    value <- suppressWarnings(as.numeric(text))
+    value <- suppressWarnings(vapply(
+      seq_along(values),
+      function(i) {
+        cell <- values[[i]]
+        if (is.numeric(cell) && !is.complex(cell)) {
+          as.numeric(cell)
+        } else {
+          as.numeric(text[[i]])
+        }
+      },
+      numeric(1)
+    ))
     if (any(!is.na(text) & is.na(value) & !is.nan(value))) {
       .odb_abort("ClickHouse returned an invalid number.", "invalid_response")
     }
