@@ -185,6 +185,39 @@ test_that("Cosmos pages, point reads and partition keys preserve native JSON val
   expect_match(requests[[2L]]$url, "/docs/order%20space$", perl = TRUE)
 })
 
+test_that("Cosmos numeric partition headers preserve exact doubles for every read", {
+  headers <- list()
+  httr2::local_mocked_responses(function(req) {
+    headers[[length(headers) + 1L]] <<- httr2::req_get_headers(req)[[
+      "x-ms-documentdb-partitionkey"
+    ]]
+    if (httr2::req_get_method(req) == "GET") {
+      odb_http_response('{"id":"one"}')
+    } else {
+      cosmos_response()
+    }
+  })
+  odb_test_domain(function(session) {
+    api <- cosmos_test_api(odb_test_response_authorization()$connection)
+    for (key in list(
+      1.0000000000000002,
+      1.2345678901234567,
+      .Machine$double.xmax,
+      .Machine$double.xmin,
+      .Machine$double.xmin * .Machine$double.eps,
+      list("tenant", 1.0000000000000002, NULL)
+    )) {
+      api$query("SELECT * FROM c", partition_key = key)
+      api$query_page("SELECT * FROM c", partition_key = key)
+      api$read("one", partition_key = key)
+      expected <- if (is.list(key)) key else list(key)
+      for (header in tail(headers, 3L)) {
+        expect_identical(jsonlite::parse_json(header), expected)
+      }
+    }
+  })
+})
+
 test_that("Cosmos object projections retain heterogeneous fields and scalar values", {
   response <- cosmos_response(
     paste0(

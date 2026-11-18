@@ -580,7 +580,7 @@ oauth_db_cosmos_api <- function(
     values,
     auto_unbox = TRUE,
     null = "null",
-    digits = NA
+    digits = 22
   ))
 }
 
