@@ -79,6 +79,37 @@ test_that("ORDS refreshes safe reads once and never replays writes", {
   })
 })
 
+test_that("ORDS write bodies preserve exact finite doubles and nested values", {
+  sent <- NULL
+  httr2::local_mocked_responses(function(req) {
+    sent <<- jsonlite::parse_json(getFromNamespace("req_body_render", "httr2")(
+      req
+    ))
+    odb_http_response("{}")
+  })
+  body <- list(
+    amount = 1.0000000000000002,
+    nested = list(value = 1.2345678901234567),
+    values = list(
+      .Machine$double.xmax,
+      -.Machine$double.xmax,
+      .Machine$double.xmin,
+      .Machine$double.xmin * .Machine$double.eps,
+      NULL
+    )
+  )
+  odb_test_domain(function(session) {
+    api <- oauth_db_oracle_ords_api(
+      odb_test_response_authorization()$connection,
+      "https://data.example/ords/reports"
+    )
+    for (method in c("POST", "PUT", "PATCH", "DELETE")) {
+      api$request("orders", method = method, body = body)
+      expect_identical(sent, body)
+    }
+  })
+})
+
 test_that("ORDS obtains current tokens and rejects stale and cross-session responses", {
   selected <- retained <- NULL
   retire <- FALSE

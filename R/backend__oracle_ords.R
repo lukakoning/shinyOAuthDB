@@ -140,7 +140,7 @@ oauth_db_oracle_ords_api <- function(
         req <- do.call(httr2::req_url_query, c(list(req), query))
       }
       if (!is.null(body)) {
-        req <- httr2::req_body_json(req, body, auto_unbox = TRUE, digits = NA)
+        req <- httr2::req_body_json(req, body, auto_unbox = TRUE)
       }
       resp <- .odb_http_request(
         private$provider(),
