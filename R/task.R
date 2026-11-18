@@ -708,13 +708,8 @@ oauth_db_task <- function(
     ),
     error = function(error) {
       credentials <- unique(unlist(tokens, use.names = FALSE))
-      credentials <- credentials[order(nchar(credentials), decreasing = TRUE)]
-      message <- conditionMessage(error)
-      for (token in credentials) {
-        message <- gsub(token, "[REDACTED]", message, fixed = TRUE)
-      }
       condition <- errorCondition(
-        message,
+        conditionMessage(error),
         class = setdiff(class(error), c("error", "condition"))
       )
       for (name in c(
@@ -726,20 +721,21 @@ oauth_db_task <- function(
       )) {
         value <- error[[name]]
         if (
-          is.atomic(value) &&
+          typeof(value) %in%
+            c("character", "integer", "double", "logical") &&
             length(value) == 1L &&
-            !is.na(value) &&
-            !as.character(value) %in% credentials
+            !is.object(value)
         ) {
-          if (is.character(value)) {
-            for (token in credentials) {
-              value <- gsub(token, "[REDACTED]", value, fixed = TRUE)
-            }
+          attributes(value) <- NULL
+          if (!is.na(value) && !as.character(value) %in% credentials) {
+            condition[[name]] <- value
           }
-          condition[[name]] <- value
         }
       }
-      list(ok = FALSE, error = condition)
+      # Keep worker errors compact and prevent Shiny from adding caller stacks.
+      attr(condition, "stack.trace") <- list()
+      attr(condition, "deep.stack.trace") <- list()
+      list(ok = FALSE, error = .odb_api_error(condition, credentials))
     }
   )
 }
