@@ -8,5 +8,5 @@ RUN curl --fail --location --retry 3 \
     && mkdir /opt/singlestore-driver \
     && tar -xzf /tmp/driver.tar.gz -C /opt/singlestore-driver --strip-components=1 \
     && rm /tmp/driver.tar.gz
-RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("remotes"); remotes::install_github("lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260", upgrade="never")'
+RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("remotes"); remotes::install_github("lukakoning/shinyOAuth@9eb34e7d38f9393d995a9a8437a1bc546c849a78", upgrade="never")'
 ENTRYPOINT []

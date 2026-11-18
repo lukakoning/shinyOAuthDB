@@ -69,7 +69,8 @@ install_demo_runtime <- function(version, source_path = NULL) {
     requireNamespace("shinyOAuth"),
     requireNamespace("shinyOAuthDB"),
     requireNamespace("mirai"),
-    utils::packageVersion("shinyOAuth") >= package_version("0.7.0"),
+    utils::packageVersion("shinyOAuth") >= package_version("0.8.0"),
+    utils::packageVersion("openssl") >= package_version("2.6.0"),
     utils::packageVersion("shinyOAuthDB") == package_version(version),
     utils::packageVersion("mirai") >= package_version("2.5.1"),
     "oauth_db_task" %in% getNamespaceExports("shinyOAuthDB")

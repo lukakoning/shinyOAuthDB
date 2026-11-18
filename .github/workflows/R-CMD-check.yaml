@@ -39,7 +39,7 @@ jobs:
           extra-packages: |
             any::rcmdcheck
             any::covr
-            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+            github::lukakoning/shinyOAuth@9eb34e7d38f9393d995a9a8437a1bc546c849a78
           needs: check
       - uses: r-lib/actions/check-r-package@v2
         with:

@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: lukakoning/shinyOAuth
-          ref: 42176847f6ab82c2b49095f81a829cdd8ce60260
+          ref: 9eb34e7d38f9393d995a9a8437a1bc546c849a78
           path: shinyOAuth
           persist-credentials: false
       - uses: r-lib/actions/setup-r@v2
@@ -50,7 +50,7 @@ jobs:
             any::chromote
             any::pkgbuild
             any::pkgload
-            github::lukakoning/shinyOAuth@42176847f6ab82c2b49095f81a829cdd8ce60260
+            github::lukakoning/shinyOAuth@9eb34e7d38f9393d995a9a8437a1bc546c849a78
           needs: check
       - name: Install the matching DuckDB demo client
         run: Rscript --vanilla inst/docker/install-duckdb.R
@@ -60,6 +60,10 @@ jobs:
           chrome-version: stable
           install-dependencies: true
       - uses: docker/setup-buildx-action@v3
+      - name: Free space for database fixtures
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet
+          df -h /
       - name: Cache the shared database and browser runner
         uses: docker/build-push-action@v6
         with:
@@ -92,6 +96,11 @@ jobs:
           for check in duckdb duckdb-oauth libsql-oauth cratedb-oauth opensearch-oauth elasticsearch-oauth neo4j-oauth clickhouse-parameters clickhouse-http; do
             run_check Rscript --vanilla "tools/check-$check.R"
           done
+          # Native fixture builds leave enough cache to exhaust the demo runner.
+          # Keep tagged fixture images and release unused layers before demos.
+          docker buildx prune --force
+          docker builder prune --force
+          df -h /
           for backend in postgres postgrest trino starrocks duckdb libsql cratedb opensearch; do
             run_check Rscript --vanilla tools/check-demos.R "$backend" docker
           done

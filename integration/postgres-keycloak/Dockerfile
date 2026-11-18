@@ -83,6 +83,7 @@ RUN curl --fail --location --retry 3 \
 # Keep coverage dependencies in a separate layer from libpq/RPostgres.
 RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("covr", Ncpus=2L); stopifnot(requireNamespace("covr", quietly=TRUE))'
 RUN Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages(c("dbplyr", "dplyr"), Ncpus=2L); stopifnot(requireNamespace("dbplyr"), requireNamespace("dplyr"))'
+RUN Rscript -e 'if (packageVersion("openssl") < "2.6.0") install.packages("openssl", repos="https://cloud.r-project.org"); stopifnot(packageVersion("openssl") >= "2.6.0")'
 COPY runner-entrypoint.sh fixture-chromium /usr/local/bin/
 RUN chmod 755 /usr/local/bin/runner-entrypoint.sh /usr/local/bin/fixture-chromium
 WORKDIR /workspace/shinyOAuthDB

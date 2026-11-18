@@ -48,12 +48,12 @@ Imports:
     httr2 (>= 1.2.0),
     methods,
     mirai (>= 2.5.1),
-    openssl,
+    openssl (>= 2.6.0),
     promises (>= 1.4.0),
     R6,
     rlang,
     shiny (>= 1.8.1),
-    shinyOAuth (>= 0.7.0)
+    shinyOAuth (>= 0.8.0)
 Suggests:
     adbcdrivermanager (>= 0.25.0),
     adbi (>= 0.1.2),
