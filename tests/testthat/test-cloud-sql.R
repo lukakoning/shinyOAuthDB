@@ -43,6 +43,7 @@ test_that("Cloud SQL sign-in requests Google identity and database login", {
 })
 
 test_that("Cloud SQL rejects configuration overrides before acquiring a token", {
+  skip_if_not_installed("RPostgres")
   for (name in c(
     "password",
     "user",
@@ -181,6 +182,7 @@ test_that("Cloud SQL PostgreSQL refuses unsupported libpq and ambient service fi
 })
 
 test_that("Cloud SQL keeps visitors isolated and replaces credentials without replay", {
+  skip_if_not_installed("RPostgres")
   skip_if_not_installed("RSQLite")
   opened <- list()
   local_mocked_bindings(.odb_backend_cloud_sql_postgres = function(
@@ -278,6 +280,7 @@ test_that("Cloud SQL keeps visitors isolated and replaces credentials without re
 })
 
 test_that("Cloud SQL does not open a driver without the login scope", {
+  skip_if_not_installed("RPostgres")
   opened <- resolved <- 0L
   local_mocked_bindings(.odb_backend_cloud_sql_postgres = function(...) {
     opened <<- opened + 1L

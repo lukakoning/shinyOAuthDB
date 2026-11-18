@@ -23,6 +23,10 @@ async_signal_await <- function(pending) {
 }
 
 async_signal_client <- function(session, backend) {
+  skip_if_not_installed(
+    if (backend == "fabric") "fabricQueryR" else "brickster",
+    if (backend == "fabric") "1.0.1" else "0.2.14"
+  )
   if (backend == "fabric") {
     auth <- odb_test_fabric_authorization(session, services = "fabric")
     oauth_db_fabric_api(auth$connection, targets = c(fabric = "fabric"))

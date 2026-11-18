@@ -1,4 +1,5 @@
 test_that("warehouse discovery follows pages using the visitor's current authorization", {
+  skip_if_not_installed("brickster", "0.2.14")
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "sql")
     api <- oauth_db_databricks_api(
@@ -44,6 +45,7 @@ test_that("warehouse discovery follows pages using the visitor's current authori
 })
 
 test_that("warehouse discovery discards stale responses and rejects broken pagination", {
+  skip_if_not_installed("brickster", "0.2.14")
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "sql")
     api <- oauth_db_databricks_api(auth$connection, "workspace.example")
@@ -73,6 +75,7 @@ test_that("warehouse discovery discards stale responses and rejects broken pagin
 })
 
 test_that("warehouse HTTP and shape errors are safe and empty results are typed", {
+  skip_if_not_installed("brickster", "0.2.14")
   odb_test_domain(function(session) {
     auth <- odb_test_authorization(session, scopes = "sql")
     api <- oauth_db_databricks_api(auth$connection, "workspace.example")

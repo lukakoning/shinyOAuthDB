@@ -160,6 +160,7 @@ test_that("platform values reject connection strings and invalid tenant IDs", {
 })
 
 test_that("Fabric demo uses SQL delegated access and its configured native driver", {
+  skip_if_not_installed("fabricQueryR", "1.0.1")
   app <- cloud_platform_app("fabric")
   expect_named(app$client@token_targets, "sql")
   local_mocked_bindings(.odb_bind = capture_backend)
@@ -196,6 +197,7 @@ test_that("BigQuery demo requires a Web registration and limits query billing", 
 })
 
 test_that("Snowflake demo binds its OAuth role and warehouse to the SQL connection", {
+  skip_if_not_installed("odbc", "1.4.2")
   app <- cloud_platform_app("snowflake")
   expect_true("session:role:REPORTING_READER" %in% app$client@scopes)
   local_mocked_bindings(.odb_bind = capture_backend)
@@ -207,6 +209,7 @@ test_that("Snowflake demo binds its OAuth role and warehouse to the SQL connecti
 })
 
 test_that("Azure SQL separates the database port from the Shiny callback", {
+  skip_if_not_installed("odbc", "1.4.2")
   app <- cloud_platform_app("azure-sql")
   expect_named(app$client@token_targets, "sql")
   expect_identical(.odb_cloud_value(1433L, "port"), "1433")
@@ -218,6 +221,7 @@ test_that("Azure SQL separates the database port from the Shiny callback", {
 })
 
 test_that("Azure PostgreSQL preserves the mapped role, CA and PostgreSQL target", {
+  skip_if_not_installed("RPostgres")
   app <- cloud_platform_app("azure-postgres")
   expect_named(app$client@token_targets, "postgres")
   local_mocked_bindings(.odb_bind = capture_backend)
@@ -259,6 +263,7 @@ test_that("Redshift demo pauses before asking credentials when the integration i
 })
 
 test_that("Redshift demo binds the accepted resource, delegated scope and EXT_JWT flow", {
+  skip_if_not_installed("odbc", "1.4.2")
   app <- cloud_platform_app("redshift")
   expect_named(app$client@token_targets, "redshift")
   expect_identical(
@@ -405,6 +410,7 @@ for (cloud_platform in names(cloud_platform_settings())) {
         "app constructs its real client and waits for an explicit query"
       ),
       {
+        skip_if_not_installed("RSQLite")
         app <- cloud_platform_app(platform)
         expect_silent(.odb_task_function(app$run_query))
         expect_silent(.odb_task_snapshot(app$query_arguments))

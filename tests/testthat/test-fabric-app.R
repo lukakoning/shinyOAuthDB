@@ -14,7 +14,7 @@ test_that("the integrated Fabric app builds a normal multi-target OAuth client",
 })
 
 test_that("the integrated app routes all native reads and clears results on logout", {
-  skip_if_not_installed("fabricQueryR")
+  skip_if_not_installed("fabricQueryR", "1.0.1")
   withr::local_envvar(c(playground_env(), FABRIC_SHINY_AUTH = "delegated"))
   app <- playground_fabric_app()
   calls <- new.env(parent = emptyenv())

@@ -139,6 +139,7 @@ test_that("public and confidential starts keep credentials out of project files"
   paths <- list()
   calls <- list()
   local_mocked_bindings(
+    .odb_require = function(...) invisible(TRUE),
     .odb_cloud_port_available = function(port) NULL,
     .odb_cloud_check_workspace = function(config) NULL,
     .odb_cloud_run = function(path, port, launch_browser, secret) {
@@ -181,6 +182,8 @@ test_that("public and confidential starts keep credentials out of project files"
 })
 
 test_that("masked secrets and process launch don't print or serialize the credential", {
+  skip_if_not_installed("askpass")
+  skip_if_not_installed("processx")
   withr::local_envvar(c(OAUTHDB_DATABRICKS_CLIENT_SECRET = NA_character_))
   local_mocked_bindings(
     askpass = function(...) "masked-sentinel",
@@ -223,6 +226,7 @@ test_that("masked secrets and process launch don't print or serialize the creden
 test_that("Back to setup preserves edits and registration for the settings editor", {
   path <- cloud_demo_path()
   local_mocked_bindings(
+    .odb_require = function(...) invisible(TRUE),
     .odb_cloud_port_available = function(...) NULL,
     .odb_cloud_check_workspace = function(...) NULL,
     .odb_cloud_run = function(...) 10L

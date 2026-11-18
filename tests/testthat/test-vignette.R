@@ -64,6 +64,20 @@ for (source in names(vignette_sources)) {
         if (!is.na(native_package)) {
           skip_if_not_installed(native_package)
         }
+        minimum <- c(
+          odbc = "1.4.2",
+          fabricQueryR = "1.0.1",
+          brickster = "0.2.14",
+          RTrino = "0.1.0",
+          duckdb = "1.5.3"
+        )
+        if (!is.na(native_package) && native_package %in% names(minimum)) {
+          skip_if_not_installed(native_package, minimum[[native_package]])
+        }
+        if (source_name == "dremio") {
+          skip_if_not_installed("adbi", "0.1.2")
+          skip_if_not_installed("adbcdrivermanager", "0.25.0")
+        }
         withr::local_envvar(playground_env())
         local_mocked_bindings(
           oauth_db_databricks_provider = playground_databricks_provider,
