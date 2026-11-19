@@ -62,7 +62,7 @@ test_that("ODBC adapters reject alternate spellings of owned identity and authen
   })
 })
 
-test_that("SQL Server rejects native retry and certificate identity overrides before binding", {
+test_that("SQL Server adapters reject native retry and certificate identity overrides before binding", {
   local_mocked_bindings(
     .odb_require = function(...) TRUE,
     .odb_bind = function(...) stop("Unsafe options must not bind authorization")
@@ -75,7 +75,11 @@ test_that("SQL Server rejects native retry and certificate identity overrides be
     ServerCertificate = "server.pem",
     server.certificate = "server.pem"
   )
-  for (helper in list(oauth_db_azure_sql, oauth_db_sql_server)) {
+  for (helper in list(
+    oauth_db_azure_sql,
+    oauth_db_sql_server,
+    oauth_db_fabric_sql
+  )) {
     for (name in names(options)) {
       error <- tryCatch(
         do.call(

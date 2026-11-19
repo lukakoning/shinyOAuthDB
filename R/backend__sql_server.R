@@ -98,9 +98,7 @@ oauth_db_azure_sql <- function(
       "integrated_security",
       "encrypt",
       "trust_server_certificate",
-      "hostname_in_certificate",
-      "server_certificate",
-      "retry_exec"
+      .odb_sql_server_protected_options()
     ),
     partial = "dsn"
   )
@@ -169,6 +167,10 @@ oauth_db_sql_server <- oauth_db_azure_sql
       options
     )
   )
+}
+
+.odb_sql_server_protected_options <- function() {
+  c("hostname_in_certificate", "server_certificate", "retry_exec")
 }
 
 .odb_sql_server_profiles <- function() {

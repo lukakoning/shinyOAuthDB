@@ -1,5 +1,8 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Apply SQL Server's native statement-retry and certificate-identity option
+  protections to Fabric ODBC connections before authorization binding.
+
 * Recheck authorization after native connection validity checks, so a cached
   connection cannot be returned after sign-out, account replacement or loss
   of required permissions during the check.

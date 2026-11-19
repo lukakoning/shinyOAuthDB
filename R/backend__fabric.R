@@ -96,7 +96,8 @@ oauth_db_fabric_sql <- function(
       "trusted_connection",
       "integrated_security",
       "encrypt",
-      "trust_server_certificate"
+      "trust_server_certificate",
+      if (backend == "odbc") .odb_sql_server_protected_options()
     ),
     partial = c("dsn", "tenant_id", "client_id", "auth_args")
   )
