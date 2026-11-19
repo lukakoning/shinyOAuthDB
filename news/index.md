@@ -2,6 +2,19 @@
 
 ## shinyOAuthDB 0.0.0.9000
 
+- Suppress native cleanup warnings and messages that may contain copied
+  credentials, while allowing disconnection to finish. Diagnostics
+  without a muffling restart use the existing fixed cleanup-failure
+  report.
+
+- Apply SQL Server’s native statement-retry and certificate-identity
+  option protections to Fabric ODBC connections before authorization
+  binding.
+
+- Recheck authorization after native connection validity checks, so a
+  cached connection cannot be returned after sign-out, account
+  replacement or loss of required permissions during the check.
+
 - Enforce the signed 16-bit range for CrateDB `SMALLINT` columns and
   array elements when validating queries, raw results and execution
   counts.
