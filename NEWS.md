@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Recheck authorization after native connection validity checks, so a cached
+  connection cannot be returned after sign-out, account replacement or loss
+  of required permissions during the check.
+
 * Enforce the signed 16-bit range for CrateDB `SMALLINT` columns and array
   elements when validating queries, raw results and execution counts.
 

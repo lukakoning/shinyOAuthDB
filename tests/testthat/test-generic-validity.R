@@ -96,3 +96,65 @@ test_that("generic validity checks must be functions or NULL", {
     )
   })
 })
+
+test_that("cached connections reject authorization changes during validity checks", {
+  skip_if_not_installed("RSQLite")
+  for (transition in c("replace", "logout", "permissions", "session_end")) {
+    for (flush in c(FALSE, TRUE)) {
+      odb_test_domain(function(session) {
+        auth <- odb_test_authorization(session)
+        replacement <- odb_test_authorization(session, "B")
+        selected <- shiny::reactiveVal(auth$connection)
+        opened <- closed <- 0L
+        con <- oauth_db_connect(
+          selected,
+          connect = function(token) {
+            opened <<- opened + 1L
+            DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+          },
+          disconnect = function(native) {
+            closed <<- closed + 1L
+            DBI::dbDisconnect(native)
+          },
+          required_scopes = "read",
+          is_valid = function(native) {
+            switch(
+              transition,
+              replace = selected(replacement$connection),
+              logout = selected(NULL),
+              permissions = auth$token(auth$make_token("denied", "write")),
+              session_end = session$close()
+            )
+            if (flush && transition != "session_end") {
+              session$flushReact()
+            }
+            TRUE
+          }
+        )
+        first <- con()
+        expect_error(con(), class = "shinyOAuthDB_authorization_unavailable")
+        expect_false(DBI::dbIsValid(first))
+        expect_identical(opened, 1L)
+        expect_identical(closed, 1L)
+      })
+    }
+  }
+})
+
+test_that("token rotation during a validity check preserves a healthy connection", {
+  skip_if_not_installed("RSQLite")
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    con <- oauth_db_connect(
+      auth$connection,
+      connect = function(token) DBI::dbConnect(RSQLite::SQLite(), ":memory:"),
+      is_valid = function(native) {
+        auth$token(auth$make_token("renewed"))
+        TRUE
+      }
+    )
+    first <- con()
+    expect_identical(con(), first)
+    expect_true(DBI::dbIsValid(first))
+  })
+})

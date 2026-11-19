@@ -612,6 +612,7 @@ oauth_db_token <- function(
                 })
             }
           if (valid) {
+            current(captured)
             return(native)
           }
           close_native()
