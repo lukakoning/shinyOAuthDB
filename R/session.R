@@ -715,13 +715,34 @@ oauth_db_token <- function(
 }
 
 .odb_disconnect <- function(native, disconnect = NULL) {
-  if (is.function(disconnect)) {
-    disconnect(native)
-  } else if (inherits(native, "AdbiConnection")) {
-    suppressWarnings(DBI::dbDisconnect(native, force = TRUE))
-  } else if (inherits(native, "DBIConnection")) {
-    suppressWarnings(DBI::dbDisconnect(native))
+  muffle <- function(condition) {
+    restart <- findRestart(
+      if (inherits(condition, "warning")) "muffleWarning" else "muffleMessage",
+      condition
+    )
+    if (is.null(restart)) {
+      .odb_abort(
+        "Native cleanup diagnostics must use warning() or message().",
+        "cleanup_failed"
+      )
+    }
+    invokeRestart(restart)
   }
+  # A closing handle can retain credentials copied before token renewal.
+  # Suppress native diagnostics; callers report failures with a fixed condition.
+  withCallingHandlers(
+    {
+      if (is.function(disconnect)) {
+        disconnect(native)
+      } else if (inherits(native, "AdbiConnection")) {
+        DBI::dbDisconnect(native, force = TRUE)
+      } else if (inherits(native, "DBIConnection")) {
+        DBI::dbDisconnect(native)
+      }
+    },
+    warning = muffle,
+    message = muffle
+  )
   invisible(NULL)
 }
 

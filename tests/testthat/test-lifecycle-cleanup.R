@@ -108,6 +108,174 @@ test_that("cleanup diagnostics omit native credentials and do not interrupt reti
   })
 })
 
+test_that("custom cleanup diagnostics stay private without interrupting disconnection", {
+  skip_if_not_installed("RSQLite")
+  for (transition in c("replace", "logout", "session_end")) {
+    for (warn in c(0L, 2L)) {
+      odb_test_domain(function(session) {
+        auth <- odb_test_authorization(session)
+        replacement <- odb_test_authorization(session, "B")
+        selected <- shiny::reactiveVal(auth$connection)
+        closed <- reports <- 0L
+        diagnostics <- list()
+        withr::local_options(shinyOAuthDB.on_cleanup_error = function(error) {
+          reports <<- reports + 1L
+        })
+        con <- oauth_db_connect(
+          selected,
+          connect = function(token) {
+            native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+            attr(native, "fixture_credential") <- token
+            native
+          },
+          disconnect = function(native) {
+            warning(attr(native, "fixture_credential"), call. = FALSE)
+            message(attr(native, "fixture_credential"))
+            closed <<- closed + 1L
+            DBI::dbDisconnect(native)
+          }
+        )
+        first <- con()
+        auth$token(auth$make_token("renewed"))
+        session$flushReact()
+        capture <- function(condition) {
+          diagnostics[[length(diagnostics) + 1L]] <<- condition
+          invokeRestart(
+            if (inherits(condition, "warning")) {
+              "muffleWarning"
+            } else {
+              "muffleMessage"
+            }
+          )
+        }
+        withr::with_options(
+          list(warn = warn),
+          withCallingHandlers(
+            {
+              switch(
+                transition,
+                replace = selected(replacement$connection),
+                logout = selected(NULL),
+                session_end = session$close()
+              )
+              if (transition != "session_end") session$flushReact()
+            },
+            warning = capture,
+            message = capture
+          )
+        )
+        expect_identical(diagnostics, list())
+        expect_identical(closed, 1L)
+        expect_identical(reports, 0L)
+        expect_false(DBI::dbIsValid(first))
+        if (DBI::dbIsValid(first)) {
+          DBI::dbDisconnect(first)
+        }
+        if (transition != "session_end") {
+          session$flushReact()
+        }
+        expect_identical(closed, 1L)
+      })
+    }
+  }
+})
+
+test_that("default DBI cleanup suppresses native messages and warnings", {
+  skip_if_not_installed("RSQLite")
+  disconnect <- DBI::dbDisconnect
+  diagnostics <- list()
+  closed <- 0L
+  local_mocked_bindings(
+    dbDisconnect = function(conn, ...) {
+      warning(attr(conn, "fixture_credential"), call. = FALSE)
+      message(attr(conn, "fixture_credential"))
+      closed <<- closed + 1L
+      disconnect(conn, ...)
+    },
+    .package = "DBI"
+  )
+  odb_test_domain(function(session) {
+    auth <- odb_test_authorization(session)
+    selected <- shiny::reactiveVal(auth$connection)
+    con <- oauth_db_connect(selected, connect = function(token) {
+      native <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+      attr(native, "fixture_credential") <- token
+      native
+    })
+    first <- con()
+    capture <- function(condition) {
+      diagnostics[[length(diagnostics) + 1L]] <<- condition
+      invokeRestart(
+        if (inherits(condition, "warning")) {
+          "muffleWarning"
+        } else {
+          "muffleMessage"
+        }
+      )
+    }
+    selected(NULL)
+    withCallingHandlers(
+      session$flushReact(),
+      warning = capture,
+      message = capture
+    )
+    expect_identical(diagnostics, list())
+    expect_identical(closed, 1L)
+    expect_false(DBI::dbIsValid(first))
+  })
+})
+
+test_that("unmufflable cleanup diagnostics become fixed cleanup failures", {
+  for (kind in c("warning", "message")) {
+    odb_test_domain(function(session) {
+      auth <- odb_test_authorization(session)
+      selected <- shiny::reactiveVal(auth$connection)
+      reports <- exposed <- list()
+      calls <- 0L
+      withr::local_options(shinyOAuthDB.on_cleanup_error = function(error) {
+        reports[[length(reports) + 1L]] <<- error
+      })
+      con <- oauth_db_connect(
+        selected,
+        connect = function(token) list(credential = token),
+        disconnect = function(native) {
+          calls <<- calls + 1L
+          signalCondition(structure(
+            list(message = native$credential, call = NULL),
+            class = c(kind, "condition")
+          ))
+        }
+      )
+      con()
+      capture <- function(condition) {
+        exposed[[length(exposed) + 1L]] <<- condition
+        stop("A native cleanup diagnostic escaped.")
+      }
+      selected(NULL)
+      result <- tryCatch(
+        withCallingHandlers(
+          session$flushReact(),
+          warning = capture,
+          message = capture
+        ),
+        error = identity
+      )
+      expect_false(inherits(result, "error"))
+      expect_identical(exposed, list())
+      expect_identical(calls, 1L)
+      expect_length(reports, 1L)
+      if (length(reports)) {
+        expect_s3_class(reports[[1L]], "shinyOAuthDB_cleanup_failed")
+      }
+      expect_false(grepl(
+        "fixture-A",
+        rawToChar(serialize(reports, NULL, ascii = TRUE)),
+        fixed = TRUE
+      ))
+    })
+  }
+})
+
 test_that("default and failing cleanup loggers emit only a fixed diagnostic", {
   for (handler in list(NULL, function(error) stop("PRIVATE_LOGGER_DETAILS"))) {
     withr::local_options(shinyOAuthDB.on_cleanup_error = handler)

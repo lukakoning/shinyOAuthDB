@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Suppress native cleanup warnings and messages that may contain copied
+  credentials, while allowing disconnection to finish. Diagnostics without
+  a muffling restart use the existing fixed cleanup-failure report.
+
 * Apply SQL Server's native statement-retry and certificate-identity option
   protections to Fabric ODBC connections before authorization binding.
 
