@@ -99,10 +99,13 @@ The public URL is `https://lukakoning.github.io/shinyOAuthDB/`.
 
 `inst/docker/` contains the installed Docker contexts. `oauth_db_demo()` copies
 them into a writable cache and starts Compose without a source checkout.
-The app containers install the pinned revisions in `inst/docker/install.R`;
-update those pins when a newer runtime is needed, then verify browser sign-in
-and the row policy for Alice and Bob. Run `action = "files"` from an installed
-package to check that the demo doesn't depend on repository-only files.
+The app containers use `inst/docker/install.R` to install current CRAN runtime
+dependencies and the launcher's shinyOAuthDB source: its exact GitHub revision,
+a supplied source archive, or an exact release version. Startup verifies the
+package's source identity. After changing the runtime or demo templates, verify
+browser sign-in and the row policy for Alice and Bob. Run `action = "files"`
+from an installed package to check that the demo doesn't depend on
+repository-only files.
 `Rscript --vanilla tools/check-demos.R postgres` automates the installed-package
 and browser check; substitute another demo name to check it too.
 `Rscript --vanilla tools/check-readme-demo.R` checks the packaged minimal
