@@ -64,7 +64,8 @@ dbplyr. A catalog selects the data source; a schema selects a group of
 tables within it.
 }
 \details{
-Install RTrino 0.1.0 or later. Create the helper inside \code{server()} and
+Install RTrino 0.1.0 or later. Requests use httr2 1.2.2 or later.
+Create the helper inside \code{server()} and
 call \code{con()} inside a render or reactive expression before querying.
 }
 \section{Sign-in settings}{
@@ -79,6 +80,9 @@ checks that the visitor can use that username.
 RTrino gets a current token for each request, including result pages.
 Token renewal preserves the connection. Account or username changes
 replace it; sign-out and session end close it.
+SQL submissions are sent once. Before explicitly retrying a failed
+statement, check whether the cluster accepted it. Safe read retries
+obtain current credentials and recheck the selected authorization.
 }
 
 \examples{

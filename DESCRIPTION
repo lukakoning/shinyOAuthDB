@@ -45,7 +45,7 @@ Imports:
     cli,
     codetools,
     DBI (>= 1.2.0),
-    httr2 (>= 1.2.0),
+    httr2 (>= 1.2.2),
     methods,
     mirai (>= 2.5.1),
     openssl (>= 2.6.0),

@@ -18,7 +18,8 @@
 #'   `connection <- con()` inside a render or reactive expression, then pass
 #'   the connection to DBI. Before sign-in, the function waits quietly.
 #' @details
-#' Install RTrino 0.1.0 or later. Create the helper inside `server()` and
+#' Install RTrino 0.1.0 or later. Requests use httr2 1.2.2 or later.
+#' Create the helper inside `server()` and
 #' call `con()` inside a render or reactive expression before querying.
 #' @section Sign-in settings:
 #' Configure a shinyOAuth client for the cluster's trusted provider and
@@ -28,6 +29,9 @@
 #' RTrino gets a current token for each request, including result pages.
 #' Token renewal preserves the connection. Account or username changes
 #' replace it; sign-out and session end close it.
+#' SQL submissions are sent once. Before explicitly retrying a failed
+#' statement, check whether the cluster accepted it. Safe read retries
+#' obtain current credentials and recheck the selected authorization.
 #' @examples
 #' \dontrun{
 #' con <- oauth_db_trino(
@@ -185,7 +189,7 @@ oauth_db_trino <- function(
 ) {
   force(token)
   hostname <- tolower(httr2::url_parse(host)$hostname)
-  auth <- function(req) {
+  authenticate <- function(req) {
     address <- tryCatch(httr2::url_parse(req$url), error = function(e) NULL)
     request_port <- if (is.null(address$port)) {
       443L
@@ -207,6 +211,35 @@ oauth_db_trino <- function(
     }
     req <- httr2::req_options(req, followlocation = FALSE)
     httr2::req_auth_bearer_token(req, token())
+  }
+  auth <- function(req) {
+    req <- authenticate(req)
+    if (!httr2::req_get_method(req) %in% c("GET", "HEAD")) {
+      req <- httr2::req_options(req, fresh_connect = TRUE, forbid_reuse = TRUE)
+    }
+    sent <- FALSE
+    # RTrino sets retries after auth(). Signing runs before each HTTP attempt
+    # in httr2 >= 1.2.2, so this request can enforce its own send policy.
+    req$policies$auth_sign <- list(
+      fun = function(req, ...) {
+        token(.check_only = TRUE)
+        if (sent && !httr2::req_get_method(req) %in% c("GET", "HEAD")) {
+          .odb_abort(
+            paste0(
+              "Trino statement requests are not retried automatically. ",
+              "Check whether the cluster accepted the statement before retrying."
+            ),
+            "request_failed"
+          )
+        }
+        req <- authenticate(req)
+        sent <<- TRUE
+        req
+      },
+      params = list(),
+      cache = NULL
+    )
+    req
   }
   do.call(
     DBI::dbConnect,

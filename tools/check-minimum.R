@@ -11,7 +11,7 @@ Sys.setenv(
 source("tools/validation.R")
 floor <- c(
   DBI = "1.2.0",
-  httr2 = "1.2.0",
+  httr2 = "1.2.2",
   curl = "6.4.0",
   shiny = "1.8.1",
   promises = "1.4.0",

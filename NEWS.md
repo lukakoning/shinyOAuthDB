@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Prevent Trino's native HTTP retries from resubmitting SQL statements.
+  Read retries recheck authorization and use current credentials before
+  each attempt. Require httr2 1.2.2 for per-attempt request signing.
+
 * Allow background tasks to return HTTP responses, including ClickHouse
   execution acknowledgements and raw API results. Preserve response data
   while excluding the original request and worker parsing caches.
