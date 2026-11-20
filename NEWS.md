@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Suppress warnings and messages from cached connection validity checks so
+  diagnostics cannot expose credentials copied before token renewal. Checks
+  with errors or unmufflable diagnostics reopen the connection safely.
+
 * Suppress native cleanup warnings and messages that may contain copied
   credentials, while allowing disconnection to finish. Diagnostics without
   a muffling restart use the existing fixed cleanup-failure report.

@@ -603,14 +603,7 @@ oauth_db_token <- function(
         key <- if (is.function(cache_key)) cache_key(token) else NULL
         if (!is.null(native)) {
           valid <- identical(key, native_key) &&
-            if (is.function(is_valid)) {
-              tryCatch(isTRUE(is_valid(native)), error = function(e) FALSE)
-            } else {
-              !inherits(native, "DBIConnection") ||
-                tryCatch(isTRUE(DBI::dbIsValid(native)), error = function(e) {
-                  FALSE
-                })
-            }
+            .odb_connection_valid(native, is_valid)
           if (valid) {
             current(captured)
             return(native)
@@ -712,6 +705,37 @@ oauth_db_token <- function(
     owner = owner
   )
   connection
+}
+
+.odb_connection_valid <- function(native, is_valid = NULL) {
+  muffle <- function(condition) {
+    restart <- findRestart(
+      if (inherits(condition, "warning")) "muffleWarning" else "muffleMessage",
+      condition
+    )
+    if (is.null(restart)) {
+      stop(
+        "Native validity diagnostics cannot be forwarded safely.",
+        call. = FALSE
+      )
+    }
+    invokeRestart(restart)
+  }
+  # Cached handles can report credentials copied before renewal.
+  tryCatch(
+    withCallingHandlers(
+      {
+        if (is.function(is_valid)) {
+          isTRUE(is_valid(native))
+        } else {
+          !inherits(native, "DBIConnection") || isTRUE(DBI::dbIsValid(native))
+        }
+      },
+      warning = muffle,
+      message = muffle
+    ),
+    error = function(error) FALSE
+  )
 }
 
 .odb_disconnect <- function(native, disconnect = NULL) {
