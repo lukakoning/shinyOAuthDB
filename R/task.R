@@ -22,6 +22,8 @@
 #'   ignored and return `FALSE`; accepted invocations return `TRUE`, invisibly.
 #'   `result()` waits quietly before completion, checks authorization on every
 #'   read, and returns ordinary R data. Native handles cannot leave the worker.
+#'   HTTP responses retain their status, headers and body; their originating
+#'   request is omitted.
 #'   Status is `"initial"`, `"running"`, `"success"` or `"error"`. Cancelled or
 #'   invalidated results report `"initial"` until another invocation is accepted.
 #' @details
@@ -168,6 +170,9 @@ oauth_db_task <- function(
               control$running <- NULL
               if (isFALSE(shiny::isolate(current(check)))) {
                 return(NULL)
+              }
+              if (isTRUE(value$ok)) {
+                value$value <- .odb_task_restore_result(value$value)
               }
               value
             },
@@ -550,6 +555,50 @@ oauth_db_task <- function(
 
 .odb_task_time <- function() as.numeric(Sys.time())
 
+.odb_task_transfer_result <- function(value) {
+  if (inherits(value, "httr2_response")) {
+    return(structure(
+      list(
+        status_code = httr2::resp_status(value),
+        url = value$url,
+        method = value$method,
+        headers = as.list(httr2::resp_headers(value)),
+        body = if (httr2::resp_has_body(value)) {
+          httr2::resp_body_raw(value)
+        } else {
+          raw()
+        },
+        timing = value$timing
+      ),
+      class = "shinyOAuthDB_worker_response"
+    ))
+  }
+  if (is.list(value) && !isS4(value)) {
+    result <- lapply(value, .odb_task_transfer_result)
+    if (is.pairlist(value)) {
+      result <- as.pairlist(result)
+    }
+    attributes(result) <- attributes(value)
+    return(result)
+  }
+  value
+}
+
+.odb_task_restore_result <- function(value) {
+  if (inherits(value, "shinyOAuthDB_worker_response")) {
+    return(do.call(httr2::response, unclass(value)))
+  }
+  if (is.list(value) && !isS4(value)) {
+    result <- lapply(value, .odb_task_restore_result)
+    if (is.pairlist(value)) {
+      result <- as.pairlist(result)
+    }
+    attributes(result) <- attributes(value)
+    return(result)
+  }
+  value
+}
+
 .odb_task_run <- function(worker, tokens, until, method, arguments) {
   restore <- function(value) {
     if (inherits(value, "shinyOAuthDB_worker_function")) {
@@ -693,6 +742,7 @@ oauth_db_task <- function(
       "Worker operations must return data synchronously inside the worker."
     )
   }
+  result <- .odb_task_transfer_result(result)
   .odb_task_plain(result, functions = FALSE)
   result
 }

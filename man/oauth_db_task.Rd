@@ -30,6 +30,8 @@ Invocation arguments go to the selected operation. Busy invocations are
 ignored and return \code{FALSE}; accepted invocations return \code{TRUE}, invisibly.
 \code{result()} waits quietly before completion, checks authorization on every
 read, and returns ordinary R data. Native handles cannot leave the worker.
+HTTP responses retain their status, headers and body; their originating
+request is omitted.
 Status is \code{"initial"}, \code{"running"}, \code{"success"} or \code{"error"}. Cancelled or
 invalidated results report \code{"initial"} until another invocation is accepted.
 }

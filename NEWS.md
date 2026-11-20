@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Allow background tasks to return HTTP responses, including ClickHouse
+  execution acknowledgements and raw API results. Preserve response data
+  while excluding the original request and worker parsing caches.
+
 * Apply the stronger RPostgres connection check to dedicated PostgreSQL
   helpers, including Azure PostgreSQL, Cloud SQL and CockroachDB. Failed
   native reconnects reopen on access without replaying completed queries.
