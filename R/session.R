@@ -728,7 +728,7 @@ oauth_db_token <- function(
         if (is.function(is_valid)) {
           isTRUE(is_valid(native))
         } else {
-          !inherits(native, "DBIConnection") || isTRUE(DBI::dbIsValid(native))
+          isTRUE(.odb_generic_connection_valid(native))
         }
       },
       warning = muffle,

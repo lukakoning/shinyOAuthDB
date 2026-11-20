@@ -1,5 +1,9 @@
 # shinyOAuthDB 0.0.0.9000
 
+* Apply the stronger RPostgres connection check to dedicated PostgreSQL
+  helpers, including Azure PostgreSQL, Cloud SQL and CockroachDB. Failed
+  native reconnects reopen on access without replaying completed queries.
+
 * Suppress warnings and messages from cached connection validity checks so
   diagnostics cannot expose credentials copied before token renewal. Checks
   with errors or unmufflable diagnostics reopen the connection safely.
