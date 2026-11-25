@@ -47,9 +47,10 @@ Invocation arguments go to the selected operation. Busy invocations are
 ignored and return `FALSE`; accepted invocations return `TRUE`,
 invisibly. `result()` waits quietly before completion, checks
 authorization on every read, and returns ordinary R data. Native handles
-cannot leave the worker. Status is `"initial"`, `"running"`, `"success"`
-or `"error"`. Cancelled or invalidated results report `"initial"` until
-another invocation is accepted.
+cannot leave the worker. HTTP responses retain their status, headers and
+body; their originating request is omitted. Status is `"initial"`,
+`"running"`, `"success"` or `"error"`. Cancelled or invalidated results
+report `"initial"` until another invocation is accepted.
 
 ## Details
 

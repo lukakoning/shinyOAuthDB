@@ -39,7 +39,11 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9000" id="shinyoauthdb-0009000">shinyOAuthDB 0.0.0.9000<a class="anchor" aria-label="anchor" href="#shinyoauthdb-0009000"></a></h2>
-<ul><li><p>Suppress native cleanup warnings and messages that may contain copied credentials, while allowing disconnection to finish. Diagnostics without a muffling restart use the existing fixed cleanup-failure report.</p></li>
+<ul><li><p>Prevent Trino’s native HTTP retries from resubmitting SQL statements. Read retries recheck authorization and use current credentials before each attempt. Require httr2 1.2.2 for per-attempt request signing.</p></li>
+<li><p>Allow background tasks to return HTTP responses, including ClickHouse execution acknowledgements and raw API results. Preserve response data while excluding the original request and worker parsing caches.</p></li>
+<li><p>Apply the stronger RPostgres connection check to dedicated PostgreSQL helpers, including Azure PostgreSQL, Cloud SQL and CockroachDB. Failed native reconnects reopen on access without replaying completed queries.</p></li>
+<li><p>Suppress warnings and messages from cached connection validity checks so diagnostics cannot expose credentials copied before token renewal. Checks with errors or unmufflable diagnostics reopen the connection safely.</p></li>
+<li><p>Suppress native cleanup warnings and messages that may contain copied credentials, while allowing disconnection to finish. Diagnostics without a muffling restart use the existing fixed cleanup-failure report.</p></li>
 <li><p>Apply SQL Server’s native statement-retry and certificate-identity option protections to Fabric ODBC connections before authorization binding.</p></li>
 <li><p>Recheck authorization after native connection validity checks, so a cached connection cannot be returned after sign-out, account replacement or loss of required permissions during the check.</p></li>
 <li><p>Enforce the signed 16-bit range for CrateDB <code>SMALLINT</code> columns and array elements when validating queries, raw results and execution counts.</p></li>
